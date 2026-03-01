@@ -51,5 +51,11 @@
     "imagePromptGenerate": "Analyze images/videos and generate descriptions",
     "imageGenerate": "Generate new images from images and text",
     "videoGenerate": "Generate videos from images and prompts"
+  },
+  "picker": {
+    "imageTitle": "Select Image File",
+    "imageHint": "Non-image files will be dimmed",
+    "videoTitle": "Select Video File",
+    "videoHint": "Non-video files will be dimmed"
   }
 }

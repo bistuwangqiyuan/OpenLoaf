@@ -51,5 +51,11 @@
     "imagePromptGenerate": "分析图片/视频并生成描述",
     "imageGenerate": "输入图片与文字生成新图",
     "videoGenerate": "基于图片与提示词生成视频"
+  },
+  "picker": {
+    "imageTitle": "选择图片文件",
+    "imageHint": "非图片文件将置灰",
+    "videoTitle": "选择视频文件",
+    "videoHint": "非视频文件将置灰"
   }
 }

@@ -941,7 +941,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
             return (
               <IconBtn
                 key={item.id}
-                title={INSERT_TOOL_LABELS[item.id] ?? item.title}
+                title={item.title}
                 active={isActive}
                 onPointerDown={event => {
                   if (isLocked) return;
@@ -990,8 +990,8 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         <ProjectFilePickerDialog
           open={imagePickerOpen}
           onOpenChange={setImagePickerOpen}
-          title="选择图片文件"
-          filterHint="非图片文件将置灰"
+          title={t('picker.imageTitle')}
+          filterHint={t('picker.imageHint')}
           allowedExtensions={IMAGE_EXTS}
           excludeBoardEntries
           currentBoardFolderUri={fileContext?.boardFolderUri}
@@ -1004,8 +1004,8 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         <ProjectFilePickerDialog
           open={videoPickerOpen}
           onOpenChange={setVideoPickerOpen}
-          title="选择视频文件"
-          filterHint="非视频文件将置灰"
+          title={t('picker.videoTitle')}
+          filterHint={t('picker.videoHint')}
           allowedExtensions={VIDEO_EXTS}
           excludeBoardEntries
           currentBoardFolderUri={fileContext?.boardFolderUri}
