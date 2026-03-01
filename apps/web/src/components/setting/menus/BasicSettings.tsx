@@ -11,6 +11,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Switch } from "@openloaf/ui/animate-ui/components/radix/switch";
 import { Tabs, TabsList, TabsTrigger } from "@openloaf/ui/tabs";
 import { ThemeToggler } from "@/components/ThemeProvider";
@@ -27,15 +28,17 @@ import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsFie
 import { ChevronDown } from "lucide-react";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
+import { SUPPORTED_UI_LANGUAGES } from "@/i18n/types";
+import type { LanguageId } from "@/i18n/types";
 import LocalAccess from "./LocalAccess";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
 type AnimationLevel = "low" | "medium" | "high";
-type LanguageId = "zh-CN" | "en-US" | "ja-JP" | "ko-KR" | "fr-FR" | "de-DE" | "es-ES";
 
 export function BasicSettings() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { basic, setBasic, isLoading: basicLoading } = useBasicConfig();
+  const { i18n, t } = useTranslation('settings');
 
   const lastManualThemeRef = useRef<"dark" | "light">(
     resolvedTheme === "dark" ? "dark" : "light",
@@ -48,16 +51,11 @@ export function BasicSettings() {
   const uiThemeManual = basic.uiThemeManual;
   const toolAllowOutsideScope = Boolean(basic.toolAllowOutsideScope);
 
-  const uiLanguage: LanguageId =
-    uiLanguageRaw === "zh-CN" ||
-    uiLanguageRaw === "en-US" ||
-    uiLanguageRaw === "ja-JP" ||
-    uiLanguageRaw === "ko-KR" ||
-    uiLanguageRaw === "fr-FR" ||
-    uiLanguageRaw === "de-DE" ||
-    uiLanguageRaw === "es-ES"
-      ? uiLanguageRaw
-      : "zh-CN";
+  const uiLanguage: LanguageId = SUPPORTED_UI_LANGUAGES.some(
+    l => l.value === uiLanguageRaw
+  )
+    ? (uiLanguageRaw as LanguageId)
+    : "zh-CN";
 
   const fontSize: FontSizeKey =
     fontSizeRaw === "small" ||
@@ -122,15 +120,9 @@ export function BasicSettings() {
       {({ resolved, toggleTheme }) => {
         const isAutoTheme = uiTheme === "system";
         const themeTabsValue = resolved;
-        const languageLabelById: Record<LanguageId, string> = {
-          "zh-CN": "中文（简体）",
-          "en-US": "English",
-          "ja-JP": "日本語",
-          "ko-KR": "한국어",
-          "fr-FR": "Français",
-          "de-DE": "Deutsch",
-          "es-ES": "Español",
-        };
+        const languageLabelById: Record<LanguageId, string> = Object.fromEntries(
+          SUPPORTED_UI_LANGUAGES.map(l => [l.value, l.label])
+        ) as Record<LanguageId, string>;
 
         return (
           <div className="space-y-6">
@@ -140,7 +132,7 @@ export function BasicSettings() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">语言</div>
                     <div className="text-xs text-muted-foreground">
-                      暂不支持切换，仅保存偏好
+                      更改 UI 显示语言
                     </div>
                   </div>
 
@@ -161,13 +153,15 @@ export function BasicSettings() {
                       <DropdownMenuContent align="end" className="w-[220px]">
                           <DropdownMenuRadioGroup
                             value={uiLanguage}
-                            onValueChange={(next) =>
-                              void setBasic({ uiLanguage: next as LanguageId })
-                            }
+                            onValueChange={(next) => {
+                              const nextLang = next as LanguageId;
+                              void setBasic({ uiLanguage: nextLang });
+                              void i18n.changeLanguage(nextLang);
+                            }}
                           >
-                          {Object.entries(languageLabelById).map(
-                            ([id, label]) => (
-                              <DropdownMenuRadioItem key={id} value={id}>
+                          {SUPPORTED_UI_LANGUAGES.map(
+                            ({ value, label }) => (
+                              <DropdownMenuRadioItem key={value} value={value}>
                                 {label}
                               </DropdownMenuRadioItem>
                             ),
