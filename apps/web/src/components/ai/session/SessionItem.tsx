@@ -99,10 +99,10 @@ export default function SessionItem({
         // 用户手动重命名后：标记 isUserRename=true，避免后台 AI 覆盖
         data: { title, isUserRename: true },
       } as any);
-      toast.success(t("ai:session.renameSuccess"));
+      toast.success(t("common:renameSuccess"));
       setIsRenameOpen(false);
     } catch (err: any) {
-      toast.error(err?.message ?? t("ai:session.renameFailed"));
+      toast.error(err?.message ?? t("common:renameFailed"));
     } finally {
       setIsBusy(false);
     }
