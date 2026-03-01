@@ -1,26 +1,32 @@
 {
-  "toolbar": {
-    "select": "選擇工具",
-    "pen": "筆",
-    "eraser": "橡皮擦",
-    "line": "直線",
-    "shape": "形狀",
-    "text": "文字",
-    "color": "顏色",
-    "fontSize": "字體大小",
-    "strokeWidth": "筆劃寬度",
+  "board": {
+    "title": "畫布工具",
+    "new": "新建畫布",
+    "create": "建立畫布",
+    "edit": "編輯",
+    "delete": "刪除",
+    "save": "保存",
+    "cancel": "取消",
+    "download": "下載",
+    "share": "分享",
+    "duplicate": "複製",
     "undo": "復原",
     "redo": "重做",
-    "clear": "清除畫布",
-    "save": "保存",
-    "export": "匯出"
-  },
-  "canvas": {
-    "title": "畫布",
-    "background": "背景",
-    "grid": "網格",
-    "snap": "吸附",
+    "clear": "清除",
+    "brush": "筆刷",
+    "eraser": "橡皮擦",
+    "pen": "鋼筆",
+    "color": "顏色",
+    "size": "大小",
+    "opacity": "透明度",
     "zoom": "縮放",
-    "reset": "重設檢視"
+    "fit": "適應螢幕",
+    "gridToggle": "顯示網格",
+    "rulerToggle": "顯示尺規",
+    "layer": "圖層",
+    "layers": "圖層列表",
+    "newLayer": "新建圖層",
+    "deleteLayer": "刪除圖層",
+    "renameLayer": "重新命名圖層"
   }
 }

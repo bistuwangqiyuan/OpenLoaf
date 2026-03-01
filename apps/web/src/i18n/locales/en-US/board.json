@@ -1,26 +1,32 @@
 {
-  "toolbar": {
-    "select": "Select",
-    "pen": "Pen",
-    "eraser": "Eraser",
-    "line": "Line",
-    "shape": "Shape",
-    "text": "Text",
-    "color": "Color",
-    "fontSize": "Font size",
-    "strokeWidth": "Stroke width",
+  "board": {
+    "title": "Board Tools",
+    "new": "New Board",
+    "create": "Create Board",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "download": "Download",
+    "share": "Share",
+    "duplicate": "Duplicate",
     "undo": "Undo",
     "redo": "Redo",
-    "clear": "Clear canvas",
-    "save": "Save",
-    "export": "Export"
-  },
-  "canvas": {
-    "title": "Canvas",
-    "background": "Background",
-    "grid": "Grid",
-    "snap": "Snap",
+    "clear": "Clear",
+    "brush": "Brush",
+    "eraser": "Eraser",
+    "pen": "Pen",
+    "color": "Color",
+    "size": "Size",
+    "opacity": "Opacity",
     "zoom": "Zoom",
-    "reset": "Reset view"
+    "fit": "Fit Screen",
+    "gridToggle": "Show Grid",
+    "rulerToggle": "Show Ruler",
+    "layer": "Layer",
+    "layers": "Layers",
+    "newLayer": "New Layer",
+    "deleteLayer": "Delete Layer",
+    "renameLayer": "Rename Layer"
   }
 }
