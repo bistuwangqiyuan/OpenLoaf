@@ -52,8 +52,8 @@ function getShortcutText(
   const keyPath = SHORTCUT_KEYS_MAP[input.id];
   const noteKeyPath = SHORTCUT_NOTE_KEYS_MAP[input.id];
   return {
-    label: keyPath ? t(`keyboardShortcuts:${keyPath}`) : input.label,
-    note: noteKeyPath ? t(`keyboardShortcuts:${noteKeyPath}`) : input.note,
+    label: keyPath ? t(`keyboardShortcuts.${keyPath}`) : input.label,
+    note: noteKeyPath ? t(`keyboardShortcuts.${noteKeyPath}`) : input.note,
   };
 }
 
@@ -117,16 +117,16 @@ export function KeyboardShortcuts() {
   const isMac = useIsMac();
 
   const PROJECT_SHORTCUTS = useMemo(() => [
-    { id: "project.tab.index", label: t('keyboardShortcuts:projectTabIndex'), keys: "Alt+1" },
-    { id: "project.tab.canvas", label: t('keyboardShortcuts:projectTabCanvas'), keys: "Alt+2" },
-    { id: "project.tab.tasks", label: t('keyboardShortcuts:projectTabTasks'), keys: "Alt+3" },
-    { id: "project.tab.materials", label: t('keyboardShortcuts:projectTabMaterials'), keys: "Alt+4" },
-    { id: "project.tab.skills", label: t('keyboardShortcuts:projectTabSkills'), keys: "Alt+5" },
+    { id: "project.tab.index", label: t('keyboardShortcuts.projectTabIndex'), keys: "Alt+1" },
+    { id: "project.tab.canvas", label: t('keyboardShortcuts.projectTabCanvas'), keys: "Alt+2" },
+    { id: "project.tab.tasks", label: t('keyboardShortcuts.projectTabTasks'), keys: "Alt+3" },
+    { id: "project.tab.materials", label: t('keyboardShortcuts.projectTabMaterials'), keys: "Alt+4" },
+    { id: "project.tab.skills", label: t('keyboardShortcuts.projectTabSkills'), keys: "Alt+5" },
   ], [t]);
 
   return (
     <div className="space-y-6">
-      <OpenLoafSettingsGroup title={t('keyboardShortcuts:title')}>
+      <OpenLoafSettingsGroup title={t('keyboardShortcuts.title')}>
         <div className="divide-y divide-border">
           {GLOBAL_SHORTCUTS.map((shortcut) => {
             const text = getShortcutText(shortcut, (key) => t(key));
@@ -149,7 +149,7 @@ export function KeyboardShortcuts() {
           })}
         </div>
       </OpenLoafSettingsGroup>
-      <OpenLoafSettingsGroup title={t('keyboardShortcuts:projectShortcuts')}>
+      <OpenLoafSettingsGroup title={t('keyboardShortcuts.projectShortcuts')}>
         <div className="divide-y divide-border">
           {PROJECT_SHORTCUTS.map((shortcut) => (
             <div
