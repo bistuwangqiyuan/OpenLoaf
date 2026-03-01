@@ -9,6 +9,7 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import ChatCoreProvider from "./ChatCoreProvider";
 import MessageList from "./message/MessageList";
@@ -401,6 +402,7 @@ export function Chat({
   onSessionChange,
   ...params
 }: ChatProps) {
+  const { t } = useTranslation('ai');
   const rawParams = React.useMemo(() => ({ ...params }), [params]);
   const tab = useTabView(tabId);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
@@ -515,7 +517,7 @@ export function Chat({
   const uploadFile = React.useCallback(
     async (input: ChatAttachmentSource) => {
       if (!workspaceId) {
-        return { ok: false as const, errorMessage: "当前标签页未绑定工作区，无法上传图片" };
+        return { ok: false as const, errorMessage: t('image.workspaceRequired') };
       }
       // 上传后端生成相对路径，后续仅存该引用。
       const formData = new FormData();
@@ -542,7 +544,7 @@ export function Chat({
           const errorText = await res.text();
           return {
             ok: false as const,
-            errorMessage: errorText || "图片上传失败，请重试",
+            errorMessage: errorText || t('image.uploadFailed'),
           };
         }
         const data = (await res.json()) as {
@@ -552,7 +554,7 @@ export function Chat({
         if (!data?.url) {
           return {
             ok: false as const,
-            errorMessage: "图片上传失败：服务端未返回地址",
+            errorMessage: t('image.noServerUrl'),
           };
         }
         return {
@@ -561,7 +563,7 @@ export function Chat({
           mediaType: data.mediaType ?? input.file.type,
         };
       } catch {
-        return { ok: false as const, errorMessage: "图片上传失败，请检查网络连接" };
+        return { ok: false as const, errorMessage: t('image.networkError') };
       }
     },
     [effectiveSessionId, projectId, workspaceId]
@@ -647,9 +649,10 @@ export function Chat({
           sourceUrl: source.sourceUrl,
           objectUrl,
           status: "error",
-          errorMessage: `文件过大（${formatFileSize(file.size)}），请小于 ${formatFileSize(
-            CHAT_ATTACHMENT_MAX_FILE_SIZE_BYTES
-          )}`,
+          errorMessage: t('image.fileTooLarge', {
+            size: formatFileSize(file.size),
+            max: formatFileSize(CHAT_ATTACHMENT_MAX_FILE_SIZE_BYTES),
+          }),
         });
         continue;
       }
