@@ -25,7 +25,8 @@
     "analysis": "Analysis Mode",
     "brainstorm": "Brainstorm",
     "execute": "Execute Mode",
-    "selectMode": "Select chat mode"
+    "selectMode": "Select chat mode",
+    "customizeSettings": "Customize Settings"
   },
   "approval": {
     "required": "Approval required",

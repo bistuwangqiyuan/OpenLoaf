@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react'
 import { Settings2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { SaasLoginDialog } from '@/components/auth/SaasLoginDialog'
 import { useModelPreferences } from './model-preferences/useModelPreferences'
@@ -43,6 +44,7 @@ export default function SelectMode({
   triggerVariant = 'text',
   chatMode = 'agent',
 }: SelectModeProps) {
+  const { t } = useTranslation('ai')
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const prefs = useModelPreferences()
@@ -109,7 +111,7 @@ export default function SelectMode({
           : 'bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 hover:text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/25 dark:hover:text-violet-200',
         className,
       )}
-      aria-label="自定义设置"
+      aria-label={t('mode.customizeSettings')}
     >
       <Settings2 className="h-4 w-4" />
     </PromptInputButton>
@@ -126,7 +128,7 @@ export default function SelectMode({
       )}
     >
       <Settings2 className="h-3.5 w-3.5" />
-      <span className="truncate">自定义设置</span>
+      <span className="truncate">{t('mode.customizeSettings')}</span>
     </PromptInputButton>
   )
 

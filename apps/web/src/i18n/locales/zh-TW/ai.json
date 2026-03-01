@@ -25,7 +25,8 @@
     "analysis": "分析模式",
     "brainstorm": "腦力激盪",
     "execute": "執行模式",
-    "selectMode": "選擇對話模式"
+    "selectMode": "選擇對話模式",
+    "customizeSettings": "自訂設定"
   },
   "approval": {
     "required": "需要批准",

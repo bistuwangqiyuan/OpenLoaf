@@ -25,7 +25,8 @@
     "analysis": "分析模式",
     "brainstorm": "头脑风暴",
     "execute": "执行模式",
-    "selectMode": "选择对话模式"
+    "selectMode": "选择对话模式",
+    "customizeSettings": "自定义设置"
   },
   "approval": {
     "required": "需要批准",
