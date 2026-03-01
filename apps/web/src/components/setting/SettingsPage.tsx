@@ -289,7 +289,7 @@ export default function SettingsPage({
       byKey.get("storage"),
     ].filter(filterVisible);
     return [group1, group2].filter((group) => group.length > 0) as OpenLoafSettingsMenuItem[][];
-  }, []);
+  }, [MENU]);
 
   /** Persist the active menu into the dock base params. */
   const handleMenuChange = (nextKey: SettingsMenuKey) => {

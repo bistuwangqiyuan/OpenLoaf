@@ -57,6 +57,26 @@ import { useTabs } from "@/hooks/use-tabs";
 
 // Membership labels will be dynamically set via useTranslation hook in component
 
+/** All known system-generated default workspace names across supported languages. */
+const KNOWN_DEFAULT_WORKSPACE_NAMES = new Set([
+  '默认工作空间',
+  '預設工作區',
+  'Default Workspace',
+  'デフォルト ワークスペース',
+  '기본 작업 공간',
+  'Espace de travail par défaut',
+  'Standardarbeitsbereich',
+  'Espacio de trabajo predeterminado',
+]);
+
+/** Resolve display name for a workspace, translating system defaults to current language. */
+function resolveWorkspaceDisplayName(name: string, t: (key: string) => string): string {
+  if (KNOWN_DEFAULT_WORKSPACE_NAMES.has(name)) {
+    return t('workspace.defaultWorkspaceName');
+  }
+  return name;
+}
+
 /** 会员等级胶囊徽章样式 — 低透明彩色背景 + 对应文字色，light/dark 双套。 */
 const MEMBERSHIP_BADGE_STYLES: Record<string, string> = {
   free: "bg-secondary text-secondary-foreground",
@@ -68,6 +88,7 @@ const MEMBERSHIP_BADGE_STYLES: Record<string, string> = {
 export const SidebarWorkspace = () => {
   const { t } = useTranslation('workspace');
   const { workspace } = useWorkspace();
+  const workspaceDisplayName = resolveWorkspaceDisplayName(workspace?.name ?? '', t);
 
   const MEMBERSHIP_LABELS: Record<string, string> = {
     free: t('membership.free'),
@@ -262,7 +283,7 @@ export const SidebarWorkspace = () => {
                 </Avatar>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="truncate text-sm font-medium leading-5">
-                    {workspace.name}
+                    {workspaceDisplayName}
                   </div>
                   <div className="truncate text-[11px] text-muted-foreground leading-4">
                     {sidebarAccountLabel ?? t('loggedIn')}
@@ -368,7 +389,7 @@ export const SidebarWorkspace = () => {
                           <Building2 className="size-3" />
                         </div>
                         <span className="min-w-0 flex-1 truncate">
-                          {ws.name}
+                          {resolveWorkspaceDisplayName(ws.name, t)}
                         </span>
                         {isActive ? (
                           <Check className="text-muted-foreground size-4" />

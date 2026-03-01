@@ -22,6 +22,7 @@
     "logout": "Logout",
     "loginAccount": "Login to OpenLoaf Account",
     "checkUpdate": "Check for Updates",
+    "defaultWorkspaceName": "Default Workspace",
     "title": "Workspace",
     "loading": "Loading…",
     "addWorkspace": "Add Workspace",
