@@ -416,6 +416,8 @@ export const CALENDAR_TRANSLATIONS: Record<LanguageId, IlamyCalendarProps["trans
     october: "10月",
     november: "11月",
     december: "12月",
+    timeRange: "時間範囲",
+    timeRangeHint: "有効化して開始時刻と終了時刻を設定",
   },
   "ko-KR": {
     today: "오늘",
@@ -512,7 +514,9 @@ export const CALENDAR_TRANSLATIONS: Record<LanguageId, IlamyCalendarProps["trans
     september: "9월",
     october: "10월",
     november: "11월",
-    december: "12月",
+    december: "12월",
+    timeRange: "범위 시간",
+    timeRangeHint: "활성화하여 시작 시간과 종료 시간 설정",
   },
   "fr-FR": {
     today: "Aujourd'hui",
@@ -610,6 +614,8 @@ export const CALENDAR_TRANSLATIONS: Record<LanguageId, IlamyCalendarProps["trans
     october: "Octobre",
     november: "Novembre",
     december: "Décembre",
+    timeRange: "Plage horaire",
+    timeRangeHint: "Activer pour définir les heures de début et de fin",
   },
   "de-DE": {
     today: "Heute",
@@ -707,6 +713,8 @@ export const CALENDAR_TRANSLATIONS: Record<LanguageId, IlamyCalendarProps["trans
     october: "Oktober",
     november: "November",
     december: "Dezember",
+    timeRange: "Rango de tiempo",
+    timeRangeHint: "Habilitar para establecer la hora de inicio y fin",
   },
   "es-ES": {
     today: "Hoy",
@@ -804,5 +812,7 @@ export const CALENDAR_TRANSLATIONS: Record<LanguageId, IlamyCalendarProps["trans
     october: "Octubre",
     november: "Noviembre",
     december: "Diciembre",
+    timeRange: "Rango de tiempo",
+    timeRangeHint: "Habilitar para establecer la hora de inicio y fin",
   },
 };
