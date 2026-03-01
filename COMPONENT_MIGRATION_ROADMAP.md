@@ -12,10 +12,12 @@
 | ✅ SidebarWorkspace.tsx | 完成 | 100% |
 | ✅ ChatInput.tsx | 完成 | 100% |
 | ✅ ChatModeSelector.tsx | 完成 | 100% |
-| 🔄 Chat.tsx | 待做 | 0% |
-| ⏳ MessageHelper.tsx（优先级 2） | 待做 | 0% |
-| ⏳ ApprovalModeSelector.tsx（优先级 2） | 待做 | 0% |
-| ⏳ Settings 页组件（优先级 3） | 待做 | 0% |
+| ✅ Chat.tsx | 完成 | 100% |
+| ✅ ApprovalModeSelector.tsx | 完成 | 100% |
+| ✅ MessageHelper.tsx | 完成 | 100% |
+| ✅ ProviderDialog.tsx（优先级 3） | 完成 | 100% |
+| ✅ LocalAccess.tsx（优先级 3） | 完成 | 100% |
+| ⏳ 其他 Settings 页组件（优先级 3） | 待做 | 0% |
 | ⏳ 功能模块（优先级 4） | 待做 | 0% |
 
 **已完成的核心基础设施**：
