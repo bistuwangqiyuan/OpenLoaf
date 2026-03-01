@@ -77,7 +77,7 @@ function ensureDefaultWorkspaces(language?: string): WorkspacesFile {
   const lang = language ?? 'zh-CN';
   const workspace: Workspace = {
     id: uuidv4(),
-    name: DEFAULT_WORKSPACE_NAMES[lang] ?? DEFAULT_WORKSPACE_NAMES['zh-CN'],
+    name: (DEFAULT_WORKSPACE_NAMES[lang] ?? DEFAULT_WORKSPACE_NAMES['zh-CN'])!,
     type: "local",
     isActive: true,
     rootUri: resolveDefaultWorkspaceRootUri(),
