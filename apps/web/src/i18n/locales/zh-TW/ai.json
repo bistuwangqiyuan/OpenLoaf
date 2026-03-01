@@ -46,6 +46,10 @@
   "tools": {
     "availableTools": "可用工具"
   },
+  "image": {
+    "noEditingSupport": "目前模型不支援影像編輯",
+    "noInputSupport": "目前模型不支援影像輸入"
+  },
   "aiModel": {
     "openaiKey": "OpenAI API Key",
     "anthropicKey": "Anthropic API Key",

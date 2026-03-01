@@ -10,6 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { FocusEvent, ReactNode } from "react";
 import {
   Cloud,
@@ -1058,6 +1059,7 @@ export default function ChatInput({
   isCodexProvider,
   onDropHandled,
 }: ChatInputProps) {
+  const { t } = useTranslation('ai');
   const { sendMessage, stopGenerating, clearError, setPendingCloudMessage } = useChatActions();
   const { status, isHistoryLoading } = useChatState();
   const { input, setInput, imageOptions, codexOptions, addMaskedAttachment } = useChatOptions();
@@ -1336,11 +1338,11 @@ export default function ChatInput({
       (item) => item.mask && item.mask.remoteUrl
     );
     if (!resolvedIsAutoModel && hasMaskedAttachment && !resolvedCanImageEdit) {
-      toast.error("当前模型不支持图片编辑");
+      toast.error(t('image.noEditingSupport'));
       return;
     }
     if (!allowImage && readyImages.length > 0) {
-      toast.error("当前模型不支持图片输入");
+      toast.error(t('image.noInputSupport'));
       return;
     }
     if (status === "error") clearError();

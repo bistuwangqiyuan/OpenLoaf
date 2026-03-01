@@ -46,6 +46,10 @@
   "tools": {
     "availableTools": "Available tools"
   },
+  "image": {
+    "noEditingSupport": "Current model does not support image editing",
+    "noInputSupport": "Current model does not support image input"
+  },
   "aiModel": {
     "openaiKey": "OpenAI API Key",
     "anthropicKey": "Anthropic API Key",
