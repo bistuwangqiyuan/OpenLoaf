@@ -151,7 +151,7 @@ export function BoardCanvasRender({
         />
       ) : null}
       {showUi ? <MultiSelectionOutline snapshot={snapshot} engine={engine} /> : null}
-      {showUi && selectedNode && selectedNode.type !== "image_generate" ? (
+      {showUi && selectedNode && selectedNode.type !== "image_generate" && selectedNode.type !== "image_prompt_generate" && selectedNode.type !== "video_generate" ? (
         <SingleSelectionOutline snapshot={snapshot} engine={engine} element={selectedNode} />
       ) : null}
       {showUi && selectedNode ? (

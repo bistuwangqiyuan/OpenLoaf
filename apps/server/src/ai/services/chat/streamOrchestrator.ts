@@ -16,6 +16,7 @@ import {
 import { logger } from "@/common/logger";
 import type { ChatMessageKind, TokenUsage } from "@openloaf/api";
 import {
+  getCliSummary,
   getSessionId,
   getPlanUpdate,
   popAgentFrame,
@@ -259,6 +260,10 @@ export async function createChatStreamResponse(input: ChatStreamResponseInput): 
                 ...timingMetadata,
                 agent: input.agentMetadata,
               };
+              const cliSummary = getCliSummary();
+              if (cliSummary) {
+                mergedMetadata.cliSummary = cliSummary;
+              }
               const planUpdate = getPlanUpdate();
               if (planUpdate) {
                 // 逻辑：将本次请求的 plan 挂到 assistant metadata，方便后续回放。
@@ -267,9 +272,24 @@ export async function createChatStreamResponse(input: ChatStreamResponseInput): 
 
               const finalizedMetadata =
                 mergeAbortMetadata(mergedMetadata, { isAborted, finishReason }) ?? {};
+              const baseParts = applyTransientFlagToParts((responseMessage as any).parts ?? []);
+
+              // 注入 CLI 摘要 part，使刷新后仍可显示 CLI 执行历史。
+              if (cliSummary) {
+                (baseParts as any[]).push({
+                  type: "tool-cli-thinking",
+                  toolCallId: "cc-summary",
+                  toolName: "cli-thinking",
+                  variant: "cli-thinking",
+                  title: "CLI 输出",
+                  output: cliSummary,
+                  state: "output-available",
+                });
+              }
+
               const normalizedResponseMessage = {
                 ...(responseMessage as any),
-                parts: applyTransientFlagToParts((responseMessage as any).parts ?? []),
+                parts: baseParts,
               } as UIMessage;
               const branchLogMessages = buildBranchLogMessages({
                 modelMessages: input.modelMessages as UIMessage[],
@@ -406,6 +426,7 @@ async function saveErrorMessage(input: ErrorStreamInput) {
     sessionId: input.sessionId,
     messageId: input.assistantMessageId,
     part,
+    messageKind: "error",
   });
   if (appended) return;
   if (!input.parentMessageId) return;
@@ -416,6 +437,7 @@ async function saveErrorMessage(input: ErrorStreamInput) {
       id: input.assistantMessageId,
       role: "assistant",
       parts: [part],
+      messageKind: "error",
     } as any,
     parentMessageId: input.parentMessageId,
     allowEmpty: false,

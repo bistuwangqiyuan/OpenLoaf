@@ -375,6 +375,20 @@ export const settingSchemas = {
       }),
     ),
   },
+  /** Test an auxiliary capability with user-provided context. */
+  testAuxiliaryCapability: {
+    input: z.object({
+      capabilityKey: z.string(),
+      context: z.string(),
+      customPrompt: z.string().optional(),
+    }),
+    output: z.object({
+      ok: z.boolean(),
+      result: z.unknown(),
+      error: z.string().optional(),
+      durationMs: z.number(),
+    }),
+  },
   /** Infer project type via auxiliary model and update project.json. */
   inferProjectType: {
     input: z.object({
@@ -550,6 +564,12 @@ export abstract class BaseSettingRouter {
       getAuxiliaryCapabilities: shieldedProcedure
         .output(settingSchemas.getAuxiliaryCapabilities.output)
         .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      testAuxiliaryCapability: shieldedProcedure
+        .input(settingSchemas.testAuxiliaryCapability.input)
+        .output(settingSchemas.testAuxiliaryCapability.output)
+        .mutation(async () => {
           throw new Error("Not implemented in base class");
         }),
       inferProjectType: shieldedProcedure

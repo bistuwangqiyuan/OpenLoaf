@@ -1226,6 +1226,103 @@ export class SettingRouterImpl extends BaseSettingRouter {
           });
         }),
 
+      testAuxiliaryCapability: shieldedProcedure
+        .input(settingSchemas.testAuxiliaryCapability.input)
+        .output(settingSchemas.testAuxiliaryCapability.output)
+        .mutation(async ({ input }) => {
+          const start = Date.now();
+          try {
+            const { AUXILIARY_CAPABILITIES, CAPABILITY_SCHEMAS } = await import(
+              "@/ai/services/auxiliaryCapabilities"
+            );
+            const cap = AUXILIARY_CAPABILITIES[input.capabilityKey];
+            if (!cap) {
+              return {
+                ok: false,
+                result: null,
+                error: `未知能力: ${input.capabilityKey}`,
+                durationMs: Date.now() - start,
+              };
+            }
+
+            const { generateObject, generateText } = await import("ai");
+            const { resolveChatModel } = await import(
+              "@/ai/models/resolveChatModel"
+            );
+            const { readAuxiliaryModelConf } = await import(
+              "@/modules/settings/auxiliaryModelConfStore"
+            );
+
+            const conf = readAuxiliaryModelConf();
+            const modelIds =
+              conf.modelSource === "cloud"
+                ? conf.cloudModelIds
+                : conf.localModelIds;
+            const chatModelId = modelIds[0]?.trim() || undefined;
+
+            const resolved = await resolveChatModel({
+              chatModelId,
+              chatModelSource: conf.modelSource,
+            });
+
+            const systemPrompt =
+              typeof input.customPrompt === "string"
+                ? input.customPrompt
+                : typeof conf.capabilities[input.capabilityKey]?.customPrompt ===
+                    "string"
+                  ? conf.capabilities[input.capabilityKey]!.customPrompt!
+                  : cap.defaultPrompt;
+
+            if (cap.outputMode === "text") {
+              const result = await generateText({
+                model: resolved.model,
+                system: systemPrompt,
+                prompt: input.context,
+              });
+              return {
+                ok: true,
+                result: result.text,
+                durationMs: Date.now() - start,
+              };
+            }
+
+            const schema =
+              CAPABILITY_SCHEMAS[
+                input.capabilityKey as keyof typeof CAPABILITY_SCHEMAS
+              ];
+            if (!schema) {
+              return {
+                ok: false,
+                result: null,
+                error: `能力 ${input.capabilityKey} 无结构化 schema`,
+                durationMs: Date.now() - start,
+              };
+            }
+
+            const result = await generateObject({
+              model: resolved.model,
+              schema,
+              system: systemPrompt,
+              prompt: input.context,
+            });
+
+            return {
+              ok: true,
+              result: result.object,
+              durationMs: Date.now() - start,
+            };
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : String(err);
+            return {
+              ok: false,
+              result: null,
+              error: message,
+              durationMs: Date.now() - start,
+            };
+          }
+        }),
+
       inferProjectType: shieldedProcedure
         .input(settingSchemas.inferProjectType.input)
         .output(settingSchemas.inferProjectType.output)

@@ -20,6 +20,7 @@ import type {
 import { convertAsyncIteratorToReadableStream } from "@ai-sdk/provider-utils";
 import { logger } from "@/common/logger";
 import {
+  appendCliSummary,
   getProjectId,
   getSessionId,
   getUiWriter,
@@ -98,12 +99,20 @@ function resolveWorkingDirectory(): string {
   const projectId = getProjectId();
   if (projectId) {
     const projectRootPath = getProjectRootPath(projectId);
-    if (projectRootPath) return projectRootPath;
+    if (projectRootPath) {
+      logger.debug({ projectId, cwd: projectRootPath }, "[cli] cwd resolved from project");
+      return projectRootPath;
+    }
+    logger.warn({ projectId }, "[cli] project root not found, falling back to workspace");
   }
   const workspaceId = getWorkspaceId();
   if (workspaceId) {
     const workspaceRootPath = getWorkspaceRootPathById(workspaceId);
-    if (workspaceRootPath) return workspaceRootPath;
+    if (workspaceRootPath) {
+      logger.debug({ workspaceId, cwd: workspaceRootPath }, "[cli] cwd resolved from workspace");
+      return workspaceRootPath;
+    }
+    logger.warn({ workspaceId }, "[cli] workspace root not found");
   }
   throw new Error("Claude Code 运行路径缺失：未找到 project 或 workspace 根目录");
 }
@@ -230,7 +239,7 @@ async function* createClaudeCodeStream(
 
   let usage = buildEmptyUsage();
   let textId: string | null = null;
-  let toolCallCounter = 0;
+  let hasStreamedText = false;
 
   try {
     yield { type: "stream-start", warnings: EMPTY_WARNINGS };
@@ -258,6 +267,7 @@ async function* createClaudeCodeStream(
         if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
           const delta = event.delta.text ?? "";
           if (!delta) continue;
+          hasStreamedText = true;
           if (!textId) {
             textId = `cc-text-${sessionId ?? "0"}`;
             yield { type: "text-start", id: textId };
@@ -275,7 +285,11 @@ async function* createClaudeCodeStream(
         const contentBlocks = Array.isArray(betaMessage.content) ? betaMessage.content : [];
         for (const block of contentBlocks) {
           if (block.type === "text" && block.text) {
-            // 逻辑：如果前面没有通过 stream_event 流式发送过文本，回退为整块发送。
+            if (hasStreamedText) {
+              // 文本已通过 stream_event 流式发送，跳过避免重复。
+              continue;
+            }
+            // 回退：stream_event 未产生文本时，整块发送。
             if (!textId) {
               textId = `cc-text-${sessionId ?? "0"}`;
               yield { type: "text-start", id: textId };
@@ -283,38 +297,127 @@ async function* createClaudeCodeStream(
             yield { type: "text-delta", id: textId, delta: block.text };
           }
           if (block.type === "tool_use") {
-            toolCallCounter += 1;
-            const toolCallId = block.id ?? `cc-tool:${toolCallCounter}`;
-            const toolName = block.name ?? "unknown";
-            const inputPayload = JSON.stringify(block.input ?? {});
-            yield {
-              type: "tool-call",
-              toolCallId,
-              toolName,
-              input: inputPayload,
-              providerExecuted: true,
-            };
-            // 逻辑：CLI 工具已自行执行，发送空 result 标记完成。
-            yield {
-              type: "tool-result",
-              toolCallId,
-              toolName,
-              result: { status: "executed_by_cli" },
-              output: { status: "executed_by_cli" },
-            } as LanguageModelV3StreamPart;
+            // CLI 工具由 Claude Code 自行执行，不产生 AI SDK tool-call/tool-result。
+            // 工具执行详情通过 tool_use_summary → data-cli-thinking-delta 展示。
+            continue;
           }
+        }
+        hasStreamedText = false;
+        continue;
+      }
+
+      // --- 工具执行进度（实时展示后台在做什么）---
+      if (message.type === "tool_progress") {
+        if (uiWriter) {
+          const m = message as any;
+          uiWriter.write({
+            type: "data-cc-tool-progress",
+            data: {
+              toolUseId: m.tool_use_id,
+              toolName: m.tool_name,
+              elapsedSeconds: m.elapsed_time_seconds,
+              taskId: m.task_id,
+            },
+            transient: true,
+          } as any);
         }
         continue;
       }
 
-      // --- 工具使用摘要（用于 UI 展示）---
+      // --- 系统初始化 ---
+      if (message.type === "system" && (message as any).subtype === "init") {
+        if (uiWriter) {
+          const m = message as any;
+          uiWriter.write({
+            type: "data-cc-init",
+            data: {
+              model: m.model,
+              tools: m.tools,
+              mcpServers: m.mcp_servers,
+              claudeCodeVersion: m.claude_code_version,
+              permissionMode: m.permissionMode,
+              cwd: m.cwd,
+            },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      // --- 状态变化（compacting 等）---
+      if (message.type === "system" && (message as any).subtype === "status") {
+        if (uiWriter) {
+          uiWriter.write({
+            type: "data-cc-status",
+            data: { status: (message as any).status },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      // --- 子任务生命周期 ---
+      if (message.type === "system" && (message as any).subtype === "task_started") {
+        if (uiWriter) {
+          const m = message as any;
+          uiWriter.write({
+            type: "data-cc-task-started",
+            data: { taskId: m.task_id, description: m.description, taskType: m.task_type },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      if (message.type === "system" && (message as any).subtype === "task_progress") {
+        if (uiWriter) {
+          const m = message as any;
+          uiWriter.write({
+            type: "data-cc-task-progress",
+            data: { taskId: m.task_id, description: m.description, lastToolName: m.last_tool_name, usage: m.usage },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      if (message.type === "system" && (message as any).subtype === "task_notification") {
+        if (uiWriter) {
+          const m = message as any;
+          uiWriter.write({
+            type: "data-cc-task-done",
+            data: { taskId: m.task_id, status: m.status, summary: m.summary, usage: m.usage },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      // --- 速率限制 ---
+      if (message.type === "rate_limit_event") {
+        if (uiWriter) {
+          const info = (message as any).rate_limit_info;
+          uiWriter.write({
+            type: "data-cc-rate-limit",
+            data: { status: info?.status, resetsAt: info?.resetsAt, utilization: info?.utilization },
+            transient: true,
+          } as any);
+        }
+        continue;
+      }
+
+      // --- 工具使用摘要（用于 UI 展示 + 持久化）---
       if (message.type === "tool_use_summary") {
         const summary = (message as any).summary;
-        if (summary && uiWriter) {
-          uiWriter.write({
-            type: "data-cli-thinking-delta",
-            data: { toolCallId: "cc-summary", delta: stripAnsiControlSequences(summary) },
-          } as any);
+        if (summary) {
+          const cleaned = stripAnsiControlSequences(summary);
+          appendCliSummary(cleaned);
+          if (uiWriter) {
+            uiWriter.write({
+              type: "data-cli-thinking-delta",
+              data: { toolCallId: "cc-summary", delta: cleaned },
+            } as any);
+          }
         }
         continue;
       }
@@ -336,7 +439,32 @@ async function* createClaudeCodeStream(
           yield { type: "text-start", id: textId };
           yield { type: "text-delta", id: textId, delta: result.result };
         }
+        // 转发运行统计到前端
+        if (uiWriter) {
+          uiWriter.write({
+            type: "data-cc-result",
+            data: {
+              subtype: result.subtype,
+              totalCostUsd: result.total_cost_usd,
+              numTurns: result.num_turns,
+              durationMs: result.duration_ms,
+              errors: result.errors ?? [],
+              permissionDenials: (result.permission_denials ?? []).map((d: any) => ({ toolName: d.tool_name })),
+            },
+            transient: true,
+          } as any);
+        }
         break;
+      }
+
+      // --- 兜底：跳过其余系统事件，避免阻塞循环 ---
+      if (
+        message.type === "system" ||
+        message.type === "user" ||
+        message.type === "auth_status" ||
+        message.type === "prompt_suggestion"
+      ) {
+        continue;
       }
     }
 

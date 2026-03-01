@@ -74,6 +74,8 @@ export type RequestContext = {
   supervisionMode?: boolean;
   /** Task ID when running within an autonomous task. */
   taskId?: string;
+  /** CLI tool execution summary buffer. */
+  cliSummary?: string;
 };
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -299,4 +301,16 @@ export function getMediaModelId(kind: "image" | "video"): string | undefined {
 /** Run an async function within a restored RequestContext (for fire-and-forget sub-agents). */
 export function runWithContext<T>(ctx: RequestContext, fn: () => Promise<T>): Promise<T> {
   return storage.run(ctx, fn);
+}
+
+/** Append text to the CLI tool execution summary buffer. */
+export function appendCliSummary(text: string) {
+  const ctx = getRequestContext();
+  if (!ctx) return;
+  ctx.cliSummary = (ctx.cliSummary ?? "") + text;
+}
+
+/** Get the accumulated CLI tool execution summary. */
+export function getCliSummary(): string | undefined {
+  return getRequestContext()?.cliSummary;
 }

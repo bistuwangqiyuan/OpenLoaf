@@ -9,7 +9,7 @@
  */
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { queryClient, trpc } from '@/utils/trpc'
 import { Button } from '@openloaf/ui/button'
@@ -32,6 +32,8 @@ import {
   Sparkles,
   Zap,
   Check,
+  Play,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSaasAuth } from '@/hooks/use-saas-auth'
@@ -51,6 +53,12 @@ import {
 } from '@openloaf/ui/popover'
 import { Checkbox } from '@openloaf/ui/checkbox'
 import { SaasLoginDialog } from '@/components/auth/SaasLoginDialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@openloaf/ui/dialog'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
@@ -84,6 +92,17 @@ const CAP_ICON_MAP: Record<string, { icon: LucideIcon; color: string }> = {
   'text.translate': { icon: Languages, color: 'text-teal-500 dark:text-teal-400' },
 }
 
+/** Default test context for each capability. */
+const DEFAULT_TEST_CONTEXT: Record<string, string> = {
+  'project.classify': 'package.json\nsrc/index.ts\ntsconfig.json\nREADME.md',
+  'chat.suggestions': '我想要...',
+  'chat.title': '用户：帮我写一个 React 组件\n助手：好的，我来帮你创建一个按钮组件...',
+  'project.ephemeralName': '帮我分析这份销售数据，生成可视化图表',
+  'git.commitMessage':
+    "diff --git a/src/index.ts\n+export function hello() { return 'world' }",
+  'text.translate': '你好世界，这是一个测试文本。',
+}
+
 export function AuxiliaryModelSettings() {
   const { basic } = useBasicConfig()
   const { providerItems } = useSettingsValues()
@@ -106,6 +125,7 @@ export function AuxiliaryModelSettings() {
     Record<string, string | null>
   >({})
   const [activeCapKey, setActiveCapKey] = useState<string>('')
+  const [testDialogOpen, setTestDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!configQuery.data) return
@@ -360,17 +380,28 @@ export function AuxiliaryModelSettings() {
                         </span>
                       )}
                     </div>
-                    {isCustomized && (
+                    <div className="flex shrink-0 items-center gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 shrink-0 gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
-                        onClick={handleResetPrompt}
+                        onClick={() => setTestDialogOpen(true)}
                       >
-                        <RotateCcw className="h-3 w-3" />
-                        恢复默认
+                        <Play className="h-3 w-3" />
+                        测试
                       </Button>
-                    )}
+                      {isCustomized && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                          onClick={handleResetPrompt}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          恢复默认
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Trigger scenarios */}
@@ -425,8 +456,151 @@ export function AuxiliaryModelSettings() {
         </Button>
       </div>
 
+      {activeCap && (
+        <TestCapabilityDialog
+          open={testDialogOpen}
+          onOpenChange={setTestDialogOpen}
+          capabilityKey={activeCap.key}
+          capabilityLabel={activeCap.label}
+          outputMode={activeCap.outputMode}
+          currentPrompt={currentPrompt}
+        />
+      )}
+
       <SaasLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
     </div>
+  )
+}
+
+/** Dialog for testing an auxiliary capability. */
+function TestCapabilityDialog({
+  open,
+  onOpenChange,
+  capabilityKey,
+  capabilityLabel,
+  outputMode,
+  currentPrompt,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  capabilityKey: string
+  capabilityLabel: string
+  outputMode: string
+  currentPrompt: string
+}) {
+  const [context, setContext] = useState('')
+  const [result, setResult] = useState<{
+    ok: boolean
+    result: unknown
+    error?: string
+    durationMs: number
+  } | null>(null)
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    if (open) {
+      if (!initializedRef.current) {
+        setContext(DEFAULT_TEST_CONTEXT[capabilityKey] ?? '')
+        initializedRef.current = true
+      }
+      setResult(null)
+    } else {
+      initializedRef.current = false
+    }
+  }, [open, capabilityKey])
+
+  const testMutation = useMutation(
+    trpc.settings.testAuxiliaryCapability.mutationOptions({
+      onSuccess: (data) => setResult(data),
+      onError: (err) => {
+        setResult({
+          ok: false,
+          result: null,
+          error: err.message,
+          durationMs: 0,
+        })
+      },
+    }),
+  )
+
+  const handleRun = () => {
+    setResult(null)
+    testMutation.mutate({
+      capabilityKey,
+      context,
+      customPrompt: currentPrompt,
+    })
+  }
+
+  const isText = outputMode === 'text'
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-sm">
+            测试：{capabilityLabel}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              测试输入
+            </span>
+            <Textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              rows={4}
+              className="resize-none rounded-lg border-border/60 bg-background/50 font-mono text-xs leading-relaxed focus-visible:ring-1 focus-visible:ring-ring/50"
+              placeholder="输入测试上下文..."
+            />
+          </div>
+
+          <Button
+            size="sm"
+            className="w-fit gap-1.5 rounded-full px-4 transition-colors duration-150"
+            onClick={handleRun}
+            disabled={testMutation.isPending || !context.trim()}
+          >
+            {testMutation.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Play className="h-3 w-3" />
+            )}
+            {testMutation.isPending ? '运行中...' : '运行'}
+          </Button>
+
+          {result && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  结果
+                </span>
+                <span className="text-[10px] text-muted-foreground/60">
+                  {result.durationMs}ms
+                </span>
+              </div>
+              {result.ok ? (
+                isText ? (
+                  <div className="rounded-lg border border-border/40 bg-muted/20 p-3 text-xs leading-relaxed whitespace-pre-wrap">
+                    {String(result.result)}
+                  </div>
+                ) : (
+                  <pre className="max-h-48 overflow-auto rounded-lg border border-border/40 bg-muted/20 p-3 font-mono text-xs leading-relaxed">
+                    {JSON.stringify(result.result, null, 2)}
+                  </pre>
+                )
+              ) : (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-600 dark:text-red-400">
+                  {result.error || '未知错误'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

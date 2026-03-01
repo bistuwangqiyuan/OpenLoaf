@@ -106,9 +106,19 @@ export const BOARD_SETTINGS_DROPDOWN_ITEM_ACTIVE =
 
 /* ── Generation Node Style Constants ── */
 
-/** Glass container base for generation nodes. */
+/** Glass container base for generation nodes (neutral fallback). */
 export const BOARD_GENERATE_NODE_BASE =
   "bg-white/95 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-lg dark:bg-[hsl(var(--background)/0.92)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.4)]";
+
+/** Semantic glass base — image generation (light blue tint). */
+export const BOARD_GENERATE_NODE_BASE_IMAGE =
+  "bg-[#f0f6ff]/95 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-lg dark:bg-[hsl(210_60%_8%/0.92)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.4)]";
+/** Semantic glass base — image prompt (light amber tint). */
+export const BOARD_GENERATE_NODE_BASE_PROMPT =
+  "bg-[#fffbf0]/95 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-lg dark:bg-[hsl(35_50%_8%/0.92)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.4)]";
+/** Semantic glass base — video generation (light purple tint). */
+export const BOARD_GENERATE_NODE_BASE_VIDEO =
+  "bg-[#f8f0ff]/95 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-lg dark:bg-[hsl(270_50%_8%/0.92)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.4)]";
 
 /** Semantic border — image generation (blue). */
 export const BOARD_GENERATE_BORDER_IMAGE = "border-[#d2e3fc] dark:border-sky-800/60";

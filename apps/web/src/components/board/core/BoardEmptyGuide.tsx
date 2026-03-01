@@ -147,14 +147,18 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
         </div>
 
         {/* Template cards grid */}
-        <div className="pointer-events-auto grid w-[50%] grid-cols-4 gap-[2%]">
+        <div
+          data-canvas-toolbar
+          onPointerDown={(e) => e.stopPropagation()}
+          className="pointer-events-auto grid w-[50%] grid-cols-4 gap-[2%]"
+        >
             {TEMPLATES.map((tpl) => {
               const Icon = tpl.icon;
               return (
                 <button
                   key={tpl.id}
                   type="button"
-                  onClick={() => handleTemplate(tpl)}
+                  onPointerDown={() => handleTemplate(tpl)}
                   className={cn(
                     "group flex w-full flex-col items-center gap-3 rounded-2xl border border-transparent px-[8%] py-[16%]",
                     "transition-all duration-150 cursor-pointer select-none",

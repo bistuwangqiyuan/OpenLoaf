@@ -398,6 +398,7 @@ export default function ChatCoreProvider({
   const { loggedIn: authLoggedIn } = useSaasAuth();
   const upsertToolPart = useChatRuntime((s) => s.upsertToolPart);
   const clearToolPartsForTab = useChatRuntime((s) => s.clearToolPartsForTab);
+  const clearCcRuntime = useChatRuntime((s) => s.clearCcRuntime);
   const queryClient = useQueryClient();
   const { basic } = useBasicConfig();
   const basicRef = React.useRef(basic);
@@ -584,8 +585,9 @@ export default function ChatCoreProvider({
   React.useEffect(() => {
     if (tabId) {
       clearToolPartsForTab(tabId);
+      clearCcRuntime(tabId);
     }
-  }, [tabId, clearToolPartsForTab]);
+  }, [tabId, clearToolPartsForTab, clearCcRuntime]);
 
   const paramsRef = React.useRef<Record<string, unknown> | undefined>(params);
   const tabIdRef = React.useRef<string | null | undefined>(tabId);
@@ -814,13 +816,17 @@ export default function ChatCoreProvider({
       subAgentStreamControllersRef.current.clear();
       setStepThinking(false);
       setSessionErrorMessage(null);
-      if (clearTools && tabId) clearToolPartsForTab(tabId);
+      if (clearTools && tabId) {
+        clearToolPartsForTab(tabId);
+        clearCcRuntime(tabId);
+      }
     },
     [
       chat.stop,
       chat.setMessages,
       tabId,
       clearToolPartsForTab,
+      clearCcRuntime,
       setLeafMessageId,
       setBranchMessageIds,
       setSiblingNav,

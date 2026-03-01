@@ -47,6 +47,12 @@ export const masterTemplate: AgentTemplate = {
     // task
     'task-manage',
     'task-status',
+    // project
+    'project-query',
+    // calendar
+    'calendar-query',
+    // email
+    'email-query',
     // extra
     'request-user-input',
   ],
