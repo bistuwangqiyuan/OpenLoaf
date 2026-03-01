@@ -116,7 +116,17 @@ git log {app}-v{lastVersion}..HEAD --oneline --no-merges -- apps/{app}/ packages
 
 可选：如需维护 changelog，请在打 tag 前创建 `apps/{app}/changelogs/{currentVersion}/zh.md` 和 `en.md`。
 
-#### Step 4: 打包前执行类型检查并修复
+#### Step 4: 更新 lockfile（如果需要）
+
+如果本地修改了 `package.json`（例如依赖版本变更）但 `pnpm-lock.yaml` 未同步更新：
+
+```bash
+pnpm install --no-frozen-lockfile
+```
+
+提交 lockfile 更新后再继续后续步骤。
+
+#### Step 5: 打包前执行类型检查并修复
 
 ```bash
 pnpm check-types
@@ -142,7 +152,16 @@ git tag -a web-v{currentVersion} -m "release: web@{currentVersion}"
 git push && git push origin --tags
 ```
 
-#### Step 7: 发布完成后版本号自动加一并提交
+#### Step 7: **等待 GitHub Actions 成功后**版本号自动加一并提交
+
+> **⚠️ 重要：** 必须先确认 GitHub Actions 构建成功后再执行此步骤。如果 Actions 失败，需要先修复问题，删除并重新推送 tag，成功后再执行版本号加一。
+
+```bash
+# 1. 检查 GitHub Actions 状态
+gh run list --limit 3 --json status,conclusion
+
+# 2. 确认状态为 "success" 后再继续
+```
 
 1. **询问用户** patch/minor/major 或具体版本号（通常是 patch）
 2. 更新 package.json：
@@ -155,6 +174,34 @@ git push && git push origin --tags
    git commit -m "chore: bump {app} to {nextVersion}"
    git push
    ```
+
+#### 如果 GitHub Actions 失败
+
+如果推送 tag 后 GitHub Actions 构建失败：
+
+1. **删除失败 tag：**
+   ```bash
+   git push origin :refs/tags/server-v{version}
+   git push origin :refs/tags/web-v{version}
+   git tag -d server-v{version}
+   git tag -d web-v{version}
+   ```
+
+2. **修复问题并提交：**
+   ```bash
+   git add ...
+   git commit -m "fix: ..."
+   git push
+   ```
+
+3. **重新推送 tag：**
+   ```bash
+   git tag -a server-v{version} -m "release: server@{version}"
+   git tag -a web-v{version} -m "release: web@{version}"
+   git push origin refs/tags/server-v{version} refs/tags/web-v{version}
+   ```
+
+4. **等待 Actions 成功后再执行 Step 7（版本号加一）**
 
 ---
 
@@ -276,6 +323,8 @@ git push origin electron-v{version}
 | SDK 混淆后 dev 编译挂起 | Turbopack 无限卡住 | 见「@openloaf-saas/sdk 依赖管理」排查步骤 |
 | Tag 所在 commit 包含 `[skip ci]` | CI 不会被触发 | commit 消息不要包含 `[skip ci]` |
 | 直接用 `dist:production` 本地发布 Electron | 只有单平台产物 | 通过 git tag 触发 CI 全平台构建 |
+| Lockfile 未更新就推送 tag | CI 构建失败 `ERR_PNPM_OUTDATED_LOCKFILE` | 打包前先运行 `pnpm install --no-frozen-lockfile` 提交后再推送 tag |
+| GitHub Actions 成功前改版本号 | 版本号与 tag 不一致 | 必须等 Actions 显示 `success` 状态后再执行版本号加一 |
 
 ---
 
