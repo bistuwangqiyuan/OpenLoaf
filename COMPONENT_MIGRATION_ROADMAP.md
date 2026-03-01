@@ -2,6 +2,7 @@
 
 ## 执行现状
 
+**✅ 第四步进行中：服务端国际化基础设施完成 70%**
 **✅ 第三步完成：优先级 1-4 全部组件迁移（Priority 1-4 已全部完成）**
 
 **迁移总结**：
@@ -47,6 +48,16 @@
 - ✅ useLanguageSync hook 集成
 - ✅ BasicSettings 实时语言切换功能
 - ✅ 优先级 1-4 组件迁移完成（25+ 组件，600+ 翻译 key，1000+ 硬编码字符串替换）
+
+**第四步：服务端国际化（Priority 5）进度**：
+- ✅ 工作空间配置多语言化（8 种语言映射）
+- ✅ Tab 标题国际化（titleKey + i18next 翻译）
+- ✅ AI Agent Prompt 完全多语言化（10 个 prompt.en.md，586 行）
+- ✅ agentFactory 多语言基础设施（getTemplatePrompt 函数）
+- ✅ chatCommands 英文化
+- ⏳ tRPC 路由错误消息国际化（需改动生成代码）
+- ⏳ Tool description 多语言化（10+ 文件）
+- ⏳ Calendar eventForm 翻译
 
 ---
 
