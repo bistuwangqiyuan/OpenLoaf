@@ -42,7 +42,15 @@
     "daily": "Daily",
     "weekly": "Weekly",
     "monthly": "Monthly",
-    "yearly": "Yearly"
+    "yearly": "Yearly",
+    "createFromTemplate": "Create Task from Template",
+    "templateName": "Template Name",
+    "templateNamePlaceholder": "Enter template name",
+    "templateDescriptionPlaceholder": "Enter template description (optional)",
+    "saveTemplate": "Save Template",
+    "noTemplates": "No templates",
+    "newTemplate": "Create Template",
+    "back": "Back"
   },
   "status": {
     "todo": "To Do",
@@ -80,6 +88,33 @@
     "executingRunning": "Executing...",
     "searchPlaceholder": "Search tasks...",
     "createWithAi": "Create with AI",
-    "detailTitle": "Task Details"
+    "detailTitle": "Task Details",
+    "noActivity": "No activity",
+    "taskNotFound": "Task not found",
+    "notStarted": "Task has not started",
+    "noPlanContent": "No plan content",
+    "chatGeneratedOnExecution": "Chat records will be generated during task execution",
+    "logGeneratedOnExecution": "Execution logs will be generated during task execution"
+  },
+  "actorLabels": {
+    "system": "System",
+    "user": "User",
+    "agent": "Agent",
+    "timeout": "Timeout"
+  },
+  "tabs": {
+    "plan": "Plan",
+    "activity": "Activity",
+    "log": "Logs",
+    "chat": "Chat"
+  },
+  "detail": {
+    "created": "Created",
+    "agent": "Agent",
+    "confirmPlan": "Confirm Plan",
+    "reject": "Reject",
+    "pass": "Pass",
+    "rework": "Rework",
+    "cancelTask": "Cancel Task"
   }
 }

@@ -42,7 +42,15 @@
     "daily": "每天",
     "weekly": "每周",
     "monthly": "每月",
-    "yearly": "每年"
+    "yearly": "每年",
+    "createFromTemplate": "从模板创建任务",
+    "templateName": "模板名称",
+    "templateNamePlaceholder": "请输入模板名称",
+    "templateDescriptionPlaceholder": "请输入模板描述（可选）",
+    "saveTemplate": "保存模板",
+    "noTemplates": "暂无模板",
+    "newTemplate": "新建模板",
+    "back": "返回"
   },
   "status": {
     "todo": "待办",
@@ -80,6 +88,33 @@
     "executingRunning": "执行中...",
     "searchPlaceholder": "搜索任务...",
     "createWithAi": "让AI创建",
-    "detailTitle": "任务详情"
+    "detailTitle": "任务详情",
+    "noActivity": "暂无活动记录",
+    "taskNotFound": "任务不存在",
+    "notStarted": "任务尚未开始执行",
+    "noPlanContent": "暂无计划内容",
+    "chatGeneratedOnExecution": "对话记录将在任务执行时生成",
+    "logGeneratedOnExecution": "执行日志将在任务执行时生成"
+  },
+  "actorLabels": {
+    "system": "系统",
+    "user": "用户",
+    "agent": "Agent",
+    "timeout": "超时"
+  },
+  "tabs": {
+    "plan": "计划",
+    "activity": "活动",
+    "log": "日志",
+    "chat": "对话"
+  },
+  "detail": {
+    "created": "创建",
+    "agent": "Agent",
+    "confirmPlan": "确认计划",
+    "reject": "拒绝",
+    "pass": "通过",
+    "rework": "返工",
+    "cancelTask": "取消任务"
   }
 }

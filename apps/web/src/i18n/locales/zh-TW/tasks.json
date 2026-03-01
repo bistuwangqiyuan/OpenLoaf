@@ -42,7 +42,15 @@
     "daily": "每天",
     "weekly": "每週",
     "monthly": "每月",
-    "yearly": "每年"
+    "yearly": "每年",
+    "createFromTemplate": "從範本建立任務",
+    "templateName": "範本名稱",
+    "templateNamePlaceholder": "請輸入範本名稱",
+    "templateDescriptionPlaceholder": "請輸入範本描述（可選）",
+    "saveTemplate": "保存範本",
+    "noTemplates": "暫無範本",
+    "newTemplate": "新建範本",
+    "back": "返回"
   },
   "status": {
     "todo": "待辦",
@@ -80,6 +88,33 @@
     "executingRunning": "執行中...",
     "searchPlaceholder": "搜尋任務...",
     "createWithAi": "讓AI建立",
-    "detailTitle": "任務詳情"
+    "detailTitle": "任務詳情",
+    "noActivity": "暫無活動紀錄",
+    "taskNotFound": "任務不存在",
+    "notStarted": "任務尚未開始執行",
+    "noPlanContent": "暫無計畫內容",
+    "chatGeneratedOnExecution": "對話紀錄將在任務執行時生成",
+    "logGeneratedOnExecution": "執行日誌將在任務執行時生成"
+  },
+  "actorLabels": {
+    "system": "系統",
+    "user": "使用者",
+    "agent": "Agent",
+    "timeout": "逾時"
+  },
+  "tabs": {
+    "plan": "計畫",
+    "activity": "活動",
+    "log": "日誌",
+    "chat": "對話"
+  },
+  "detail": {
+    "created": "建立",
+    "agent": "Agent",
+    "confirmPlan": "確認計畫",
+    "reject": "拒絕",
+    "pass": "通過",
+    "rework": "返工",
+    "cancelTask": "取消任務"
   }
 }
