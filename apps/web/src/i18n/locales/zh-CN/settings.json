@@ -428,5 +428,36 @@
       "collapseCapGroup": "收起能力组",
       "expandCapGroup": "展开能力组"
     }
+  },
+  "auxiliaryModel": {
+    "structuredOutput": "结构化输出",
+    "plainText": "纯文本",
+    "toolCall": "工具调用",
+    "useSkills": "使用技能",
+    "saved": "辅助模型配置已保存",
+    "saveFailed": "保存失败: {{error}}",
+    "loading": "加载中...",
+    "modelTitle": "模型选择",
+    "modelSubtitle": "选择用于辅助推理的模型，推断失败时会静默兜底，不影响主流程。",
+    "modelSource": "模型来源",
+    "modelSourceHint": "选择本地部署或云端模型服务",
+    "sourceLocal": "本地",
+    "sourceCloud": "云端",
+    "useModel": "使用模型",
+    "autoModel": "未指定，将自动选择可用模型",
+    "selectedModels": "已选 {{count}} 个模型",
+    "capTitle": "能力配置",
+    "capSubtitle": "辅助模型在以下场景被调用，你可以自定义每个能力的提示词。",
+    "resetDefault": "恢复默认",
+    "triggerScene": "触发场景",
+    "prompt": "提示词",
+    "modified": "已修改",
+    "promptPlaceholder": "输入自定义提示词...",
+    "saving": "保存中...",
+    "save": "保存配置",
+    "autoLabel": "自动",
+    "selectedCountLabel": "{{count}} 个模型",
+    "loginCloud": "登录以使用云端模型",
+    "noModel": "暂无可用模型"
   }
 }

@@ -428,5 +428,36 @@
       "collapseCapGroup": "Collapse capability group",
       "expandCapGroup": "Expand capability group"
     }
+  },
+  "auxiliaryModel": {
+    "structuredOutput": "Structured Output",
+    "plainText": "Plain Text",
+    "toolCall": "Tool Call",
+    "useSkills": "Use Skills",
+    "saved": "Auxiliary model settings saved",
+    "saveFailed": "Save failed: {{error}}",
+    "loading": "Loading...",
+    "modelTitle": "Model Selection",
+    "modelSubtitle": "Choose a model for auxiliary inference. Failures are silent and do not affect the main workflow.",
+    "modelSource": "Model Source",
+    "modelSourceHint": "Choose local deployment or cloud model service",
+    "sourceLocal": "Local",
+    "sourceCloud": "Cloud",
+    "useModel": "Use Model",
+    "autoModel": "Not specified, auto-select available model",
+    "selectedModels": "{{count}} models selected",
+    "capTitle": "Capability Settings",
+    "capSubtitle": "The auxiliary model is invoked in these scenarios. You can customize the prompt for each capability.",
+    "resetDefault": "Reset to Default",
+    "triggerScene": "Trigger Scene",
+    "prompt": "Prompt",
+    "modified": "Modified",
+    "promptPlaceholder": "Enter custom prompt...",
+    "saving": "Saving...",
+    "save": "Save Settings",
+    "autoLabel": "Auto",
+    "selectedCountLabel": "{{count}} models",
+    "loginCloud": "Sign in to use cloud models",
+    "noModel": "No models available"
   }
 }

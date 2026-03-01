@@ -428,5 +428,36 @@
       "collapseCapGroup": "收起能力組",
       "expandCapGroup": "展開能力組"
     }
+  },
+  "auxiliaryModel": {
+    "structuredOutput": "結構化輸出",
+    "plainText": "純文字",
+    "toolCall": "工具呼叫",
+    "useSkills": "使用技能",
+    "saved": "輔助模型設定已儲存",
+    "saveFailed": "儲存失敗: {{error}}",
+    "loading": "載入中...",
+    "modelTitle": "模型選擇",
+    "modelSubtitle": "選擇用於輔助推理的模型，推斷失敗時會靜默兜底，不影響主流程。",
+    "modelSource": "模型來源",
+    "modelSourceHint": "選擇本地部署或雲端模型服務",
+    "sourceLocal": "本地",
+    "sourceCloud": "雲端",
+    "useModel": "使用模型",
+    "autoModel": "未指定，將自動選擇可用模型",
+    "selectedModels": "已選 {{count}} 個模型",
+    "capTitle": "能力配置",
+    "capSubtitle": "輔助模型在以下場景被呼叫，你可以自訂每個能力的提示詞。",
+    "resetDefault": "恢復預設",
+    "triggerScene": "觸發場景",
+    "prompt": "提示詞",
+    "modified": "已修改",
+    "promptPlaceholder": "輸入自訂提示詞...",
+    "saving": "儲存中...",
+    "save": "儲存設定",
+    "autoLabel": "自動",
+    "selectedCountLabel": "{{count}} 個模型",
+    "loginCloud": "登入以使用雲端模型",
+    "noModel": "暫無可用模型"
   }
 }
