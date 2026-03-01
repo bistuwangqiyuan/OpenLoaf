@@ -48,7 +48,7 @@ import {
   IMAGE_GENERATE_NODE_TYPE,
 } from "./constants";
 import {
-  BOARD_GENERATE_NODE_BASE,
+  BOARD_GENERATE_NODE_BASE_IMAGE,
   BOARD_GENERATE_BORDER_IMAGE,
   BOARD_GENERATE_SELECTED_IMAGE,
   BOARD_GENERATE_ERROR,
@@ -512,7 +512,7 @@ export function ImageGenerateNodeView({
 
   const containerClassName = [
     "relative flex w-full min-w-0 flex-col gap-3 rounded-xl border p-3 text-[#202124] dark:text-slate-100 transition-colors duration-150",
-    BOARD_GENERATE_NODE_BASE,
+    BOARD_GENERATE_NODE_BASE_IMAGE,
     viewStatus === "error"
       ? BOARD_GENERATE_ERROR
       : selected

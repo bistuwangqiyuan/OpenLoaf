@@ -21,6 +21,7 @@ type UIMessage<D = unknown, DT = UIDataTypes, T = UITools> = {
 /** Chat message kind for compaction handling. */
 export type ChatMessageKind =
   | "normal"
+  | "error"
   | "compact_prompt"
   | "compact_summary";
 

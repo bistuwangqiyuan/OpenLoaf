@@ -349,7 +349,7 @@ function MessageItem({
         </>
       ) : (
         <>
-          <MessageAi message={message} isAnimating={isAnimating} />
+          <MessageAi message={message} isAnimating={isAnimating} isLastAiMessage={isLastAiMessage} />
           {!hideAiActions &&
             !shouldHideAiActionsForApproval &&
             (hasVisibleContent || shouldShowBranchNav) && (

@@ -1,0 +1,27 @@
+services:
+  behavior-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      # 挂载整个项目代码到容器（使用本地最新代码运行测试）
+      - ../../:/app
+      # 隔离 node_modules —— macOS 原生模块在 alpine 不兼容，需容器内安装
+      - node_modules_root:/app/node_modules
+      # pnpm store 缓存 —— 跨次运行复用已下载的包，大幅加速 pnpm install
+      - pnpm_store:/root/.local/share/pnpm/store
+      # 挂载固定测试环境到容器的 ~/.openloaf/（含 providers.json.template）
+      - ./openloaf-root:/root/.openloaf
+      # 挂载宿主机 ~/.openloaf/ 配置（本地模式：自动复制 providers.json + auth.json）
+      - ${HOME}/.openloaf:/host-openloaf:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - OPENLOAF_SAAS_ACCESS_TOKEN
+      - PROMPTFOO_GRADING_API_KEY
+    working_dir: /app/apps/server
+
+volumes:
+  node_modules_root:
+  pnpm_store:

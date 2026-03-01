@@ -1180,11 +1180,29 @@ export class SettingRouterImpl extends BaseSettingRouter {
       /** Get auxiliary model config. */
       getAuxiliaryModelConfig: shieldedProcedure
         .output(settingSchemas.getAuxiliaryModelConfig.output)
-        .query(async () => {
+        .query(async ({ ctx }) => {
           const { readAuxiliaryModelConf } = await import(
             "@/modules/settings/auxiliaryModelConfStore"
           );
-          return readAuxiliaryModelConf();
+          const conf = readAuxiliaryModelConf();
+          // When SaaS source is selected, fetch quota from SaaS backend.
+          if (conf.modelSource === "saas") {
+            try {
+              const { getSaasAccessToken } = await import(
+                "@/ai/shared/context/requestContext"
+              );
+              const token = getSaasAccessToken();
+              if (token) {
+                const { getSaasClient } = await import("@/modules/saas/client");
+                const saasClient = getSaasClient(token);
+                const quotaRes = await saasClient.auxiliary.getQuota();
+                return { ...conf, quota: quotaRes.quota };
+              }
+            } catch {
+              // Quota fetch failure is non-critical.
+            }
+          }
+          return conf;
         }),
       /** Save auxiliary model config. */
       saveAuxiliaryModelConfig: shieldedProcedure
@@ -1206,6 +1224,21 @@ export class SettingRouterImpl extends BaseSettingRouter {
           writeAuxiliaryModelConf(merged);
           return { ok: true };
         }),
+      /** Get SaaS auxiliary quota. */
+      getAuxiliaryQuota: shieldedProcedure
+        .output(settingSchemas.getAuxiliaryQuota.output)
+        .query(async () => {
+          const { getSaasAccessToken } = await import(
+            "@/ai/shared/context/requestContext"
+          );
+          const token = getSaasAccessToken();
+          if (!token) {
+            throw new Error("未登录云端账号，请先登录");
+          }
+          const { getSaasClient } = await import("@/modules/saas/client");
+          const saasClient = getSaasClient(token);
+          return saasClient.auxiliary.getQuota();
+        }),
       /** Get auxiliary capability definitions. */
       getAuxiliaryCapabilities: shieldedProcedure
         .output(settingSchemas.getAuxiliaryCapabilities.output)
@@ -1226,7 +1259,172 @@ export class SettingRouterImpl extends BaseSettingRouter {
             };
           });
         }),
-      /** Infer project type via auxiliary model. */
+
+      testAuxiliaryCapability: shieldedProcedure
+        .input(settingSchemas.testAuxiliaryCapability.input)
+        .output(settingSchemas.testAuxiliaryCapability.output)
+        .mutation(async ({ input }) => {
+          const start = Date.now();
+          try {
+            const { AUXILIARY_CAPABILITIES, CAPABILITY_SCHEMAS } = await import(
+              "@/ai/services/auxiliaryCapabilities"
+            );
+            const cap = AUXILIARY_CAPABILITIES[input.capabilityKey];
+            if (!cap) {
+              return {
+                ok: false,
+                result: null,
+                error: `未知能力: ${input.capabilityKey}`,
+                durationMs: Date.now() - start,
+              };
+            }
+
+            // Reuse the same model resolution logic as auxiliaryInfer.
+            const { generateObject, generateText } = await import("ai");
+            const { resolveChatModel } = await import(
+              "@/ai/models/resolveChatModel"
+            );
+            const { readAuxiliaryModelConf } = await import(
+              "@/modules/settings/auxiliaryModelConfStore"
+            );
+
+            const conf = readAuxiliaryModelConf();
+
+            // Prompt priority: customPrompt param > saved config > default.
+            const savedCustom = conf.capabilities[input.capabilityKey]?.customPrompt;
+            const systemPrompt =
+              typeof input.customPrompt === "string"
+                ? input.customPrompt
+                : typeof savedCustom === "string"
+                  ? savedCustom
+                  : cap.defaultPrompt;
+
+            // SaaS branch — delegate test to SaaS backend
+            if (conf.modelSource === "saas") {
+              const { getSaasAccessToken } = await import(
+                "@/ai/shared/context/requestContext"
+              );
+              const token = getSaasAccessToken();
+              if (!token) {
+                return {
+                  ok: false,
+                  result: null,
+                  error: "未登录云端账号，请先登录",
+                  durationMs: Date.now() - start,
+                };
+              }
+              const { getSaasClient } = await import("@/modules/saas/client");
+              const saasClient = getSaasClient(token);
+              const res = await saasClient.auxiliary.infer({
+                capabilityKey: input.capabilityKey,
+                systemPrompt,
+                context: input.context,
+                outputMode: cap.outputMode === "text" ? "text" : "structured",
+              });
+              if (!res.ok) {
+                return {
+                  ok: false,
+                  result: null,
+                  error: res.message,
+                  durationMs: Date.now() - start,
+                };
+              }
+              return {
+                ok: true,
+                result: res.result,
+                durationMs: Date.now() - start,
+                usage: {
+                  inputTokens: res.usage.inputTokens,
+                  cachedInputTokens: 0,
+                  outputTokens: res.usage.outputTokens,
+                  totalTokens: res.usage.inputTokens + res.usage.outputTokens,
+                },
+              };
+            }
+
+            // Local/Cloud branch
+            const modelIds =
+              conf.modelSource === "cloud"
+                ? conf.cloudModelIds
+                : conf.localModelIds;
+            const chatModelId = modelIds[0]?.trim() || undefined;
+
+            if (!chatModelId) {
+              return {
+                ok: false,
+                result: null,
+                error: "未配置辅助模型，请先在上方「模型选择」中指定模型",
+                durationMs: Date.now() - start,
+              };
+            }
+
+            const resolved = await resolveChatModel({
+              chatModelId,
+              chatModelSource: conf.modelSource,
+            });
+
+            if (cap.outputMode === "text") {
+              const result = await generateText({
+                model: resolved.model,
+                system: systemPrompt,
+                prompt: input.context,
+              });
+              return {
+                ok: true,
+                result: result.text,
+                durationMs: Date.now() - start,
+                usage: {
+                  inputTokens: result.usage?.inputTokens ?? 0,
+                  cachedInputTokens: result.usage?.inputTokenDetails?.cacheReadTokens ?? 0,
+                  outputTokens: result.usage?.outputTokens ?? 0,
+                  totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+                },
+              };
+            }
+
+            const schema =
+              CAPABILITY_SCHEMAS[
+                input.capabilityKey as keyof typeof CAPABILITY_SCHEMAS
+              ];
+            if (!schema) {
+              return {
+                ok: false,
+                result: null,
+                error: `能力 ${input.capabilityKey} 无结构化 schema`,
+                durationMs: Date.now() - start,
+              };
+            }
+
+            const result = await generateObject({
+              model: resolved.model,
+              schema,
+              system: systemPrompt,
+              prompt: input.context,
+            });
+
+            return {
+              ok: true,
+              result: result.object,
+              durationMs: Date.now() - start,
+              usage: {
+                inputTokens: result.usage?.inputTokens ?? 0,
+                cachedInputTokens: result.usage?.inputTokenDetails?.cacheReadTokens ?? 0,
+                outputTokens: result.usage?.outputTokens ?? 0,
+                totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+              },
+            };
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : String(err);
+            return {
+              ok: false,
+              result: null,
+              error: message,
+              durationMs: Date.now() - start,
+            };
+          }
+        }),
+
       inferProjectType: shieldedProcedure
         .input(settingSchemas.inferProjectType.input)
         .output(settingSchemas.inferProjectType.output)
@@ -1236,17 +1434,22 @@ export class SettingRouterImpl extends BaseSettingRouter {
             return { projectType: "general", confidence: 0 };
           }
           const config = await readProjectConfig(rootPath);
+
+          // Skip if user manually set the type.
           if (config.typeManuallySet) {
             return {
-              projectType: String(config.projectType ?? "general"),
+              projectType: config.projectType ?? "general",
               icon: config.icon ?? undefined,
               confidence: 1,
             };
           }
+
+          // Scan the first two levels of the file tree (max 100 entries).
           const fileList = await scanProjectFiles(rootPath, 2, 100);
           if (!fileList.length) {
             return { projectType: "general", confidence: 0 };
           }
+
           const context = fileList.join("\n");
           const { auxiliaryInfer } = await import(
             "@/ai/services/auxiliaryInferenceService"
@@ -1254,24 +1457,33 @@ export class SettingRouterImpl extends BaseSettingRouter {
           const { CAPABILITY_SCHEMAS } = await import(
             "@/ai/services/auxiliaryCapabilities"
           );
+
           const result = await auxiliaryInfer({
             capabilityKey: "project.classify",
             context,
             schema: CAPABILITY_SCHEMAS["project.classify"],
             fallback: { type: "general" as const, icon: "", confidence: 0 },
           });
+
+          // Write back to project.json if confidence is sufficient.
           if (result.confidence >= 0.3) {
             const metaPath = getProjectMetaPath(rootPath);
             const updated = { ...config, projectType: result.type };
+            // Only set icon if user hasn't set one yet.
             if (!config.icon && result.icon) {
               updated.icon = result.icon;
             }
             const tmpPath = `${metaPath}.${Date.now()}.tmp`;
-            await fs.writeFile(tmpPath, JSON.stringify(updated, null, 2), "utf-8");
+            await fs.writeFile(
+              tmpPath,
+              JSON.stringify(updated, null, 2),
+              "utf-8",
+            );
             await fs.rename(tmpPath, metaPath);
           }
+
           return {
-            projectType: String(result.type),
+            projectType: result.type,
             icon: result.icon || undefined,
             confidence: result.confidence,
           };
@@ -1298,8 +1510,11 @@ async function scanProjectFiles(
     }
     for (const entry of entries) {
       if (results.length >= maxEntries) break;
+      // Skip hidden directories and common non-essential directories.
       if (entry.name.startsWith(".")) continue;
-      if (entry.name === "node_modules" || entry.name === "__pycache__") continue;
+      if (entry.name === "node_modules" || entry.name === "__pycache__") {
+        continue;
+      }
       const rel = path.relative(rootPath, path.join(dir, entry.name));
       if (entry.isDirectory()) {
         results.push(`${rel}/`);

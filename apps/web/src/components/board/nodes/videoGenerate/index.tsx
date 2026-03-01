@@ -44,7 +44,7 @@ import {
   VIDEO_GENERATE_OUTPUT_WIDTH,
 } from "./constants";
 import {
-  BOARD_GENERATE_NODE_BASE,
+  BOARD_GENERATE_NODE_BASE_VIDEO,
   BOARD_GENERATE_BORDER_VIDEO,
   BOARD_GENERATE_SELECTED_VIDEO,
   BOARD_GENERATE_ERROR,
@@ -715,7 +715,7 @@ export function VideoGenerateNodeView({
 
   const containerClassName = [
     "relative flex w-full min-w-0 flex-col gap-2 rounded-xl border p-3 text-[#202124] dark:text-slate-100 transition-colors duration-150",
-    BOARD_GENERATE_NODE_BASE,
+    BOARD_GENERATE_NODE_BASE_VIDEO,
     viewStatus === "error"
       ? BOARD_GENERATE_ERROR
       : selected

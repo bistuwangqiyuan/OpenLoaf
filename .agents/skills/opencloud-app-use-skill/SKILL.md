@@ -1,10 +1,7 @@
 ---
-name: openloaf-skill
+name: opencloud-app-use-skill
 description: >
-  Use when developing, extending, or debugging the OpenLoaf skill system —
-  creating new skills, modifying skill loading/scanning logic, updating
-  the settings UI for skill management, or changing how the AI agent
-  resolves and consumes skills
+  Use when developing or using OpenLoaf app skill system — app 里面的技能系统
 ---
 
 # OpenLoaf Skill Development

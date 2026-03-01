@@ -1,8 +1,11 @@
 # OpenLoaf AI Agent E2E 行为测试
-# 通过 runChatStream() 走完整 chat pipeline 验证 Agent 行为。
+# 通过 vars.agentType 路由到不同 Agent 执行路径：
+#   - agentType 未设置 / master-e2e：完整 runChatStream() pipeline
+#   - agentType = calendar/email/... ：直接用对应模板运行
 #
 # 运行方式: cd apps/server && pnpm run test:ai:behavior
 # 查看结果: cd apps/server && pnpm run test:ai:behavior:view
+# 按 Agent 过滤: --filter-pattern "cal-"
 
 description: "OpenLoaf AI Agent E2E 行为测试"
 
@@ -10,8 +13,8 @@ prompts:
   - "{{prompt}}"
 
 providers:
-  - id: file://openloaf-e2e-provider.ts
-    label: "OpenLoaf E2E"
+  - id: file://openloaf-universal-provider.ts
+    label: "OpenLoaf Universal"
 
 defaultTest:
   options:
@@ -23,7 +26,9 @@ defaultTest:
         apiKeyEnvar: PROMPTFOO_GRADING_API_KEY
 
 tests:
-  # ═══ 工具选择正确性（完整工具集）═══
+  # ════════════════════════════════════════════════════════════════
+  # Master 主助手 — 完整 E2E pipeline（agentType 不设置）
+  # ════════════════════════════════════════════════════════════════
 
   - description: "e2e-001: 项目列表查询应使用 project-query"
     vars:
@@ -118,8 +123,6 @@ tests:
             ? { pass: true, score: 1, reason: '未使用 shell-command' }
             : { pass: false, score: 0, reason: '不应使用 shell-command 来读取文件' };
 
-  # ═══ 多轮对话 ═══
-
   - description: "e2e-010: 多轮对话保持上下文"
     vars:
       prompt: "dummy"
@@ -133,3 +136,1038 @@ tests:
             : { pass: false, score: 0, reason: `未调用 time-now，实际: [${tools}]` };
       - type: llm-rubric
         value: "第二轮回复应包含与第一轮相同的时间信息，以英文表达"
+
+  # ─── Master 新增工具覆盖测试（master-001 ~ master-010）───
+
+  - description: "master-001: 待办任务查询应使用 task-status"
+    vars:
+      prompt: "查一下我有哪些待办任务"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('task-status')
+            ? { pass: true, score: 1, reason: '正确调用了 task-status' }
+            : { pass: false, score: 0, reason: `未调用 task-status，实际: [${tools}]` };
+
+  - description: "master-002: 日程查询应使用 calendar-query 而非 task-manage"
+    vars:
+      prompt: "明天有什么日程"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-query')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-query' }
+            : { pass: false, score: 0, reason: `未调用 calendar-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('task-manage')
+            ? { pass: true, score: 1, reason: '未误用 task-manage' }
+            : { pass: false, score: 0, reason: '日程查询不应调用 task-manage' };
+
+  - description: "master-003: 图表渲染应使用 chart-render"
+    vars:
+      prompt: "帮我画一个折线图，数据是 1,3,2,5,4"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('chart-render')
+            ? { pass: true, score: 1, reason: '正确调用了 chart-render' }
+            : { pass: false, score: 0, reason: `未调用 chart-render，实际: [${tools}]` };
+
+  - description: "master-004: JS 计算应使用 js-repl 而非 shell-command"
+    vars:
+      prompt: "用 JS 计算 2 的 32 次方"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('js-repl')
+            ? { pass: true, score: 1, reason: '正确调用了 js-repl' }
+            : { pass: false, score: 0, reason: `未调用 js-repl，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('shell-command')
+            ? { pass: true, score: 1, reason: '未误用 shell-command' }
+            : { pass: false, score: 0, reason: 'JS 计算不应使用 shell-command' };
+
+  - description: "master-005: 图片生成应使用 image-generate"
+    vars:
+      prompt: "生成一张宇宙星空的图片"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('image-generate')
+            ? { pass: true, score: 1, reason: '正确调用了 image-generate' }
+            : { pass: false, score: 0, reason: `未调用 image-generate，实际: [${tools}]` };
+
+  - description: "master-006: 目录列表应使用 list-dir 而非 project-query"
+    vars:
+      prompt: "列出 /tmp 目录有哪些文件"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('list-dir')
+            ? { pass: true, score: 1, reason: '正确调用了 list-dir' }
+            : { pass: false, score: 0, reason: `未调用 list-dir，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('project-query')
+            ? { pass: true, score: 1, reason: '未误用 project-query' }
+            : { pass: false, score: 0, reason: '文件系统目录不应使用 project-query' };
+
+  - description: "master-007: 代码搜索应使用 grep-files"
+    vars:
+      prompt: "在当前项目中搜索 TODO 注释"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('grep-files')
+            ? { pass: true, score: 1, reason: '正确调用了 grep-files' }
+            : { pass: false, score: 0, reason: `未调用 grep-files，实际: [${tools}]` };
+
+  - description: "master-008: 任务取消应使用 task-manage"
+    vars:
+      prompt: "帮我取消一个进行中的任务"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('task-manage')
+            ? { pass: true, score: 1, reason: '正确调用了 task-manage' }
+            : { pass: false, score: 0, reason: `未调用 task-manage，实际: [${tools}]` };
+
+  - description: "master-009: 打开链接应使用 open-url"
+    vars:
+      prompt: "打开 github.com"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('open-url')
+            ? { pass: true, score: 1, reason: '正确调用了 open-url' }
+            : { pass: false, score: 0, reason: `未调用 open-url，实际: [${tools}]` };
+
+  - description: "master-010: 重置 JS 解释器应使用 js-repl-reset"
+    vars:
+      prompt: "重置 JS 解释器"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('js-repl-reset')
+            ? { pass: true, score: 1, reason: '正确调用了 js-repl-reset' }
+            : { pass: false, score: 0, reason: `未调用 js-repl-reset，实际: [${tools}]` };
+
+  # ─── Master 反混淆测试（master-020 ~ master-023）───
+
+  - description: "master-020: 日程安排应使用 calendar-query 而非 task-manage"
+    vars:
+      prompt: "我的日程安排"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-query')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-query' }
+            : { pass: false, score: 0, reason: `未调用 calendar-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('task-manage')
+            ? { pass: true, score: 1, reason: '未误用 task-manage' }
+            : { pass: false, score: 0, reason: '日程查询不应使用 task-manage（日程≠任务）' };
+
+  - description: "master-021: 代码计算应使用 js-repl 而非 shell-command"
+    vars:
+      prompt: "用代码算一下圆周率"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('js-repl')
+            ? { pass: true, score: 1, reason: '正确调用了 js-repl' }
+            : { pass: false, score: 0, reason: `未调用 js-repl，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('shell-command')
+            ? { pass: true, score: 1, reason: '未误用 shell-command' }
+            : { pass: false, score: 0, reason: '计算任务应使用 js-repl 而非 shell-command' };
+
+  - description: "master-022: 邮件查询不应使用 list-dir"
+    vars:
+      prompt: "查看未读邮件数"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('email-query')
+            ? { pass: true, score: 1, reason: '正确调用了 email-query' }
+            : { pass: false, score: 0, reason: `未调用 email-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('list-dir')
+            ? { pass: true, score: 1, reason: '未误用 list-dir' }
+            : { pass: false, score: 0, reason: '邮件不是文件，不应使用 list-dir' };
+
+  - description: "master-023: 文件系统目录查询应使用 list-dir 而非 project-query"
+    vars:
+      prompt: "这个文件夹里有什么"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('list-dir')
+            ? { pass: true, score: 1, reason: '正确调用了 list-dir' }
+            : { pass: false, score: 0, reason: `未调用 list-dir，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return !tools.includes('project-query')
+            ? { pass: true, score: 1, reason: '未误用 project-query' }
+            : { pass: false, score: 0, reason: '文件系统目录查询不应使用 project-query（文件系统目录≠应用项目）' };
+
+  # ─── Master 输出质量测试（master-030 ~ master-032）───
+
+  - description: "master-030: 星期几查询回复应包含具体名称"
+    vars:
+      prompt: "今天是星期几"
+    assert:
+      - type: llm-rubric
+        value: "回复中应包含具体的星期几名称（如：星期一、星期二、Monday 等），不应只说「今天」而不说具体是几"
+
+  - description: "master-031: 任务创建回复应确认任务名称"
+    vars:
+      prompt: "帮我创建任务：明天下午3点开组会"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('task-manage')
+            ? { pass: true, score: 1, reason: '调用了 task-manage' }
+            : { pass: false, score: 0, reason: `未调用 task-manage，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应确认任务已创建，并复述任务名称（组会）或时间信息（明天下午3点）"
+
+  - description: "master-032: 项目查询回复应包含实际内容"
+    vars:
+      prompt: "有哪些项目"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('project-query')
+            ? { pass: true, score: 1, reason: '调用了 project-query' }
+            : { pass: false, score: 0, reason: `未调用 project-query，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应包含实际项目信息或明确说明当前没有项目，不应返回错误或空白"
+
+  # ─── Master Sub-Agent 调度测试（master-040 ~ master-041）───
+
+  - description: "master-040: Claude Code 开发请求应派发子 Agent"
+    vars:
+      prompt: "帮我用 Claude Code 开发一个新功能"
+    assert:
+      - type: javascript
+        value: |
+          const hasSub = context.providerResponse?.metadata?.hasSubAgentDispatch;
+          return hasSub
+            ? { pass: true, score: 1, reason: '正确派发了子 Agent' }
+            : { pass: false, score: 0, reason: '应派发子 Agent（Claude Code）但未检测到' };
+
+  - description: "master-041: 浏览器截图请求应派发子 Agent"
+    vars:
+      prompt: "帮我在浏览器里打开并截图一个网页"
+    assert:
+      - type: javascript
+        value: |
+          const hasSub = context.providerResponse?.metadata?.hasSubAgentDispatch;
+          return hasSub
+            ? { pass: true, score: 1, reason: '正确派发了子 Agent' }
+            : { pass: false, score: 0, reason: '应派发子 Agent（浏览器）但未检测到' };
+
+  # ─── Master 多轮对话测试（master-050 ~ master-051）───
+
+  - description: "master-050: 多轮任务操作保持上下文"
+    vars:
+      prompt: "dummy"
+      turns: '[{"text": "帮我创建购物任务"}, {"text": "把它的优先级改高"}]'
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('task-manage')
+            ? { pass: true, score: 1, reason: '调用了 task-manage' }
+            : { pass: false, score: 0, reason: `未调用 task-manage，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "最终回复应体现对购物任务优先级的修改，上下文应从第一轮保持"
+
+  - description: "master-051: 多轮项目操作保持上下文"
+    vars:
+      prompt: "dummy"
+      turns: '[{"text": "有哪些项目"}, {"text": "给第一个项目再建一个子项目"}]'
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('project-mutate')
+            ? { pass: true, score: 1, reason: '第二轮调用了 project-mutate' }
+            : { pass: false, score: 0, reason: `未调用 project-mutate，实际: [${tools}]` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Calendar 日历助手（agentType: calendar）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "cal-001: 列出日历源应使用 calendar-query mode=list-sources"
+    vars:
+      agentType: calendar
+      prompt: "列出我的日历源"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-query')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-query' }
+            : { pass: false, score: 0, reason: `未调用 calendar-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-query');
+          if (!call) return { pass: false, score: 0, reason: '未找到 calendar-query 调用' };
+          const mode = call.args?.mode;
+          return mode === 'list-sources'
+            ? { pass: true, score: 1, reason: `mode=${mode}` }
+            : { pass: false, score: 0, reason: `args.mode 应为 list-sources，实际: ${mode}` };
+
+  - description: "cal-002: 今天日程查询 rangeStart 应存在"
+    vars:
+      agentType: calendar
+      prompt: "今天有什么日程"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-query')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-query' }
+            : { pass: false, score: 0, reason: `未调用 calendar-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-query');
+          if (!call) return { pass: false, score: 0, reason: '未找到 calendar-query 调用' };
+          const hasRange = call.args?.rangeStart != null;
+          return hasRange
+            ? { pass: true, score: 1, reason: 'rangeStart 存在' }
+            : { pass: false, score: 0, reason: 'rangeStart 应存在（今日范围查询）' };
+
+  - description: "cal-003: 本周日程查询 rangeStart 和 rangeEnd 应同时存在"
+    vars:
+      agentType: calendar
+      prompt: "本周日程安排"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-query');
+          if (!call) return { pass: false, score: 0, reason: '未调用 calendar-query' };
+          const hasStart = call.args?.rangeStart != null;
+          const hasEnd = call.args?.rangeEnd != null;
+          return (hasStart && hasEnd)
+            ? { pass: true, score: 1, reason: 'rangeStart 和 rangeEnd 均存在' }
+            : { pass: false, score: 0, reason: `本周查询应有两端时间范围，rangeStart=${hasStart}, rangeEnd=${hasEnd}` };
+
+  - description: "cal-004: 下个月日程查询 rangeStart 应存在"
+    vars:
+      agentType: calendar
+      prompt: "下个月有什么安排"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-query');
+          if (!call) return { pass: false, score: 0, reason: '未调用 calendar-query' };
+          return call.args?.rangeStart != null
+            ? { pass: true, score: 1, reason: 'rangeStart 存在' }
+            : { pass: false, score: 0, reason: 'rangeStart 应存在' };
+
+  - description: "cal-005: 创建会议事件应使用 calendar-mutate action=create"
+    vars:
+      agentType: calendar
+      prompt: "创建一个明天上午10点的会议"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-mutate')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-mutate' }
+            : { pass: false, score: 0, reason: `未调用 calendar-mutate，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未找到 calendar-mutate 调用' };
+          return call.args?.action === 'create'
+            ? { pass: true, score: 1, reason: 'action=create' }
+            : { pass: false, score: 0, reason: `args.action 应为 create，实际: ${call.args?.action}` };
+
+  - description: "cal-006: 修改会议时间应使用 calendar-mutate action=update"
+    vars:
+      agentType: calendar
+      prompt: "把3点的会议改到4点"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 calendar-mutate' };
+          return call.args?.action === 'update'
+            ? { pass: true, score: 1, reason: 'action=update' }
+            : { pass: false, score: 0, reason: `args.action 应为 update，实际: ${call.args?.action}` };
+
+  - description: "cal-007: 取消提醒应使用 calendar-mutate action=delete"
+    vars:
+      agentType: calendar
+      prompt: "取消今天的提醒"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 calendar-mutate' };
+          const action = call.args?.action;
+          return (action === 'delete' || action === 'cancel')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 delete/cancel，实际: ${action}` };
+
+  - description: "cal-008: 标记任务完成应使用 calendar-mutate"
+    vars:
+      agentType: calendar
+      prompt: "标记锻炼任务已完成"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 calendar-mutate' };
+          const action = call.args?.action;
+          return (action === 'toggle-completed' || action === 'complete' || action === 'update')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 toggle-completed/update，实际: ${action}` };
+
+  - description: "cal-009: 创建提醒应使用 calendar-mutate"
+    vars:
+      agentType: calendar
+      prompt: "创建一个每天提醒我喝水的提醒"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-mutate')
+            ? { pass: true, score: 1, reason: '正确调用了 calendar-mutate' }
+            : { pass: false, score: 0, reason: `未调用 calendar-mutate，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'calendar-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未找到 calendar-mutate 调用' };
+          const kind = call.args?.kind;
+          return (kind === 'reminder' || call.args?.action === 'create')
+            ? { pass: true, score: 1, reason: `kind=${kind}, action=${call.args?.action}` }
+            : { pass: false, score: 0, reason: `应创建提醒类型，kind=${kind}` };
+
+  - description: "cal-010: 日程数量查询应包含数量或列表信息"
+    vars:
+      agentType: calendar
+      prompt: "今天有几个日程"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('calendar-query')
+            ? { pass: true, score: 1, reason: '调用了 calendar-query' }
+            : { pass: false, score: 0, reason: `未调用 calendar-query，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应提及今天日程的数量（如：没有日程、有N个日程）或列出具体日程内容"
+
+  # ════════════════════════════════════════════════════════════════
+  # Email 邮件助手（agentType: email）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "email-001: 列出邮件账户应使用 email-query mode=list-accounts"
+    vars:
+      agentType: email
+      prompt: "列出我的邮件账户"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-query');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-query' };
+          return call.args?.mode === 'list-accounts'
+            ? { pass: true, score: 1, reason: 'mode=list-accounts' }
+            : { pass: false, score: 0, reason: `args.mode 应为 list-accounts，实际: ${call.args?.mode}` };
+
+  - description: "email-002: 收件箱查询应使用 email-query"
+    vars:
+      agentType: email
+      prompt: "查看收件箱邮件"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('email-query')
+            ? { pass: true, score: 1, reason: '正确调用了 email-query' }
+            : { pass: false, score: 0, reason: `未调用 email-query，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-query');
+          if (!call) return { pass: false, score: 0, reason: '未找到 email-query 调用' };
+          const mode = call.args?.mode;
+          const valid = ['list-messages', 'list-unified', 'list'].includes(mode);
+          return valid
+            ? { pass: true, score: 1, reason: `mode=${mode}` }
+            : { pass: false, score: 0, reason: `args.mode 应为 list-messages/list-unified，实际: ${mode}` };
+
+  - description: "email-003: 未读邮件统计应使用 email-query"
+    vars:
+      agentType: email
+      prompt: "有多少未读邮件"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('email-query')
+            ? { pass: true, score: 1, reason: '正确调用了 email-query' }
+            : { pass: false, score: 0, reason: `未调用 email-query，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应提及未读邮件数量或说明无法获取"
+
+  - description: "email-004: 邮件搜索应传入搜索关键词参数"
+    vars:
+      agentType: email
+      prompt: "搜索标题含「会议」的邮件"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-query');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-query' };
+          const hasQuery = call.args?.query != null || call.args?.keyword != null || call.args?.subject != null;
+          return hasQuery
+            ? { pass: true, score: 1, reason: '搜索关键词参数存在' }
+            : { pass: false, score: 0, reason: '应传入搜索关键词参数' };
+
+  - description: "email-005: 获取邮件详情应使用 email-query"
+    vars:
+      agentType: email
+      prompt: "打开第一封邮件"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('email-query')
+            ? { pass: true, score: 1, reason: '调用了 email-query' }
+            : { pass: false, score: 0, reason: `未调用 email-query，实际: [${tools}]` };
+
+  - description: "email-006: 发送邮件应使用 email-mutate action=send"
+    vars:
+      agentType: email
+      prompt: "发一封邮件给 test@example.com，内容是明天开会"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
+          const action = call.args?.action;
+          return (action === 'send' || action === 'compose')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 send，实际: ${action}` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未找到 email-mutate 调用' };
+          const to = call.args?.to;
+          return to != null
+            ? { pass: true, score: 1, reason: `to=${JSON.stringify(to)}` }
+            : { pass: false, score: 0, reason: 'args.to 应存在（收件人）' };
+
+  - description: "email-007: 标记已读应使用 email-mutate"
+    vars:
+      agentType: email
+      prompt: "把这封邮件标为已读"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
+          const action = call.args?.action;
+          return (action === 'mark-read' || action === 'read' || action === 'update')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 mark-read，实际: ${action}` };
+
+  - description: "email-008: 加星标应使用 email-mutate"
+    vars:
+      agentType: email
+      prompt: "给这封邮件加星标"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
+          const action = call.args?.action;
+          return (action === 'flag' || action === 'star' || action === 'update')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 flag/star，实际: ${action}` };
+
+  - description: "email-009: 删除邮件应使用 email-mutate action=delete"
+    vars:
+      agentType: email
+      prompt: "删除这封邮件"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
+          const action = call.args?.action;
+          return (action === 'delete' || action === 'trash')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 delete/trash，实际: ${action}` };
+
+  - description: "email-010: 移动邮件应使用 email-mutate action=move"
+    vars:
+      agentType: email
+      prompt: "把邮件移到已归档文件夹"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'email-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
+          const action = call.args?.action;
+          return (action === 'move' || action === 'archive')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 move/archive，实际: ${action}` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Project 项目助手（agentType: project）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "proj-001: 项目列表应使用 project-query"
+    vars:
+      agentType: project
+      prompt: "有哪些项目"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('project-query')
+            ? { pass: true, score: 1, reason: '正确调用了 project-query' }
+            : { pass: false, score: 0, reason: `未调用 project-query，实际: [${tools}]` };
+
+  - description: "proj-002: 项目详情查询应使用 project-query"
+    vars:
+      agentType: project
+      prompt: "获取这个项目的详细信息"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('project-query')
+            ? { pass: true, score: 1, reason: '调用了 project-query' }
+            : { pass: false, score: 0, reason: `未调用 project-query，实际: [${tools}]` };
+
+  - description: "proj-003: 新建项目应使用 project-mutate action=create"
+    vars:
+      agentType: project
+      prompt: "新建一个名为「演示」的项目"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'project-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 project-mutate' };
+          return call.args?.action === 'create'
+            ? { pass: true, score: 1, reason: 'action=create' }
+            : { pass: false, score: 0, reason: `args.action 应为 create，实际: ${call.args?.action}` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'project-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未找到 project-mutate 调用' };
+          const title = call.args?.title ?? call.args?.name;
+          return title != null
+            ? { pass: true, score: 1, reason: `title=${title}` }
+            : { pass: false, score: 0, reason: 'args.title/name 应存在' };
+
+  - description: "proj-004: 重命名项目应使用 project-mutate action=update"
+    vars:
+      agentType: project
+      prompt: "把项目名改为「新名称」"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'project-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 project-mutate' };
+          const action = call.args?.action;
+          return (action === 'update' || action === 'rename')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 update/rename，实际: ${action}` };
+
+  - description: "proj-005: 删除项目应使用 project-mutate action=remove"
+    vars:
+      agentType: project
+      prompt: "删除这个项目"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'project-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 project-mutate' };
+          const action = call.args?.action;
+          return (action === 'remove' || action === 'delete')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 remove/delete，实际: ${action}` };
+
+  - description: "proj-006: 移动项目应使用 project-mutate action=move"
+    vars:
+      agentType: project
+      prompt: "把项目移到「工作」文件夹下"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'project-mutate');
+          if (!call) return { pass: false, score: 0, reason: '未调用 project-mutate' };
+          const action = call.args?.action;
+          return (action === 'move' || action === 'update')
+            ? { pass: true, score: 1, reason: `action=${action}` }
+            : { pass: false, score: 0, reason: `args.action 应为 move/update，实际: ${action}` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Document 文档助手（agentType: document）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "doc-001: 读取文件内容应使用 read-file"
+    vars:
+      agentType: document
+      prompt: "读取 README.md 的内容"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('read-file')
+            ? { pass: true, score: 1, reason: '正确调用了 read-file' }
+            : { pass: false, score: 0, reason: `未调用 read-file，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'read-file');
+          if (!call) return { pass: false, score: 0, reason: '未找到 read-file 调用' };
+          const path = call.args?.path ?? call.args?.filePath ?? '';
+          return String(path).includes('README')
+            ? { pass: true, score: 1, reason: `path=${path}` }
+            : { pass: false, score: 0, reason: `path 应包含 README，实际: ${path}` };
+
+  - description: "doc-002: 列出目录应使用 list-dir"
+    vars:
+      agentType: document
+      prompt: "列出 src 目录下的文件"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('list-dir')
+            ? { pass: true, score: 1, reason: '正确调用了 list-dir' }
+            : { pass: false, score: 0, reason: `未调用 list-dir，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'list-dir');
+          if (!call) return { pass: false, score: 0, reason: '未找到 list-dir 调用' };
+          const path = call.args?.path ?? call.args?.dir ?? '';
+          return String(path).includes('src')
+            ? { pass: true, score: 1, reason: `path=${path}` }
+            : { pass: false, score: 0, reason: `path 应包含 src，实际: ${path}` };
+
+  - description: "doc-003: 搜索 TODO 注释应使用 grep-files"
+    vars:
+      agentType: document
+      prompt: "搜索代码中的 TODO 注释"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('grep-files')
+            ? { pass: true, score: 1, reason: '正确调用了 grep-files' }
+            : { pass: false, score: 0, reason: `未调用 grep-files，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'grep-files');
+          if (!call) return { pass: false, score: 0, reason: '未找到 grep-files 调用' };
+          const pattern = call.args?.pattern ?? call.args?.query ?? '';
+          return String(pattern).includes('TODO')
+            ? { pass: true, score: 1, reason: `pattern=${pattern}` }
+            : { pass: false, score: 0, reason: `pattern 应包含 TODO，实际: ${pattern}` };
+
+  - description: "doc-004: 搜索函数定义应使用 grep-files"
+    vars:
+      agentType: document
+      prompt: "在文件中搜索函数定义"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('grep-files')
+            ? { pass: true, score: 1, reason: '正确调用了 grep-files' }
+            : { pass: false, score: 0, reason: `未调用 grep-files，实际: [${tools}]` };
+
+  - description: "doc-005: 修改文件应使用 apply-patch"
+    vars:
+      agentType: document
+      prompt: "修改 config.ts 把超时时间改为 5000"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('apply-patch')
+            ? { pass: true, score: 1, reason: '正确调用了 apply-patch' }
+            : { pass: false, score: 0, reason: `未调用 apply-patch，实际: [${tools}]` };
+
+  - description: "doc-006: 文档总结先读文件再摘要"
+    vars:
+      agentType: document
+      prompt: "总结这个文档的主要内容"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('read-file')
+            ? { pass: true, score: 1, reason: '调用了 read-file（先读后总结）' }
+            : { pass: false, score: 0, reason: `未调用 read-file，实际: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应包含文档内容的摘要，或说明需要用户提供具体文件路径"
+
+  # ════════════════════════════════════════════════════════════════
+  # Shell 终端助手（agentType: shell）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "shell-001: 执行 ls 命令应使用 shell 工具"
+    vars:
+      agentType: shell
+      prompt: "执行 ls -la"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          const hasShell = tools.includes('shell-command') || tools.includes('shell') || tools.includes('exec-command');
+          return hasShell
+            ? { pass: true, score: 1, reason: `正确调用了 shell 工具: [${tools}]` }
+            : { pass: false, score: 0, reason: `未调用任何 shell 工具，实际: [${tools}]` };
+
+  - description: "shell-002: git 查看提交记录命令应包含 git"
+    vars:
+      agentType: shell
+      prompt: "用 git 查看最近5条提交"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t =>
+            t.toolName === 'shell-command' || t.toolName === 'shell' || t.toolName === 'exec-command'
+          );
+          if (!call) return { pass: false, score: 0, reason: '未调用任何 shell 工具' };
+          const cmd = call.args?.command ?? call.args?.cmd ?? '';
+          return String(cmd).includes('git')
+            ? { pass: true, score: 1, reason: `命令包含 git: ${cmd}` }
+            : { pass: false, score: 0, reason: `命令应包含 git，实际: ${cmd}` };
+
+  - description: "shell-003: 检查 node 版本命令应包含 node"
+    vars:
+      agentType: shell
+      prompt: "检查 node 版本"
+    assert:
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t =>
+            t.toolName === 'shell-command' || t.toolName === 'shell' || t.toolName === 'exec-command'
+          );
+          if (!call) return { pass: false, score: 0, reason: '未调用 shell 工具' };
+          const cmd = call.args?.command ?? call.args?.cmd ?? '';
+          return (String(cmd).includes('node') || String(cmd).includes('node --version'))
+            ? { pass: true, score: 1, reason: `命令: ${cmd}` }
+            : { pass: false, score: 0, reason: `命令应包含 node，实际: ${cmd}` };
+
+  - description: "shell-004: 查看当前目录应使用 shell 工具"
+    vars:
+      agentType: shell
+      prompt: "查看当前目录"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          const hasShell = tools.includes('shell-command') || tools.includes('shell') || tools.includes('exec-command');
+          return hasShell
+            ? { pass: true, score: 1, reason: '调用了 shell 工具' }
+            : { pass: false, score: 0, reason: `未调用 shell 工具，实际: [${tools}]` };
+
+  - description: "shell-005: 启动交互式进程应使用 shell 工具"
+    vars:
+      agentType: shell
+      prompt: "启动一个 Node.js REPL 会话"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          const hasExec = tools.includes('exec-command') || tools.includes('shell-command') || tools.includes('shell');
+          return hasExec
+            ? { pass: true, score: 1, reason: `调用了执行工具: [${tools}]` }
+            : { pass: false, score: 0, reason: `未调用任何执行工具，实际: [${tools}]` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Coder 编码助手（agentType: coder）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "coder-001: Claude Code 开发任务应派发子 Agent"
+    vars:
+      agentType: coder
+      prompt: "帮我用 Claude Code 实现一个快速排序"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('spawn-agent')
+            ? { pass: true, score: 1, reason: '正确调用了 spawn-agent' }
+            : { pass: false, score: 0, reason: `未调用 spawn-agent，实际: [${tools}]` };
+
+  - description: "coder-002: 时间查询应使用 time-now"
+    vars:
+      agentType: coder
+      prompt: "现在是几点"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('time-now')
+            ? { pass: true, score: 1, reason: '正确调用了 time-now' }
+            : { pass: false, score: 0, reason: `未调用 time-now，实际: [${tools}]` };
+
+  - description: "coder-003: 实现前说明思路应使用 update-plan 或 request-user-input"
+    vars:
+      agentType: coder
+      prompt: "在开始前告诉我你的实现思路"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          const hasPlanning = tools.includes('update-plan') || tools.includes('request-user-input');
+          return hasPlanning
+            ? { pass: true, score: 1, reason: `使用了规划工具: [${tools}]` }
+            : { pass: false, score: 0, reason: `应使用 update-plan 或 request-user-input，实际: [${tools}]` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Widget 工作台助手（agentType: widget）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "widget-001: 创建 Widget 应使用 generate-widget"
+    vars:
+      agentType: widget
+      prompt: "创建一个天气 Widget"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('generate-widget')
+            ? { pass: true, score: 1, reason: '正确调用了 generate-widget' }
+            : { pass: false, score: 0, reason: `未调用 generate-widget，实际: [${tools}]` };
+
+  - description: "widget-002: 列出 Widget 应使用 widget-list"
+    vars:
+      agentType: widget
+      prompt: "列出所有 Widget"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('widget-list')
+            ? { pass: true, score: 1, reason: '正确调用了 widget-list' }
+            : { pass: false, score: 0, reason: `未调用 widget-list，实际: [${tools}]` };
+
+  - description: "widget-003: 查看 Widget 详情应使用 widget-get"
+    vars:
+      agentType: widget
+      prompt: "查看这个 Widget 的详情"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('widget-get')
+            ? { pass: true, score: 1, reason: '正确调用了 widget-get' }
+            : { pass: false, score: 0, reason: `未调用 widget-get，实际: [${tools}]` };
+
+  - description: "widget-004: 初始化 Widget 工作区应使用 widget-init"
+    vars:
+      agentType: widget
+      prompt: "初始化 Widget 工作区"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('widget-init')
+            ? { pass: true, score: 1, reason: '正确调用了 widget-init' }
+            : { pass: false, score: 0, reason: `未调用 widget-init，实际: [${tools}]` };
+
+  # ════════════════════════════════════════════════════════════════
+  # Browser 浏览器助手（agentType: browser）
+  # ════════════════════════════════════════════════════════════════
+
+  - description: "browser-001: 打开网址应使用 open-url 且 url 包含目标域名"
+    vars:
+      agentType: browser
+      prompt: "打开 example.com"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('open-url')
+            ? { pass: true, score: 1, reason: '正确调用了 open-url' }
+            : { pass: false, score: 0, reason: `未调用 open-url，实际: [${tools}]` };
+      - type: javascript
+        value: |
+          const calls = context.providerResponse?.metadata?.toolCalls || [];
+          const call = calls.find(t => t.toolName === 'open-url');
+          if (!call) return { pass: false, score: 0, reason: '未找到 open-url 调用' };
+          const url = call.args?.url ?? call.args?.href ?? '';
+          return String(url).includes('example.com')
+            ? { pass: true, score: 1, reason: `url=${url}` }
+            : { pass: false, score: 0, reason: `url 应包含 example.com，实际: ${url}` };
+
+  - description: "browser-002: 访问 GitHub 应使用 open-url"
+    vars:
+      agentType: browser
+      prompt: "访问 GitHub 并查看内容"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.includes('open-url')
+            ? { pass: true, score: 1, reason: '正确调用了 open-url' }
+            : { pass: false, score: 0, reason: `未调用 open-url，实际: [${tools}]` };

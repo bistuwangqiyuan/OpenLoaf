@@ -36,7 +36,7 @@ const FORBIDDEN_METADATA_KEYS = ['id', 'sessionId', 'parentMessageId', 'path'] a
 /** Normalize message kind from unknown input. */
 function normalizeMessageKind(value: unknown): ChatMessageKind | null {
   if (value == null) return null
-  if (value === 'compact_prompt' || value === 'compact_summary') return value
+  if (value === 'compact_prompt' || value === 'compact_summary' || value === 'error') return value
   return 'normal'
 }
 
@@ -279,6 +279,7 @@ export async function appendMessagePart(input: {
   sessionId: string
   messageId: string
   part: unknown
+  messageKind?: ChatMessageKind
 }): Promise<boolean> {
   const tree = await loadMessageTree(input.sessionId)
   const existing = tree.byId.get(input.messageId)
@@ -288,6 +289,7 @@ export async function appendMessagePart(input: {
   const updated: StoredMessage = {
     ...existing,
     parts: parts as any,
+    ...(input.messageKind ? { messageKind: input.messageKind } : {}),
   }
   await updateMessage({ sessionId: input.sessionId, message: updated })
   return true

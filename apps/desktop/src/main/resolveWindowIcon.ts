@@ -61,12 +61,23 @@ export function resolveWindowIconInfo():
 function getCandidateIconPaths(): string[] {
   const preferIco = process.platform === 'win32';
   const preferIcns = process.platform === 'darwin';
+  const isDev = !app.isPackaged;
+
+  // 中文注释：开发模式优先使用 dev-icon，与生产图标区分。
+  const devFilenames = preferIcns
+    ? ['dev-icon.icns', 'dev-icon.png']
+    : preferIco
+      ? ['dev-icon.ico', 'dev-icon.png']
+      : ['dev-icon.png'];
+
   // 中文注释：macOS 优先使用 icns，匹配正式打包的图标渲染效果。
-  const filenames = preferIcns
+  const prodFilenames = preferIcns
     ? ['icon.icns', 'icon.png', 'icon.ico']
     : preferIco
       ? ['icon.ico', 'icon.png']
       : ['icon.png', 'icon.ico'];
+
+  const filenames = isDev ? [...devFilenames, ...prodFilenames] : prodFilenames;
   const roots = [
     process.resourcesPath,
     path.join(process.cwd(), 'resources'),

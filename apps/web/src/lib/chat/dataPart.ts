@@ -10,6 +10,7 @@
 "use client";
 
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
+import { useTabRuntime } from "@/hooks/use-tab-runtime";
 
 export function handleChatDataPart({
   dataPart,
@@ -20,8 +21,170 @@ export function handleChatDataPart({
   tabId: string | undefined;
   upsertToolPartMerged: (key: string, next: any) => void;
 }) {
+  // Claude Code runtime events：拦截 data-cc-* 并路由到 Zustand store。
+  if (handleClaudeCodeDataPart({ dataPart, tabId })) return;
   // AI SDK 内置的 tool streaming chunks：单独处理（用于 ToolResultPanel 渲染）。
   handleToolChunk({ dataPart, tabId, upsertToolPartMerged });
+}
+
+/** Handle Claude Code runtime data parts. Returns true if consumed. */
+function handleClaudeCodeDataPart({
+  dataPart,
+  tabId,
+}: {
+  dataPart: any;
+  tabId: string | undefined;
+}): boolean {
+  const type = typeof dataPart?.type === "string" ? dataPart.type : "";
+  if (!type.startsWith("data-cc-") || !tabId) return false;
+
+  const { updateCcRuntime } = useChatRuntime.getState();
+  const data = dataPart?.data ?? {};
+
+  switch (type) {
+    case "data-cc-init": {
+      updateCcRuntime(tabId, {
+        init: {
+          model: data.model ?? "",
+          tools: Array.isArray(data.tools) ? data.tools : [],
+          mcpServers: Array.isArray(data.mcpServers) ? data.mcpServers : [],
+          claudeCodeVersion: data.claudeCodeVersion ?? "",
+          cwd: data.cwd ?? "",
+        },
+      });
+      break;
+    }
+    case "data-cc-status": {
+      updateCcRuntime(tabId, { status: data.status ?? null });
+      break;
+    }
+    case "data-cc-tool-progress": {
+      const toolUseId = data.toolUseId;
+      if (!toolUseId) break;
+      const current = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      updateCcRuntime(tabId, {
+        toolProgress: {
+          ...(current?.toolProgress ?? {}),
+          [toolUseId]: {
+            toolName: data.toolName ?? "unknown",
+            elapsedSeconds: data.elapsedSeconds ?? 0,
+          },
+        },
+      });
+      break;
+    }
+    case "data-cc-task-started": {
+      const taskId = data.taskId;
+      if (!taskId) break;
+      const current = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      updateCcRuntime(tabId, {
+        tasks: {
+          ...(current?.tasks ?? {}),
+          [taskId]: {
+            description: data.description ?? "",
+            status: "running",
+          },
+        },
+      });
+      break;
+    }
+    case "data-cc-task-progress": {
+      const taskId = data.taskId;
+      if (!taskId) break;
+      const current = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      const existing = current?.tasks?.[taskId];
+      updateCcRuntime(tabId, {
+        tasks: {
+          ...(current?.tasks ?? {}),
+          [taskId]: {
+            description: data.description ?? existing?.description ?? "",
+            status: existing?.status ?? "running",
+            lastToolName: data.lastToolName,
+          },
+        },
+      });
+      break;
+    }
+    case "data-cc-task-done": {
+      const taskId = data.taskId;
+      if (!taskId) break;
+      const current = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      const existing = current?.tasks?.[taskId];
+      updateCcRuntime(tabId, {
+        tasks: {
+          ...(current?.tasks ?? {}),
+          [taskId]: {
+            description: existing?.description ?? "",
+            status: data.status ?? "completed",
+            summary: data.summary,
+          },
+        },
+      });
+      break;
+    }
+    case "data-cc-rate-limit": {
+      updateCcRuntime(tabId, {
+        rateLimit: {
+          status: data.status ?? "allowed",
+          resetsAt: data.resetsAt,
+          utilization: data.utilization,
+        },
+      });
+      break;
+    }
+    case "data-cc-result": {
+      updateCcRuntime(tabId, {
+        result: {
+          subtype: data.subtype ?? "",
+          totalCostUsd: data.totalCostUsd ?? 0,
+          numTurns: data.numTurns ?? 0,
+          durationMs: data.durationMs ?? 0,
+          errors: Array.isArray(data.errors) ? data.errors : [],
+          permissionDenials: Array.isArray(data.permissionDenials) ? data.permissionDenials : [],
+        },
+        // 清除瞬态进度状态
+        toolProgress: {},
+        status: null,
+      });
+      break;
+    }
+    case "data-cc-plan-file": {
+      const filePath = data.filePath as string;
+      const title = (data.title as string) || "Plan";
+      useTabRuntime.getState().pushStackItem(tabId, {
+        id: `cc-plan-${filePath}`,
+        component: "markdown-viewer",
+        title,
+        params: {
+          uri: filePath,
+          name: title,
+          ext: "md",
+          __customHeader: true,
+          readOnly: true,
+        },
+      });
+      break;
+    }
+    case "data-cc-plan-ready": {
+      updateCcRuntime(tabId, { status: "plan-ready" });
+      break;
+    }
+    case "data-cc-user-question": {
+      updateCcRuntime(tabId, {
+        userQuestion: {
+          sessionId: data.sessionId as string,
+          toolUseId: data.toolUseId as string,
+          questions: Array.isArray(data.questions) ? data.questions : [],
+          answered: false,
+        },
+      });
+      break;
+    }
+    default:
+      break;
+  }
+
+  return true;
 }
 
 function handleToolChunk({

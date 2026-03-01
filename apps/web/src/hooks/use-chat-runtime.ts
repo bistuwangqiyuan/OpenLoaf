@@ -41,6 +41,64 @@ export type ToolPartSnapshot = {
 
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
+// ─── Claude Code Runtime Types ─────────────────────────────────────────
+
+export type CcToolProgress = {
+  toolName: string;
+  elapsedSeconds: number;
+};
+
+export type CcTask = {
+  description: string;
+  status: "running" | "completed" | "failed" | "stopped";
+  lastToolName?: string;
+  summary?: string;
+};
+
+export type CcRateLimit = {
+  status: "allowed" | "allowed_warning" | "rejected";
+  resetsAt?: number;
+  utilization?: number;
+};
+
+export type CcResult = {
+  subtype: string;
+  totalCostUsd: number;
+  numTurns: number;
+  durationMs: number;
+  errors: string[];
+  permissionDenials: Array<{ toolName: string }>;
+};
+
+export type CcUserQuestion = {
+  sessionId: string;
+  toolUseId: string;
+  questions: Array<{
+    question: string;
+    header: string;
+    options: Array<{ label: string; description: string }>;
+    multiSelect: boolean;
+  }>;
+  answered: boolean;
+  answers?: Record<string, string>;
+};
+
+export type ClaudeCodeRuntimeState = {
+  init?: {
+    model: string;
+    tools: string[];
+    mcpServers: Array<{ name: string; status: string }>;
+    claudeCodeVersion: string;
+    cwd: string;
+  };
+  status?: string | null;
+  toolProgress: Record<string, CcToolProgress>;
+  tasks: Record<string, CcTask>;
+  rateLimit?: CcRateLimit;
+  result?: CcResult;
+  userQuestion?: CcUserQuestion;
+};
+
 export type ChatRuntimeState = {
   /** Tool parts grouped by tab id. */
   toolPartsByTabId: Record<string, Record<string, ToolPartSnapshot>>;
@@ -74,6 +132,12 @@ export type ChatRuntimeState = {
   setTabDictationStatus: (tabId: string, isListening: boolean) => void;
   /** Set sub-agent streams for a tab. */
   setSubAgentStreams: (tabId: string, streams: Record<string, SubAgentStreamState>) => void;
+  /** Claude Code runtime state grouped by tab id. */
+  ccRuntimeByTabId: Record<string, ClaudeCodeRuntimeState>;
+  /** Shallow-merge a patch into Claude Code runtime state for a tab. */
+  updateCcRuntime: (tabId: string, patch: Partial<ClaudeCodeRuntimeState>) => void;
+  /** Clear Claude Code runtime state for a tab (preserves result for stats display). */
+  clearCcRuntime: (tabId: string) => void;
 };
 
 function computeTabChatStatus(
@@ -102,6 +166,7 @@ export const useChatRuntime = create<ChatRuntimeState>()((set, get) => ({
   sessionTabIdBySessionId: {},
   dictationStatusByTabId: {},
   subAgentStreamsByTabId: {},
+  ccRuntimeByTabId: {},
   upsertToolPart: (tabId, toolCallId, next) => {
     set((state) => {
       const currentTabParts = state.toolPartsByTabId[tabId] ?? {};
@@ -132,21 +197,24 @@ export const useChatRuntime = create<ChatRuntimeState>()((set, get) => ({
       const hasChatStatus = Object.prototype.hasOwnProperty.call(state.chatStatusByTabId, tabId);
       const hasDictation = Object.prototype.hasOwnProperty.call(state.dictationStatusByTabId, tabId);
       const hasSubAgentStreams = Boolean(state.subAgentStreamsByTabId[tabId]);
+      const hasCcRuntime = Boolean(state.ccRuntimeByTabId[tabId]);
       const hasSessionStatus = Object.values(state.sessionTabIdBySessionId).some(
         (mappedTabId) => mappedTabId === tabId,
       );
-      if (!hasToolParts && !hasChatStatus && !hasDictation && !hasSubAgentStreams && !hasSessionStatus) return state;
+      if (!hasToolParts && !hasChatStatus && !hasDictation && !hasSubAgentStreams && !hasCcRuntime && !hasSessionStatus) return state;
 
       const nextToolParts = { ...state.toolPartsByTabId };
       const nextChatStatus = { ...state.chatStatusByTabId };
       const nextDictation = { ...state.dictationStatusByTabId };
       const nextSubAgentStreams = { ...state.subAgentStreamsByTabId };
+      const nextCcRuntime = { ...state.ccRuntimeByTabId };
       const nextSessionStatus = { ...state.chatStatusBySessionId };
       const nextSessionTab = { ...state.sessionTabIdBySessionId };
       delete nextToolParts[tabId];
       delete nextChatStatus[tabId];
       delete nextDictation[tabId];
       delete nextSubAgentStreams[tabId];
+      delete nextCcRuntime[tabId];
       for (const [sessionId, mappedTabId] of Object.entries(nextSessionTab)) {
         if (mappedTabId !== tabId) continue;
         delete nextSessionTab[sessionId];
@@ -159,6 +227,7 @@ export const useChatRuntime = create<ChatRuntimeState>()((set, get) => ({
         sessionTabIdBySessionId: nextSessionTab,
         dictationStatusByTabId: nextDictation,
         subAgentStreamsByTabId: nextSubAgentStreams,
+        ccRuntimeByTabId: nextCcRuntime,
       };
     });
   },
@@ -235,5 +304,27 @@ export const useChatRuntime = create<ChatRuntimeState>()((set, get) => ({
         [tabId]: streams,
       },
     }));
+  },
+  updateCcRuntime: (tabId, patch) => {
+    set((state) => {
+      const current = state.ccRuntimeByTabId[tabId] ?? {
+        toolProgress: {},
+        tasks: {},
+      };
+      return {
+        ccRuntimeByTabId: {
+          ...state.ccRuntimeByTabId,
+          [tabId]: { ...current, ...patch },
+        },
+      };
+    });
+  },
+  clearCcRuntime: (tabId) => {
+    set((state) => {
+      if (!state.ccRuntimeByTabId[tabId]) return state;
+      const next = { ...state.ccRuntimeByTabId };
+      delete next[tabId];
+      return { ccRuntimeByTabId: next };
+    });
   },
 }));

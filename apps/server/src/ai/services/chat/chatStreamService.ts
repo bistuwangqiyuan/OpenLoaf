@@ -8,14 +8,17 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { type UIMessage } from "ai";
+import crypto from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { prisma } from "@openloaf/db";
 import { type ChatModelSource, type ModelDefinition } from "@openloaf/api/common";
 import type { ImageGenerateOptions, OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
 import type { AiImageRequest } from "@openloaf-saas/sdk";
 import type { OpenLoafUIMessage, TokenUsage } from "@openloaf/api/types/message";
 import { createMasterAgentRunner } from "@/ai";
 import { resolveChatModel } from "@/ai/models/resolveChatModel";
+import { resolveCliChatModelId } from "@/ai/models/cli/cliProviderEntry";
 import { resolveAgentModelIdsFromConfig } from "@/ai/shared/resolveAgentModelFromConfig";
 import { readAgentJson, resolveAgentDir } from "@/ai/shared/defaultAgentResolver";
 import {
@@ -24,9 +27,14 @@ import {
   setCodexOptions,
   setParentProjectRootPaths,
   setAssistantParentMessageId,
+  setCliSession,
   getWorkspaceId,
   getProjectId,
 } from "@/ai/shared/context/requestContext";
+import {
+  getCachedCcSession,
+  setCachedCcSession,
+} from "@/ai/models/cli/claudeCode/claudeCodeSessionStore";
 import { logger } from "@/common/logger";
 import { downloadImageData, resolveParentProjectRootPaths } from "@/ai/shared/util";
 import { parseCommandAtStart } from "@/ai/tools/CommandParser";
@@ -67,13 +75,14 @@ import {
   clearSessionErrorMessage,
   ensureSessionPreface,
   resolveRightmostLeafId,
+  resolveSessionPrefaceText,
   saveMessage,
   setSessionErrorMessage,
 } from "@/ai/services/chat/repositories/messageStore";
 import type { ChatImageRequest, ChatImageRequestResult } from "@/ai/services/image/types";
 import { buildTimingMetadata } from "./metadataBuilder";
 import { readBasicConf } from "@/modules/settings/openloafConfStore";
-import { resolveMessagesJsonlPath } from "@/ai/services/chat/repositories/chatFileStore";
+import { resolveMessagesJsonlPath, writeSessionJson } from "@/ai/services/chat/repositories/chatFileStore";
 import {
   createChatStreamResponse,
   createErrorStreamResponse,
@@ -136,6 +145,7 @@ function resolveAgentModelIds(input: {
   chatModelSource?: ChatModelSource
   imageModelId?: string
   videoModelId?: string
+  codeModelIds?: string[]
 } {
   return resolveAgentModelIdsFromConfig({
     agentName: 'master',
@@ -306,6 +316,18 @@ export async function runChatStream(input: {
   // 逻辑：CLI 直连模式 — 跳过 agent 系统指令和工具编排，消息直接发给 CLI 适配模型。
   const directCli = !!(lastMessage as any).metadata?.directCli;
 
+  // 逻辑：CLI 直连模式覆盖 chatModelId — 使用 codeModelIds 解析 CLI 适配模型。
+  if (directCli) {
+    const cliConfigKey = agentModelIds.codeModelIds?.[0]
+    if (cliConfigKey) {
+      const cliChatModelId = await resolveCliChatModelId(cliConfigKey)
+      if (cliChatModelId) {
+        chatModelId = cliChatModelId
+        chatModelSource = 'local'
+      }
+    }
+  }
+
   // 逻辑：在首条用户消息前确保 preface 已落库。
   const parentProjectRootPaths = await resolveParentProjectRootPaths(projectId);
   const resolvedWorkspaceId = getWorkspaceId() ?? workspaceId ?? undefined;
@@ -408,24 +430,72 @@ export async function runChatStream(input: {
     assistantParentUserId = saveResult.assistantParentUserId;
   }
 
-  const chainResult = await loadAndPrepareMessageChain({
-    sessionId,
-    leafMessageId,
-    assistantParentUserId,
-    includeCompactPrompt,
-    formatError: (message) => `请求失败：${message}`,
-  });
-  if (!chainResult.ok) {
-    return createErrorStreamResponse({
-      sessionId,
-      assistantMessageId,
-      parentMessageId: assistantParentUserId ?? (await resolveRightmostLeafId(sessionId)),
-      errorText: chainResult.errorText,
+  // ── directCli 会话持久化：查内存缓存 → miss 则查 DB → 首条新建 UUID ──
+  if (directCli) {
+    const cached = getCachedCcSession(sessionId);
+    let sdkSessionId = cached?.sdkSessionId ?? null;
+    if (!sdkSessionId) {
+      const row = await prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        select: { cliId: true },
+      });
+      if (row?.cliId) sdkSessionId = row.cliId.replace("claude-code_", "");
+    }
+
+    let prefaceText: string | undefined;
+    if (!sdkSessionId) {
+      // 首条消息：新建 UUID + 写 DB + session.json + resolve preface
+      sdkSessionId = crypto.randomUUID();
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { cliId: `claude-code_${sdkSessionId}` },
+      });
+      await writeSessionJson(sessionId, { cliId: `claude-code_${sdkSessionId}` });
+      prefaceText = await resolveSessionPrefaceText(sessionId);
+    }
+
+    // 写入 RequestContext + 内存缓存
+    setCliSession(sdkSessionId, prefaceText);
+    setCachedCcSession(sessionId, {
+      sdkSessionId,
+      modelId: "",
+      lastUsedAt: Date.now(),
     });
+
+    logger.debug(
+      { sessionId, sdkSessionId, isResume: !prefaceText },
+      "[chat] directCli session resolved",
+    );
   }
 
-  const { messages, modelMessages } = chainResult;
-  setCodexOptions(resolveCodexRequestOptions(messages as UIMessage[]));
+  // ── directCli 跳过消息链加载，直接进模型解析 ──
+  let messages: UIMessage[] = [];
+  let modelMessages: UIMessage[] = [];
+
+  if (!directCli) {
+    const chainResult = await loadAndPrepareMessageChain({
+      sessionId,
+      leafMessageId,
+      assistantParentUserId,
+      includeCompactPrompt,
+      formatError: (message) => `请求失败：${message}`,
+    });
+    if (!chainResult.ok) {
+      return createErrorStreamResponse({
+        sessionId,
+        assistantMessageId,
+        parentMessageId: assistantParentUserId ?? (await resolveRightmostLeafId(sessionId)),
+        errorText: chainResult.errorText,
+      });
+    }
+    messages = chainResult.messages as UIMessage[];
+    modelMessages = chainResult.modelMessages as UIMessage[];
+    setCodexOptions(resolveCodexRequestOptions(messages));
+  } else {
+    // directCli：modelMessages 只需要最后一条用户消息
+    modelMessages = [lastMessage] as UIMessage[];
+  }
+
   setParentProjectRootPaths(parentProjectRootPaths);
 
   if (!assistantParentUserId) {
@@ -519,34 +589,36 @@ export async function runChatStream(input: {
   }
 
   // 逻辑：AI调试模式 — 保存 system.json（instructions + tools）到 session 目录。
-  try {
-    const basicConf = readBasicConf()
-    if (basicConf.chatPrefaceEnabled) {
-      const jsonlPath = await resolveMessagesJsonlPath(sessionId)
-      const sessionDir = path.dirname(jsonlPath)
-      const tools = masterAgent.agent.tools ?? {}
-      const serializedTools: Record<string, { description?: string; parameters?: unknown }> = {}
-      for (const [name, t] of Object.entries(tools)) {
-        const desc = (t as any).description
-        // 逻辑：AI SDK tool 的 inputSchema 可能是 zod wrapper，尝试提取 jsonSchema。
-        let params: unknown = undefined
-        try {
-          const schema = (t as any).inputSchema ?? (t as any).parameters
-          if (schema?.jsonSchema) {
-            params = schema.jsonSchema
-          } else if (schema && typeof schema === 'object') {
-            // 尝试安全序列化，失败则跳过
-            const test = JSON.stringify(schema)
-            if (test && test !== '{}') params = JSON.parse(test)
-          }
-        } catch { /* 不可序列化，跳过 */ }
-        serializedTools[name] = { description: desc, ...(params ? { parameters: params } : {}) }
+  if (!directCli) {
+    try {
+      const basicConf = readBasicConf()
+      if (basicConf.chatPrefaceEnabled) {
+        const jsonlPath = await resolveMessagesJsonlPath(sessionId)
+        const sessionDir = path.dirname(jsonlPath)
+        const tools = masterAgent.agent.tools ?? {}
+        const serializedTools: Record<string, { description?: string; parameters?: unknown }> = {}
+        for (const [name, t] of Object.entries(tools)) {
+          const desc = (t as any).description
+          // 逻辑：AI SDK tool 的 inputSchema 可能是 zod wrapper，尝试提取 jsonSchema。
+          let params: unknown = undefined
+          try {
+            const schema = (t as any).inputSchema ?? (t as any).parameters
+            if (schema?.jsonSchema) {
+              params = schema.jsonSchema
+            } else if (schema && typeof schema === 'object') {
+              // 尝试安全序列化，失败则跳过
+              const test = JSON.stringify(schema)
+              if (test && test !== '{}') params = JSON.parse(test)
+            }
+          } catch { /* 不可序列化，跳过 */ }
+          serializedTools[name] = { description: desc, ...(params ? { parameters: params } : {}) }
+        }
+        const systemJson = JSON.stringify({ instructions, tools: serializedTools }, null, 2)
+        await fs.writeFile(path.join(sessionDir, 'system.json'), systemJson, 'utf-8')
       }
-      const systemJson = JSON.stringify({ instructions, tools: serializedTools }, null, 2)
-      await fs.writeFile(path.join(sessionDir, 'system.json'), systemJson, 'utf-8')
+    } catch (err) {
+      logger.warn({ err, sessionId }, '[chat] failed to save system.json')
     }
-  } catch (err) {
-    logger.warn({ err, sessionId }, '[chat] failed to save system.json')
   }
 
   return createChatStreamResponse({
@@ -555,7 +627,7 @@ export async function runChatStream(input: {
     parentMessageId,
     requestStartAt,
     workspaceId: resolvedWorkspaceId ?? workspaceId ?? undefined,
-    modelMessages: modelMessages as UIMessage[],
+    modelMessages,
     agentRunner: masterAgent,
     agentMetadata,
     abortController,

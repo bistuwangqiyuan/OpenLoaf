@@ -56,7 +56,7 @@ import {
 import { ImagePromptGenerateNodeSchema, type ImagePromptGenerateNodeProps } from "./types";
 import { measureContainerHeight } from "./utils";
 import {
-  BOARD_GENERATE_NODE_BASE,
+  BOARD_GENERATE_NODE_BASE_PROMPT,
   BOARD_GENERATE_BORDER_PROMPT,
   BOARD_GENERATE_SELECTED_PROMPT,
   BOARD_GENERATE_ERROR,
@@ -447,7 +447,7 @@ export function ImagePromptGenerateNodeView({
 
   const containerClassName = [
     "relative flex h-full w-full min-h-0 min-w-0 flex-col gap-2 rounded-xl border p-3 text-[#202124] dark:text-slate-100 transition-colors duration-150",
-    BOARD_GENERATE_NODE_BASE,
+    BOARD_GENERATE_NODE_BASE_PROMPT,
     viewStatus === "running"
       ? "openloaf-thinking-border openloaf-thinking-border-on border-transparent"
       : viewStatus === "error"

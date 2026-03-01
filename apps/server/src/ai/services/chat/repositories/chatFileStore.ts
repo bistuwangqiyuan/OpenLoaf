@@ -26,7 +26,7 @@ export type StoredMessage = {
   id: string
   parentMessageId: string | null
   role: 'user' | 'assistant' | 'system' | 'subagent'
-  messageKind: 'normal' | 'compact_prompt' | 'compact_summary'
+  messageKind: 'normal' | 'error' | 'compact_prompt' | 'compact_summary'
   parts: unknown[]
   metadata?: Record<string, unknown>
   createdAt: string
