@@ -9,6 +9,7 @@
  */
 "use client";
 
+import "@/i18n/index";
 import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { QueryClientProvider } from "@tanstack/react-query";
