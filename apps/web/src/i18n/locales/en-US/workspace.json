@@ -269,6 +269,20 @@
       "treeView": "Tree View",
       "undo": "Undo",
       "redo": "Redo"
-    }
+    },
+    "emptyParens": "(empty)",
+    "filterHintDefault": "Show available files only",
+    "importFromComputer": "Import from computer",
+    "cannotResolvePath": "Cannot resolve file path",
+    "emptyContent": "No content",
+    "noProjectDir": "No project directory bound",
+    "dropToAdd": "Release to add files",
+    "convertSuccess": "Converted to subproject",
+    "convertLevelError": "Cannot convert to subproject at this level",
+    "convertProjectNotReady": "Current project is not ready for conversion",
+    "convertInvalidPath": "Invalid directory path",
+    "convertFailed": "Conversion failed",
+    "transferring": "Transferring",
+    "retry": "Retry"
   }
 }

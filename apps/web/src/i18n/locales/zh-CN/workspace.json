@@ -269,6 +269,20 @@
       "treeView": "树形视图",
       "undo": "撤回",
       "redo": "前进"
-    }
+    },
+    "emptyParens": "（空）",
+    "filterHintDefault": "仅显示可用文件",
+    "importFromComputer": "从计算机导入",
+    "cannotResolvePath": "无法解析文件路径",
+    "emptyContent": "暂无内容",
+    "noProjectDir": "未绑定项目目录",
+    "dropToAdd": "松开鼠标即可添加文件",
+    "convertSuccess": "已转换为子项目",
+    "convertLevelError": "当前层级不支持转换为子项目",
+    "convertProjectNotReady": "当前项目未就绪，无法转换",
+    "convertInvalidPath": "目录路径无效",
+    "convertFailed": "转换失败",
+    "transferring": "传输中",
+    "retry": "重试"
   }
 }

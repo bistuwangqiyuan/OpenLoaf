@@ -269,6 +269,20 @@
       "treeView": "樹狀檢視",
       "undo": "復原",
       "redo": "重做"
-    }
+    },
+    "emptyParens": "（空）",
+    "filterHintDefault": "僅顯示可用檔案",
+    "importFromComputer": "從電腦匯入",
+    "cannotResolvePath": "無法解析檔案路徑",
+    "emptyContent": "暫無內容",
+    "noProjectDir": "未綁定專案目錄",
+    "dropToAdd": "放開滑鼠即可新增檔案",
+    "convertSuccess": "已轉換為子專案",
+    "convertLevelError": "目前層級不支援轉換為子專案",
+    "convertProjectNotReady": "目前專案未就緒，無法轉換",
+    "convertInvalidPath": "目錄路徑無效",
+    "convertFailed": "轉換失敗",
+    "transferring": "傳輸中",
+    "retry": "重試"
   }
 }
