@@ -126,13 +126,13 @@ export function BasicSettings() {
 
         return (
           <div className="space-y-6">
-            <OpenLoafSettingsGroup title="系统配置">
+            <OpenLoafSettingsGroup title={t('basicSettings.systemConfig')}>
               <div className="divide-y divide-border">
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">语言</div>
+                    <div className="text-sm font-medium">{t('basicSettings.language')}</div>
                     <div className="text-xs text-muted-foreground">
-                      更改 UI 显示语言
+                      {t('basicSettings.languageDesc')}
                     </div>
                   </div>
 
@@ -174,9 +174,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">主题</div>
+                    <div className="text-sm font-medium">{t('basicSettings.theme')}</div>
                     <div className="text-xs text-muted-foreground">
-                      选择淡色或浅色
+                      {t('basicSettings.themeDesc')}
                     </div>
                   </div>
 
@@ -191,8 +191,8 @@ export function BasicSettings() {
                       }}
                     >
                       <TabsList>
-                        <TabsTrigger value="dark">黑夜</TabsTrigger>
-                        <TabsTrigger value="light">白天</TabsTrigger>
+                        <TabsTrigger value="dark">{t('basicSettings.themeDark')}</TabsTrigger>
+                        <TabsTrigger value="light">{t('basicSettings.themeLight')}</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </OpenLoafSettingsField>
@@ -200,9 +200,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">主题系统自动切换</div>
+                    <div className="text-sm font-medium">{t('basicSettings.themeAutoSwitch')}</div>
                     <div className="text-xs text-muted-foreground">
-                      跟随系统浅色/淡色
+                      {t('basicSettings.themeAutoSwitchDesc')}
                     </div>
                   </div>
 
@@ -228,9 +228,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">字体大小</div>
+                    <div className="text-sm font-medium">{t('basicSettings.fontSize')}</div>
                     <div className="text-xs text-muted-foreground">
-                      小 / 中 / 大 / 特大
+                      {t('basicSettings.fontSizeDesc')}
                     </div>
                   </div>
 
@@ -242,10 +242,10 @@ export function BasicSettings() {
                       }
                     >
                       <TabsList>
-                        <TabsTrigger value="small">小</TabsTrigger>
-                        <TabsTrigger value="medium">中</TabsTrigger>
-                        <TabsTrigger value="large">大</TabsTrigger>
-                        <TabsTrigger value="xlarge">特大</TabsTrigger>
+                        <TabsTrigger value="small">{t('basicSettings.fontSizeSmall')}</TabsTrigger>
+                        <TabsTrigger value="medium">{t('basicSettings.fontSizeMedium')}</TabsTrigger>
+                        <TabsTrigger value="large">{t('basicSettings.fontSizeLarge')}</TabsTrigger>
+                        <TabsTrigger value="xlarge">{t('basicSettings.fontSizeXLarge')}</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </OpenLoafSettingsField>
@@ -253,9 +253,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">动画级别</div>
+                    <div className="text-sm font-medium">{t('basicSettings.animationLevel')}</div>
                     <div className="text-xs text-muted-foreground">
-                      降低动画将节省系统资源
+                      {t('basicSettings.animationLevelDesc')}
                     </div>
                   </div>
 
@@ -267,9 +267,9 @@ export function BasicSettings() {
                       }
                     >
                       <TabsList>
-                        <TabsTrigger value="low">低</TabsTrigger>
-                        <TabsTrigger value="medium">中</TabsTrigger>
-                        <TabsTrigger value="high">高</TabsTrigger>
+                        <TabsTrigger value="low">{t('basicSettings.animationLow')}</TabsTrigger>
+                        <TabsTrigger value="medium">{t('basicSettings.animationMedium')}</TabsTrigger>
+                        <TabsTrigger value="high">{t('basicSettings.animationHigh')}</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </OpenLoafSettingsField>
@@ -277,9 +277,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">通知声音提示</div>
+                    <div className="text-sm font-medium">{t('basicSettings.notificationSound')}</div>
                     <div className="text-xs text-muted-foreground">
-                      语音输入开始时播放提示音
+                      {t('basicSettings.notificationSoundDesc')}
                     </div>
                   </div>
 
@@ -298,9 +298,9 @@ export function BasicSettings() {
 
                 <div className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">允许工具访问工作区外路径</div>
+                    <div className="text-sm font-medium">{t('basicSettings.toolAllowOutsideScopeTitle')}</div>
                     <div className="text-xs text-muted-foreground">
-                      关闭时仅允许在 project / workspace 根目录内访问
+                      {t('basicSettings.toolAllowOutsideScopeDesc')}
                     </div>
                   </div>
 
