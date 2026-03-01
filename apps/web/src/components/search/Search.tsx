@@ -231,8 +231,9 @@ export function Search({
   }, []);
   const keepAllFilter = React.useCallback(() => 1, []);
   const openSingletonTab = React.useCallback(
-    (input: { baseId: string; component: string; title: string; icon: string }) => {
+    (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
+      const tabTitle = input.titleKey ?? input.title ?? '';
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
@@ -240,7 +241,7 @@ export function Search({
         if (tab.workspaceId !== activeWorkspace.id) return false;
         if (runtimeByTabId[tab.id]?.base?.id === input.baseId) return true;
         // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
-        if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === input.title) return true;
+        if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === tabTitle) return true;
         return false;
       });
       if (existing) {
@@ -254,7 +255,7 @@ export function Search({
       addTab({
         workspaceId: activeWorkspace.id,
         createNew: true,
-        title: input.title,
+        title: tabTitle,
         icon: input.icon,
         leftWidthPercent: 70,
         base: {

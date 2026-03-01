@@ -1177,8 +1177,141 @@ export class SettingRouterImpl extends BaseSettingRouter {
           await fs.writeFile(jsonPath, JSON.stringify(updated, null, 2), "utf8");
           return { ok: true };
         }),
+      /** Get auxiliary model config. */
+      getAuxiliaryModelConfig: shieldedProcedure
+        .output(settingSchemas.getAuxiliaryModelConfig.output)
+        .query(async () => {
+          const { readAuxiliaryModelConf } = await import(
+            "@/modules/settings/auxiliaryModelConfStore"
+          );
+          return readAuxiliaryModelConf();
+        }),
+      /** Save auxiliary model config. */
+      saveAuxiliaryModelConfig: shieldedProcedure
+        .input(settingSchemas.saveAuxiliaryModelConfig.input)
+        .output(settingSchemas.saveAuxiliaryModelConfig.output)
+        .mutation(async ({ input }) => {
+          const { readAuxiliaryModelConf, writeAuxiliaryModelConf } =
+            await import("@/modules/settings/auxiliaryModelConfStore");
+          const current = readAuxiliaryModelConf();
+          const merged = {
+            modelSource: input.modelSource ?? current.modelSource,
+            localModelIds: input.localModelIds ?? current.localModelIds,
+            cloudModelIds: input.cloudModelIds ?? current.cloudModelIds,
+            capabilities: {
+              ...current.capabilities,
+              ...(input.capabilities ?? {}),
+            },
+          };
+          writeAuxiliaryModelConf(merged);
+          return { ok: true };
+        }),
+      /** Get auxiliary capability definitions. */
+      getAuxiliaryCapabilities: shieldedProcedure
+        .output(settingSchemas.getAuxiliaryCapabilities.output)
+        .query(async () => {
+          const { CAPABILITY_KEYS, AUXILIARY_CAPABILITIES } = await import(
+            "@/ai/services/auxiliaryCapabilities"
+          );
+          return CAPABILITY_KEYS.map((key) => {
+            const cap = AUXILIARY_CAPABILITIES[key]!;
+            return {
+              key: cap.key,
+              label: cap.label,
+              description: cap.description,
+              triggers: cap.triggers,
+              defaultPrompt: cap.defaultPrompt,
+              outputMode: cap.outputMode,
+              outputSchema: cap.outputSchema,
+            };
+          });
+        }),
+      /** Infer project type via auxiliary model. */
+      inferProjectType: shieldedProcedure
+        .input(settingSchemas.inferProjectType.input)
+        .output(settingSchemas.inferProjectType.output)
+        .mutation(async ({ input }) => {
+          const rootPath = getProjectRootPath(input.projectId);
+          if (!rootPath) {
+            return { projectType: "general", confidence: 0 };
+          }
+          const config = await readProjectConfig(rootPath);
+          if (config.typeManuallySet) {
+            return {
+              projectType: String(config.projectType ?? "general"),
+              icon: config.icon ?? undefined,
+              confidence: 1,
+            };
+          }
+          const fileList = await scanProjectFiles(rootPath, 2, 100);
+          if (!fileList.length) {
+            return { projectType: "general", confidence: 0 };
+          }
+          const context = fileList.join("\n");
+          const { auxiliaryInfer } = await import(
+            "@/ai/services/auxiliaryInferenceService"
+          );
+          const { CAPABILITY_SCHEMAS } = await import(
+            "@/ai/services/auxiliaryCapabilities"
+          );
+          const result = await auxiliaryInfer({
+            capabilityKey: "project.classify",
+            context,
+            schema: CAPABILITY_SCHEMAS["project.classify"],
+            fallback: { type: "general" as const, icon: "", confidence: 0 },
+          });
+          if (result.confidence >= 0.3) {
+            const metaPath = getProjectMetaPath(rootPath);
+            const updated = { ...config, projectType: result.type };
+            if (!config.icon && result.icon) {
+              updated.icon = result.icon;
+            }
+            const tmpPath = `${metaPath}.${Date.now()}.tmp`;
+            await fs.writeFile(tmpPath, JSON.stringify(updated, null, 2), "utf-8");
+            await fs.rename(tmpPath, metaPath);
+          }
+          return {
+            projectType: String(result.type),
+            icon: result.icon || undefined,
+            confidence: result.confidence,
+          };
+        }),
     });
   }
+}
+
+/** Scan project files (first N levels, max entries) for classification context. */
+async function scanProjectFiles(
+  rootPath: string,
+  maxDepth: number,
+  maxEntries: number,
+): Promise<string[]> {
+  const results: string[] = [];
+
+  async function walk(dir: string, depth: number) {
+    if (depth > maxDepth || results.length >= maxEntries) return;
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (results.length >= maxEntries) break;
+      if (entry.name.startsWith(".")) continue;
+      if (entry.name === "node_modules" || entry.name === "__pycache__") continue;
+      const rel = path.relative(rootPath, path.join(dir, entry.name));
+      if (entry.isDirectory()) {
+        results.push(`${rel}/`);
+        await walk(path.join(dir, entry.name), depth + 1);
+      } else {
+        results.push(rel);
+      }
+    }
+  }
+
+  await walk(rootPath, 1);
+  return results;
 }
 
 export const settingsRouterImplementation = SettingRouterImpl.createRouter();

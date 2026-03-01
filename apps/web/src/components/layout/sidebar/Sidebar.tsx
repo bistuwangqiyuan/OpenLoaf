@@ -124,8 +124,9 @@ export const AppSidebar = ({
 
 
   const openSingletonTab = useCallback(
-    (input: { baseId: string; component: string; title: string; icon: string }) => {
+    (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
+      const tabTitle = input.titleKey ?? input.title ?? '';
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
@@ -133,7 +134,7 @@ export const AppSidebar = ({
         if (tab.workspaceId !== activeWorkspace.id) return false;
         if (runtimeByTabId[tab.id]?.base?.id === input.baseId) return true;
         // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
-        if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === input.title) return true;
+        if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === tabTitle) return true;
         return false;
       });
       if (existing) {
@@ -146,7 +147,7 @@ export const AppSidebar = ({
       addTab({
         workspaceId: activeWorkspace.id,
         createNew: true,
-        title: input.title,
+        title: tabTitle,
         icon: input.icon,
         leftWidthPercent: 100,
         base:
@@ -159,8 +160,9 @@ export const AppSidebar = ({
   );
 
   const openWorkspacePageTab = useCallback(
-    (input: { baseId: string; component: string; title: string; icon: string }) => {
+    (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
+      const tabTitle = input.titleKey ?? input.title ?? '';
 
       const state = useTabs.getState();
       const runtimeState = useTabRuntime.getState().runtimeByTabId;
@@ -179,7 +181,7 @@ export const AppSidebar = ({
         // 逻辑：四个主页面复用同一个 tab，仅切换 base 与显示信息。
         setTabBase(currentTab.id, { id: input.baseId, component: input.component });
         clearStack(currentTab.id);
-        setTabTitle(currentTab.id, input.title);
+        setTabTitle(currentTab.id, tabTitle);
         setTabIcon(currentTab.id, input.icon);
         startTransition(() => {
           setActiveTab(currentTab.id);
@@ -203,7 +205,7 @@ export const AppSidebar = ({
         // 逻辑：若已存在主页面 tab，复用该 tab，避免产生多份同类页面 tab。
         setTabBase(existingWorkspacePageTab.id, { id: input.baseId, component: input.component });
         clearStack(existingWorkspacePageTab.id);
-        setTabTitle(existingWorkspacePageTab.id, input.title);
+        setTabTitle(existingWorkspacePageTab.id, tabTitle);
         setTabIcon(existingWorkspacePageTab.id, input.icon);
         startTransition(() => {
           setActiveTab(existingWorkspacePageTab.id);
@@ -214,7 +216,7 @@ export const AppSidebar = ({
       addTab({
         workspaceId: activeWorkspace.id,
         createNew: true,
-        title: input.title,
+        title: tabTitle,
         icon: input.icon,
         leftWidthPercent: 100,
         base: { id: input.baseId, component: input.component },

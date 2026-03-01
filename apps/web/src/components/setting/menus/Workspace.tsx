@@ -156,8 +156,8 @@ export function WorkspaceSettings() {
 
   /** Clear all chat data with a confirm gate. */
   const handleClearAllChat = async () => {
-    const countPart = typeof sessionCount === "number" ? t('settings.clearChatConfirmWithCount', { count: sessionCount }) : "";
-    const confirmText = `${t('settings.clearChatConfirm', { count: countPart })}`;
+    const countPart = typeof sessionCount === "number" ? t('workspace.clearChatConfirmWithCount', { count: sessionCount }) : "";
+    const confirmText = `${t('workspace.clearChatConfirm', { countText: countPart })}`;
     if (!window.confirm(confirmText)) return;
     await clearAllChat.mutateAsync();
   };

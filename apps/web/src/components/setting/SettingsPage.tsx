@@ -161,7 +161,10 @@ function buildMenu(t: (key: string) => string): Array<{
   ];
 }
 
-const MENU_KEY_SET = new Set<SettingsMenuKey>(MENU.map((item) => item.key));
+const ALL_MENU_KEYS: SettingsMenuKey[] = [
+  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'shortcuts', 'about', 'projectTest',
+];
+const MENU_KEY_SET = new Set<SettingsMenuKey>(ALL_MENU_KEYS);
 const HIDDEN_MENU_KEYS = new Set<SettingsMenuKey>([]);
 
 /** Check whether the value is a valid settings menu key. */

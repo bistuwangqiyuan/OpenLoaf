@@ -10,7 +10,7 @@
 
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBasicConfig } from '@/hooks/useBasicConfig';
+import { useBasicConfig } from '@/hooks/use-basic-config';
 import { detectSystemLanguage } from './detectLanguage';
 import type { LanguageId } from './types';
 

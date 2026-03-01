@@ -80,7 +80,7 @@
       "workspaceNameEmpty": "工作區名稱不可為空",
       "minWorkspacesToDelete": "至少需要 3 個工作區時才允許刪除目前工作區",
       "noOtherWorkspace": "未找到可切換的工作區",
-      "clearChatConfirm": "確認清除所有 AI 聊天內容？{{count}}此操作無法撤銷。",
+      "clearChatConfirm": "確認清除所有 AI 聊天內容？{{countText}}此操作無法撤銷。",
       "clearChatConfirmWithCount": "（目前 {{count}} 個工作階段）",
       "deleteWorkspaceConfirm": "確認刪除工作區「{{name}}」？此操作無法撤銷。",
       "sessionsClearedSuccess": "已清除：{{count}} 個工作階段",

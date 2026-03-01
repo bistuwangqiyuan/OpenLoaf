@@ -55,13 +55,6 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   low: 'bg-zinc-500/15 text-zinc-500 border-zinc-500/20',
 }
 
-const PRIORITY_COLORS: Record<Priority, string> = {
-  urgent: 'bg-red-500/15 text-red-600 border-red-500/20',
-  high: 'bg-orange-500/15 text-orange-600 border-orange-500/20',
-  medium: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
-  low: 'bg-zinc-500/15 text-zinc-500 border-zinc-500/20',
-}
-
 const STATUS_COLORS: Record<TaskStatus, string> = {
   todo: 'bg-blue-500/15 text-blue-600',
   running: 'bg-amber-500/15 text-amber-600',

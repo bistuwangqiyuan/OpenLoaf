@@ -80,7 +80,7 @@
       "workspaceNameEmpty": "Workspace name cannot be empty",
       "minWorkspacesToDelete": "At least 3 workspaces are required to delete the current workspace",
       "noOtherWorkspace": "No other workspace found to switch to",
-      "clearChatConfirm": "Confirm to clear all AI chat content? {{count}}This action cannot be undone.",
+      "clearChatConfirm": "Confirm to clear all AI chat content? {{countText}}This action cannot be undone.",
       "clearChatConfirmWithCount": "({{count}} sessions)",
       "deleteWorkspaceConfirm": "Confirm deletion of workspace \"{{name}}\"? This action cannot be undone.",
       "sessionsClearedSuccess": "Cleared: {{count}} sessions",

@@ -219,6 +219,9 @@ const TaskCard = memo(function TaskCard({
   onCancel: (id: string) => void
   onOpenDetail: (id: string) => void
 }) {
+  const { t } = useTranslation('tasks')
+  const PRIORITY_LABELS = getPriorityLabels(t)
+  const TRIGGER_LABELS = getTriggerLabels(t)
   const priority = task.priority ?? 'medium'
   const summary = task.executionSummary
   const isDraggable = VALID_TRANSITIONS[task.status]?.length > 0
@@ -380,6 +383,7 @@ function KanbanColumn({
   onCancel: (id: string) => void
   onOpenDetail: (id: string) => void
 }) {
+  const { t } = useTranslation('tasks')
   const colors = STATUS_FLAT_COLORS[status]
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -439,6 +443,9 @@ function FilterBar({
   triggerFilter: TriggerMode[]
   onTriggerFilterChange: (v: TriggerMode[]) => void
 }) {
+  const { t: tl } = useTranslation('tasks')
+  const PRIORITY_LABELS = getPriorityLabels(tl)
+  const TRIGGER_LABELS = getTriggerLabels(tl)
   const togglePriority = (p: Priority) => {
     if (priorityFilter.includes(p)) {
       onPriorityFilterChange(priorityFilter.filter((x) => x !== p))
@@ -462,7 +469,7 @@ function FilterBar({
         <Input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t('messages.searchPlaceholder')}
+          placeholder={tl('messages.searchPlaceholder')}
           className="h-7 w-44 rounded-full border-transparent bg-[#edf2fa] pl-8 text-xs text-[#1f1f1f] placeholder:text-[#5f6368] focus-visible:border-[#d2e3fc] focus-visible:ring-[rgba(26,115,232,0.22)] dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-100 dark:placeholder:text-slate-400"
         />
       </div>
@@ -520,6 +527,8 @@ export default function TaskBoardPage({
   projectId?: string
 }) {
   const { t } = useTranslation('tasks')
+  const PRIORITY_LABELS = getPriorityLabels(t)
+  const TRIGGER_LABELS = getTriggerLabels(t)
   const { workspace } = useWorkspace()
   const queryClient = useQueryClient()
   const pushStackItem = useTabRuntime((state) => state.pushStackItem)
@@ -811,7 +820,7 @@ export default function TaskBoardPage({
                     'bg-zinc-500/15 text-zinc-500': task.status === 'cancelled',
                   })}
                 >
-                  {STATUS_COLUMNS.find((c) => c.status === task.status)?.label ?? task.status}
+                  {statusColumns.find((c) => c.status === task.status)?.label ?? task.status}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">
                   {formatTimeAgo(task.updatedAt, t)}

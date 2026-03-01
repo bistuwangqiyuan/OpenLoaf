@@ -76,7 +76,6 @@ i18n.use(initReactI18next).init({
   },
   interpolation: {
     escapeValue: false, // React already protects from XSS
-    defaultValue: '',
   },
 });
 

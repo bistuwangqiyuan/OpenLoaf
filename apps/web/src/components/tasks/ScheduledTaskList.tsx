@@ -87,7 +87,7 @@ type ScheduledTaskListProps = {
   showProjectColumn?: boolean
 }
 
-function formatTrigger(task: TaskConfig, t: (key: string) => string): { label: string; icon: typeof Clock } {
+function formatTrigger(task: TaskConfig, t: (key: string, options?: Record<string, unknown>) => string): { label: string; icon: typeof Clock } {
   if (task.triggerMode === 'condition') {
     const typeLabels: Record<string, string> = {
       email_received: t('schedule.emailReceived'),
@@ -114,7 +114,7 @@ function formatTrigger(task: TaskConfig, t: (key: string) => string): { label: s
   return { label: schedule.type, icon: Clock }
 }
 
-function formatCronLabel(expr: string, t: (key: string) => string): string {
+function formatCronLabel(expr: string, t: (key: string, options?: Record<string, unknown>) => string): string {
   const parts = expr.trim().split(/\s+/)
   if (parts.length < 5) return expr
   const [minuteRaw, hourRaw, dom, , dow] = parts

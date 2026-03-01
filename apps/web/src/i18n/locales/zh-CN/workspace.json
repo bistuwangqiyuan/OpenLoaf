@@ -80,7 +80,7 @@
       "workspaceNameEmpty": "工作空间名称不能为空",
       "minWorkspacesToDelete": "至少拥有 3 个工作空间时才允许删除当前工作空间",
       "noOtherWorkspace": "未找到可切换的工作空间",
-      "clearChatConfirm": "确认清除所有 AI 聊天内容？{{count}}此操作不可撤销。",
+      "clearChatConfirm": "确认清除所有 AI 聊天内容？{{countText}}此操作不可撤销。",
       "clearChatConfirmWithCount": "（当前 {{count}} 个会话）",
       "deleteWorkspaceConfirm": "确认删除工作空间「{{name}}」？此操作不可撤销。",
       "sessionsClearedSuccess": "已清除：{{count}} 个会话",

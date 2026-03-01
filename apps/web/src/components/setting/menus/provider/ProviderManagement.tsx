@@ -50,6 +50,7 @@ import {
 
 type ModelResponseLanguageId =
   | "zh-CN"
+  | "zh-TW"
   | "en-US"
   | "ja-JP"
   | "ko-KR"
@@ -87,6 +88,7 @@ export function ProviderManagement({ panelKey }: ProviderManagementProps) {
   );
   const modelResponseLanguageLabelById: Record<ModelResponseLanguageId, string> = useMemo(() => ({
     "zh-CN": t('provider.zh-CN'),
+    "zh-TW": t('provider.zh-TW'),
     "en-US": t('provider.en-US'),
     "ja-JP": t('provider.ja-JP'),
     "ko-KR": t('provider.ko-KR'),
