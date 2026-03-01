@@ -18,6 +18,7 @@ import { useTabs } from "@/hooks/use-tabs";
 import { WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { CalendarDays, Clock, LayoutDashboard, Mail } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 type WorkspaceSwitchTabId = "calendar" | "email" | "workbench" | "scheduled";
 
@@ -34,48 +35,50 @@ type WorkspaceSwitchTarget = DockTabItem & {
   tabIcon: string;
 };
 
-const WORKSPACE_SWITCH_TABS: WorkspaceSwitchTarget[] = [
-  {
-    id: "workbench",
-    label: "工作台",
-    icon: LayoutDashboard,
-    tone: "amber",
-    baseId: WORKBENCH_TAB_INPUT.baseId,
-    component: WORKBENCH_TAB_INPUT.component,
-    title: WORKBENCH_TAB_INPUT.titleKey,
-    tabIcon: WORKBENCH_TAB_INPUT.icon,
-  },
-  {
-    id: "calendar",
-    label: "日历",
-    icon: CalendarDays,
-    tone: "sky",
-    baseId: "base:calendar",
-    component: "calendar-page",
-    title: "日历",
-    tabIcon: "🗓️",
-  },
-  {
-    id: "email",
-    label: "邮箱",
-    icon: Mail,
-    tone: "emerald",
-    baseId: "base:mailbox",
-    component: "email-page",
-    title: "邮箱",
-    tabIcon: "📧",
-  },
-  {
-    id: "scheduled",
-    label: "任务",
-    icon: Clock,
-    tone: "rose",
-    baseId: "base:scheduled-tasks",
-    component: "scheduled-tasks-page",
-    title: "任务",
-    tabIcon: "⏰",
-  },
-];
+function buildWorkspaceSwitchTabs(t: (key: string) => string): WorkspaceSwitchTarget[] {
+  return [
+    {
+      id: "workbench",
+      label: t('nav:workbench'),
+      icon: LayoutDashboard,
+      tone: "amber",
+      baseId: WORKBENCH_TAB_INPUT.baseId,
+      component: WORKBENCH_TAB_INPUT.component,
+      title: t('nav:workbench'),
+      tabIcon: WORKBENCH_TAB_INPUT.icon,
+    },
+    {
+      id: "calendar",
+      label: t('nav:calendar'),
+      icon: CalendarDays,
+      tone: "sky",
+      baseId: "base:calendar",
+      component: "calendar-page",
+      title: t('nav:calendar'),
+      tabIcon: "🗓️",
+    },
+    {
+      id: "email",
+      label: t('nav:email'),
+      icon: Mail,
+      tone: "emerald",
+      baseId: "base:mailbox",
+      component: "email-page",
+      title: t('nav:email'),
+      tabIcon: "📧",
+    },
+    {
+      id: "scheduled",
+      label: t('nav:tasks'),
+      icon: Clock,
+      tone: "rose",
+      baseId: "base:scheduled-tasks",
+      component: "scheduled-tasks-page",
+      title: t('nav:tasks'),
+      tabIcon: "⏰",
+    },
+  ];
+}
 
 const COMPONENT_TO_TAB_ID: Record<string, WorkspaceSwitchTabId> = {
   "calendar-page": "calendar",
@@ -86,6 +89,7 @@ const COMPONENT_TO_TAB_ID: Record<string, WorkspaceSwitchTabId> = {
 
 /** Render bottom quick switcher for workspace entry pages. */
 export default function WorkspaceSwitchDockTabs({ tabId }: { tabId: string }) {
+  const { t } = useTranslation();
   const setTabBase = useTabRuntime((state) => state.setTabBase);
   const setTabTitle = useTabs((state) => state.setTabTitle);
   const setTabIcon = useTabs((state) => state.setTabIcon);
@@ -95,11 +99,13 @@ export default function WorkspaceSwitchDockTabs({ tabId }: { tabId: string }) {
     (state) => state.runtimeByTabId[tabId]?.base?.component ?? "",
   );
 
+  const WORKSPACE_SWITCH_TABS = useMemo(() => buildWorkspaceSwitchTabs(t), [t]);
+
   const selectedIndex = useMemo(() => {
     const currentTabId = COMPONENT_TO_TAB_ID[currentBaseComponent];
     const index = WORKSPACE_SWITCH_TABS.findIndex((tab) => tab.id === currentTabId);
     return index < 0 ? 0 : index;
-  }, [currentBaseComponent]);
+  }, [currentBaseComponent, WORKSPACE_SWITCH_TABS]);
 
   /** Switch current tab base panel. */
   const handleChange = (index: number | null) => {

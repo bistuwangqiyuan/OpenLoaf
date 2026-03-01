@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import {
   CommandDialog,
@@ -233,7 +234,7 @@ export function Search({
   const openSingletonTab = React.useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
-      const tabTitle = input.titleKey ?? input.title ?? '';
+      const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;

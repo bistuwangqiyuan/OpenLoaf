@@ -11,6 +11,7 @@
 
 import { startTransition, useCallback } from "react";
 import { useQuery, skipToken } from "@tanstack/react-query";
+import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { SidebarProject } from "@/components/layout/sidebar/SidebarProject";
 import { SidebarFeedback } from "@/components/layout/sidebar/SidebarFeedback";
@@ -126,7 +127,7 @@ export const AppSidebar = ({
   const openSingletonTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
-      const tabTitle = input.titleKey ?? input.title ?? '';
+      const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
@@ -162,7 +163,7 @@ export const AppSidebar = ({
   const openWorkspacePageTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
       if (!activeWorkspace) return;
-      const tabTitle = input.titleKey ?? input.title ?? '';
+      const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeState = useTabRuntime.getState().runtimeByTabId;

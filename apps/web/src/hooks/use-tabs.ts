@@ -9,6 +9,7 @@
  */
 "use client";
 
+import i18next from "i18next";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_TAB_INFO, WORKBENCH_TAB_INPUT, type DockItem } from "@openloaf/api/common";
@@ -162,7 +163,7 @@ export const useTabs = create<TabsState>()(
         const nextTab: TabMeta = {
           id: tabId,
           workspaceId,
-          title: title ?? DEFAULT_TAB_INFO.titleKey,
+          title: title ?? i18next.t(DEFAULT_TAB_INFO.titleKey),
           icon: icon ?? DEFAULT_TAB_INFO.icon,
           isPin: isPin ?? false,
           chatSessionId: createdChatSessionId,
@@ -538,7 +539,7 @@ export const useTabs = create<TabsState>()(
         get().addTab({
           workspaceId,
           createNew: true,
-          title: DEFAULT_TAB_INFO.titleKey,
+          title: i18next.t(DEFAULT_TAB_INFO.titleKey),
           icon: DEFAULT_TAB_INFO.icon,
           leftWidthPercent: 70,
           base: {
