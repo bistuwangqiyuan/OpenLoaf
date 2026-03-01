@@ -392,48 +392,48 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[640px] h-[78vh] flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-background p-0 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-3">
-          <DialogTitle className="text-[16px] font-semibold">{isEditing ? '编辑任务' : '新建自动任务'}</DialogTitle>
+          <DialogTitle className="text-[16px] font-semibold">{isEditing ? t('schedule.editTitle') : t('schedule.createTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col gap-4 px-6 pb-6">
             <div className="divide-y divide-border/60">
-              <FormRow label="任务名称">
+              <FormRow label={t('schedule.taskNameLabel')}>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="例如：每天 9 点同步日报"
+                  placeholder={t('schedule.taskNamePlaceholder')}
                   className={cn(inlineInput, 'max-w-[360px]')}
                 />
               </FormRow>
-              <FormRow label="类型">
+              <FormRow label={t('schedule.typeLabel')}>
                 <Tabs value={triggerMode} onValueChange={(value) => setTriggerMode(value as typeof triggerMode)}>
                   <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
                     <TabsTrigger value="scheduled" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                      定时
+                      {t('schedule.scheduled')}
                     </TabsTrigger>
                     <TabsTrigger value="condition" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                      条件
+                      {t('schedule.condition')}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </FormRow>
               {!isEditing ? (
                 <>
-                  <FormRow label="影响范围">
+                  <FormRow label={t('schedule.scopeLabel')}>
                     <Tabs value={tabScope} onValueChange={(value) => setTabScope(value as typeof tabScope)}>
                       <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
                         <TabsTrigger value="workspace" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                          工作区
+                          {t('schedule.workspace')}
                         </TabsTrigger>
                         <TabsTrigger value="project" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                          项目
+                          {t('schedule.project')}
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </FormRow>
                   {tabScope === 'project' ? (
-                    <FormRow label="项目">
+                    <FormRow label={t('schedule.project')}>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={resolvedProjectId || undefined}
@@ -688,14 +688,14 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
             onClick={() => onOpenChange(false)}
             className="h-9 rounded-full px-5 text-[13px] text-[var(--btn-neutral-fg,#5f6368)] hover:bg-[var(--btn-neutral-bg-hover,#e8eaed)] dark:text-slate-300 dark:hover:bg-slate-700"
           >
-            取消
+            {t('schedule.cancelButton')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit || isPending}
             className="h-9 rounded-full px-5 text-[13px] bg-[var(--btn-primary-bg,#0b57d0)] text-[var(--btn-primary-fg,#ffffff)] shadow-none hover:bg-[var(--btn-primary-bg-hover,#0a4cbc)] dark:bg-sky-600 dark:hover:bg-sky-500"
           >
-            {isPending ? '保存中...' : isEditing ? '保存' : '创建'}
+            {isPending ? t('schedule.savingButton') : isEditing ? t('schedule.saveButton') : t('schedule.createButton')}
           </Button>
         </DialogFooter>
       </DialogContent>
