@@ -24,7 +24,13 @@
 | ✅ KeyboardShortcuts.tsx（优先级 3） | 完成 | 100% |
 | ✅ ProviderManagement.tsx（优先级 3） | 完成 | 100% |
 | ✅ 翻译文件基础建设（优先级 4） | 完成 | 100% |
-| ⏳ 组件实现迁移（优先级 4） | 进行中 | 50% |
+| ✅ TaskBoardPage.tsx（优先级 4） | 完成 | 100% |
+| ✅ BoardToolbar.tsx（优先级 4） | 完成 | 100% |
+| ✅ Search.tsx（优先级 4） | 完成 | 100% |
+| ✅ TaskDetailPanel.tsx（优先级 4） | 完成 | 100% |
+| ✅ TaskTemplateDialog.tsx（优先级 4） | 完成 | 100% |
+| ✅ ScheduledTaskList.tsx（优先级 4） | 完成 | 100% |
+| ⏳ ScheduledTaskDialog.tsx（优先级 4） | 进行中 | 70% |
 
 **已完成的核心基础设施**：
 - ✅ i18next 系统初始化

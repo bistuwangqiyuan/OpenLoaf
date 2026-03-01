@@ -10,6 +10,7 @@
 'use client'
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { trpc } from '@/utils/trpc'
 import {
@@ -175,6 +176,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
   projectId,
   task,
 }: ScheduledTaskDialogProps) {
+  const { t } = useTranslation('tasks')
   const isEditing = Boolean(task)
 
   const [name, setName] = useState('')
