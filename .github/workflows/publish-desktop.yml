@@ -35,7 +35,7 @@ permissions:
 
 concurrency:
   group: desktop-publish
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 defaults:
   run:
