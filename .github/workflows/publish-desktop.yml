@@ -37,6 +37,10 @@ concurrency:
   group: desktop-publish
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
 env:
   ELECTRON_CACHE: .cache/electron
   ELECTRON_BUILDER_CACHE: .cache/electron-builder
