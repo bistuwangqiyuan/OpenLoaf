@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { generateId, type UIMessage } from "ai";
+import type { ModelDefinition } from "@openloaf/api/common";
 import type { OpenLoafUIMessage } from "@openloaf/api/types/message";
 import { logger } from "@/common/logger";
 import {
@@ -434,4 +435,65 @@ export async function loadAndPrepareMessageChain(input: {
     return { ok: false, errorText: input.formatError("找不到父消息。") };
   }
   return { ok: true, messages: messages as UIMessage[], modelMessages };
+}
+
+/** Image/video media type prefixes. */
+const IMAGE_VIDEO_MEDIA_PREFIXES = ["image/", "video/"];
+
+/** Check if a media type is image or video. */
+function isImageOrVideoMediaType(mediaType: string): boolean {
+  return IMAGE_VIDEO_MEDIA_PREFIXES.some((prefix) => mediaType.startsWith(prefix));
+}
+
+/**
+ * Strip image/video file parts from messages when the model does not support vision.
+ *
+ * Replaces each image/video `file` part with a text reference that hints at using
+ * the vision sub-agent via spawn-agent.
+ */
+export function stripImagePartsForNonVisionModel(
+  messages: UIMessage[],
+  modelDefinition: ModelDefinition | undefined,
+): UIMessage[] {
+  const tags = modelDefinition?.tags;
+  if (tags && (tags.includes("image_input") || tags.includes("image_analysis" as any))) {
+    return messages;
+  }
+
+  let anyChanged = false;
+  const next: UIMessage[] = [];
+  for (const message of messages) {
+    const parts = Array.isArray((message as any).parts) ? (message as any).parts : [];
+    let changed = false;
+    const replaced: any[] = [];
+    for (const part of parts) {
+      if (!part || typeof part !== "object") {
+        replaced.push(part);
+        continue;
+      }
+      if ((part as any).type !== "file") {
+        replaced.push(part);
+        continue;
+      }
+      const mediaType = typeof (part as any).mediaType === "string" ? (part as any).mediaType : "";
+      if (!mediaType || !isImageOrVideoMediaType(mediaType)) {
+        replaced.push(part);
+        continue;
+      }
+      // 替换为文本引用，保留可读路径。
+      const readablePath = (part as any).originalUrl || (part as any).url || "(unknown)";
+      replaced.push({
+        type: "text",
+        text: `[Image attached: ${readablePath}] (Note: Current model does not support direct image analysis. Use spawn-agent with agentType "vision" to analyze this image.)`,
+      });
+      changed = true;
+    }
+    if (changed) {
+      anyChanged = true;
+      next.push({ ...message, parts: replaced } as UIMessage);
+    } else {
+      next.push(message);
+    }
+  }
+  return anyChanged ? next : messages;
 }

@@ -478,6 +478,7 @@ export const projectRouter = t.router({
               title: rawTitle || fallbackTitle,
               icon: input.icon ?? undefined,
               projects: {},
+              initializedFeatures: [],
             },
       );
       const metaPath = getProjectMetaPath(projectRootPath);
@@ -527,6 +528,7 @@ export const projectRouter = t.router({
           title: config.title ?? path.basename(rootPath),
           icon: config.icon ?? undefined,
           rootUri: toFileUriWithoutEncoding(rootPath),
+          initializedFeatures: config.initializedFeatures,
         },
       };
     }),
@@ -947,6 +949,32 @@ export const projectRouter = t.router({
           updatedAt: payload.updatedAt,
         },
       };
+    }),
+
+  /** Initialize a gated feature for a project (e.g. homepage, history). */
+  initFeature: shieldedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        feature: z.enum(["index", "tasks"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const rootPath = resolveProjectRootPath(input.projectId);
+      const config = await readProjectConfig(rootPath);
+      const features = new Set(config.initializedFeatures ?? []);
+      if (features.has(input.feature)) return { ok: true };
+      features.add(input.feature);
+      const metaPath = getProjectMetaPath(rootPath);
+      await writeJsonAtomic(metaPath, {
+        ...config,
+        initializedFeatures: [...features],
+      });
+      if (input.feature === "index") {
+        const pagePath = getHomePagePath(rootPath);
+        await writeJsonAtomic(pagePath, { schema: 1, blocks: [], version: Date.now() });
+      }
+      return { ok: true };
     }),
 
   /** Get board snapshot for a project. */

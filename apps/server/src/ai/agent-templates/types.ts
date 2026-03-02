@@ -49,4 +49,6 @@ export type AgentTemplate = {
   systemPrompt: string
   /** true = 仅内置使用，不生成文件、不出现在 UI。 */
   isBuiltinOnly?: boolean
+  /** 模型标签约束：spawn 此 agent 时自动选择满足这些标签的模型。 */
+  requiredModelTags?: readonly string[]
 }

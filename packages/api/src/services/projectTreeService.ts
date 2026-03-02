@@ -33,6 +33,8 @@ export const projectConfigSchema = z
     projects: z.record(z.string(), z.string()).optional(),
     // Skill folder names to ignore for this project.
     ignoreSkills: z.array(z.string()).optional(),
+    /** Feature ids that have been explicitly initialized (e.g. "index", "tasks"). */
+    initializedFeatures: z.array(z.string()).optional(),
     /** AI-inferred or user-set project type. */
     projectType: z
       .enum(['code', 'document', 'data', 'design', 'research', 'general'])

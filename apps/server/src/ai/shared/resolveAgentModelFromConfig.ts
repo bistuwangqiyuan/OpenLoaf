@@ -16,6 +16,7 @@
 
 import type { ChatModelSource } from '@openloaf/api/common'
 import { readAgentJson, resolveAgentDir } from '@/ai/shared/defaultAgentResolver'
+import { getTemplate } from '@/ai/agent-templates'
 import { resolveEffectiveAgentName } from '@/ai/services/agentFactory'
 import { isSystemAgentId } from '@/ai/shared/systemAgentDefinitions'
 import { resolveAgentByName } from '@/ai/tools/AgentSelector'
@@ -32,6 +33,7 @@ export type AgentModelIds = {
   imageModelId?: string
   videoModelId?: string
   codeModelIds?: string[]
+  requiredModelTags?: string[]
 }
 
 /**
@@ -89,8 +91,13 @@ export function resolveAgentModelIdsFromConfig(input: {
       const codeModelIds = Array.isArray(descriptor.codeModelIds)
         ? descriptor.codeModelIds.filter((s) => s.trim())
         : undefined
+      // requiredModelTags: descriptor 优先，回退到 template 定义。
+      const requiredModelTags =
+        (Array.isArray(descriptor.requiredModelTags) && descriptor.requiredModelTags.length > 0
+          ? descriptor.requiredModelTags.filter((s) => s.trim())
+          : undefined) ?? (getTemplate(effectiveName)?.requiredModelTags as string[] | undefined)
 
-      return { chatModelId, chatModelSource, imageModelId, videoModelId, codeModelIds }
+      return { chatModelId, chatModelSource, imageModelId, videoModelId, codeModelIds, requiredModelTags }
     }
   }
 
@@ -123,9 +130,16 @@ export function resolveAgentModelIdsFromConfig(input: {
     const codeModelIds = Array.isArray(match.config.codeModelIds)
       ? match.config.codeModelIds.filter((s) => s.trim())
       : undefined
+    // requiredModelTags: config 优先，回退到 template 定义。
+    const requiredModelTags =
+      (match.config.requiredModelTags?.length
+        ? match.config.requiredModelTags
+        : undefined) ?? (getTemplate(effectiveName)?.requiredModelTags as string[] | undefined)
 
-    return { chatModelId, chatModelSource, imageModelId, videoModelId, codeModelIds }
+    return { chatModelId, chatModelSource, imageModelId, videoModelId, codeModelIds, requiredModelTags }
   }
 
-  return { chatModelSource }
+  // 无 config 匹配，仍尝试从 template 读取 requiredModelTags。
+  const templateTags = getTemplate(effectiveName)?.requiredModelTags as string[] | undefined
+  return { chatModelSource, requiredModelTags: templateTags }
 }

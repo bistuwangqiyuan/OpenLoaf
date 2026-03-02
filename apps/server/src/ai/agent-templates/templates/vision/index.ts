@@ -22,6 +22,7 @@ export const visionTemplate: AgentTemplate = {
   isPrimary: false,
   systemPrompt: VISION_PROMPT_ZH.trim(),
   isBuiltinOnly: true,
+  requiredModelTags: ['image_analysis'],
 }
 
 /** Get prompt in specified language. */

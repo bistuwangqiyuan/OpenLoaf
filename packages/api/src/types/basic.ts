@@ -116,8 +116,6 @@ export const basicConfigSchema = z.object({
   appProjectRule: z.string(),
   /** Auto-approve simple tool calls without manual confirmation. */
   autoApproveTools: z.boolean(),
-  /** Allow tools to access paths outside workspace/project roots. */
-  toolAllowOutsideScope: z.boolean(),
   stepUpInitialized: z.boolean(),
   proxyEnabled: z.boolean(),
   proxyHost: z.string(),

@@ -40,6 +40,8 @@ export type AgentConfig = {
   videoModelIds: string[]
   /** Code model ids for CLI coding tools. */
   codeModelIds: string[]
+  /** 模型标签约束：spawn 此 agent 时自动选择满足这些标签的模型。 */
+  requiredModelTags: string[]
   /** Tool ids enabled for this agent. */
   toolIds: string[]
   /** Associated skill names. */
@@ -110,6 +112,7 @@ type AgentFrontMatter = {
   imageModelIds?: string[]
   videoModelIds?: string[]
   codeModelIds?: string[]
+  requiredModelTags?: string[]
   toolIds?: string[]
   skills?: string[]
   allowSubAgents?: boolean
@@ -248,6 +251,7 @@ export function readAgentConfigFromPath(
     const imageModelIds = normalizeIdList(frontMatter.imageModelIds)
     const videoModelIds = normalizeIdList(frontMatter.videoModelIds)
     const codeModelIds = normalizeIdList(frontMatter.codeModelIds)
+    const requiredModelTags = frontMatter.requiredModelTags?.filter(Boolean) ?? []
     const toolIds = normalizeToolIds(frontMatter.toolIds || [])
     return {
       name,
@@ -263,6 +267,7 @@ export function readAgentConfigFromPath(
       imageModelIds,
       videoModelIds,
       codeModelIds,
+      requiredModelTags,
       toolIds,
       skills: frontMatter.skills || [],
       allowSubAgents: frontMatter.allowSubAgents ?? false,
@@ -483,6 +488,9 @@ function setField(
     case 'codeModelIds':
       result.codeModelIds = normalizeIdList(value)
       break
+    case 'requiredModelTags':
+      result.requiredModelTags = Array.isArray(value) ? value : [value]
+      break
     case 'toolIds':
       result.toolIds = Array.isArray(value) ? value : [value]
       break
@@ -554,6 +562,7 @@ export function serializeAgentToMarkdown(config: {
   imageModelIds?: string[]
   videoModelIds?: string[]
   codeModelIds?: string[]
+  requiredModelTags?: string[]
   toolIds?: string[]
   skills?: string[]
   allowSubAgents?: boolean
@@ -607,6 +616,12 @@ export function serializeAgentToMarkdown(config: {
     lines.push('codeModelIds:')
     for (const id of config.codeModelIds) {
       lines.push(`  - ${id}`)
+    }
+  }
+  if (config.requiredModelTags?.length) {
+    lines.push('requiredModelTags:')
+    for (const tag of config.requiredModelTags) {
+      lines.push(`  - ${tag}`)
     }
   }
   if (config.toolIds?.length) {

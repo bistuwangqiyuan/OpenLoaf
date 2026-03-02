@@ -58,6 +58,8 @@ export type AgentJsonDescriptor = {
   videoModelIds?: string[]
   /** Code model ids for CLI coding tools (empty = Auto). */
   codeModelIds?: string[]
+  /** 模型标签约束（用户可覆盖模板默认值）。 */
+  requiredModelTags?: string[]
   toolIds?: string[]
   skills?: string[]
   allowSubAgents?: boolean

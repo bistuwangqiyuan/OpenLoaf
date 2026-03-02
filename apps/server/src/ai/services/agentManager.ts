@@ -41,6 +41,7 @@ import {
 import { logger } from '@/common/logger'
 import { resolveApprovalGate, applyApprovalDecision } from '@/ai/tools/approvalUtils'
 import { registerFrontendToolPending } from '@/ai/tools/pendingRegistry'
+import { buildFilePartFromPath } from '@/ai/services/image/attachmentResolver'
 
 export type AgentStatus =
   | 'pending'
@@ -96,6 +97,8 @@ export type ManagedAgent = {
   prefaceInjected?: boolean
   /** Whether an empty-output retry has been attempted. */
   retried?: boolean
+  /** Raw spawn items for deferred file resolution (vision sub-agent support). */
+  rawItems?: SpawnItem[]
 }
 
 const MAX_DEPTH = 2
@@ -270,6 +273,7 @@ class AgentManager {
       responseParts: [],
       depth,
       isResumed: false,
+      rawItems: input.items && input.items.length > 0 ? input.items : undefined,
     }
     this.agents.set(id, agent)
 
@@ -369,6 +373,31 @@ class AgentManager {
           modelOverride,
           inlineConfig,
         })
+
+        // 逻辑：解析初始消息中的文件引用为 data URL（仅首次 spawn，非恢复场景）。
+        if (!agent.isResumed && agent.rawItems && agent.messages.length > 0) {
+          const resolvedParts: any[] = []
+          for (const item of agent.rawItems) {
+            if (item.type === 'text') {
+              resolvedParts.push({ type: 'text', text: item.text })
+            } else if (item.type === 'file') {
+              try {
+                const filePart = await buildFilePartFromPath({ path: item.path })
+                if (filePart) {
+                  resolvedParts.push(filePart)
+                } else {
+                  resolvedParts.push({ type: 'text', text: `[file: ${item.path}]` })
+                }
+              } catch {
+                resolvedParts.push({ type: 'text', text: `[file: ${item.path}]` })
+              }
+            }
+          }
+          if (resolvedParts.length > 0) {
+            agent.messages[0] = { ...agent.messages[0]!, parts: resolvedParts }
+          }
+          agent.rawItems = undefined
+        }
 
         // 逻辑：仅首次 spawn 时生成 preface、写入 session.json 和初始 user 消息，恢复场景跳过。
         if (!agent.isResumed) {

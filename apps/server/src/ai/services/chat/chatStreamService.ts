@@ -63,6 +63,7 @@ import {
   initRequestContext,
   loadAndPrepareMessageChain,
   saveLastMessageAndResolveParent,
+  stripImagePartsForNonVisionModel,
 } from "./chatStreamHelpers";
 import { resolveCodexRequestOptions, resolveImageGenerateOptions } from "./messageOptionResolver";
 import {
@@ -512,6 +513,7 @@ export async function runChatStream(input: {
   let agentMetadata: Record<string, unknown> = {};
   let masterAgent: ReturnType<typeof createMasterAgentRunner>;
   let instructions = '';
+  let resolvedModelDef: import("@openloaf/api/common").ModelDefinition | undefined;
 
   try {
     // 按输入能力与历史偏好选择模型，失败时直接返回错误流。
@@ -558,6 +560,7 @@ export async function runChatStream(input: {
       });
     }
     setChatModel(resolved.model);
+    resolvedModelDef = resolved.modelDefinition ?? undefined;
     agentMetadata = {
       id: masterAgent.frame.agentId,
       name: masterAgent.frame.name,
@@ -619,6 +622,11 @@ export async function runChatStream(input: {
     } catch (err) {
       logger.warn({ err, sessionId }, '[chat] failed to save system.json')
     }
+  }
+
+  // 逻辑：非视觉模型剥离图片 parts，替换为文本引用提示（vision sub-agent 委派）。
+  if (!directCli) {
+    modelMessages = stripImagePartsForNonVisionModel(modelMessages, resolvedModelDef);
   }
 
   return createChatStreamResponse({

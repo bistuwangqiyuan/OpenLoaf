@@ -961,7 +961,7 @@ export async function replaceRelativeFileParts(messages: UIMessage[]): Promise<U
         typeof (part as any).mediaType === "string" ? (part as any).mediaType : undefined;
       try {
         const filePart = await buildFilePartFromPath({ path: url, mediaType });
-        if (filePart) replaced.push(filePart);
+        if (filePart) replaced.push({ ...filePart, originalUrl: url });
       } catch {
         // 读取或压缩失败时直接跳过该图片，避免阻断对话。
       }
