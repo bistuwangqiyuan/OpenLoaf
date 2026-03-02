@@ -44,9 +44,13 @@ import {
   setMinimalRequestContext,
   setChatModel,
   setAbortSignal,
+  setupE2eTestEnv,
 } from '../helpers/testEnv'
 
 installHttpProxy()
+
+// 初始化 E2E 测试环境（临时目录 + workspace 数据 + root override）
+setupE2eTestEnv()
 
 let globalRestoreChatSource: (() => void) | undefined
 process.on('exit', () => globalRestoreChatSource?.())

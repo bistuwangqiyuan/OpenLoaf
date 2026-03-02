@@ -88,12 +88,12 @@ export function AboutOpenLoaf() {
 
   // Build ITEMS with translations
   const ITEMS = React.useMemo(() => [
-    { key: "license", label: t('about.license') },
-    { key: "privacy", label: t('about.privacy') },
-    { key: "oss", label: t('about.oss') },
-    { key: "docs", label: t('about.docs') },
-    { key: "contact", label: t('about.contact') },
-    { key: "issues", label: t('about.issues') },
+    { key: "license", label: t('aboutAdditions.license') },
+    { key: "privacy", label: t('aboutAdditions.privacy') },
+    { key: "oss", label: t('aboutAdditions.oss') },
+    { key: "docs", label: t('aboutAdditions.docs') },
+    { key: "contact", label: t('aboutAdditions.contact') },
+    { key: "issues", label: t('aboutAdditions.issues') },
   ], [t]);
   const [webContentsViewCount, setWebContentsViewCount] = React.useState<number | null>(null);
   const [appVersion, setAppVersion] = React.useState<string | null>(null);
@@ -313,49 +313,57 @@ export function AboutOpenLoaf() {
   }, [setBasic]);
 
   const currentVersion = appVersion ?? "—";
+  const serverVersion = updateStatus?.server?.version ?? "—";
+  const webVersion = updateStatus?.web?.version ?? "—";
+
+  /** Format a version string with "v" prefix, unless it's a placeholder. */
+  const fmtVersion = (v: string) => {
+    if (v === "—") return v;
+    if (v === "bundled") return t('aboutAdditions.bundledVersion');
+    return `v${v}`;
+  };
+
   const downloadPercent = updateStatus?.progress?.percent;
   const updateLabel = React.useMemo(() => {
-    if (!isElectron) return t('about.webNoIncrement');
-    if (isDevDesktop) return t('about.devModeClosed');
-    if (!updateStatus) return t('about.waitingCheck');
+    if (!isElectron) return t('aboutAdditions.webNoIncrement');
+    if (isDevDesktop) return t('aboutAdditions.devModeClosed');
+    if (!updateStatus) return t('aboutAdditions.waitingCheck');
     const componentLabel =
-      updateStatus.progress?.component === "server" ? t('about.server') : "Web";
+      updateStatus.progress?.component === "server" ? t('aboutAdditions.server') : "Web";
     // 兼容 idle 状态下仍有错误提示的情况（例如 Electron 版本过低）。
     if (updateStatus.state === "idle" && updateStatus.error) {
-      return `${t('about.checkFailed')}：${updateStatus.error}`;
+      return `${t('aboutAdditions.checkFailed')}：${updateStatus.error}`;
     }
     switch (updateStatus.state) {
       case "checking":
-        return t('about.checking');
+        return t('aboutAdditions.checking');
       case "downloading":
         return updateStatus.progress
-          ? `${t('about.downloading')}${componentLabel}${t('about.updatePercent', { percent: Math.round(downloadPercent ?? 0) })}`
-          : t('about.downloadingUpdate');
+          ? `${t('aboutAdditions.downloading')}${componentLabel}${t('aboutAdditions.updatePercent', { percent: Math.round(downloadPercent ?? 0) })}`
+          : t('aboutAdditions.downloadingUpdate');
       case "ready":
-        return t('about.readyRestart');
+        return t('aboutAdditions.readyRestart');
       case "error":
         return updateStatus.error
-          ? `${t('about.checkFailed')}：${updateStatus.error}`
-          : t('about.checkFailedRetry');
+          ? `${t('aboutAdditions.checkFailed')}：${updateStatus.error}`
+          : t('aboutAdditions.checkFailedRetry');
       case "idle":
       default:
-        return updateStatus.lastCheckedAt ? t('about.isLatest') : t('about.waitingCheck');
+        return updateStatus.lastCheckedAt ? t('aboutAdditions.isLatest') : t('aboutAdditions.waitingCheck');
     }
   }, [isElectron, isDevDesktop, updateStatus, downloadPercent, t]);
 
   const updateActionLabel = isDevDesktop
-    ? "开发模式不可用"
+    ? t('aboutAdditions.devModeUnavailable')
     : updateStatus?.state === "ready"
-      ? "更新已就绪"
-      : "检测更新";
+      ? t('aboutAdditions.updateReady')
+      : t('aboutAdditions.checkUpdate');
   const updateActionDisabled =
     !isElectron ||
     isDevDesktop ||
     updateStatus?.state === "checking" ||
     updateStatus?.state === "downloading" ||
     updateStatus?.state === "ready";
-  const serverVersion = updateStatus?.server?.version ?? "—";
-  const webVersion = updateStatus?.web?.version ?? "—";
 
   const hasNewUpdate = updateStatus?.state === "ready";
   const serverHasUpdate = hasNewUpdate && updateStatus?.server?.newVersion;
@@ -369,7 +377,7 @@ export function AboutOpenLoaf() {
           <div className="flex items-center justify-between px-3 py-3">
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
-              <div className="text-xs text-muted-foreground">v{currentVersion}</div>
+              <div className="text-xs text-muted-foreground">{fmtVersion(currentVersion)}</div>
             </div>
           </div>
 
@@ -386,7 +394,7 @@ export function AboutOpenLoaf() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">
-                v{serverVersion}
+                {fmtVersion(serverVersion)}
                 {serverHasUpdate && ` → v${updateStatus?.server?.newVersion}`}
               </div>
             </div>
@@ -414,7 +422,7 @@ export function AboutOpenLoaf() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">
-                v{webVersion}
+                {fmtVersion(webVersion)}
                 {webHasUpdate && ` → v${updateStatus?.web?.newVersion}`}
               </div>
             </div>
@@ -453,9 +461,9 @@ export function AboutOpenLoaf() {
           <div className="border-t border-border px-3 py-3">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium">{t('aboutAdditions.betaChannel', 'Beta 体验')}</div>
+                <div className="text-sm font-medium">{t('aboutAdditions.betaChannel')}</div>
                 <div className="text-xs text-muted-foreground">
-                  {t('aboutAdditions.betaChannelDesc', '开启后优先获取测试版更新，可能包含未完善的功能')}
+                  {t('aboutAdditions.betaChannelDesc')}
                 </div>
               </div>
               <Switch

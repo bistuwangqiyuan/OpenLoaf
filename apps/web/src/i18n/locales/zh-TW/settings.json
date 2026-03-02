@@ -279,7 +279,13 @@
     "changelogTitle": "{{component}} 更新日誌",
     "version": "版本",
     "loading": "載入中…",
-    "info": "資訊"
+    "info": "資訊",
+    "checkUpdate": "檢測更新",
+    "devModeUnavailable": "開發模式不可用",
+    "updateReady": "更新已就緒",
+    "betaChannel": "Beta 體驗",
+    "betaChannelDesc": "開啟後優先取得測試版更新，可能包含未完善的功能",
+    "bundledVersion": "內建版本"
   },
   "project": {
     "title": "專案設定",
@@ -651,45 +657,92 @@
     "project.classify": {
       "label": "專案分類",
       "description": "當使用者建立/匯入專案時，掃描檔案結構，自動判斷專案類型並推薦圖示。",
-      "triggers": ["Git 克隆完成後", "匯入已有資料夾時", "舊專案首次開啟時（後台靜默）"]
+      "triggers": [
+        "Git 克隆完成後",
+        "匯入已有資料夾時",
+        "舊專案首次開啟時（後台靜默）"
+      ]
     },
     "chat.suggestions": {
       "label": "輸入推薦",
       "description": "當使用者在輸入框停頓時，根據上下文產生智慧輸入建議。",
-      "triggers": ["輸入框停頓 500ms", "輸入框獲得焦點時（無內容）"]
+      "triggers": [
+        "輸入框停頓 500ms",
+        "輸入框獲得焦點時（無內容）"
+      ]
     },
     "chat.title": {
       "label": "摘要標題",
       "description": "對話結束後自動為對話產生一個簡短、有意義的標題。",
-      "triggers": ["對話結束後自動命名", "使用者手動觸發重新命名"]
+      "triggers": [
+        "對話結束後自動命名",
+        "使用者手動觸發重新命名"
+      ]
     },
     "project.ephemeralName": {
       "label": "臨時專案命名",
       "description": "Agent 建立臨時專案時，根據任務上下文自動產生專案名稱、圖示和類型。",
-      "triggers": ["Agent 建立臨時專案時"]
+      "triggers": [
+        "Agent 建立臨時專案時"
+      ]
     },
     "git.commitMessage": {
       "label": "Commit 訊息",
       "description": "根據程式碼變更內容，自動產生規範的 Git commit message。",
-      "triggers": ["使用者請求產生 commit message"]
+      "triggers": [
+        "使用者請求產生 commit message"
+      ]
     },
     "text.translate": {
       "label": "文字翻譯",
       "description": "將選取文字或對話內容翻譯為目標語言，自動偵測來源語言。",
-      "triggers": ["使用者選取文字請求翻譯", "對話中要求翻譯內容"]
+      "triggers": [
+        "使用者選取文字請求翻譯",
+        "對話中要求翻譯內容"
+      ]
     }
   },
   "agentTemplates": {
-    "browser": { "name": "瀏覽器助手", "description": "網頁瀏覽和資料擷取" },
-    "calendar": { "name": "行事曆助手", "description": "行事曆事件管理" },
-    "coder": { "name": "程式設計助手", "description": "使用 AI CLI 工具進行程式開發" },
-    "document": { "name": "文件助手", "description": "檔案讀寫、文件分析與自動摘要" },
-    "email": { "name": "郵件助手", "description": "郵件查詢和操作" },
-    "master": { "name": "主助手", "description": "混合模式主助手，可直接執行簡單任務，也可排程子 Agent" },
-    "project": { "name": "專案助手", "description": "專案資料查詢操作" },
-    "shell": { "name": "終端助手", "description": "Shell 指令執行" },
-    "vision": { "name": "視覺分析", "description": "圖片/影片理解與描述生成" },
-    "widget": { "name": "工作台元件助手", "description": "動態 Widget 建立" }
+    "browser": {
+      "name": "瀏覽器助手",
+      "description": "網頁瀏覽和資料擷取"
+    },
+    "calendar": {
+      "name": "行事曆助手",
+      "description": "行事曆事件管理"
+    },
+    "coder": {
+      "name": "程式設計助手",
+      "description": "使用 AI CLI 工具進行程式開發"
+    },
+    "document": {
+      "name": "文件助手",
+      "description": "檔案讀寫、文件分析與自動摘要"
+    },
+    "email": {
+      "name": "郵件助手",
+      "description": "郵件查詢和操作"
+    },
+    "master": {
+      "name": "主助手",
+      "description": "混合模式主助手，可直接執行簡單任務，也可排程子 Agent"
+    },
+    "project": {
+      "name": "專案助手",
+      "description": "專案資料查詢操作"
+    },
+    "shell": {
+      "name": "終端助手",
+      "description": "Shell 指令執行"
+    },
+    "vision": {
+      "name": "視覺分析",
+      "description": "圖片/影片理解與描述生成"
+    },
+    "widget": {
+      "name": "工作台元件助手",
+      "description": "動態 Widget 建立"
+    }
   },
   "capabilityGroups": {
     "browser": "瀏覽器操作",

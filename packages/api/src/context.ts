@@ -29,7 +29,7 @@ export async function createContext({
 }> {
   // Extract language from request headers or default to 'zh-CN'
   const lang =
-    (honoContext.req.header("x-ui-language") as string) || "zh-CN";
+    (honoContext?.req?.header?.("x-ui-language") as string) || "zh-CN";
 
   return {
     session: null,

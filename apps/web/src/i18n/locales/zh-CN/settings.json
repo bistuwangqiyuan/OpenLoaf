@@ -279,7 +279,13 @@
     "changelogTitle": "{{component}} 更新日志",
     "version": "版本",
     "loading": "加载中...",
-    "info": "信息"
+    "info": "信息",
+    "checkUpdate": "检测更新",
+    "devModeUnavailable": "开发模式不可用",
+    "updateReady": "更新已就绪",
+    "betaChannel": "Beta 体验",
+    "betaChannelDesc": "开启后优先获取测试版更新，可能包含未完善的功能",
+    "bundledVersion": "内置版本"
   },
   "project": {
     "title": "项目设置",
@@ -651,45 +657,92 @@
     "project.classify": {
       "label": "项目分类",
       "description": "当用户创建/导入项目时，扫描文件结构，自动判断项目类型并推荐图标。",
-      "triggers": ["Git 克隆完成后", "导入已有文件夹时", "老项目首次打开时（后台静默）"]
+      "triggers": [
+        "Git 克隆完成后",
+        "导入已有文件夹时",
+        "老项目首次打开时（后台静默）"
+      ]
     },
     "chat.suggestions": {
       "label": "输入推荐",
       "description": "当用户在输入框停顿时，根据上下文生成智能输入建议。",
-      "triggers": ["输入框停顿 500ms", "输入框获得焦点时（无内容）"]
+      "triggers": [
+        "输入框停顿 500ms",
+        "输入框获得焦点时（无内容）"
+      ]
     },
     "chat.title": {
       "label": "摘要标题",
       "description": "对话结束后自动为对话生成一个简短、有意义的标题。",
-      "triggers": ["对话结束后自动命名", "用户手动触发重命名"]
+      "triggers": [
+        "对话结束后自动命名",
+        "用户手动触发重命名"
+      ]
     },
     "project.ephemeralName": {
       "label": "临时项目命名",
       "description": "Agent 创建临时项目时，根据任务上下文自动生成项目名称、图标和类型。",
-      "triggers": ["Agent 创建临时项目时"]
+      "triggers": [
+        "Agent 创建临时项目时"
+      ]
     },
     "git.commitMessage": {
       "label": "Commit 信息",
       "description": "根据代码变更内容，自动生成规范的 Git commit message。",
-      "triggers": ["用户请求生成 commit message"]
+      "triggers": [
+        "用户请求生成 commit message"
+      ]
     },
     "text.translate": {
       "label": "文本翻译",
       "description": "将选中文本或对话内容翻译为目标语言，自动检测源语言。",
-      "triggers": ["用户选中文本请求翻译", "对话中要求翻译内容"]
+      "triggers": [
+        "用户选中文本请求翻译",
+        "对话中要求翻译内容"
+      ]
     }
   },
   "agentTemplates": {
-    "browser": { "name": "浏览器助手", "description": "网页浏览和数据抓取" },
-    "calendar": { "name": "日历助手", "description": "日历事件管理" },
-    "coder": { "name": "编码助手", "description": "使用 AI CLI 工具进行代码开发" },
-    "document": { "name": "文档助手", "description": "文件读写、文档分析与自动总结" },
-    "email": { "name": "邮件助手", "description": "邮件查询和操作" },
-    "master": { "name": "主助手", "description": "混合模式主助手，可直接执行简单任务，也可调度子 Agent" },
-    "project": { "name": "项目助手", "description": "项目数据查询操作" },
-    "shell": { "name": "终端助手", "description": "Shell 命令执行" },
-    "vision": { "name": "视觉分析", "description": "图片/视频理解与描述生成" },
-    "widget": { "name": "工作台组件助手", "description": "动态 Widget 创建" }
+    "browser": {
+      "name": "浏览器助手",
+      "description": "网页浏览和数据抓取"
+    },
+    "calendar": {
+      "name": "日历助手",
+      "description": "日历事件管理"
+    },
+    "coder": {
+      "name": "编码助手",
+      "description": "使用 AI CLI 工具进行代码开发"
+    },
+    "document": {
+      "name": "文档助手",
+      "description": "文件读写、文档分析与自动总结"
+    },
+    "email": {
+      "name": "邮件助手",
+      "description": "邮件查询和操作"
+    },
+    "master": {
+      "name": "主助手",
+      "description": "混合模式主助手，可直接执行简单任务，也可调度子 Agent"
+    },
+    "project": {
+      "name": "项目助手",
+      "description": "项目数据查询操作"
+    },
+    "shell": {
+      "name": "终端助手",
+      "description": "Shell 命令执行"
+    },
+    "vision": {
+      "name": "视觉分析",
+      "description": "图片/视频理解与描述生成"
+    },
+    "widget": {
+      "name": "工作台组件助手",
+      "description": "动态 Widget 创建"
+    }
   },
   "capabilityGroups": {
     "browser": "浏览器操作",

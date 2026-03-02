@@ -279,7 +279,13 @@
     "changelogTitle": "{{component}} Changelog",
     "version": "Version",
     "loading": "Loading...",
-    "info": "Information"
+    "info": "Information",
+    "checkUpdate": "Check for Updates",
+    "devModeUnavailable": "Unavailable in dev mode",
+    "updateReady": "Update Ready",
+    "betaChannel": "Beta Channel",
+    "betaChannelDesc": "Receive beta updates first. May include unfinished features.",
+    "bundledVersion": "Built-in"
   },
   "project": {
     "title": "Project Settings",
@@ -651,45 +657,92 @@
     "project.classify": {
       "label": "Project Classification",
       "description": "When a user creates or imports a project, scans the file structure to automatically determine the project type and recommend an icon.",
-      "triggers": ["After Git clone completes", "When importing an existing folder", "First time opening a legacy project (silent background)"]
+      "triggers": [
+        "After Git clone completes",
+        "When importing an existing folder",
+        "First time opening a legacy project (silent background)"
+      ]
     },
     "chat.suggestions": {
       "label": "Input Suggestions",
       "description": "When the user pauses in the input box, generates smart input suggestions based on context.",
-      "triggers": ["Input box paused for 500ms", "Input box focused (no content)"]
+      "triggers": [
+        "Input box paused for 500ms",
+        "Input box focused (no content)"
+      ]
     },
     "chat.title": {
       "label": "Summary Title",
       "description": "Automatically generates a short, meaningful title for the conversation after it ends.",
-      "triggers": ["Auto-named after conversation ends", "User manually triggers rename"]
+      "triggers": [
+        "Auto-named after conversation ends",
+        "User manually triggers rename"
+      ]
     },
     "project.ephemeralName": {
       "label": "Temporary Project Naming",
       "description": "When Agent creates a temporary project, automatically generates a project name, icon, and type based on task context.",
-      "triggers": ["When Agent creates a temporary project"]
+      "triggers": [
+        "When Agent creates a temporary project"
+      ]
     },
     "git.commitMessage": {
       "label": "Commit Message",
       "description": "Automatically generates a standardized Git commit message based on code changes.",
-      "triggers": ["User requests commit message generation"]
+      "triggers": [
+        "User requests commit message generation"
+      ]
     },
     "text.translate": {
       "label": "Text Translation",
       "description": "Translates selected text or conversation content to the target language, auto-detecting the source language.",
-      "triggers": ["User selects text and requests translation", "Translation requested in conversation"]
+      "triggers": [
+        "User selects text and requests translation",
+        "Translation requested in conversation"
+      ]
     }
   },
   "agentTemplates": {
-    "browser": { "name": "Browser Assistant", "description": "Web browsing and data extraction" },
-    "calendar": { "name": "Calendar Assistant", "description": "Calendar event management" },
-    "coder": { "name": "Coding Assistant", "description": "Code development using AI CLI tools" },
-    "document": { "name": "Document Assistant", "description": "File reading/writing, document analysis and auto-summarization" },
-    "email": { "name": "Email Assistant", "description": "Email query and operations" },
-    "master": { "name": "Master Assistant", "description": "Hybrid-mode master agent that can execute simple tasks directly or dispatch sub-agents" },
-    "project": { "name": "Project Assistant", "description": "Project data query and operations" },
-    "shell": { "name": "Terminal Assistant", "description": "Shell command execution" },
-    "vision": { "name": "Visual Analysis", "description": "Image/video understanding and description generation" },
-    "widget": { "name": "Widget Assistant", "description": "Dynamic widget creation" }
+    "browser": {
+      "name": "Browser Assistant",
+      "description": "Web browsing and data extraction"
+    },
+    "calendar": {
+      "name": "Calendar Assistant",
+      "description": "Calendar event management"
+    },
+    "coder": {
+      "name": "Coding Assistant",
+      "description": "Code development using AI CLI tools"
+    },
+    "document": {
+      "name": "Document Assistant",
+      "description": "File reading/writing, document analysis and auto-summarization"
+    },
+    "email": {
+      "name": "Email Assistant",
+      "description": "Email query and operations"
+    },
+    "master": {
+      "name": "Master Assistant",
+      "description": "Hybrid-mode master agent that can execute simple tasks directly or dispatch sub-agents"
+    },
+    "project": {
+      "name": "Project Assistant",
+      "description": "Project data query and operations"
+    },
+    "shell": {
+      "name": "Terminal Assistant",
+      "description": "Shell command execution"
+    },
+    "vision": {
+      "name": "Visual Analysis",
+      "description": "Image/video understanding and description generation"
+    },
+    "widget": {
+      "name": "Widget Assistant",
+      "description": "Dynamic widget creation"
+    }
   },
   "capabilityGroups": {
     "browser": "Browser",
