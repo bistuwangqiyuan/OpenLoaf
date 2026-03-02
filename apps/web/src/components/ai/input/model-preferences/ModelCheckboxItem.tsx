@@ -9,9 +9,9 @@
  */
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { ModelIcon } from '@/components/setting/menus/provider/ModelIcon'
-import { MODEL_TAG_LABELS } from '@openloaf/api/common'
 import type { ModelTag } from '@openloaf/api/common'
 import { Check } from 'lucide-react'
 
@@ -66,11 +66,12 @@ export function ModelCheckboxItem({
   disabled,
   onToggle,
 }: ModelCheckboxItemProps) {
+  const { t } = useTranslation('ai')
   const tagLabels =
     tags && tags.length > 0
       ? tags.map((tag) => ({
           key: tag,
-          label: MODEL_TAG_LABELS[tag] ?? tag,
+          label: t(`modelTags.${tag}`, { defaultValue: tag }),
         }))
       : []
 

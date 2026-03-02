@@ -224,12 +224,12 @@ function normalizeBasicConf(raw?: Partial<BasicConf>, fallback?: Partial<BasicCo
   );
   const uiLanguage =
     source.uiLanguage &&
-    ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
+    ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
       source.uiLanguage,
     )
       ? source.uiLanguage
       : fallbackSource.uiLanguage &&
-          ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
+          ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
             fallbackSource.uiLanguage,
           )
         ? fallbackSource.uiLanguage

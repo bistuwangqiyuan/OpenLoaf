@@ -10,6 +10,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSettingsValues } from '@/hooks/use-settings'
 import { useBasicConfig } from '@/hooks/use-basic-config'
 import {
@@ -30,6 +31,7 @@ import { useMainAgentModel } from '../../hooks/use-main-agent-model'
 import { useOptionalChatSession } from '../../context'
 
 export function useModelPreferences() {
+  const { t } = useTranslation('ai')
   const { providerItems, refresh } = useSettingsValues()
   const {
     models: cloudModels,
@@ -347,7 +349,7 @@ export function useModelPreferences() {
         id: 'provider-management',
         sourceKey: 'provider-management',
         component: 'provider-management',
-        title: '管理模型',
+        title: t('input.manageModels'),
       },
       100,
     )

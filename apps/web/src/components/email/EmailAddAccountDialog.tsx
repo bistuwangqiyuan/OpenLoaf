@@ -9,6 +9,7 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@openloaf/ui/button";
@@ -31,6 +32,7 @@ type EmailAddAccountDialogProps = {
 };
 
 export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps) {
+  const { t } = useTranslation('common');
   const isSelectStep = addDialog.formState.step === "select-provider";
   const isOAuth = addDialog.formState.authType === "oauth2";
   const selectedProvider = addDialog.formState.selectedProviderId
@@ -44,9 +46,9 @@ export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps)
         <DialogHeader className="px-5 pb-0 pt-5">
           {isSelectStep ? (
             <>
-              <DialogTitle className="text-base">添加邮箱账号</DialogTitle>
+              <DialogTitle className="text-base">{t('email.addAccount')}</DialogTitle>
               <DialogDescription className="text-xs">
-                选择邮箱服务商以快速配置
+                {t('email.selectProviderDesc')}
               </DialogDescription>
             </>
           ) : (
@@ -66,14 +68,14 @@ export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps)
                     </span>
                   ) : null}
                   <DialogTitle className="text-base">
-                    {selectedProvider?.name ?? "配置邮箱"}
+                    {selectedProvider?.name ?? t('email.configureMailbox')}
                   </DialogTitle>
                 </div>
               </div>
               <DialogDescription className="text-xs">
                 {isOAuth
-                  ? "通过 OAuth 授权连接邮箱"
-                  : `填写邮箱地址与${addDialog.selectedProviderPasswordLabel}进行连接`}
+                  ? t('email.oauthDesc')
+                  : t('email.passwordDesc', { label: addDialog.selectedProviderPasswordLabel })}
               </DialogDescription>
             </>
           )}
@@ -103,7 +105,7 @@ export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps)
                   disabled={addDialog.testStatus === "checking"}
                   className="h-8 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  {addDialog.testStatus === "checking" ? "测试中..." : "测试连接"}
+                  {addDialog.testStatus === "checking" ? t('email.testing') : t('email.testConnection')}
                 </Button>
               )}
               <div className="flex items-center gap-2">
@@ -114,7 +116,7 @@ export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps)
                   onClick={() => addDialog.onAddDialogOpenChange(false)}
                   className="h-8 text-xs"
                 >
-                  取消
+                  {t('cancel')}
                 </Button>
                 <Button
                   type="button"
@@ -123,7 +125,7 @@ export function EmailAddAccountDialog({ addDialog }: EmailAddAccountDialogProps)
                   disabled={addDialog.addAccountPending}
                   className="h-8 text-xs"
                 >
-                  {addDialog.addAccountPending ? "保存中..." : "保存账号"}
+                  {addDialog.addAccountPending ? t('saving') : t('email.saveAccount')}
                 </Button>
               </div>
             </div>

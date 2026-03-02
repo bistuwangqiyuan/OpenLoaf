@@ -76,7 +76,7 @@ export function CliToolsList({ selectedId, onSelect, onOpenInstall, disabled }: 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
-        检测 CLI 工具...
+        {t('mode.detectingCli')}
       </div>
     )
   }
@@ -98,7 +98,7 @@ export function CliToolsList({ selectedId, onSelect, onOpenInstall, disabled }: 
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
         <div className="text-xs text-muted-foreground">
-          未安装 CLI 工具
+          {t('mode.noCliInstalled')}
         </div>
         {onOpenInstall ? (
           <PromptInputButton
@@ -108,11 +108,11 @@ export function CliToolsList({ selectedId, onSelect, onOpenInstall, disabled }: 
             className="rounded-full px-4"
             onClick={onOpenInstall}
           >
-            前往安装
+            {t('mode.goInstall')}
           </PromptInputButton>
         ) : (
           <div className="text-[11px] text-muted-foreground/70">
-            前往设置 → 第三方工具安装
+            {t('mode.goSettings')}
           </div>
         )}
       </div>

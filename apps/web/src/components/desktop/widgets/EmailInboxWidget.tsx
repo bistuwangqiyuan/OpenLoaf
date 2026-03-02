@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Lock, Paperclip, Search, Mail } from "lucide-react";
 import { useInfiniteQuery, useQuery, skipToken } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ import { MESSAGE_PAGE_SIZE, type EmailMessageSummary } from "@/components/email/
 
 /** Render unified inbox list widget. */
 export default function EmailInboxWidget() {
+  const { t } = useTranslation('desktop');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const activeTabId = useTabs((s) => s.activeTabId);
@@ -99,16 +101,16 @@ export default function EmailInboxWidget() {
   /** Open the email page in stack panel. */
   const handleOpenEmailPage = React.useCallback(() => {
     if (!activeTabId) {
-      toast.error("未找到当前标签页");
+      toast.error(t('emailInbox.noTab'));
       return;
     }
     useTabRuntime.getState().pushStackItem(activeTabId, {
       id: "email-page",
       sourceKey: "email-page",
       component: "email-page",
-      title: "邮箱",
+      title: t('emailInbox.emailPage'),
     });
-  }, [activeTabId]);
+  }, [activeTabId, t]);
 
   /** Handle message selection. */
   const handleSelectMessage = React.useCallback(
@@ -126,9 +128,9 @@ export default function EmailInboxWidget() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
-          <div className="text-sm font-semibold text-foreground">收件箱</div>
+          <div className="text-sm font-semibold text-foreground">{t('emailInbox.title')}</div>
           <div className="text-xs text-muted-foreground">
-            {isLoading ? "加载中…" : `${visibleMessages.length} 封`}
+            {isLoading ? t('emailInbox.loading') : t('emailInbox.messageCount', { count: visibleMessages.length })}
           </div>
         </div>
       </div>
@@ -137,7 +139,7 @@ export default function EmailInboxWidget() {
         <Input
           value={searchKeyword}
           onChange={(event) => setSearchKeyword(event.target.value)}
-          placeholder="搜索邮件"
+          placeholder={t('emailInbox.searchPlaceholder')}
           className="h-8 pl-8 text-xs"
         />
       </div>
@@ -147,30 +149,30 @@ export default function EmailInboxWidget() {
       >
         {!workspaceId ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            未找到工作区
+            {t('emailInbox.noWorkspace')}
           </div>
         ) : accountsQuery.isLoading ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            正在加载账号...
+            {t('emailInbox.loadingAccounts')}
           </div>
         ) : !hasAccounts ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            <div>未配置邮箱账号</div>
+            <div>{t('emailInbox.noAccount')}</div>
             <button
               type="button"
               onClick={handleOpenEmailPage}
               className="text-xs text-[var(--brand)] hover:underline"
             >
-              去邮箱设置
+              {t('emailInbox.configureEmail')}
             </button>
           </div>
         ) : messagesQuery.isLoading ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            正在加载邮件...
+            {t('emailInbox.loadingMessages')}
           </div>
         ) : visibleMessages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            暂无邮件
+            {t('emailInbox.noMessages')}
           </div>
         ) : (
           <>
@@ -210,7 +212,7 @@ export default function EmailInboxWidget() {
             <div ref={loadMoreRef} className="h-6" />
             {messagesQuery.isFetchingNextPage ? (
               <div className="py-2 text-center text-xs text-muted-foreground">
-                正在加载更多...
+                {t('emailInbox.loadingMore')}
               </div>
             ) : null}
           </>

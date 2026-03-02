@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { openSettingsTab, useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useTabs } from "@/hooks/use-tabs";
@@ -49,6 +50,7 @@ export default function DesktopTileContent({
   onWebOpen,
   onConfigure,
 }: DesktopTileContentProps) {
+  const { t } = useTranslation('desktop');
   const { workspace } = useWorkspace();
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
@@ -69,7 +71,7 @@ export default function DesktopTileContent({
         return;
       }
       if (!workspace?.id) {
-        toast.error("未找到工作区");
+        toast.error(t('content.noWorkspace'));
         return;
       }
       if (iconKey === "settings" && scope === "workspace") {
@@ -77,22 +79,22 @@ export default function DesktopTileContent({
         return;
       }
       if (iconKey === "agent-settings") {
-        if (!activeTabId) { toast.error("未找到当前标签页"); return; }
+        if (!activeTabId) { toast.error(t('content.noTab')); return; }
         useTabRuntime.getState().pushStackItem(activeTabId, {
           id: "agent-management",
           sourceKey: "agent-management",
           component: "agent-management",
-          title: "Agent设置",
+          title: t('iconCatalog.agent-settings'),
         });
         return;
       }
       if (iconKey === "skill-settings") {
-        if (!activeTabId) { toast.error("未找到当前标签页"); return; }
+        if (!activeTabId) { toast.error(t('content.noTab')); return; }
         useTabRuntime.getState().pushStackItem(activeTabId, {
           id: "skill-settings",
           sourceKey: "skill-settings",
           component: "skill-settings",
-          title: "技能设置",
+          title: t('iconCatalog.skill-settings'),
         });
         return;
       }
@@ -100,12 +102,12 @@ export default function DesktopTileContent({
         (tab) => tab.id === activeTabId && tab.workspaceId === workspace.id
       );
       if (!activeTab) {
-        toast.error("未找到标签页");
+        toast.error(t('content.tabNotFound'));
         return;
       }
       const runtime = activeTab ? useTabRuntime.getState().runtimeByTabId[activeTab.id] : undefined;
       if (!runtime?.base?.id?.startsWith("project:")) {
-        toast.error("请先打开一个项目标签页");
+        toast.error(t('content.openProjectTab'));
         return;
       }
       const nextTab =
@@ -257,7 +259,7 @@ export default function DesktopTileContent({
           hovered={isHovered}
         />
         {!item.folderUri && onConfigure ? (
-          <WidgetConfigOverlay onConfigure={onConfigure} label="选择文件夹" />
+          <WidgetConfigOverlay onConfigure={onConfigure} label={t('content.selectFolder')} />
         ) : null}
       </div>
     );
@@ -273,7 +275,7 @@ export default function DesktopTileContent({
           <VideoWidget fileRef={item.videoFileRef} title={item.title} />
         </div>
         {!item.videoFileRef && onConfigure ? (
-          <WidgetConfigOverlay onConfigure={onConfigure} label="选择视频" />
+          <WidgetConfigOverlay onConfigure={onConfigure} label={t('content.selectVideo')} />
         ) : null}
       </div>
     );
@@ -289,7 +291,7 @@ export default function DesktopTileContent({
           onOpen={onWebOpen}
         />
         {!item.webUrl && onConfigure ? (
-          <WidgetConfigOverlay onConfigure={onConfigure} label="设置网址" />
+          <WidgetConfigOverlay onConfigure={onConfigure} label={t('content.setUrl')} />
         ) : null}
       </div>
     );

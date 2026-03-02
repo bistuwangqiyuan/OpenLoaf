@@ -38,6 +38,7 @@ import { arrayBufferToBase64 } from "../utils/base64";
 import { getPreviewEndpoint } from "@/lib/image/uri";
 import { isProjectAbsolutePath } from "@/components/project/filesystem/utils/file-system-utils";
 import { IMAGE_NODE_MAX_SIZE, IMAGE_NODE_MIN_SIZE } from "./node-config";
+import i18next from "i18next";
 
 /** Max bytes for image node preview fetches. */
 const IMAGE_NODE_PREVIEW_MAX_BYTES = 100 * 1024;
@@ -157,13 +158,13 @@ function createImageToolbarItems(ctx: CanvasToolbarContext<ImageNodeProps>) {
   return [
     {
       id: "download",
-      label: "下载",
+      label: i18next.t('board:imageNode.toolbar.download'),
       icon: <Download size={14} />,
       onSelect: () => void downloadOriginalImage(ctx.element.props, ctx.fileContext),
     },
     {
       id: "inspect",
-      label: "详情",
+      label: i18next.t('board:imageNode.toolbar.detail'),
       icon: <Info size={14} />,
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
@@ -171,41 +172,43 @@ function createImageToolbarItems(ctx: CanvasToolbarContext<ImageNodeProps>) {
 }
 
 /** Connector templates offered by the image node. */
-const IMAGE_NODE_CONNECTOR_TEMPLATES: CanvasConnectorTemplateDefinition[] = [
-  {
-    id: IMAGE_PROMPT_GENERATE_NODE_TYPE,
-    label: "视频图片理解",
-    description: "分析图片/视频并生成描述",
-    size: [320, 220],
-    icon: <Sparkles size={14} />,
-    createNode: () => ({
-      type: IMAGE_PROMPT_GENERATE_NODE_TYPE,
-      props: {},
-    }),
-  },
-  {
-    id: IMAGE_GENERATE_NODE_TYPE,
-    label: "图片生成",
-    description: "输入图片与文字生成新图",
-    size: [320, 260],
-    icon: <Sparkles size={14} />,
-    createNode: () => ({
-      type: IMAGE_GENERATE_NODE_TYPE,
-      props: {},
-    }),
-  },
-  {
-    id: VIDEO_GENERATE_NODE_TYPE,
-    label: "生成视频",
-    description: "基于图片与提示词生成视频",
-    size: [360, 280],
-    icon: <Play size={14} />,
-    createNode: () => ({
-      type: VIDEO_GENERATE_NODE_TYPE,
-      props: {},
-    }),
-  },
-];
+function getImageNodeConnectorTemplates(): CanvasConnectorTemplateDefinition[] {
+  return [
+    {
+      id: IMAGE_PROMPT_GENERATE_NODE_TYPE,
+      label: i18next.t('board:connector.imagePromptGenerate'),
+      description: i18next.t('board:connector.imagePromptGenerateDesc'),
+      size: [320, 220],
+      icon: <Sparkles size={14} />,
+      createNode: () => ({
+        type: IMAGE_PROMPT_GENERATE_NODE_TYPE,
+        props: {},
+      }),
+    },
+    {
+      id: IMAGE_GENERATE_NODE_TYPE,
+      label: i18next.t('board:connector.imageGenerate'),
+      description: i18next.t('board:connector.imageGenerateDesc'),
+      size: [320, 260],
+      icon: <Sparkles size={14} />,
+      createNode: () => ({
+        type: IMAGE_GENERATE_NODE_TYPE,
+        props: {},
+      }),
+    },
+    {
+      id: VIDEO_GENERATE_NODE_TYPE,
+      label: i18next.t('board:connector.videoGenerate'),
+      description: i18next.t('board:connector.videoGenerateDesc'),
+      size: [360, 280],
+      icon: <Play size={14} />,
+      createNode: () => ({
+        type: VIDEO_GENERATE_NODE_TYPE,
+        props: {},
+      }),
+    },
+  ];
+}
 
 /** Render an image node using a compressed preview bitmap. */
 export function ImageNodeView({
@@ -220,7 +223,7 @@ export function ImageNodeView({
     resolveImageSource(element.props.originalSrc, fileContext);
   const hasPreview = Boolean(previewSrc);
   const isTranscoding = element.props.isTranscoding === true;
-  const transcodingLabel = element.props.transcodingLabel || "转码中";
+  const transcodingLabel = element.props.transcodingLabel || i18next.t('board:loading.transcoding');
   const projectRelativeOriginal = resolveProjectRelativePath(
     element.props.originalSrc,
     fileContext
@@ -478,7 +481,7 @@ export const ImageNodeDefinition: CanvasNodeDefinition<ImageNodeProps> = {
     naturalWidth: 1,
     naturalHeight: 1,
     isTranscoding: false,
-    transcodingLabel: "转码中",
+    transcodingLabel: "",
     transcodingId: "",
   },
   view: ImageNodeView,
@@ -490,7 +493,7 @@ export const ImageNodeDefinition: CanvasNodeDefinition<ImageNodeProps> = {
     minSize: IMAGE_NODE_MIN_SIZE,
     maxSize: IMAGE_NODE_MAX_SIZE,
   },
-  connectorTemplates: () => IMAGE_NODE_CONNECTOR_TEMPLATES,
+  connectorTemplates: () => getImageNodeConnectorTemplates(),
   // 逻辑：图片节点提供下载/复制原图入口，保持编辑与导出分离。
   toolbar: ctx => createImageToolbarItems(ctx),
 };

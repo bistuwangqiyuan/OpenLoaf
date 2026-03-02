@@ -23,6 +23,8 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { useTabs } from "@/hooks/use-tabs"
 import { useTabRuntime } from "@/hooks/use-tab-runtime"
 import { useGlobalOverlay } from "@/lib/globalShortcuts"
@@ -45,75 +47,67 @@ interface HelpPage {
   action?: HelpAction
 }
 
-const HELP_PAGES: HelpPage[] = [
-  {
-    title: "欢迎使用 OpenLoaf",
-    description: "AI 生产力工作台，助你高效工作",
-    icon: Sparkles,
-    iconColorClass:
-      "bg-[#e8f0fe] text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200",
-  },
-  {
-    title: "AI 智能对话",
-    description:
-      "按空格键快速唤起 AI，也可用 Cmd+B 打开对话面板或 Cmd+T 打开独立工作台",
-    icon: MessageSquareText,
-    iconColorClass:
-      "bg-[#f3e8fd] text-[#9334e6] dark:bg-violet-900/40 dark:text-violet-300",
-    action: "open-ai-chat",
-  },
-  {
-    title: "底部导航栏",
-    description:
-      "底部 Dock 可快速切换工作台、日历、邮箱、任务四大功能，按 Alt+1~4 快捷切换",
-    icon: PanelBottom,
-    iconColorClass:
-      "bg-[#e0f2fe] text-[#0284c7] dark:bg-cyan-900/40 dark:text-cyan-300",
-  },
-  {
-    title: "全局搜索",
-    description: "Cmd+F 搜索文件、邮件、任务等所有内容",
-    icon: Search,
-    iconColorClass:
-      "bg-[#e8f0fe] text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200",
-    action: "open-search",
-  },
-  {
-    title: "日历管理",
-    description: "日/周/月/年多视图，Cmd+L 快速打开",
-    icon: CalendarDays,
-    iconColorClass:
-      "bg-[#e6f4ea] text-[#188038] dark:bg-emerald-900/40 dark:text-emerald-300",
-    action: "open-calendar",
-  },
-  {
-    title: "邮件收发",
-    description: "添加邮箱帐号，在 OpenLoaf 中收发邮件",
-    icon: Mail,
-    iconColorClass:
-      "bg-[#fef7e0] text-[#e37400] dark:bg-amber-900/40 dark:text-amber-300",
-    action: "open-email",
-  },
-  {
-    title: "任务看板",
-    description: "看板视图管理任务，支持状态追踪和定时任务",
-    icon: KanbanSquare,
-    iconColorClass:
-      "bg-[#fef7e0] text-[#e37400] dark:bg-amber-900/40 dark:text-amber-300",
-    action: "open-tasks",
-  },
-  {
-    title: "个性化桌面",
-    description:
-      "右键进入编辑模式，拖拽调整组件布局，打造你的专属工作台",
-    icon: LayoutGrid,
-    iconColorClass:
-      "bg-[#f3e8fd] text-[#9334e6] dark:bg-violet-900/40 dark:text-violet-300",
-  },
-]
+/** Build help pages array from translation function. */
+function getHelpPages(t: TFunction): HelpPage[] {
+  return [
+    {
+      title: t('desktop:help.pages.welcome.title'),
+      description: t('desktop:help.pages.welcome.description'),
+      icon: Sparkles,
+      iconColorClass: "bg-[#e8f0fe] text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200",
+    },
+    {
+      title: t('desktop:help.pages.aiChat.title'),
+      description: t('desktop:help.pages.aiChat.description'),
+      icon: MessageSquareText,
+      iconColorClass: "bg-[#f3e8fd] text-[#9334e6] dark:bg-violet-900/40 dark:text-violet-300",
+      action: "open-ai-chat",
+    },
+    {
+      title: t('desktop:help.pages.dock.title'),
+      description: t('desktop:help.pages.dock.description'),
+      icon: PanelBottom,
+      iconColorClass: "bg-[#e0f2fe] text-[#0284c7] dark:bg-cyan-900/40 dark:text-cyan-300",
+    },
+    {
+      title: t('desktop:help.pages.search.title'),
+      description: t('desktop:help.pages.search.description'),
+      icon: Search,
+      iconColorClass: "bg-[#e8f0fe] text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200",
+      action: "open-search",
+    },
+    {
+      title: t('desktop:help.pages.calendar.title'),
+      description: t('desktop:help.pages.calendar.description'),
+      icon: CalendarDays,
+      iconColorClass: "bg-[#e6f4ea] text-[#188038] dark:bg-emerald-900/40 dark:text-emerald-300",
+      action: "open-calendar",
+    },
+    {
+      title: t('desktop:help.pages.email.title'),
+      description: t('desktop:help.pages.email.description'),
+      icon: Mail,
+      iconColorClass: "bg-[#fef7e0] text-[#e37400] dark:bg-amber-900/40 dark:text-amber-300",
+      action: "open-email",
+    },
+    {
+      title: t('desktop:help.pages.tasks.title'),
+      description: t('desktop:help.pages.tasks.description'),
+      icon: KanbanSquare,
+      iconColorClass: "bg-[#fef7e0] text-[#e37400] dark:bg-amber-900/40 dark:text-amber-300",
+      action: "open-tasks",
+    },
+    {
+      title: t('desktop:help.pages.desktop.title'),
+      description: t('desktop:help.pages.desktop.description'),
+      icon: LayoutGrid,
+      iconColorClass: "bg-[#f3e8fd] text-[#9334e6] dark:bg-violet-900/40 dark:text-violet-300",
+    },
+  ]
+}
 
 /** Execute a help action by dispatching to the appropriate store or overlay. */
-function executeHelpAction(action: HelpAction, activeTabId: string | null) {
+function executeHelpAction(action: HelpAction, activeTabId: string | null, t: TFunction) {
   if (action === "open-search") {
     useGlobalOverlay.getState().setSearchOpen(true)
     return
@@ -121,12 +115,12 @@ function executeHelpAction(action: HelpAction, activeTabId: string | null) {
 
   if (action === "open-ai-chat") {
     if (!activeTabId) {
-      toast.error("未找到当前标签页")
+      toast.error(t('desktop:help.noTab'))
       return
     }
     const runtime = useTabRuntime.getState().runtimeByTabId[activeTabId]
     if (!runtime) {
-      toast.error("当前标签页无运行时上下文")
+      toast.error(t('desktop:help.noRuntimeContext'))
       return
     }
     if (runtime.rightChatCollapsed) {
@@ -145,14 +139,14 @@ function executeHelpAction(action: HelpAction, activeTabId: string | null) {
   }
 
   if (!activeTabId) {
-    toast.error("未找到当前标签页")
+    toast.error(t('desktop:help.noTab'))
     return
   }
 
   const componentMap: Record<string, { id: string; component: string; title: string }> = {
-    "open-calendar": { id: "calendar-page", component: "calendar-page", title: "日历" },
-    "open-email": { id: "email-page", component: "email-page", title: "邮箱" },
-    "open-tasks": { id: "scheduled-tasks-page", component: "scheduled-tasks-page", title: "任务看板" },
+    "open-calendar": { id: "calendar-page", component: "calendar-page", title: t('desktop:help.actions.calendar') },
+    "open-email": { id: "email-page", component: "email-page", title: t('desktop:help.actions.email') },
+    "open-tasks": { id: "scheduled-tasks-page", component: "scheduled-tasks-page", title: t('desktop:help.actions.tasks') },
   }
   const target = componentMap[action]
   if (target) {
@@ -170,11 +164,13 @@ const AUTOPLAY_RESUME_DELAY = 15000
 
 /** Help carousel widget for onboarding new users. */
 export default function HelpWidget() {
+  const { t } = useTranslation('desktop')
   const [current, setCurrent] = React.useState(0)
   const [isHovered, setIsHovered] = React.useState(false)
   const pausedUntilRef = React.useRef(0)
   const activeTabId = useTabs((state) => state.activeTabId)
-  const total = HELP_PAGES.length
+  const helpPages = React.useMemo(() => getHelpPages(t), [t])
+  const total = helpPages.length
 
   // Autoplay: advance every 8s, pause on hover or after manual interaction.
   React.useEffect(() => {
@@ -212,9 +208,9 @@ export default function HelpWidget() {
 
   const handleAction = React.useCallback(
     (action: HelpAction) => {
-      executeHelpAction(action, activeTabId)
+      executeHelpAction(action, activeTabId, t)
     },
-    [activeTabId],
+    [activeTabId, t],
   )
 
   return (
@@ -229,9 +225,9 @@ export default function HelpWidget() {
           className="flex h-full transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
         >
-          {HELP_PAGES.map((page, index) => (
+          {helpPages.map((page, index) => (
             <HelpSlide
-              key={page.title}
+              key={index}
               page={page}
               onAction={handleAction}
             />
@@ -244,7 +240,7 @@ export default function HelpWidget() {
         type="button"
         className="absolute top-1/2 left-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
         onClick={goPrev}
-        aria-label="上一页"
+        aria-label={t('help.prevPage')}
       >
         <ChevronLeft className="size-4.5" />
       </button>
@@ -252,16 +248,16 @@ export default function HelpWidget() {
         type="button"
         className="absolute top-1/2 right-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
         onClick={goNext}
-        aria-label="下一页"
+        aria-label={t('help.nextPage')}
       >
         <ChevronRight className="size-4.5" />
       </button>
 
       {/* Dot navigation */}
       <div className="flex shrink-0 items-center justify-center gap-1 pb-2 pt-1">
-        {HELP_PAGES.map((page, index) => (
+        {helpPages.map((page, index) => (
           <button
-            key={page.title}
+            key={index}
             type="button"
             className={cn(
               "size-1.5 rounded-full transition-all duration-200",
@@ -270,7 +266,7 @@ export default function HelpWidget() {
                 : "bg-foreground/20 hover:bg-foreground/40",
             )}
             onClick={() => goTo(index)}
-            aria-label={`第 ${index + 1} 页`}
+            aria-label={t('help.pageN', { n: index + 1 })}
           />
         ))}
       </div>

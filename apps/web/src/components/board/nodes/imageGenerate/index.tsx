@@ -352,7 +352,7 @@ export function ImageGenerateNodeView({
 
     if (hasTooManyImages) {
       engine.doc.updateNodeProps(nodeId, {
-        errorText: `最多支持 ${maxInputImages} 张图片输入`,
+        errorText: t('imageGenerate.errors.tooManyImages', { max: maxInputImages }),
       });
       return;
     }
@@ -449,7 +449,7 @@ export function ImageGenerateNodeView({
       };
       const result = await submitImageTask(payload);
       if (!result?.success || !result?.data?.taskId) {
-        throw new Error("图片任务提交失败");
+        throw new Error(t('imageGenerate.errors.submitFailed'));
       }
       if (loadingNodeIdRef.current) {
         engine.doc.updateNodeProps(loadingNodeIdRef.current, {
@@ -461,9 +461,9 @@ export function ImageGenerateNodeView({
       clearLoadingNode();
       if (!controller.signal.aborted) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: error instanceof Error ? error.message : "生成图片失败",
+          errorText: error instanceof Error ? error.message : t('imageGenerate.errors.generateFailed'),
         });
-        toast.error("生成图片失败");
+        toast.error(t('imageGenerate.errors.generateFailed'));
       }
     } finally {
       if (abortControllerRef.current === controller) {
@@ -524,25 +524,25 @@ export function ImageGenerateNodeView({
 
   const statusHint = useMemo(() => {
     if (viewStatus === "needs_prompt") {
-      return { tone: "warn", text: "需要输入或连接提示词后才能生成图片。" };
+      return { tone: "warn", text: t('imageGenerate.hints.needsPrompt') };
     }
     if (viewStatus === "too_many_images") {
       return {
         tone: "warn",
-        text: `最多支持 ${maxInputImages} 张图片输入，已连接 ${inputImageNodes.length} 张。`,
+        text: t('imageGenerate.hints.tooManyImages', { max: maxInputImages, connected: inputImageNodes.length }),
       };
     }
     if (viewStatus === "invalid_image") {
-      return { tone: "warn", text: "存在无法访问的图片地址，请检查输入。" };
+      return { tone: "warn", text: t('imageGenerate.hints.invalidImage') };
     }
     if (viewStatus === "needs_model") {
       return {
         tone: "warn",
-        text: "未找到支持「图片生成」的模型，请先在设置中配置。",
+        text: t('imageGenerate.hints.needsModel'),
       };
     }
     if (viewStatus === "error") {
-      return { tone: "error", text: errorText || "生成图片失败，请重试。" };
+      return { tone: "error", text: errorText || t('imageGenerate.hints.generateFailed') };
     }
     if (viewStatus === "done") return null;
     return null;
@@ -550,6 +550,7 @@ export function ImageGenerateNodeView({
     errorText,
     inputImageNodes.length,
     maxInputImages,
+    t,
     viewStatus,
   ]);
 
@@ -564,11 +565,11 @@ export function ImageGenerateNodeView({
   const canGenerate = authLoggedIn && canRun;
   const primaryLabel = authLoggedIn
     ? viewStatus === "error"
-      ? "重试"
-      : "生成"
+      ? t('imageGenerate.retry')
+      : t('imageGenerate.generate')
     : isLoginBusy
-      ? "登录中"
-      : "登录";
+      ? t('imageGenerate.loggingIn')
+      : t('imageGenerate.login');
   const primaryIcon = authLoggedIn
     ? viewStatus === "error"
       ? RotateCcw
@@ -590,7 +591,7 @@ export function ImageGenerateNodeView({
   }, [authLoggedIn, canRun, handleOpenLogin, runImageGenerate]);
 
   const handleCopyError = useCallback(async () => {
-    const copyText = errorText.trim() || "生成图片失败，请重试。";
+    const copyText = errorText.trim() || t('imageGenerate.hints.generateFailed');
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(copyText);
@@ -614,7 +615,7 @@ export function ImageGenerateNodeView({
         copyTimerRef.current = null;
       }, 1600);
     } catch {
-      toast.error("复制失败");
+      toast.error(t('imageGenerate.errors.copyFailed'));
     }
   }, [errorText]);
 
@@ -662,7 +663,7 @@ export function ImageGenerateNodeView({
       <div ref={containerRef} className={containerClassName}>
         <div className="flex items-center gap-2">
           <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${BOARD_GENERATE_DOT_IMAGE}`} />
-          <div className="text-[13px] font-semibold leading-5">图片生成</div>
+          <div className="text-[13px] font-semibold leading-5">{t('imageGenerate.title')}</div>
           <span className={`rounded-full px-2 py-0.5 text-[10px] leading-3 ${BOARD_GENERATE_PILL_IMAGE}`}>
             {subtitleText}
           </span>
@@ -701,7 +702,7 @@ export function ImageGenerateNodeView({
 
         <div className="mt-1 flex shrink-0 flex-col gap-3" data-board-editor>
           <div className="flex items-center gap-3">
-            <div className="text-[12px] text-[#5f6368] dark:text-slate-400">模型</div>
+            <div className="text-[12px] text-[#5f6368] dark:text-slate-400">{t('imageGenerate.model')}</div>
             <div className="min-w-0 flex-1">
               <ModelSelect
                 authLoggedIn={authLoggedIn}
@@ -722,12 +723,12 @@ export function ImageGenerateNodeView({
           </div>
           <div className="min-w-0 flex shrink-0 flex-col gap-2">
             <div className="text-[12px] text-[#5f6368] dark:text-slate-400">
-              提示词
+              {t('imageGenerate.prompt')}
             </div>
             <Textarea
               value={localPromptText}
               maxLength={500}
-              placeholder="请输入提示词"
+              placeholder={t('imageGenerate.promptPlaceholder')}
               onChange={(event) => {
                 const next = event.target.value.slice(0, 500);
                 onUpdate({ promptText: next });

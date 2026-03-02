@@ -66,7 +66,23 @@
     "ko-KR": "한국어",
     "fr-FR": "Français",
     "de-DE": "Deutsch",
-    "es-ES": "Español"
+    "es-ES": "Español",
+    "showAuth": "显示认证信息",
+    "hideAuth": "隐藏认证信息",
+    "authPlaceholder": "API Key 或 {\"apiKey\":\"xxx\"}",
+    "errorFillName": "请填写名称",
+    "errorFillApiUrl": "请填写 API URL",
+    "errorFillAuth": "请填写认证信息",
+    "errorSelectModel": "请选择模型",
+    "errorNameExists": "名称已存在，请更换",
+    "errorModelMissing": "模型定义缺失",
+    "errorFillAccessKeys": "请填写 AccessKeyID 和 SecretAccessKey",
+    "errorFillApiKey": "请填写 API Key",
+    "errorFillModelId": "请填写模型 ID",
+    "errorModelIdExists": "模型 ID 已存在",
+    "errorSelectCapability": "请至少选择一个能力标签",
+    "errorInvalidContextLength": "请输入有效的上下文长度",
+    "errorFillBucket": "请填写 Bucket"
   },
   "basicSettings": {
     "systemConfig": "系统配置",
@@ -580,5 +596,10 @@
     "scopeGlobal": "全局技能",
     "scopeProject": "项目技能",
     "scopeWorkspace": "工作空间技能"
+  },
+  "modelSelector": {
+    "noModels": "暂无可选模型",
+    "unselected": "请选择模型",
+    "separator": "、"
   }
 }

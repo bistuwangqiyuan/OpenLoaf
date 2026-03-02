@@ -26,6 +26,7 @@ import { fetchWebMeta } from "@/lib/web-meta";
 import { fileToBase64 } from "../utils/base64";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { readBoardDocPayload, writeBoardDocPayload } from "./boardYjsStore";
 import { setBoardElementCount, clearBoardTracking } from "./boardContentTracker";
 import {
@@ -526,7 +527,7 @@ export function BoardCanvasCollab({
             naturalWidth: 1,
             naturalHeight: 1,
             isTranscoding: true,
-            transcodingLabel: "转码中",
+            transcodingLabel: i18next.t('board:loading.transcoding'),
             transcodingId: taskId,
           },
           size: DEFAULT_NODE_SIZE,

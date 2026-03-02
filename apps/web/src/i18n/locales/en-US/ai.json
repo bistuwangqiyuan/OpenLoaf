@@ -244,5 +244,20 @@
     "sendMessage": "Send message",
     "characterLimitExceeded": "Content exceeds the {{max}} character limit. Please shorten your message.",
     "manageModels": "Manage models"
+  },
+  "modelTags": {
+    "chat": "Chat",
+    "code": "Code",
+    "tool_call": "Tool Call",
+    "reasoning": "Reasoning",
+    "image_generation": "Image Generation",
+    "image_input": "Image Input",
+    "image_multi_input": "Multi-Image Input",
+    "image_multi_generation": "Multi-Image Generation",
+    "image_edit": "Image Edit",
+    "image_analysis": "Image Analysis",
+    "video_generation": "Video Generation",
+    "video_analysis": "Video Analysis",
+    "audio_analysis": "Audio Analysis"
   }
 }

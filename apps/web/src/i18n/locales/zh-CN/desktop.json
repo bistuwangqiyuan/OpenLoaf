@@ -1,0 +1,187 @@
+{
+  "catalog": {
+    "flip-clock": "翻页时钟",
+    "clock": "时钟",
+    "quick-actions": "快速操作",
+    "calendar": "日历",
+    "chat-history": "聊天历史",
+    "email-inbox": "邮箱",
+    "task-board": "任务看板",
+    "3d-folder": "3D 文件夹",
+    "video": "视频",
+    "web-stack": "网页",
+    "help": "新手引导"
+  },
+  "iconCatalog": {
+    "files": "文件",
+    "tasks": "任务",
+    "search": "搜索",
+    "settings": "设置",
+    "agent-settings": "Agent 设置",
+    "skill-settings": "技能设置"
+  },
+  "variants": {
+    "hm": "时:分",
+    "hms": "时:分:秒",
+    "month": "月视图",
+    "week": "周视图",
+    "day": "日视图",
+    "full": "完整视图"
+  },
+  "page": {
+    "iconFallback": "图标",
+    "folderFallback": "文件夹",
+    "addWidget": "添加组件",
+    "organize": "整理",
+    "cancel": "取消",
+    "done": "完成",
+    "edit": "编辑"
+  },
+  "editToolbar": {
+    "libraryTitle": "组件库",
+    "addWidget": "添加组件",
+    "organize": "整理",
+    "cancel": "取消",
+    "done": "完成",
+    "edit": "编辑"
+  },
+  "library": {
+    "searchPlaceholder": "搜索组件…",
+    "noMatch": "没有匹配的组件",
+    "shortcuts": "快捷方式",
+    "aiGenerated": "AI 生成",
+    "newItem": "+ 新建",
+    "aiAssistant": "AI 助手",
+    "confirmDelete": "确定删除 Widget \"{{name}}\"？",
+    "deleteAriaLabel": "删除 {{name}}",
+    "generateWithAi": "通过 AI 对话生成自定义 Widget"
+  },
+  "tile": {
+    "pin": "固定",
+    "unpin": "取消固定",
+    "mode": "模式",
+    "edit": "修改",
+    "refresh": "刷新",
+    "selectFolder": "选择文件夹",
+    "selectVideo": "选择视频",
+    "delete": "删除",
+    "editWebTitle": "修改网页组件",
+    "editWebDescription": "输入网页地址与名称，自动抓取 logo 与预览图。",
+    "webUrl": "网页地址",
+    "webTitleOptional": "名称（可选）",
+    "customNamePlaceholder": "自定义名称",
+    "invalidUrl": "请输入有效网址",
+    "noWorkspaceDir": "未找到工作区目录",
+    "webFallbackTitle": "网页",
+    "save": "保存"
+  },
+  "content": {
+    "noWorkspace": "未找到工作区",
+    "noTab": "未找到当前标签页",
+    "tabNotFound": "未找到标签页",
+    "openProjectTab": "请先打开一个项目标签页",
+    "selectFolder": "选择文件夹",
+    "selectVideo": "选择视频",
+    "setUrl": "设置网址"
+  },
+  "overlay": {
+    "defaultLabel": "设置"
+  },
+  "quickActions": {
+    "cannotCreateCanvas": "当前工作台不支持创建画布",
+    "noWorkspace": "未找到工作区",
+    "noTab": "未找到当前标签页",
+    "openProjectTab": "请先打开一个项目标签页",
+    "noProjectInfo": "当前标签页缺少项目信息",
+    "createCanvasFailed": "创建画布失败",
+    "fetchingTerminalStatus": "正在获取终端状态",
+    "terminalDisabled": "终端功能未开启",
+    "noWorkspaceDir": "未找到工作区目录",
+    "noRuntimeContext": "当前标签页无运行时上下文",
+    "canvasName": "画布",
+    "terminal": "终端",
+    "search": "搜索",
+    "creating": "创建中…",
+    "canvas": "画布",
+    "aiChat": "AI 对话"
+  },
+  "chatHistory": {
+    "title": "历史列表",
+    "loading": "加载中…",
+    "count": "{{count}} 项",
+    "noHistory": "当天暂无历史",
+    "unnamed": "未命名会话",
+    "pinned": "置顶"
+  },
+  "emailInbox": {
+    "title": "收件箱",
+    "loading": "加载中…",
+    "messageCount": "{{count}} 封",
+    "searchPlaceholder": "搜索邮件",
+    "noWorkspace": "未找到工作区",
+    "loadingAccounts": "正在加载账号...",
+    "noAccount": "未配置邮箱账号",
+    "configureEmail": "去邮箱设置",
+    "loadingMessages": "正在加载邮件...",
+    "noMessages": "暂无邮件",
+    "loadingMore": "正在加载更多...",
+    "emailPage": "邮箱",
+    "noTab": "未找到当前标签页"
+  },
+  "help": {
+    "prevPage": "上一页",
+    "nextPage": "下一页",
+    "pageN": "第 {{n}} 页",
+    "pages": {
+      "welcome": {
+        "title": "欢迎使用 OpenLoaf",
+        "description": "AI 生产力工作台，助你高效工作"
+      },
+      "aiChat": {
+        "title": "AI 智能对话",
+        "description": "按空格键快速唤起 AI，也可用 Cmd+B 打开对话面板或 Cmd+T 打开独立工作台"
+      },
+      "dock": {
+        "title": "底部导航栏",
+        "description": "底部 Dock 可快速切换工作台、日历、邮箱、任务四大功能，按 Alt+1~4 快捷切换"
+      },
+      "search": {
+        "title": "全局搜索",
+        "description": "Cmd+F 搜索文件、邮件、任务等所有内容"
+      },
+      "calendar": {
+        "title": "日历管理",
+        "description": "日/周/月/年多视图，Cmd+L 快速打开"
+      },
+      "email": {
+        "title": "邮件收发",
+        "description": "添加邮箱帐号，在 OpenLoaf 中收发邮件"
+      },
+      "tasks": {
+        "title": "任务看板",
+        "description": "看板视图管理任务，支持状态追踪和定时任务"
+      },
+      "desktop": {
+        "title": "个性化桌面",
+        "description": "右键进入编辑模式，拖拽调整组件布局，打造你的专属工作台"
+      }
+    },
+    "actions": {
+      "calendar": "日历",
+      "email": "邮箱",
+      "tasks": "任务看板"
+    },
+    "noTab": "未找到当前标签页",
+    "noRuntimeContext": "当前标签页无运行时上下文"
+  },
+  "dynamicWidget": {
+    "renderError": "Widget 渲染错误: {{message}}",
+    "approvalTitle": "启用此 Widget？",
+    "approvalDesc": "该 Widget 将在服务端执行以下脚本：",
+    "approve": "确认启用",
+    "loading": "加载中...",
+    "loadFailed": "组件加载失败",
+    "retry": "重试",
+    "missingParams": "缺少 Widget 参数"
+  }
+}

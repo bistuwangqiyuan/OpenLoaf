@@ -145,7 +145,7 @@ export function openSettingsTab(workspaceId: string, settingsMenu?: string) {
   addTab({
     workspaceId,
     createNew: true,
-    title: "设置",
+    title: i18next.t('nav:settings'),
     icon: "⚙️",
     leftWidthPercent: viewportWidth > 0 ? 70 : undefined,
     rightChatCollapsed: true,

@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface DesktopTileDeleteButtonProps {
@@ -23,6 +24,7 @@ export default function DesktopTileDeleteButton({
   onDelete,
   className,
 }: DesktopTileDeleteButtonProps) {
+  const { t } = useTranslation('desktop');
   return (
     <button
       type="button"
@@ -40,8 +42,8 @@ export default function DesktopTileDeleteButton({
         event.stopPropagation();
         onDelete();
       }}
-      aria-label="删除"
-      title="删除"
+      aria-label={t('tile.delete')}
+      title={t('tile.delete')}
     >
       <Trash2 className="desktop-edit-action-icon desktop-trash-icon size-4" />
     </button>

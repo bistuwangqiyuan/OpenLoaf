@@ -10,6 +10,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { EmailAddAccountDialog } from "./EmailAddAccountDialog";
@@ -25,6 +26,7 @@ export default function EmailPage({
   panelKey: string;
   tabId: string;
 }) {
+  const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
   const removeStackItem = useTabRuntime((state) => state.removeStackItem);
@@ -58,7 +60,7 @@ export default function EmailPage({
       id: "email-compose",
       sourceKey: "email-compose",
       component: "email-compose-stack",
-      title: "写邮件",
+      title: t('email.compose'),
       params: {
         workspaceId: workspace?.id,
         __opaque: true,
@@ -73,7 +75,7 @@ export default function EmailPage({
       if (messageList.hasSelection) return;
       if (!tabId) return;
       const detailStackId = `email-message:${message.id}`;
-      const detailTitle = message.subject?.trim() || "（无主题）";
+      const detailTitle = message.subject?.trim() || t('email.noSubject');
       pushStackItem(tabId, {
         id: detailStackId,
         sourceKey: detailStackId,

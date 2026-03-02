@@ -10,6 +10,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { cn } from "@udecode/cn";
 import {
   ArrowRight,
@@ -66,6 +68,7 @@ function ConnectorActionPanel({
   onDelete,
 }: ConnectorActionPanelProps) {
   // 逻辑：面板位置随视口变化实时更新。
+  const { t } = useTranslation('board');
   const engine = useBoardEngine();
   const viewState = useBoardViewState(engine);
   const center = resolveConnectorCenter(connector, snapshot, viewState.viewport);
@@ -87,35 +90,35 @@ function ConnectorActionPanel({
     >
       <div className="flex items-center gap-3">
         <ConnectorStyleButton
-          title="直线"
+          title={t('connector.straight')}
           active={currentStyle === "straight"}
           onPointerDown={() => onStyleChange("straight")}
         >
           <ArrowRight size={14} />
         </ConnectorStyleButton>
         <ConnectorStyleButton
-          title="折线"
+          title={t('connector.elbow')}
           active={currentStyle === "elbow"}
           onPointerDown={() => onStyleChange("elbow")}
         >
           <CornerRightDown size={14} />
         </ConnectorStyleButton>
         <ConnectorStyleButton
-          title="曲线"
+          title={t('connector.curve')}
           active={currentStyle === "curve"}
           onPointerDown={() => onStyleChange("curve")}
         >
           <ChartSpline size={14} />
         </ConnectorStyleButton>
         <ConnectorStyleButton
-          title="手绘"
+          title={t('connector.hand')}
           active={currentStyle === "hand"}
           onPointerDown={() => onStyleChange("hand")}
         >
           <PencilLine size={14} />
         </ConnectorStyleButton>
         <ConnectorStyleButton
-          title="飞行"
+          title={t('connector.fly')}
           active={currentStyle === "fly"}
           onPointerDown={() => onStyleChange("fly")}
         >
@@ -140,7 +143,7 @@ function ConnectorActionPanel({
                 isActive ? "ring-2 ring-[#1a73e8] ring-offset-2 ring-offset-background dark:ring-sky-400" : ""
               )}
               style={{ backgroundColor: color }}
-              title={`连线颜色 ${color}`}
+              title={t('connector.colorTitle', { color })}
             />
           );
         })}
@@ -157,7 +160,7 @@ function ConnectorActionPanel({
               ? "bg-[#d3e3fd] text-[#1a73e8] ring-2 ring-[#1a73e8] ring-offset-2 ring-offset-background dark:bg-sky-800/60 dark:text-sky-50 dark:ring-sky-400"
               : "hover:bg-[hsl(var(--muted)/0.58)] dark:hover:bg-[hsl(var(--muted)/0.46)]"
           )}
-          title="虚线"
+          title={t('connector.dashed')}
         >
           <span className="block w-4 border-t-2 border-dashed border-current" />
         </button>
@@ -171,7 +174,7 @@ function ConnectorActionPanel({
           onDelete();
         }}
         className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#5f6368] transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive dark:text-slate-400"
-        title="删除连线"
+        title={t('connector.deleteConnector')}
       >
         <Trash2 size={14} />
       </button>
@@ -306,6 +309,7 @@ type NodeInspectorPanelProps = {
 /** Render a compact inspector panel for a node. */
 function NodeInspectorPanel({ element, onClose }: NodeInspectorPanelProps) {
   const [x, y, w, h] = element.xywh;
+  const { t } = useTranslation('board');
   // 逻辑：使用独立视图订阅计算面板位置，避免依赖全量快照更新。
   const engine = useBoardEngine();
   const viewState = useBoardViewState(engine);
@@ -315,7 +319,7 @@ function NodeInspectorPanel({ element, onClose }: NodeInspectorPanelProps) {
   const anchor: CanvasPoint = showBelow ? [x + w / 2, y + h] : [x + w / 2, y];
   const screen = toScreenPoint(anchor, viewState);
 
-  const details = extractNodeDetails(element);
+  const details = extractNodeDetails(element, t);
 
   return (
     <div
@@ -334,7 +338,7 @@ function NodeInspectorPanel({ element, onClose }: NodeInspectorPanelProps) {
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[11px] font-semibold text-[#5f6368] dark:text-slate-300">
-          节点详情
+          {t('nodeInspector.panelTitle')}
         </span>
         <button
           type="button"
@@ -345,7 +349,7 @@ function NodeInspectorPanel({ element, onClose }: NodeInspectorPanelProps) {
           }}
           className="rounded-full px-1 py-0.5 text-[11px] text-[#5f6368] transition-colors duration-150 hover:text-[#202124] dark:text-slate-400 dark:hover:text-slate-100"
         >
-          关闭
+          {t('nodeInspector.close')}
         </button>
       </div>
       <div className="space-y-1">
@@ -372,22 +376,25 @@ type NodeDetailItem = {
 };
 
 /** Extract basic details from the node for the inspector. */
-function extractNodeDetails(element: CanvasNodeElement): NodeDetailItem[] {
+function extractNodeDetails(
+  element: CanvasNodeElement,
+  t: (key: string) => string
+): NodeDetailItem[] {
   const [x, y, w, h] = element.xywh;
   const details: NodeDetailItem[] = [
-    { label: "类型", value: element.type },
+    { label: t('nodeInspector.type'), value: element.type },
     { label: "ID", value: element.id },
-    { label: "位置", value: `${Math.round(x)}, ${Math.round(y)}` },
-    { label: "尺寸", value: `${Math.round(w)} × ${Math.round(h)}` },
+    { label: t('nodeInspector.position'), value: `${Math.round(x)}, ${Math.round(y)}` },
+    { label: t('nodeInspector.size'), value: `${Math.round(w)} × ${Math.round(h)}` },
   ];
 
   if (element.props && typeof element.props === "object") {
     const props = element.props as Record<string, unknown>;
     if (typeof props.title === "string") {
-      details.push({ label: "标题", value: props.title });
+      details.push({ label: t('nodeInspector.titleLabel'), value: props.title });
     }
     if (typeof props.description === "string") {
-      details.push({ label: "描述", value: props.description });
+      details.push({ label: t('nodeInspector.description'), value: props.description });
     }
   }
 

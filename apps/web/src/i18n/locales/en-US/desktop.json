@@ -1,0 +1,187 @@
+{
+  "catalog": {
+    "flip-clock": "Flip Clock",
+    "clock": "Clock",
+    "quick-actions": "Quick Actions",
+    "calendar": "Calendar",
+    "chat-history": "Chat History",
+    "email-inbox": "Email Inbox",
+    "task-board": "Task Board",
+    "3d-folder": "3D Folder",
+    "video": "Video",
+    "web-stack": "Web",
+    "help": "Getting Started"
+  },
+  "iconCatalog": {
+    "files": "Files",
+    "tasks": "Tasks",
+    "search": "Search",
+    "settings": "Settings",
+    "agent-settings": "Agent Settings",
+    "skill-settings": "Skills"
+  },
+  "variants": {
+    "hm": "H:M",
+    "hms": "H:M:S",
+    "month": "Month View",
+    "week": "Week View",
+    "day": "Day View",
+    "full": "Full View"
+  },
+  "page": {
+    "iconFallback": "Icon",
+    "folderFallback": "Folder",
+    "addWidget": "Add Widget",
+    "organize": "Organize",
+    "cancel": "Cancel",
+    "done": "Done",
+    "edit": "Edit"
+  },
+  "editToolbar": {
+    "libraryTitle": "Widget Library",
+    "addWidget": "Add Widget",
+    "organize": "Organize",
+    "cancel": "Cancel",
+    "done": "Done",
+    "edit": "Edit"
+  },
+  "library": {
+    "searchPlaceholder": "Search widgets…",
+    "noMatch": "No matching widgets",
+    "shortcuts": "Shortcuts",
+    "aiGenerated": "AI Generated",
+    "newItem": "+ New",
+    "aiAssistant": "AI Assistant",
+    "confirmDelete": "Delete Widget \"{{name}}\"?",
+    "deleteAriaLabel": "Delete {{name}}",
+    "generateWithAi": "Generate custom widget via AI chat"
+  },
+  "tile": {
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "mode": "Mode",
+    "edit": "Edit",
+    "refresh": "Refresh",
+    "selectFolder": "Select Folder",
+    "selectVideo": "Select Video",
+    "delete": "Delete",
+    "editWebTitle": "Edit Web Widget",
+    "editWebDescription": "Enter URL and title to auto-fetch logo and preview.",
+    "webUrl": "Web URL",
+    "webTitleOptional": "Title (optional)",
+    "customNamePlaceholder": "Custom name",
+    "invalidUrl": "Please enter a valid URL",
+    "noWorkspaceDir": "Workspace directory not found",
+    "webFallbackTitle": "Web",
+    "save": "Save"
+  },
+  "content": {
+    "noWorkspace": "Workspace not found",
+    "noTab": "Current tab not found",
+    "tabNotFound": "Tab not found",
+    "openProjectTab": "Please open a project tab first",
+    "selectFolder": "Select Folder",
+    "selectVideo": "Select Video",
+    "setUrl": "Set URL"
+  },
+  "overlay": {
+    "defaultLabel": "Settings"
+  },
+  "quickActions": {
+    "cannotCreateCanvas": "Canvas creation is not supported on the current workbench",
+    "noWorkspace": "Workspace not found",
+    "noTab": "Current tab not found",
+    "openProjectTab": "Please open a project tab first",
+    "noProjectInfo": "Current tab has no project info",
+    "createCanvasFailed": "Failed to create canvas",
+    "fetchingTerminalStatus": "Fetching terminal status",
+    "terminalDisabled": "Terminal is not enabled",
+    "noWorkspaceDir": "Workspace directory not found",
+    "noRuntimeContext": "No runtime context for current tab",
+    "canvasName": "Canvas",
+    "terminal": "Terminal",
+    "search": "Search",
+    "creating": "Creating…",
+    "canvas": "Canvas",
+    "aiChat": "AI Chat"
+  },
+  "chatHistory": {
+    "title": "History",
+    "loading": "Loading…",
+    "count": "{{count}} items",
+    "noHistory": "No history for this day",
+    "unnamed": "Unnamed session",
+    "pinned": "Pinned"
+  },
+  "emailInbox": {
+    "title": "Inbox",
+    "loading": "Loading…",
+    "messageCount": "{{count}} emails",
+    "searchPlaceholder": "Search emails",
+    "noWorkspace": "Workspace not found",
+    "loadingAccounts": "Loading accounts...",
+    "noAccount": "No email account configured",
+    "configureEmail": "Set up email",
+    "loadingMessages": "Loading messages...",
+    "noMessages": "No messages",
+    "loadingMore": "Loading more...",
+    "emailPage": "Email",
+    "noTab": "Current tab not found"
+  },
+  "help": {
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageN": "Page {{n}}",
+    "pages": {
+      "welcome": {
+        "title": "Welcome to OpenLoaf",
+        "description": "AI productivity workbench to help you work efficiently"
+      },
+      "aiChat": {
+        "title": "AI Chat",
+        "description": "Press Space to quickly invoke AI, or use Cmd+B to open the chat panel, Cmd+T for a standalone workbench"
+      },
+      "dock": {
+        "title": "Bottom Dock",
+        "description": "Quickly switch between Workbench, Calendar, Email, and Tasks using Alt+1–4"
+      },
+      "search": {
+        "title": "Global Search",
+        "description": "Use Cmd+F to search files, emails, tasks and all content"
+      },
+      "calendar": {
+        "title": "Calendar",
+        "description": "Multiple views: day/week/month/year. Use Cmd+L to open quickly"
+      },
+      "email": {
+        "title": "Email",
+        "description": "Add your email accounts and send/receive emails in OpenLoaf"
+      },
+      "tasks": {
+        "title": "Task Board",
+        "description": "Manage tasks with kanban view, supporting status tracking and scheduled tasks"
+      },
+      "desktop": {
+        "title": "Personalized Desktop",
+        "description": "Right-click to enter edit mode, drag to rearrange widgets"
+      }
+    },
+    "actions": {
+      "calendar": "Calendar",
+      "email": "Email",
+      "tasks": "Task Board"
+    },
+    "noTab": "Current tab not found",
+    "noRuntimeContext": "No runtime context for current tab"
+  },
+  "dynamicWidget": {
+    "renderError": "Widget render error: {{message}}",
+    "approvalTitle": "Enable this Widget?",
+    "approvalDesc": "This Widget will execute the following scripts on the server:",
+    "approve": "Confirm",
+    "loading": "Loading...",
+    "loadFailed": "Failed to load component",
+    "retry": "Retry",
+    "missingParams": "Missing Widget parameters"
+  }
+}

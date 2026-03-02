@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@openloaf/ui/tabs";
 import { Textarea } from "@openloaf/ui/textarea";
 import TagsInputBasic from "@/components/ui/basic-tags-input";
+import { useTranslation } from "react-i18next";
 
 import {
   IMAGE_GENERATE_ASPECT_RATIO_OPTIONS,
@@ -52,12 +53,13 @@ export function AdvancedSettingsPanel({
   onNegativePromptChange,
   disabled,
 }: AdvancedSettingsPanelProps) {
+  const { t } = useTranslation('board');
   return (
     <div className="rounded-xl bg-[#f6f8fc] p-2.5 dark:bg-[hsl(var(--muted)/0.26)]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1 text-[11px] text-[#5f6368] dark:text-slate-300">
-            数量
+            {t('imageGenerate.advanced.count')}
           </div>
           <Tabs
             value={String(outputCount)}
@@ -82,7 +84,7 @@ export function AdvancedSettingsPanel({
         </div>
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1 text-[11px] text-[#5f6368] dark:text-slate-300">
-            宽高比
+            {t('imageGenerate.advanced.aspectRatio')}
           </div>
           <Popover
             open={aspectRatioOpen}
@@ -106,7 +108,7 @@ export function AdvancedSettingsPanel({
                 }}
               >
                 <span className="truncate">
-                  {outputAspectRatioValue === "auto" ? "自动" : outputAspectRatioValue}
+                  {outputAspectRatioValue === "auto" ? t('imageGenerate.advanced.auto') : outputAspectRatioValue}
                 </span>
                 <ChevronDown size={12} />
               </button>
@@ -118,7 +120,7 @@ export function AdvancedSettingsPanel({
               className="w-[var(--radix-popover-trigger-width)] max-h-40 overflow-auto rounded-md border border-[#e3e8ef] bg-white p-1 text-[11px] text-[#5f6368] shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {["auto", ...IMAGE_GENERATE_ASPECT_RATIO_OPTIONS].map((option) => {
-                const label = option === "auto" ? "自动" : option;
+                const label = option === "auto" ? t('imageGenerate.advanced.auto') : option;
                 const isActive =
                   option === "auto"
                     ? outputAspectRatioValue === "auto"
@@ -149,8 +151,8 @@ export function AdvancedSettingsPanel({
         <div className="flex items-center gap-1">
           <TagsInputBasic
             dense
-            label="风格"
-            placeholder={styleTags.length ? "" : "回车可自定义风格"}
+            label={t('imageGenerate.advanced.style')}
+            placeholder={styleTags.length ? "" : t('imageGenerate.advanced.stylePlaceholder')}
             suggestions={[...IMAGE_GENERATE_STYLE_SUGGESTIONS]}
             value={styleTags}
             onValueChange={onStyleChange}
@@ -162,7 +164,7 @@ export function AdvancedSettingsPanel({
           <Textarea
             value={negativePromptText}
             maxLength={200}
-            placeholder="不希望出现"
+            placeholder={t('imageGenerate.advanced.negativePrompt')}
             onChange={(event) => {
               const next = event.target.value.slice(0, 200);
               onNegativePromptChange(next);

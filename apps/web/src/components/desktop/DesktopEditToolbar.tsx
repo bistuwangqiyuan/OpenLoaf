@@ -18,6 +18,8 @@ import {
   X,
   Check,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { Button } from "@openloaf/ui/button";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -142,7 +144,7 @@ function createWidgetItem(
   const pos = findFirstAvailablePosition(items, breakpoint, resolvedConstraints.defaultW, resolvedConstraints.defaultH);
   const layout = { x: pos.x, y: pos.y, w: resolvedConstraints.defaultW, h: resolvedConstraints.defaultH };
 
-  const title = options?.title ?? catalogItem.title;
+  const title = options?.title ?? i18next.t('desktop:catalog.' + widgetKey, { defaultValue: catalogItem.title });
 
   return {
     id: `w-${widgetKey}-${Date.now()}`,
@@ -217,6 +219,7 @@ export default function DesktopEditToolbar({
   onDone,
   onEnterEditMode,
 }: DesktopEditToolbarProps) {
+  const { t } = useTranslation('desktop');
   // 当前激活的 tab。
   const activeTabId = useTabs((s) => s.activeTabId);
   // 打开 stack 面板的方法。
@@ -229,7 +232,7 @@ export default function DesktopEditToolbar({
       id: DESKTOP_WIDGET_LIBRARY_PANEL_ID,
       sourceKey: DESKTOP_WIDGET_LIBRARY_PANEL_ID,
       component: DESKTOP_WIDGET_LIBRARY_COMPONENT,
-      title: "组件库",
+      title: i18next.t('desktop:editToolbar.libraryTitle'),
     });
   }, [activeTabId, pushStackItem]);
 
@@ -296,7 +299,7 @@ export default function DesktopEditToolbar({
           onClick={handleAddAndEdit}
         >
           <Plus className="size-3.5" />
-          添加组件
+          {t('editToolbar.addWidget')}
         </Button>
         <Button
           type="button"
@@ -306,7 +309,7 @@ export default function DesktopEditToolbar({
           onClick={onEnterEditMode}
         >
           <PencilLine className="size-3.5" />
-          编辑
+          {t('editToolbar.edit')}
         </Button>
       </div>,
       controlsTarget
@@ -323,7 +326,7 @@ export default function DesktopEditToolbar({
         onClick={handleOpenWidgetLibrary}
       >
         <Plus className="size-3.5" />
-        添加组件
+        {t('editToolbar.addWidget')}
       </Button>
       <Button
         type="button"
@@ -333,7 +336,7 @@ export default function DesktopEditToolbar({
         onClick={onCompact}
       >
         <Box className="size-3.5" />
-        整理
+        {t('editToolbar.organize')}
       </Button>
       <Button
         type="button"
@@ -343,7 +346,7 @@ export default function DesktopEditToolbar({
         onClick={onCancel}
       >
         <X className="size-3.5" />
-        取消
+        {t('editToolbar.cancel')}
       </Button>
       <Button
         type="button"
@@ -353,7 +356,7 @@ export default function DesktopEditToolbar({
         onClick={onDone}
       >
         <Check className="size-3.5" />
-        完成
+        {t('editToolbar.done')}
       </Button>
     </div>,
     controlsTarget

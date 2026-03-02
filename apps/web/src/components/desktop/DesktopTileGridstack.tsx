@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { PencilLine, Pin, PinOff, RotateCw, Layers, Trash2, Settings } from "lucide-react";
 import { BROWSER_WINDOW_COMPONENT, BROWSER_WINDOW_PANEL_ID } from "@openloaf/api/common";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ export default function DesktopTileGridstack({
   onDeleteItem,
   onSelectFolder,
 }: DesktopTileGridstackProps) {
+  const { t } = useTranslation('desktop');
   const longPressTimerRef = React.useRef<number | null>(null);
   const pointerStartRef = React.useRef<{ id: number; x: number; y: number } | null>(null);
   const { basic } = useBasicConfig();
@@ -273,11 +275,11 @@ export default function DesktopTileGridstack({
     setWebError(null);
     const normalized = normalizeUrl(webUrlInput);
     if (!normalized) {
-      setWebError("请输入有效网址");
+      setWebError(t('tile.invalidUrl'));
       return;
     }
     if (!defaultRootUri) {
-      setWebError("未找到工作区目录");
+      setWebError(t('tile.noWorkspaceDir'));
       return;
     }
     let hostname = "";
@@ -286,7 +288,7 @@ export default function DesktopTileGridstack({
     } catch {
       hostname = normalized;
     }
-    const nextTitle = webTitleInput.trim() || hostname || "网页";
+    const nextTitle = webTitleInput.trim() || hostname || t('tile.webFallbackTitle');
     const applyUpdate = onPersistItemUpdate ?? onUpdateItem;
     applyUpdate(item.id, (current) => {
       if (current.kind !== "widget" || current.widgetKey !== "web-stack") return current;
@@ -463,8 +465,8 @@ export default function DesktopTileGridstack({
               event.stopPropagation();
               handleTogglePin();
             }}
-            aria-label={isPinned ? "Unpin widget" : "Pin widget"}
-            title={isPinned ? "取消固定" : "固定"}
+            aria-label={isPinned ? t('tile.unpin') : t('tile.pin')}
+            title={isPinned ? t('tile.unpin') : t('tile.pin')}
           >
             {isPinned ? (
               <PinOff className="desktop-edit-action-icon size-3.5" />
@@ -482,7 +484,7 @@ export default function DesktopTileGridstack({
             <ContextMenuSub>
               <ContextMenuSubTrigger>
                 <Layers className="mr-2 size-4" />
-                模式
+                {t('tile.mode')}
               </ContextMenuSubTrigger>
               <ContextMenuSubContent>
                 <ContextMenuRadioGroup
@@ -502,25 +504,25 @@ export default function DesktopTileGridstack({
           {isWebStack ? (
             <>
               <ContextMenuItem icon={PencilLine} onClick={() => handleWebDialogOpenChange(true)}>
-                修改
+                {t('tile.edit')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={RotateCw}
                 onClick={handleWebMetaRefresh}
                 disabled={!webUrl}
               >
-                刷新
+                {t('tile.refresh')}
               </ContextMenuItem>
             </>
           ) : null}
           {isThreeDFolder ? (
             <ContextMenuItem icon={Settings} onClick={() => onSelectFolder(item.id)}>
-              选择文件夹
+              {t('tile.selectFolder')}
             </ContextMenuItem>
           ) : null}
           {isVideo ? (
             <ContextMenuItem icon={Settings} onClick={() => setIsVideoFileDialogOpen(true)}>
-              选择视频
+              {t('tile.selectVideo')}
             </ContextMenuItem>
           ) : null}
           {(hasVariants || isWebStack || isThreeDFolder || isVideo) ? <ContextMenuSeparator /> : null}
@@ -530,7 +532,7 @@ export default function DesktopTileGridstack({
             onClick={() => onDeleteItem(item.id)}
             disabled={isPinned}
           >
-            删除
+            {t('tile.delete')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -538,12 +540,12 @@ export default function DesktopTileGridstack({
         <Dialog open={isWebDialogOpen} onOpenChange={handleWebDialogOpenChange}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>修改网页组件</DialogTitle>
-              <DialogDescription>输入网页地址与名称，自动抓取 logo 与预览图。</DialogDescription>
+              <DialogTitle>{t('tile.editWebTitle')}</DialogTitle>
+              <DialogDescription>{t('tile.editWebDescription')}</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3">
               <div className="space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">网页地址</div>
+                <div className="text-xs font-medium text-muted-foreground">{t('tile.webUrl')}</div>
                 <Input
                   value={webUrlInput}
                   onChange={(e) => setWebUrlInput(e.target.value)}
@@ -551,11 +553,11 @@ export default function DesktopTileGridstack({
                 />
               </div>
               <div className="space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">名称（可选）</div>
+                <div className="text-xs font-medium text-muted-foreground">{t('tile.webTitleOptional')}</div>
                 <Input
                   value={webTitleInput}
                   onChange={(e) => setWebTitleInput(e.target.value)}
-                  placeholder="自定义名称"
+                  placeholder={t('tile.customNamePlaceholder')}
                 />
               </div>
               {webError ? (
@@ -564,10 +566,10 @@ export default function DesktopTileGridstack({
             </div>
             <DialogFooter className="mt-4">
               <Button type="button" variant="ghost" onClick={() => handleWebDialogOpenChange(false)}>
-                取消
+                {t('page.cancel')}
               </Button>
               <Button type="button" onClick={handleWebEditSubmit}>
-                保存
+                {t('tile.save')}
               </Button>
             </DialogFooter>
           </DialogContent>

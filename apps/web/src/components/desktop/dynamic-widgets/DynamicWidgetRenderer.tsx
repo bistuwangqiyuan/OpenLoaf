@@ -11,6 +11,8 @@
 
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 import { createWidgetSDK } from '@openloaf/widget-sdk'
 import type { WidgetSDK, WidgetHostCallbacks, WidgetTheme } from '@openloaf/widget-sdk'
 import { trpc, trpcClient } from '@/utils/trpc'
@@ -77,7 +79,7 @@ class WidgetErrorBoundary extends React.Component<
       return (
         <div className="flex h-full w-full items-center justify-center p-4 text-center">
           <div className="text-xs text-destructive">
-            Widget 渲染错误: {this.state.error.message}
+            {i18next.t('desktop:dynamicWidget.renderError', { message: this.state.error.message })}
           </div>
         </div>
       )
@@ -94,6 +96,7 @@ function WidgetApprovalPrompt({
   scripts?: Record<string, string>
   onApprove: () => void
 }) {
+  const { t } = useTranslation('desktop')
   const scriptEntries = Object.entries(scripts || {})
   // 逻辑：使用 pointerDown 而非 click，避免桌面 tile 的长按进入编辑态
   // （320ms 后添加 pointer-events-none）导致 click 事件被吞掉。
@@ -106,9 +109,9 @@ function WidgetApprovalPrompt({
   )
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center">
-      <div className="text-sm font-medium">启用此 Widget？</div>
+      <div className="text-sm font-medium">{t('dynamicWidget.approvalTitle')}</div>
       <div className="text-xs text-muted-foreground">
-        该 Widget 将在服务端执行以下脚本：
+        {t('dynamicWidget.approvalDesc')}
       </div>
       {scriptEntries.length > 0 ? (
         <div className="w-full max-w-xs rounded-md border border-border bg-muted/30 p-2 text-left">
@@ -124,7 +127,7 @@ function WidgetApprovalPrompt({
         className="mt-1 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         onPointerDown={handlePointerDown}
       >
-        确认启用
+        {t('dynamicWidget.approve')}
       </button>
     </div>
   )
@@ -139,6 +142,7 @@ export default function DynamicWidgetRenderer({
   onChat,
   onOpenTab,
 }: DynamicWidgetRendererProps) {
+  const { t } = useTranslation('desktop')
   const { Component, loading, error } = useLoadDynamicComponent(workspaceId, projectId, widgetId)
   const [approved, setApproved] = React.useState(() => getApprovedWidgets().has(widgetId))
 
@@ -213,7 +217,7 @@ export default function DynamicWidgetRenderer({
       <div className="flex h-full w-full items-center justify-center text-muted-foreground">
         <div className="flex flex-col items-center gap-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-          <div className="text-xs">加载中...</div>
+          <div className="text-xs">{t('dynamicWidget.loading')}</div>
         </div>
       </div>
     )
@@ -222,13 +226,13 @@ export default function DynamicWidgetRenderer({
   if (error || !Component) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center">
-        <div className="text-xs text-destructive">{error || '组件加载失败'}</div>
+        <div className="text-xs text-destructive">{error || t('dynamicWidget.loadFailed')}</div>
         <button
           type="button"
           className="rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
           onClick={() => window.location.reload()}
         >
-          重试
+          {t('dynamicWidget.retry')}
         </button>
       </div>
     )

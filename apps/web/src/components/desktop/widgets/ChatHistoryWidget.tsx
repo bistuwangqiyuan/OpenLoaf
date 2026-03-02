@@ -10,6 +10,7 @@
 "use client";
 
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CalendarDays, MessageCircle } from "lucide-react";
 import { zhCN } from "date-fns/locale";
 import { Calendar } from "@openloaf/ui/date-picker";
@@ -38,6 +39,7 @@ function formatDateLabel(date: Date): string {
 
 /** Chat history list widget (list-only). */
 const ChatHistoryWidget = memo(function ChatHistoryWidget() {
+  const { t } = useTranslation('desktop');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabs((s) =>
@@ -104,9 +106,9 @@ const ChatHistoryWidget = memo(function ChatHistoryWidget() {
       <section className="flex h-full min-h-0 flex-col">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold text-foreground">历史列表</div>
+            <div className="text-sm font-semibold text-foreground">{t('chatHistory.title')}</div>
             <div className="text-xs text-muted-foreground">
-              {isLoading ? "加载中…" : `${activeSessions.length} 项`}
+              {isLoading ? t('chatHistory.loading') : t('chatHistory.count', { count: activeSessions.length })}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -143,11 +145,11 @@ const ChatHistoryWidget = memo(function ChatHistoryWidget() {
         <div className="mt-3 flex-1 space-y-2 overflow-auto show-scrollbar">
           {isLoading ? (
             <div className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-6 text-center text-sm text-muted-foreground">
-              加载中…
+              {t('chatHistory.loading')}
             </div>
           ) : activeSessions.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-6 text-center text-sm text-muted-foreground">
-              当天暂无历史
+              {t('chatHistory.noHistory')}
             </div>
           ) : (
             activeSessions.map((session) => (
@@ -169,11 +171,11 @@ const ChatHistoryWidget = memo(function ChatHistoryWidget() {
                       <MessageCircle className="h-4 w-4" />
                     </div>
                     <div className="truncate text-sm font-medium text-foreground">
-                      {session.title.trim() || "未命名会话"}
+                      {session.title.trim() || t('chatHistory.unnamed')}
                     </div>
                     {session.isPin ? (
                       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        置顶
+                        {t('chatHistory.pinned')}
                       </span>
                     ) : null}
                   </div>

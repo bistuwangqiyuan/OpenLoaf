@@ -9,6 +9,7 @@
  */
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import type { ProviderModelOption } from '@/lib/provider-models'
 import type { AiModel } from '@openloaf-saas/sdk'
 import { getModelLabel } from '@/lib/model-registry'
@@ -27,12 +28,14 @@ export function ChatModelCheckboxList({
   preferredIds,
   disabled,
   onToggle,
-  emptyText = '暂无可用模型',
+  emptyText,
 }: ChatModelCheckboxListProps) {
+  const { t } = useTranslation('ai')
+  const resolvedEmptyText = emptyText ?? t('mode.noAvailableModels')
   if (models.length === 0) {
     return (
       <div className="px-2 py-6 text-center text-xs text-muted-foreground">
-        {emptyText}
+        {resolvedEmptyText}
       </div>
     )
   }
@@ -75,12 +78,14 @@ export function MediaModelCheckboxList({
   preferredIds,
   disabled,
   onToggle,
-  emptyText = '暂无可用模型',
+  emptyText,
 }: MediaModelCheckboxListProps) {
+  const { t } = useTranslation('ai')
+  const resolvedEmptyText = emptyText ?? t('mode.noAvailableModels')
   if (models.length === 0) {
     return (
       <div className="px-2 py-6 text-center text-xs text-muted-foreground">
-        {emptyText}
+        {resolvedEmptyText}
       </div>
     )
   }

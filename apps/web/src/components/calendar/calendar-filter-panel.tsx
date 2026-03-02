@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Accordion, AccordionContent, AccordionItem } from "@openloaf/ui/accordion";
 import { Checkbox } from "@openloaf/ui/checkbox";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
@@ -104,6 +105,7 @@ export function CalendarFilterPanel({
   onClearProjects,
   onToggleProject,
 }: CalendarFilterPanelProps) {
+  const { t } = useTranslation('calendar');
   const isGranted = permissionState === "granted";
   const handleToggleCalendar = useCallback(
     (calendarId: string) => onToggleCalendar(calendarId),
@@ -160,7 +162,7 @@ export function CalendarFilterPanel({
             <Folder className="h-3.5 w-3.5 text-muted-foreground" />
           )}
           <span className="truncate text-sm text-foreground">
-            {node.title?.trim() || "未命名项目"}
+            {node.title?.trim() || t('untitledProject')}
           </span>
         </button>
         <Checkbox
@@ -182,15 +184,15 @@ export function CalendarFilterPanel({
     >
       <div className="flex items-center px-2 h-9">
         <Filter className="h-3.5 w-3.5 text-[#5f6368] dark:text-slate-400" />
-        <span className="text-sm font-semibold text-foreground ml-1.5">筛选</span>
+        <span className="text-sm font-semibold text-foreground ml-1.5">{t('filter')}</span>
       </div>
       <div className="border-b border-[#e3e8ef] dark:border-slate-700 mb-1.5" />
       <div className="flex items-center gap-0.5 rounded-full border bg-background p-0.5 mx-1 mb-2">
         {([
-          { value: "all" as const, label: "全部", activeBg: "bg-[#e8f0fe]", activeText: "text-[#1a73e8]", darkActiveBg: "dark:bg-sky-900/50", darkActiveText: "dark:text-sky-300" },
-          { value: "local" as const, label: "本地", activeBg: "bg-[#e6f4ea]", activeText: "text-[#188038]", darkActiveBg: "dark:bg-emerald-900/40", darkActiveText: "dark:text-emerald-300" },
-          { value: "system" as const, label: "系统", activeBg: "bg-[#f3e8fd]", activeText: "text-[#9334e6]", darkActiveBg: "dark:bg-violet-900/40", darkActiveText: "dark:text-violet-300" },
-        ]).map(({ value, label, activeBg, activeText, darkActiveBg, darkActiveText }) => {
+          { value: "all" as const, labelKey: "all", activeBg: "bg-[#e8f0fe]", activeText: "text-[#1a73e8]", darkActiveBg: "dark:bg-sky-900/50", darkActiveText: "dark:text-sky-300" },
+          { value: "local" as const, labelKey: "local", activeBg: "bg-[#e6f4ea]", activeText: "text-[#188038]", darkActiveBg: "dark:bg-emerald-900/40", darkActiveText: "dark:text-emerald-300" },
+          { value: "system" as const, labelKey: "system", activeBg: "bg-[#f3e8fd]", activeText: "text-[#9334e6]", darkActiveBg: "dark:bg-violet-900/40", darkActiveText: "dark:text-violet-300" },
+        ] as const).map(({ value, labelKey, activeBg, activeText, darkActiveBg, darkActiveText }) => {
           const isActive = sourceFilter === value;
           return (
             <button
@@ -203,7 +205,7 @@ export function CalendarFilterPanel({
               }`}
               onClick={() => onSourceFilterChange(value)}
             >
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}
@@ -237,12 +239,12 @@ export function CalendarFilterPanel({
               </div>
             }
           >
-            <span className="text-foreground">日历</span>
+            <span className="text-foreground">{t('calendars')}</span>
           </CalendarFilterPanelTrigger>
           <AccordionContent className="space-y-1">
             {isGranted && !hasSystemCalendars && (
               <div className="px-2 py-1 text-xs text-muted-foreground">
-                未检测到系统日历
+                {t('noSystemCalendars')}
               </div>
             )}
             {calendars.map((calendar) => {
@@ -311,12 +313,12 @@ export function CalendarFilterPanel({
               </div>
             }
           >
-            <span className="text-foreground">提醒事项</span>
+            <span className="text-foreground">{t('reminders')}</span>
           </CalendarFilterPanelTrigger>
           <AccordionContent className="space-y-1">
             {isGranted && !hasSystemReminders && (
               <div className="px-2 py-1 text-xs text-muted-foreground">
-                未检测到提醒事项列表
+                {t('noReminderLists')}
               </div>
             )}
             {reminderLists.map((calendar) => {
@@ -384,12 +386,12 @@ export function CalendarFilterPanel({
               </div>
             }
           >
-            <span className="text-foreground">项目</span>
+            <span className="text-foreground">{t('projects')}</span>
           </CalendarFilterPanelTrigger>
           <AccordionContent className="space-y-1">
             {projectIdList.length === 0 && (
               <div className="px-2 py-1 text-xs text-muted-foreground">
-                未检测到项目
+                {t('noProjects')}
               </div>
             )}
             {projects.map((project) => renderProjectNode(project, 0))}

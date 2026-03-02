@@ -11,6 +11,7 @@
 
 import { CheckCircle2, ChevronRight, ExternalLink, Plus, Settings2 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@openloaf/ui/button'
 import {
@@ -41,6 +42,7 @@ type ConfigureStepProps = {
 }
 
 export function ConfigureStep({ addDialog }: ConfigureStepProps) {
+  const { t } = useTranslation('common')
   const isCustomProvider = addDialog.formState.selectedProviderId === 'custom'
   const isOAuth = addDialog.formState.authType === 'oauth2'
   const [advancedOpen, setAdvancedOpen] = useState(isCustomProvider)
@@ -108,8 +110,8 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
 
   const oauthButtonLabel =
     addDialog.formState.oauthProvider === 'google'
-      ? '使用 Google 账号登录'
-      : '使用 Microsoft 账号登录'
+      ? t('email.loginWithGoogle')
+      : t('email.loginWithMicrosoft')
 
   const isGmailProvider =
     addDialog.formState.selectedProviderId === 'gmail'
@@ -122,7 +124,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
             <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2.5">
               <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                已授权
+                {t('email.authorized')}
                 {addDialog.formState.oauthEmail
                   ? ` ${addDialog.formState.oauthEmail}`
                   : ''}
@@ -144,7 +146,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               onClick={addDialog.onSwitchToPassword}
               className="inline-flex items-center gap-1 text-[11px] text-primary/70 transition-colors hover:text-primary"
             >
-              使用应用专用密码
+              {t('email.useAppPassword')}
               <ExternalLink className="size-3" />
             </button>
           ) : null}
@@ -153,7 +155,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
         <>
           <div className="space-y-2">
             <Label className="text-xs font-medium text-foreground/80">
-              邮箱地址
+              {t('email.emailAddress')}
             </Label>
             <Input
               value={addDialog.formState.emailAddress}
@@ -180,7 +182,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-primary/70 transition-colors hover:text-primary"
                 >
-                  如何获取？
+                  {t('email.howToGet')}
                   <ExternalLink className="size-3" />
                 </a>
               ) : null}
@@ -194,7 +196,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                   password: event.target.value,
                 }))
               }
-              placeholder={`输入${addDialog.selectedProviderPasswordLabel}`}
+              placeholder={t('email.passwordPlaceholder', { label: addDialog.selectedProviderPasswordLabel })}
               className="h-9 text-sm"
             />
           </div>
@@ -206,7 +208,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               >
                 <span className="flex items-center gap-2">
                   <Settings2 className="size-3.5" />
-                  服务器配置
+                  {t('email.serverConfig')}
                 </span>
                 <ChevronRight
                   className={cn(
@@ -220,7 +222,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2 text-xs font-medium text-foreground/70">
                   <span className="size-1.5 rounded-full bg-blue-500" />
-                  IMAP 收信
+                  {t('email.imapIncoming')}
                 </div>
                 <div className="grid grid-cols-[1fr,90px] gap-2">
                   <Input
@@ -243,7 +245,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                         imapPort: Number(event.target.value || 0),
                       }))
                     }
-                    placeholder="端口"
+                    placeholder={t('email.port')}
                     className="h-8 text-xs"
                   />
                 </div>
@@ -265,7 +267,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2 text-xs font-medium text-foreground/70">
                   <span className="size-1.5 rounded-full bg-green-500" />
-                  SMTP 发信
+                  {t('email.smtpOutgoing')}
                 </div>
                 <div className="grid grid-cols-[1fr,90px] gap-2">
                   <Input
@@ -288,7 +290,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                         smtpPort: Number(event.target.value || 0),
                       }))
                     }
-                    placeholder="端口"
+                    placeholder={t('email.port')}
                     className="h-8 text-xs"
                   />
                 </div>
@@ -314,9 +316,9 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
 
       <div className="space-y-2">
         <Label className="text-xs font-medium text-foreground/80">
-          账户类型
+          {t('email.accountType')}
           <span className="ml-1 font-normal text-muted-foreground">
-            （可选）
+            {t('email.optional')}
           </span>
         </Label>
         <div className="flex flex-wrap items-center gap-2">
@@ -356,7 +358,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               onChange={(event) => setCustomInputValue(event.target.value)}
               onBlur={handleCustomLabelConfirm}
               onKeyDown={handleCustomLabelKeyDown}
-              placeholder="输入后回车"
+              placeholder={t('email.pressEnterToAdd')}
               className="h-7 w-28 text-xs"
               autoFocus
             />
@@ -367,7 +369,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
             >
               <Plus className="size-3" />
-              自定义
+              {t('email.custom')}
             </button>
           )}
         </div>
@@ -380,7 +382,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
       ) : null}
       {addDialog.testStatus === 'ok' ? (
         <div className="rounded-lg bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">
-          连接测试通过，可以保存账号
+          {t('email.testSuccess')}
         </div>
       ) : null}
     </div>

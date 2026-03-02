@@ -10,6 +10,7 @@
 "use client"
 
 import { Settings } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 export interface WidgetConfigOverlayProps {
   /** Callback when the settings button is clicked. */
@@ -21,8 +22,10 @@ export interface WidgetConfigOverlayProps {
 /** Frosted-glass overlay with a centered settings button for unconfigured widgets. */
 export default function WidgetConfigOverlay({
   onConfigure,
-  label = "设置",
+  label,
 }: WidgetConfigOverlayProps) {
+  const { t } = useTranslation('desktop');
+  const displayLabel = label ?? t('overlay.defaultLabel');
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl">
       <div className="absolute inset-0 rounded-2xl bg-background/50 backdrop-blur-sm" />
@@ -35,7 +38,7 @@ export default function WidgetConfigOverlay({
         }}
       >
         <Settings className="size-4" />
-        {label}
+        {displayLabel}
       </button>
     </div>
   )

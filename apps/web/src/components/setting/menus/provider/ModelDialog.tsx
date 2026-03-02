@@ -17,9 +17,9 @@ import {
   DialogTitle,
 } from "@openloaf/ui/dialog";
 import { Input } from "@openloaf/ui/input";
+import { AI_MODEL_TAGS } from "@openloaf-saas/sdk";
 import type { ModelTag } from "@openloaf/api/common";
 import {
-  MODEL_TAG_OPTIONS,
   toggleSelection,
 } from "@/components/setting/menus/provider/use-provider-management";
 
@@ -72,6 +72,11 @@ export function ModelDialog({
 }: ModelDialogProps) {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
+  const { t: tAi } = useTranslation('ai');
+  const modelTagOptions = AI_MODEL_TAGS.map((value) => ({
+    value: value as ModelTag,
+    label: tAi(`modelTags.${value}`, { defaultValue: value }),
+  }));
   const isEditing = Boolean(editingModelId);
 
   return (
@@ -104,7 +109,7 @@ export function ModelDialog({
           <div className="space-y-2 md:col-span-2">
             <div className="text-sm font-medium">{t('provider.capabilityTags')}</div>
             <div className="flex flex-wrap gap-2">
-              {MODEL_TAG_OPTIONS.map((option) => (
+              {modelTagOptions.map((option) => (
                 <Button
                   key={option.value}
                   type="button"

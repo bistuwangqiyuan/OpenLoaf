@@ -27,7 +27,10 @@
     "layers": "圖層列表",
     "newLayer": "新建圖層",
     "deleteLayer": "刪除圖層",
-    "renameLayer": "重新命名圖層"
+    "renameLayer": "重新命名圖層",
+    "imagePreview": "圖片預覽",
+    "renderError": "畫布渲染出錯",
+    "retry": "重試"
   },
   "tools": {
     "select": "選取",
@@ -104,7 +107,15 @@
     "imagePromptGenerate": "影片圖片理解",
     "imagePromptGenerateDesc": "分析影片並生成描述",
     "imageGenerate": "圖片生成",
-    "imageGenerateDesc": "基於提示詞與圖片生成新圖"
+    "imageGenerateDesc": "基於提示詞與圖片生成新圖",
+    "straight": "直線",
+    "elbow": "折線",
+    "curve": "曲線",
+    "hand": "手繪",
+    "fly": "飛行",
+    "colorTitle": "連線顏色 {{color}}",
+    "dashed": "虛線",
+    "deleteConnector": "刪除連線"
   },
   "nodeDetail": {
     "detail": "詳情"
@@ -218,7 +229,15 @@
       "imageReadFailed": "圖片讀取失敗",
       "submitFailed": "圖片任務提交失敗",
       "generateFailed": "生成圖片失敗",
-      "copyFailed": "複製失敗"
+      "copyFailed": "複製失敗",
+      "tooManyImages": "最多支援 {{max}} 張圖片輸入"
+    },
+    "hints": {
+      "needsPrompt": "需要輸入或連接提示詞後才能生成圖片。",
+      "tooManyImages": "最多支援 {{max}} 張圖片輸入，已連接 {{connected}} 張。",
+      "invalidImage": "存在無法存取的圖片位址，請檢查輸入。",
+      "needsModel": "未找到支援「圖片生成」的模型，請先在設定中配置。",
+      "generateFailed": "生成圖片失敗，請重試。"
     }
   },
   "videoGenerate": {
@@ -247,7 +266,12 @@
       "failed": "生成失敗",
       "needModel": "需要設定模型",
       "generating": "生成中",
-      "waiting": "等待任務"
+      "waiting": "等待任務",
+      "needsPrompt": "需要提示詞",
+      "missingParams": "參數未填寫",
+      "tooManyImages": "圖片數量過多",
+      "invalidImage": "圖片位址不可用",
+      "idle": "待執行"
     },
     "errors": {
       "noModelSupport": "請選擇支援「影片生成」的模型",
@@ -255,7 +279,25 @@
       "generateFailed": "生成影片失敗",
       "saveFailed": "影片儲存失敗",
       "copyErrorSuccess": "已複製錯誤資訊",
-      "copyFailed": "複製失敗"
+      "copyFailed": "複製失敗",
+      "imageReadFailed": "圖片讀取失敗",
+      "invalidImageUrl": "存在無法存取的圖片位址，請檢查輸入",
+      "missingParameters": "請先填寫必填參數",
+      "tooManyImages": "最多支援 {{max}} 張圖片輸入",
+      "saveDirFailed": "無法確定影片儲存目錄",
+      "submitFailed": "影片任務提交失敗"
+    },
+    "modelSelect": {
+      "noModel": "無可用模型",
+      "loginHint": "登入OpenLoaf帳號，使用雲端模型後選擇模型"
+    },
+    "hints": {
+      "needsPrompt": "需要輸入提示詞或連接圖片後才能生成影片。",
+      "missingParameters": "請先填寫必填參數：{{required}}",
+      "tooManyImages": "最多支援 {{max}} 張圖片輸入，已連接 {{connected}} 張。",
+      "invalidImage": "存在無法存取的圖片位址，請檢查輸入。",
+      "needsModel": "未找到支援「影片生成」的模型，請先在設定中配置。",
+      "generateFailed": "生成影片失敗，請重試。"
     }
   },
   "imagePromptGenerate": {
@@ -278,10 +320,28 @@
       "copyFailed": "複製失敗"
     }
   },
+  "imageDetail": {
+    "revisedPrompt": "改寫提示詞",
+    "userPrompt": "使用者提示詞"
+  },
+  "imageNode": {
+    "toolbar": {
+      "download": "下載",
+      "detail": "詳情"
+    }
+  },
   "videoNode": {
     "toolbar": {
       "detail": "詳情"
     }
+  },
+  "videoDetail": {
+    "fileLabel": "視訊檔案",
+    "unnamed": "未命名",
+    "pathValue": "路徑: {{path}}",
+    "pathEmpty": "路徑: -",
+    "durationValue": "時長: {{duration}}",
+    "sizeValue": "尺寸: {{size}}"
   },
   "linkNode": {
     "toolbar": {
@@ -308,7 +368,8 @@
     "videoGenerateError": "生成影片失敗",
     "statusFailed": "失敗",
     "statusGenerating": "生成中…",
-    "statusWaiting": "等待任務"
+    "statusWaiting": "等待任務",
+    "transcoding": "轉碼中"
   },
   "collab": {
     "imageTranscodeFailed": "圖片轉碼失敗，已使用原始檔案插入"
@@ -326,6 +387,19 @@
     "imagePromptGenerate": "圖片理解",
     "imageGenerate": "圖片生成",
     "videoGenerate": "生成影片"
+  },
+  "nodeInspector": {
+    "panelTitle": "節點詳情",
+    "close": "關閉",
+    "type": "類型",
+    "position": "位置",
+    "size": "尺寸",
+    "titleLabel": "標題",
+    "description": "描述"
+  },
+  "nodePicker": {
+    "title": "選擇節點",
+    "empty": "無可用節點"
   },
   "styles": {
     "realistic": "寫實",

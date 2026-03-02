@@ -200,7 +200,7 @@ export default function SettingsPage({
   tabId,
   settingsMenu,
 }: SettingsPageProps) {
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation(['settings', 'nav']);
   const MENU = useMemo(() => buildMenu((key) => t(key)), [t]);
   const [activeKey, setActiveKey] = useState<SettingsMenuKey>(() =>
     isVisibleSettingsMenuKey(settingsMenu) ? settingsMenu : "basic",
@@ -218,8 +218,14 @@ export default function SettingsPage({
 
   const setTabMinLeftWidth = useTabRuntime((s) => s.setTabMinLeftWidth);
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
+  const setTabTitle = useTabs((s) => s.setTabTitle);
   const activeTabId = useTabs((s) => s.activeTabId);
   const isActiveTab = activeTabId === tabId;
+
+  // Keep tab title in sync with current language.
+  useEffect(() => {
+    setTabTitle(tabId, t('nav:settings'));
+  }, [tabId, t, setTabTitle]);
 
   useEffect(() => {
     setTabMinLeftWidth(tabId, 500);

@@ -14,6 +14,7 @@ import { Sparkles, Terminal, Search, LayoutDashboard } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/utils/trpc";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabs } from "@/hooks/use-tabs";
@@ -43,6 +44,7 @@ export interface QuickActionsWidgetProps {
 
 /** Render a quick actions widget (MVP placeholder). */
 export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
+  const { t } = useTranslation('desktop');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const activeTabId = useTabs((state) => state.activeTabId);
@@ -55,11 +57,11 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
   /** Create a new board and open it in the current tab stack. */
   const handleCreateCanvas = React.useCallback(async () => {
     if (scope !== "project") {
-      toast.error("当前工作台不支持创建画布");
+      toast.error(t('quickActions.cannotCreateCanvas'));
       return;
     }
     if (!workspaceId) {
-      toast.error("未找到工作区");
+      toast.error(t('quickActions.noWorkspace'));
       return;
     }
     // 逻辑：从当前激活 tab 获取项目上下文。
@@ -67,19 +69,19 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       (tab) => tab.id === activeTabId && tab.workspaceId === workspaceId,
     );
     if (!activeTab) {
-      toast.error("未找到当前标签页");
+      toast.error(t('quickActions.noTab'));
       return;
     }
     const runtime = useTabRuntime.getState().runtimeByTabId[activeTab.id];
     if (!runtime?.base?.id?.startsWith("project:")) {
-      toast.error("请先打开一个项目标签页");
+      toast.error(t('quickActions.openProjectTab'));
       return;
     }
     const baseParams = (runtime.base.params ?? {}) as Record<string, unknown>;
     const projectId = baseParams.projectId as string | undefined;
     const rootUri = baseParams.rootUri as string | undefined;
     if (!projectId) {
-      toast.error("当前标签页缺少项目信息");
+      toast.error(t('quickActions.noProjectInfo'));
       return;
     }
 
@@ -131,7 +133,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
         },
       });
     } catch {
-      toast.error("创建画布失败");
+      toast.error(t('quickActions.createCanvasFailed'));
     } finally {
       setCreating(false);
     }
@@ -145,15 +147,15 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
   /** Open a terminal inside the current tab stack. */
   const handleOpenTerminal = React.useCallback(() => {
     if (!activeTabId) {
-      toast.error("未找到当前标签页");
+      toast.error(t('quickActions.noTab'));
       return;
     }
     if (terminalStatus.isLoading) {
-      toast.message("正在获取终端状态");
+      toast.message(t('quickActions.fetchingTerminalStatus'));
       return;
     }
     if (!terminalStatus.enabled) {
-      toast.error("终端功能未开启");
+      toast.error(t('quickActions.terminalDisabled'));
       return;
     }
 
@@ -169,7 +171,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       "";
     const pwdUri = rootUri ? resolveFileUriFromRoot(rootUri, rootUri) : "";
     if (!pwdUri) {
-      toast.error("未找到工作区目录");
+      toast.error(t('quickActions.noWorkspaceDir'));
       return;
     }
 
@@ -177,7 +179,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       id: TERMINAL_WINDOW_PANEL_ID,
       sourceKey: TERMINAL_WINDOW_PANEL_ID,
       component: TERMINAL_WINDOW_COMPONENT,
-      title: "终端",
+      title: t('quickActions.terminal'),
       params: {
         __customHeader: true,
         __open: { pwdUri },
@@ -188,12 +190,12 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
   /** Open/ensure right AI chat panel visible and focus the input. */
   const handleOpenAiChat = React.useCallback(() => {
     if (!activeTabId) {
-      toast.error("未找到当前标签页");
+      toast.error(t('quickActions.noTab'));
       return;
     }
     const runtime = useTabRuntime.getState().runtimeByTabId[activeTabId];
     if (!runtime) {
-      toast.error("当前标签页无运行时上下文");
+      toast.error(t('quickActions.noRuntimeContext'));
       return;
     }
     // 逻辑：仅在 collapsed 时展开右侧 chat panel（已展开则保持）；Mod+B toggle 逻辑同源。
@@ -222,7 +224,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
           onClick={handleOpenSearch}
         >
           <Search className="size-4" />
-          搜索
+          {t('quickActions.search')}
         </Button>
         <Button
           type="button"
@@ -231,7 +233,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
           onClick={handleOpenTerminal}
         >
           <Terminal className="size-4" />
-          终端
+          {t('quickActions.terminal')}
         </Button>
         {scope === "project" ? (
           <Button
@@ -242,7 +244,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
             disabled={creating}
           >
             <LayoutDashboard className="size-4" />
-            {creating ? "创建中…" : "画布"}
+            {creating ? t('quickActions.creating') : t('quickActions.canvas')}
           </Button>
         ) : null}
         <Button
@@ -252,7 +254,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
           onClick={handleOpenAiChat}
         >
           <Sparkles className="size-4" />
-          AI 对话
+          {t('quickActions.aiChat')}
         </Button>
       </div>
     </div>

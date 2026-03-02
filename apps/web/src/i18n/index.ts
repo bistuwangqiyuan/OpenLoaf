@@ -19,6 +19,8 @@ import zhCNSettings from './locales/zh-CN/settings.json';
 import zhCNWorkspace from './locales/zh-CN/workspace.json';
 import zhCNTasks from './locales/zh-CN/tasks.json';
 import zhCNBoard from './locales/zh-CN/board.json';
+import zhCNCalendar from './locales/zh-CN/calendar.json';
+import zhCNDesktop from './locales/zh-CN/desktop.json';
 
 // Traditional Chinese
 import zhTWCommon from './locales/zh-TW/common.json';
@@ -28,6 +30,8 @@ import zhTWSettings from './locales/zh-TW/settings.json';
 import zhTWWorkspace from './locales/zh-TW/workspace.json';
 import zhTWTasks from './locales/zh-TW/tasks.json';
 import zhTWBoard from './locales/zh-TW/board.json';
+import zhTWCalendar from './locales/zh-TW/calendar.json';
+import zhTWDesktop from './locales/zh-TW/desktop.json';
 
 // English
 import enUSCommon from './locales/en-US/common.json';
@@ -37,13 +41,15 @@ import enUSSettings from './locales/en-US/settings.json';
 import enUSWorkspace from './locales/en-US/workspace.json';
 import enUSTasks from './locales/en-US/tasks.json';
 import enUSBoard from './locales/en-US/board.json';
+import enUSCalendar from './locales/en-US/calendar.json';
+import enUSDesktop from './locales/en-US/desktop.json';
 
 // Initialize react-i18next
 i18n.use(initReactI18next).init({
   lng: 'zh-CN',
   fallbackLng: 'zh-CN',
   debug: false,
-  ns: ['common', 'nav', 'ai', 'settings', 'workspace', 'tasks', 'board'],
+  ns: ['common', 'nav', 'ai', 'settings', 'workspace', 'tasks', 'board', 'calendar', 'desktop'],
   defaultNS: 'common',
   resources: {
     'zh-CN': {
@@ -54,6 +60,8 @@ i18n.use(initReactI18next).init({
       workspace: zhCNWorkspace,
       tasks: zhCNTasks,
       board: zhCNBoard,
+      calendar: zhCNCalendar,
+      desktop: zhCNDesktop,
     },
     'zh-TW': {
       common: zhTWCommon,
@@ -63,6 +71,8 @@ i18n.use(initReactI18next).init({
       workspace: zhTWWorkspace,
       tasks: zhTWTasks,
       board: zhTWBoard,
+      calendar: zhTWCalendar,
+      desktop: zhTWDesktop,
     },
     'en-US': {
       common: enUSCommon,
@@ -72,6 +82,8 @@ i18n.use(initReactI18next).init({
       workspace: enUSWorkspace,
       tasks: enUSTasks,
       board: enUSBoard,
+      calendar: enUSCalendar,
+      desktop: enUSDesktop,
     },
   },
   interpolation: {

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
 import { cn } from "@/lib/utils";
 import { getPreviewEndpoint } from "@/lib/image/uri";
+import i18next from "i18next";
 
 /** Preview query flag for metadata. */
 const PREVIEW_METADATA_QUERY = "includeMetadata=1";
@@ -115,10 +116,10 @@ function parseMultipartMetadata(
 function resolvePromptDetail(metadata: OpenLoafImageMetadataV1 | null): PromptDetail | null {
   if (!metadata) return null;
   if (metadata.revised_prompt?.trim()) {
-    return { label: "改写提示词", text: metadata.revised_prompt.trim() };
+    return { label: i18next.t('board:imageDetail.revisedPrompt'), text: metadata.revised_prompt.trim() };
   }
   if (metadata.prompt?.trim()) {
-    return { label: "用户提示词", text: metadata.prompt.trim() };
+    return { label: i18next.t('board:imageDetail.userPrompt'), text: metadata.prompt.trim() };
   }
   return null;
 }

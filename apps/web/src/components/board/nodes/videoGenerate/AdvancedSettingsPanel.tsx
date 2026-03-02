@@ -24,6 +24,7 @@ import {
 import { Input } from "@openloaf/ui/input";
 import { Textarea } from "@openloaf/ui/textarea";
 import TagsInputBasic from "@/components/ui/basic-tags-input";
+import { useTranslation } from "react-i18next";
 import {
   VIDEO_GENERATE_ASPECT_RATIO_OPTIONS,
   VIDEO_GENERATE_DURATION_OPTIONS,
@@ -64,12 +65,13 @@ export function AdvancedSettingsPanel({
   onNegativePromptChange,
   disabled,
 }: AdvancedSettingsPanelProps) {
+  const { t } = useTranslation('board');
   return (
     <div className="rounded-xl bg-[#f6f8fc] p-2.5 dark:bg-[hsl(var(--muted)/0.26)]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1 text-[11px] text-[#5f6368] dark:text-slate-300">
-            宽高比
+            {t('videoGenerate.advanced.aspectRatio')}
           </div>
           <Popover
             open={aspectRatioOpen}
@@ -89,7 +91,7 @@ export function AdvancedSettingsPanel({
                 ].join(" ")}
               >
                 <span className="truncate">
-                  {aspectRatioValue === "auto" ? "自动" : aspectRatioValue}
+                  {aspectRatioValue === "auto" ? t('videoGenerate.advanced.auto') : aspectRatioValue}
                 </span>
                 <ChevronDown size={12} />
               </button>
@@ -101,7 +103,7 @@ export function AdvancedSettingsPanel({
               className="w-[var(--radix-popover-trigger-width)] max-h-40 overflow-auto rounded-md border border-[#e3e8ef] bg-white p-1 text-[11px] text-[#5f6368] shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {["auto", ...VIDEO_GENERATE_ASPECT_RATIO_OPTIONS].map((option) => {
-                const label = option === "auto" ? "自动" : option;
+                const label = option === "auto" ? t('videoGenerate.advanced.auto') : option;
                 const isActive =
                   option === "auto"
                     ? aspectRatioValue === "auto"
@@ -131,7 +133,7 @@ export function AdvancedSettingsPanel({
         </div>
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1 text-[11px] text-[#5f6368] dark:text-slate-300">
-            时长
+            {t('videoGenerate.advanced.duration')}
           </div>
           <Tabs
             value={durationSeconds ? String(durationSeconds) : ""}
@@ -157,8 +159,8 @@ export function AdvancedSettingsPanel({
         <div className="flex items-center gap-1">
           <TagsInputBasic
             dense
-            label="风格"
-            placeholder={styleTags.length ? "" : "回车可自定义风格"}
+            label={t('videoGenerate.advanced.style')}
+            placeholder={styleTags.length ? "" : t('videoGenerate.advanced.stylePlaceholder')}
             suggestions={[...VIDEO_GENERATE_STYLE_SUGGESTIONS]}
             value={styleTags}
             onValueChange={onStyleChange}
@@ -170,7 +172,7 @@ export function AdvancedSettingsPanel({
           <Textarea
             value={negativePromptText}
             maxLength={200}
-            placeholder="不希望出现"
+            placeholder={t('videoGenerate.advanced.negativePrompt')}
             onChange={(event) => {
               const next = event.target.value.slice(0, 200);
               onNegativePromptChange(next);
@@ -213,7 +215,7 @@ export function AdvancedSettingsPanel({
                   disabled={disabled}
                 >
                   <SelectTrigger className="h-7 w-28 px-2 text-[11px] shadow-none">
-                    <SelectValue placeholder="请选择" />
+                    <SelectValue placeholder={t('videoGenerate.advanced.selectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className="text-[11px]">
                     {options.map((option) => (
@@ -279,14 +281,14 @@ export function AdvancedSettingsPanel({
                   disabled={disabled}
                 >
                   <SelectTrigger className="h-7 w-24 px-2 text-[11px] shadow-none">
-                    <SelectValue placeholder="请选择" />
+                    <SelectValue placeholder={t('videoGenerate.advanced.selectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className="text-[11px]">
                     <SelectItem value="true" className="text-[11px]">
-                      是
+                      {t('videoGenerate.advanced.yes')}
                     </SelectItem>
                     <SelectItem value="false" className="text-[11px]">
-                      否
+                      {t('videoGenerate.advanced.no')}
                     </SelectItem>
                   </SelectContent>
                 </Select>

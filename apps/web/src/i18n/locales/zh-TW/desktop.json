@@ -1,0 +1,187 @@
+{
+  "catalog": {
+    "flip-clock": "翻頁時鐘",
+    "clock": "時鐘",
+    "quick-actions": "快速操作",
+    "calendar": "日曆",
+    "chat-history": "聊天紀錄",
+    "email-inbox": "郵箱",
+    "task-board": "任務看板",
+    "3d-folder": "3D 資料夾",
+    "video": "視頻",
+    "web-stack": "網頁",
+    "help": "新手引導"
+  },
+  "iconCatalog": {
+    "files": "文件",
+    "tasks": "任務",
+    "search": "搜尋",
+    "settings": "設定",
+    "agent-settings": "Agent 設定",
+    "skill-settings": "技能設定"
+  },
+  "variants": {
+    "hm": "時:分",
+    "hms": "時:分:秒",
+    "month": "月視圖",
+    "week": "週視圖",
+    "day": "日視圖",
+    "full": "完整視圖"
+  },
+  "page": {
+    "iconFallback": "圖示",
+    "folderFallback": "資料夾",
+    "addWidget": "新增元件",
+    "organize": "整理",
+    "cancel": "取消",
+    "done": "完成",
+    "edit": "編輯"
+  },
+  "editToolbar": {
+    "libraryTitle": "元件庫",
+    "addWidget": "新增元件",
+    "organize": "整理",
+    "cancel": "取消",
+    "done": "完成",
+    "edit": "編輯"
+  },
+  "library": {
+    "searchPlaceholder": "搜尋元件…",
+    "noMatch": "沒有符合的元件",
+    "shortcuts": "快捷方式",
+    "aiGenerated": "AI 生成",
+    "newItem": "+ 新建",
+    "aiAssistant": "AI 助手",
+    "confirmDelete": "確定刪除 Widget \"{{name}}\"？",
+    "deleteAriaLabel": "刪除 {{name}}",
+    "generateWithAi": "透過 AI 對話生成自訂 Widget"
+  },
+  "tile": {
+    "pin": "固定",
+    "unpin": "取消固定",
+    "mode": "模式",
+    "edit": "修改",
+    "refresh": "重新整理",
+    "selectFolder": "選擇資料夾",
+    "selectVideo": "選擇視頻",
+    "delete": "刪除",
+    "editWebTitle": "修改網頁元件",
+    "editWebDescription": "輸入網頁地址與名稱，自動抓取 logo 與預覽圖。",
+    "webUrl": "網頁地址",
+    "webTitleOptional": "名稱（可選）",
+    "customNamePlaceholder": "自訂名稱",
+    "invalidUrl": "請輸入有效網址",
+    "noWorkspaceDir": "未找到工作區目錄",
+    "webFallbackTitle": "網頁",
+    "save": "儲存"
+  },
+  "content": {
+    "noWorkspace": "未找到工作區",
+    "noTab": "未找到目前分頁",
+    "tabNotFound": "未找到分頁",
+    "openProjectTab": "請先開啟一個專案分頁",
+    "selectFolder": "選擇資料夾",
+    "selectVideo": "選擇視頻",
+    "setUrl": "設定網址"
+  },
+  "overlay": {
+    "defaultLabel": "設定"
+  },
+  "quickActions": {
+    "cannotCreateCanvas": "目前工作台不支援建立畫布",
+    "noWorkspace": "未找到工作區",
+    "noTab": "未找到目前分頁",
+    "openProjectTab": "請先開啟一個專案分頁",
+    "noProjectInfo": "目前分頁缺少專案資訊",
+    "createCanvasFailed": "建立畫布失敗",
+    "fetchingTerminalStatus": "正在取得終端狀態",
+    "terminalDisabled": "終端功能未開啟",
+    "noWorkspaceDir": "未找到工作區目錄",
+    "noRuntimeContext": "目前分頁無執行時期上下文",
+    "canvasName": "畫布",
+    "terminal": "終端",
+    "search": "搜尋",
+    "creating": "建立中…",
+    "canvas": "畫布",
+    "aiChat": "AI 對話"
+  },
+  "chatHistory": {
+    "title": "歷史紀錄",
+    "loading": "載入中…",
+    "count": "{{count}} 項",
+    "noHistory": "當天暫無紀錄",
+    "unnamed": "未命名會話",
+    "pinned": "置頂"
+  },
+  "emailInbox": {
+    "title": "收件匣",
+    "loading": "載入中…",
+    "messageCount": "{{count}} 封",
+    "searchPlaceholder": "搜尋郵件",
+    "noWorkspace": "未找到工作區",
+    "loadingAccounts": "正在載入帳號...",
+    "noAccount": "未設定郵箱帳號",
+    "configureEmail": "前往郵箱設定",
+    "loadingMessages": "正在載入郵件...",
+    "noMessages": "暫無郵件",
+    "loadingMore": "正在載入更多...",
+    "emailPage": "郵箱",
+    "noTab": "未找到目前分頁"
+  },
+  "help": {
+    "prevPage": "上一頁",
+    "nextPage": "下一頁",
+    "pageN": "第 {{n}} 頁",
+    "pages": {
+      "welcome": {
+        "title": "歡迎使用 OpenLoaf",
+        "description": "AI 生產力工作台，助你高效工作"
+      },
+      "aiChat": {
+        "title": "AI 智能對話",
+        "description": "按空格鍵快速喚起 AI，也可用 Cmd+B 打開對話面板或 Cmd+T 打開獨立工作台"
+      },
+      "dock": {
+        "title": "底部導覽列",
+        "description": "底部 Dock 可快速切換工作台、日曆、郵箱、任務四大功能，按 Alt+1~4 快捷切換"
+      },
+      "search": {
+        "title": "全域搜尋",
+        "description": "Cmd+F 搜尋文件、郵件、任務等所有內容"
+      },
+      "calendar": {
+        "title": "日曆管理",
+        "description": "日/週/月/年多視圖，Cmd+L 快速開啟"
+      },
+      "email": {
+        "title": "郵件收發",
+        "description": "新增郵箱帳號，在 OpenLoaf 中收發郵件"
+      },
+      "tasks": {
+        "title": "任務看板",
+        "description": "看板視圖管理任務，支援狀態追蹤和定時任務"
+      },
+      "desktop": {
+        "title": "個人化桌面",
+        "description": "右鍵進入編輯模式，拖曳調整元件佈局，打造你的專屬工作台"
+      }
+    },
+    "actions": {
+      "calendar": "日曆",
+      "email": "郵箱",
+      "tasks": "任務看板"
+    },
+    "noTab": "未找到目前分頁",
+    "noRuntimeContext": "目前分頁無執行時期上下文"
+  },
+  "dynamicWidget": {
+    "renderError": "Widget 渲染錯誤: {{message}}",
+    "approvalTitle": "啟用此 Widget？",
+    "approvalDesc": "該 Widget 將在伺服端執行以下腳本：",
+    "approve": "確認啟用",
+    "loading": "載入中...",
+    "loadFailed": "元件載入失敗",
+    "retry": "重試",
+    "missingParams": "缺少 Widget 參數"
+  }
+}

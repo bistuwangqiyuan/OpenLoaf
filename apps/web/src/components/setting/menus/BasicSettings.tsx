@@ -38,7 +38,7 @@ type AnimationLevel = "low" | "medium" | "high";
 export function BasicSettings() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { basic, setBasic, isLoading: basicLoading } = useBasicConfig();
-  const { i18n, t } = useTranslation('settings');
+  const { t } = useTranslation('settings');
 
   const lastManualThemeRef = useRef<"dark" | "light">(
     resolvedTheme === "dark" ? "dark" : "light",
@@ -154,9 +154,7 @@ export function BasicSettings() {
                           <DropdownMenuRadioGroup
                             value={uiLanguage}
                             onValueChange={(next) => {
-                              const nextLang = next as LanguageId;
-                              void setBasic({ uiLanguage: nextLang });
-                              void i18n.changeLanguage(nextLang);
+                              void setBasic({ uiLanguage: next as LanguageId });
                             }}
                           >
                           {SUPPORTED_UI_LANGUAGES.map(

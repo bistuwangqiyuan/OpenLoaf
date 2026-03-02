@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { Download, Paperclip } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
@@ -45,6 +46,7 @@ export default function EmailMessageStackPanel({
   fallbackTime,
   fallbackPreview,
 }: EmailMessageStackPanelProps) {
+  const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
   const resolvedWorkspaceId = workspaceId ?? workspace?.id;
 
@@ -73,7 +75,7 @@ export default function EmailMessageStackPanel({
   const ccLine = detail?.cc?.join("; ") || "";
   const bccLine = detail?.bcc?.join("; ") || "";
   const htmlBody = detail?.bodyHtml;
-  const textBody = detail?.bodyText || fallbackPreview || "暂无正文";
+  const textBody = detail?.bodyText || fallbackPreview || t('email.noBody');
   const attachments = detail?.attachments ?? [];
 
   return (
@@ -95,18 +97,18 @@ export default function EmailMessageStackPanel({
           )}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="shrink-0">收件人</span>
+            <span className="shrink-0">{t('email.to')}</span>
             <span className="min-w-0 truncate text-sm text-[#202124] dark:text-slate-100">{toLine}</span>
           </div>
           {ccLine ? (
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="shrink-0">抄送</span>
+              <span className="shrink-0">{t('email.cc')}</span>
               <span className="min-w-0 truncate">{ccLine}</span>
             </div>
           ) : null}
           {bccLine ? (
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="shrink-0">密送</span>
+              <span className="shrink-0">{t('email.bcc')}</span>
               <span className="min-w-0 truncate">{bccLine}</span>
             </div>
           ) : null}
@@ -122,7 +124,7 @@ export default function EmailMessageStackPanel({
             </div>
           ) : null}
           {messageQuery.isLoading ? (
-            <div className="text-xs text-[#5f6368] dark:text-slate-400">正在加载邮件正文...</div>
+            <div className="text-xs text-[#5f6368] dark:text-slate-400">{t('email.loadingBody')}</div>
           ) : htmlBody ? (
             <div
               className="prose prose-sm max-w-none text-foreground prose-img:max-w-full prose-p:my-3 leading-7"
@@ -135,7 +137,7 @@ export default function EmailMessageStackPanel({
 
         {attachments.length > 0 ? (
           <section className={cn("px-5 py-3 border-t", EMAIL_DIVIDER_CLASS, EMAIL_TINT_LIST_CLASS)}>
-            <div className="text-xs text-[#5f6368] dark:text-slate-400">附件</div>
+            <div className="text-xs text-[#5f6368] dark:text-slate-400">{t('email.attachment')}</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {attachments.map((attachment, index) => {
                 const sizeLabel = formatAttachmentSize(attachment.size);
@@ -157,7 +159,7 @@ export default function EmailMessageStackPanel({
                     )}
                   >
                     <Paperclip className="h-3 w-3" />
-                    <span>{attachment.filename ?? "未命名附件"}</span>
+                    <span>{attachment.filename ?? t('email.unnamedAttachment')}</span>
                     {sizeLabel ? <span className="text-[#5f6368] dark:text-slate-400">· {sizeLabel}</span> : null}
                     <Download className="ml-1 h-3 w-3 text-[#5f6368] dark:text-slate-400" />
                   </a>

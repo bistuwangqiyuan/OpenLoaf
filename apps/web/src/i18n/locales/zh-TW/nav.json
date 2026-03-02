@@ -40,7 +40,30 @@
     "done": "完成",
     "addToWorkspace": "已新增至工作區",
     "addError": "新增失敗",
-    "feedback": "回饋"
+    "feedback": {
+      "title": "意見回饋",
+      "typeLabel": "反饋類型",
+      "typePlaceholder": "選擇類型",
+      "contentPlaceholder": "請描述您遇到的問題或建議",
+      "emailPlaceholder": "可選郵箱，用於後續聯繫",
+      "emailInvalid": "郵箱格式不正確",
+      "cancel": "取消",
+      "submit": "提交",
+      "submitting": "提交中",
+      "emptyError": "請填寫反饋內容",
+      "saasNotConfigured": "SaaS 地址未配置",
+      "serviceUnavailable": "反饋服務暫不可用",
+      "success": "反饋已提交",
+      "failedWithMessage": "反饋提交失敗：{{message}}",
+      "failed": "反饋提交失敗，請稍後重試",
+      "types": {
+        "ui": "介面體驗",
+        "performance": "效能問題",
+        "bug": "功能異常",
+        "feature": "功能建議",
+        "other": "其他"
+      }
+    }
   },
   "projectTree": {
     "open": "開啟",

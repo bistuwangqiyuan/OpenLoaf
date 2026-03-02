@@ -10,6 +10,8 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useProjects } from "@/hooks/use-projects";
 import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
@@ -43,7 +45,7 @@ function getEditMaxWidth(breakpoint: DesktopBreakpoint) {
 }
 
 const resolveIconTitle = (iconKey: DesktopIconKey) =>
-  desktopIconCatalog.find((item) => item.iconKey === iconKey)?.title ?? "图标";
+  desktopIconCatalog.find((item) => item.iconKey === iconKey)?.title ?? i18next.t('desktop:page.iconFallback');
 
 const BASE_DESKTOP_ITEMS: DesktopItem[] = [
   {
@@ -296,6 +298,7 @@ export default function DesktopPage({
   onCancel,
   onDone,
 }: DesktopPageProps) {
+  const { t } = useTranslation('desktop');
   const lock = editBreakpointLock ?? "auto";
   // 中文注释：只有手动锁定断点时才钳制宽度，避免编辑态自锁。
   const editMaxWidth = editMode && lock !== "auto" ? getEditMaxWidth(lock) : undefined;
@@ -315,7 +318,7 @@ export default function DesktopPage({
         const project = projectRoots.find((item) => item.projectId === parsed.projectId);
         const relativeParts = parsed.relativePath.split("/").filter(Boolean);
         const title =
-          relativeParts[relativeParts.length - 1] || project?.title || "文件夹";
+          relativeParts[relativeParts.length - 1] || project?.title || i18next.t('desktop:page.folderFallback');
         const folderUri = formatScopedProjectPath({
           projectId: parsed.projectId,
           relativePath: parsed.relativePath,
@@ -334,7 +337,7 @@ export default function DesktopPage({
         });
         const relativeParts = relativePath.split("/").filter(Boolean);
         const title =
-          relativeParts[relativeParts.length - 1] || project.title || "文件夹";
+          relativeParts[relativeParts.length - 1] || project.title || i18next.t('desktop:page.folderFallback');
         return { folderUri, title, defaultRootUri: project.rootUri };
       }
       return null;
@@ -405,23 +408,23 @@ export default function DesktopPage({
           <ContextMenuContent className="w-40">
             {onOpenWidgetLibrary ? (
               <ContextMenuItem icon={Plus} onClick={onOpenWidgetLibrary}>
-                添加组件
+                {t('page.addWidget')}
               </ContextMenuItem>
             ) : null}
             {onCompact ? (
               <ContextMenuItem icon={LayoutGrid} onClick={onCompact}>
-                整理
+                {t('page.organize')}
               </ContextMenuItem>
             ) : null}
             <ContextMenuSeparator />
             {onCancel ? (
               <ContextMenuItem icon={X} onClick={onCancel}>
-                取消
+                {t('page.cancel')}
               </ContextMenuItem>
             ) : null}
             {onDone ? (
               <ContextMenuItem icon={Check} onClick={onDone}>
-                完成
+                {t('page.done')}
               </ContextMenuItem>
             ) : null}
           </ContextMenuContent>

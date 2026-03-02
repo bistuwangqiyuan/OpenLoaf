@@ -24,7 +24,6 @@ import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { ModelIcon } from "@/components/setting/menus/provider/ModelIcon";
 import {
   getProviderCapabilities,
-  MODEL_TAG_LABELS,
   resolveMergedModelDefinition,
   truncateDisplay,
   type ProviderEntry,
@@ -53,7 +52,7 @@ type ProviderSectionProps = {
 /**
  * Render model tags for a model.
  */
-function renderModelTagsCompact(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
+function renderModelTagsCompact(tags: string[] | undefined, getTagLabel: (tag: string) => string) {
   return (
     <div className="flex flex-wrap gap-1">
       {(tags ?? []).map((tag) => (
@@ -61,7 +60,7 @@ function renderModelTagsCompact(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
           key={tag}
           className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
         >
-          {MODEL_TAG_LABELS[tag] ?? tag}
+          {getTagLabel(tag)}
         </span>
       ))}
     </div>
@@ -82,6 +81,8 @@ export function ProviderSection({
   onModelDelete,
 }: ProviderSectionProps) {
   const { t } = useTranslation('settings');
+  const { t: tAi } = useTranslation('ai');
+  const getTagLabel = (tag: string) => tAi(`modelTags.${tag}`, { defaultValue: tag });
   return (
     <>
       <OpenLoafSettingsGroup
@@ -140,7 +141,7 @@ export function ProviderSection({
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {capabilities.length > 0 ? renderModelTagsCompact(capabilities) : "-"}
+                      {capabilities.length > 0 ? renderModelTagsCompact(capabilities, getTagLabel) : "-"}
                     </TableCell>
                     <TableCell>
                       <div className="min-w-0 flex items-center gap-2">
@@ -209,7 +210,7 @@ export function ProviderSection({
                                       </div>
                                     </div>
                                   </div>
-                                  <div>{renderModelTagsCompact(modelDefinition.tags)}</div>
+                                  <div>{renderModelTagsCompact(modelDefinition.tags, getTagLabel)}</div>
                                   <div className="flex items-center justify-end gap-1">
                                     <Button
                                       size="icon"

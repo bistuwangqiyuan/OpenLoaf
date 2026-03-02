@@ -114,14 +114,16 @@ export function getModelLabel(model: ModelDefinition): string {
 export function getModelSummary(
   models: ModelDefinition[],
   selected: string[],
+  labels?: { empty?: string; unselected?: string; separator?: string },
 ) {
-  if (models.length === 0) return "暂无可选模型";
-  if (selected.length === 0) return "请选择模型";
+  if (models.length === 0) return labels?.empty ?? "暂无可选模型";
+  if (selected.length === 0) return labels?.unselected ?? "请选择模型";
   const selectedSet = new Set(selected);
   const visible = models
     .filter((model) => selectedSet.has(model.id))
     .slice(0, 2);
-  const labels = visible.map((model) => getModelLabel(model));
-  if (selected.length <= 2) return labels.join("、");
-  return `${labels.join("、")} +${selected.length - 2}`;
+  const sep = labels?.separator ?? "、";
+  const modelLabels = visible.map((model) => getModelLabel(model));
+  if (selected.length <= 2) return modelLabels.join(sep);
+  return `${modelLabels.join(sep)} +${selected.length - 2}`;
 }

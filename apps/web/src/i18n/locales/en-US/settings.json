@@ -66,7 +66,23 @@
     "ko-KR": "한국어",
     "fr-FR": "Français",
     "de-DE": "Deutsch",
-    "es-ES": "Español"
+    "es-ES": "Español",
+    "showAuth": "Show authentication info",
+    "hideAuth": "Hide authentication info",
+    "authPlaceholder": "API Key or {\"apiKey\":\"xxx\"}",
+    "errorFillName": "Please fill in the name",
+    "errorFillApiUrl": "Please fill in the API URL",
+    "errorFillAuth": "Please fill in the authentication info",
+    "errorSelectModel": "Please select a model",
+    "errorNameExists": "Name already exists, please use a different one",
+    "errorModelMissing": "Model definition missing",
+    "errorFillAccessKeys": "Please fill in AccessKeyID and SecretAccessKey",
+    "errorFillApiKey": "Please fill in the API Key",
+    "errorFillModelId": "Please fill in the model ID",
+    "errorModelIdExists": "Model ID already exists",
+    "errorSelectCapability": "Please select at least one capability tag",
+    "errorInvalidContextLength": "Please enter a valid context length",
+    "errorFillBucket": "Please fill in the Bucket"
   },
   "basicSettings": {
     "systemConfig": "System Settings",
@@ -580,5 +596,10 @@
     "scopeGlobal": "Global skill",
     "scopeProject": "Project skill",
     "scopeWorkspace": "Workspace skill"
+  },
+  "modelSelector": {
+    "noModels": "No available models",
+    "unselected": "Select a model",
+    "separator": ", "
   }
 }

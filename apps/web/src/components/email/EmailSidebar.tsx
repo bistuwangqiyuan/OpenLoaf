@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { DndProvider } from "react-dnd";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronRight,
@@ -36,6 +37,7 @@ type EmailSidebarProps = {
 };
 
 export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
+  const { t } = useTranslation('common');
   return (
     <aside
       className={cn(
@@ -97,10 +99,10 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-1.5">
             <div className="text-xs font-semibold text-[#5f6368] dark:text-slate-400">
-              邮箱列表
+              {t('email.mailboxList')}
             </div>
             {sidebar.isSyncingMailbox ? (
-              <span className="text-[9px] text-[#1a73e8] dark:text-sky-300">同步中...</span>
+              <span className="text-[9px] text-[#1a73e8] dark:text-sky-300">{t('email.syncing')}</span>
             ) : sidebar.accounts.length > 0 ? (
               <span className="text-[9px] font-medium text-[#8a9098] dark:text-slate-500">
                 {sidebar.accounts.length}
@@ -119,8 +121,8 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
               )}
               onClick={sidebar.onSyncMailbox}
               disabled={!sidebar.canSyncMailbox || sidebar.isSyncingMailbox}
-              aria-label="同步邮箱"
-              title="同步邮箱"
+              aria-label={t('email.syncMailbox')}
+              title={t('email.syncMailbox')}
             >
               <RefreshCw
                 className={`h-3.5 w-3.5 ${sidebar.isSyncingMailbox ? "animate-spin" : ""}`}
@@ -135,8 +137,8 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                 "hover:bg-[#ceead6] dark:bg-[hsl(142_45%_24%/0.55)] dark:text-emerald-300 dark:hover:bg-[hsl(142_45%_24%/0.72)]",
               )}
               onClick={sidebar.onOpenAddAccount}
-              aria-label="添加邮箱"
-              title="添加邮箱"
+              aria-label={t('email.addMailbox')}
+              title={t('email.addMailbox')}
             >
               <MailPlus className="h-3.5 w-3.5" />
             </Button>
@@ -144,11 +146,11 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
         </div>
         {sidebar.accountsLoading ? (
           <div className="flex flex-1 items-center justify-center rounded-lg bg-[hsl(var(--background)/0.72)] px-3 py-3 text-xs text-[#5f6368]  dark:text-slate-300">
-            正在加载邮箱账号...
+            {t('email.loadingAccounts')}
           </div>
         ) : sidebar.accounts.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-lg bg-[hsl(var(--background)/0.72)] px-3 py-3 text-xs text-[#5f6368] dark:text-slate-300">
-            点击“添加邮箱”开始配置。
+            {t('email.emptyAccounts')}
           </div>
         ) : (
           <DndProvider manager={dndManager}>
@@ -188,7 +190,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                               "flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-opacity duration-150 hover:text-destructive",
                               "opacity-0 pointer-events-none group-hover/account:opacity-100 group-hover/account:pointer-events-auto",
                             )}
-                            title="删除邮箱账户"
+                            title={t('email.deleteAccount')}
                             onClick={(e) => {
                               e.stopPropagation();
                               const label =
@@ -196,7 +198,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                                 group.account.emailAddress;
                               if (
                                 window.confirm(
-                                  `确定要删除邮箱账户「${label}」吗？该账户的所有邮件数据将被清除。`,
+                                  t('email.deleteAccountConfirm', { label }),
                                 )
                               ) {
                                 sidebar.onRemoveAccount(
@@ -213,7 +215,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                         <div className="mt-1 space-y-1">
                           {group.isLoading ? (
                             <div className="rounded-md bg-[hsl(var(--background)/0.72)] px-2 py-2 text-[11px] text-[#5f6368] dark:bg-slate-800/65 dark:text-slate-300">
-                              正在加载文件夹...
+                              {t('email.loadingFolders')}
                             </div>
                           ) : group.mailboxTree.length ? (
                             <div className="space-y-1">
@@ -241,7 +243,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                             </div>
                           ) : (
                             <div className="rounded-md bg-[hsl(var(--background)/0.72)] px-2 py-2 text-[11px] text-[#5f6368] dark:bg-slate-800/65 dark:text-slate-300">
-                              暂无文件夹，点击同步获取。
+                              {t('email.emptyFolders')}
                             </div>
                           )}
                         </div>
@@ -264,7 +266,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
           onClick={onStartCompose}
         >
           <PenSquare className="h-4 w-4" />
-          写邮件
+          {t('email.compose')}
         </Button>
       ) : null}
     </aside>

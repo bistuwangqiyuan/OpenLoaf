@@ -10,6 +10,7 @@
 'use client'
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import DynamicWidgetRenderer from './DynamicWidgetRenderer'
 
 interface DynamicWidgetStackPanelProps {
@@ -23,10 +24,11 @@ export default function DynamicWidgetStackPanel({
   workspaceId,
   projectId,
 }: DynamicWidgetStackPanelProps) {
+  const { t } = useTranslation('desktop')
   if (!widgetId || !workspaceId) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        缺少 Widget 参数
+        {t('dynamicWidget.missingParams')}
       </div>
     )
   }

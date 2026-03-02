@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { Download, Forward, Lock, Reply, ReplyAll, Star, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertDialog,
@@ -44,6 +45,7 @@ type EmailMessageDetailProps = {
 };
 
 export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
+  const { t } = useTranslation('common');
   return (
     <>
       <div className={cn("border-b px-4 py-3", EMAIL_TINT_DETAIL_CLASS, EMAIL_DIVIDER_CLASS)}>
@@ -66,13 +68,13 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                     onClick={detail.onSetPrivateSender}
                     disabled={!detail.detailFromAddress || detail.isPrivate}
                   >
-                    设为私密发件人
+                    {t('email.setPrivateSender')}
                   </ContextMenuItem>
                   <ContextMenuItem
                     onClick={detail.onRemovePrivateSender}
                     disabled={!detail.detailFromAddress || !detail.isPrivate}
                   >
-                    取消私密发件人
+                    {t('email.cancelPrivateSender')}
                   </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
@@ -90,7 +92,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                 onClick={detail.onStartReply}
               >
                 <Reply className="h-3 w-3" />
-                回复
+                {t('email.reply')}
               </Button>
               <Button
                 type="button"
@@ -100,7 +102,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                 onClick={detail.onStartReplyAll}
               >
                 <ReplyAll className="h-3 w-3" />
-                全部回复
+                {t('email.replyAll')}
               </Button>
             </div>
             <div className={cn("flex w-full items-center justify-end gap-1 rounded-lg p-1 sm:ml-auto sm:w-auto", EMAIL_TINT_LIST_CLASS)}>
@@ -112,7 +114,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                 onClick={detail.onStartForward}
               >
                 <Forward className="h-3 w-3" />
-                转发
+                {t('email.forward')}
               </Button>
               <Button
                 type="button"
@@ -124,7 +126,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                 onClick={detail.onToggleFlagged}
               >
                 <Star className={`h-3 w-3 ${detail.isFlagged ? "fill-[hsl(var(--chart-3)/0.95)]" : ""}`} />
-                收藏
+                {t('email.favorite')}
               </Button>
               <Button
                 type="button"
@@ -134,7 +136,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                 onClick={detail.onDeleteMessage}
               >
                 <Trash2 className="h-3 w-3" />
-                删除
+                {t('delete')}
               </Button>
             </div>
           </div>
@@ -144,20 +146,20 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto bg-[#ffffff] p-3 dark:bg-slate-900/82">
         <div className={cn("px-5 py-3 text-xs text-muted-foreground", EMAIL_GLASS_INSET_CLASS)}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="shrink-0">收件人</span>
+            <span className="shrink-0">{t('email.to')}</span>
             <span className="min-w-0 truncate text-sm font-medium text-foreground">
               {detail.detailTo}
             </span>
           </div>
           {detail.hasCc ? (
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="shrink-0">抄送</span>
+              <span className="shrink-0">{t('email.cc')}</span>
               <span className="min-w-0 truncate">{detail.detailCc}</span>
             </div>
           ) : null}
           {detail.hasBcc ? (
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="shrink-0">密送</span>
+              <span className="shrink-0">{t('email.bcc')}</span>
               <span className="min-w-0 truncate">{detail.detailBcc}</span>
             </div>
           ) : null}
@@ -172,7 +174,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
             </div>
           ) : null}
           {detail.messageDetailLoading ? (
-            <div className="text-xs text-muted-foreground">正在加载邮件详情...</div>
+            <div className="text-xs text-muted-foreground">{t('email.loadingDetail')}</div>
           ) : detail.showingRawHtml && detail.messageDetail?.bodyHtmlRaw ? (
             <RawHtmlIframe html={detail.messageDetail.bodyHtmlRaw} />
           ) : detail.messageDetail?.bodyHtml ? (
@@ -182,16 +184,16 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
             />
           ) : (
             <p className="break-words">
-              {detail.messageDetail?.bodyText || detail.activeMessage?.preview || "暂无正文"}
+              {detail.messageDetail?.bodyText || detail.activeMessage?.preview || t('email.noBody')}
             </p>
           )}
         </div>
         {detail.shouldShowAttachments ? (
           <div className={cn("px-5 py-3", EMAIL_GLASS_INSET_CLASS, EMAIL_TINT_LIST_CLASS)}>
-            <div className="text-xs text-muted-foreground">附件</div>
+            <div className="text-xs text-muted-foreground">{t('email.attachment')}</div>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
               {detail.messageDetailLoading ? (
-                <span className="text-xs text-muted-foreground">附件加载中...</span>
+                <span className="text-xs text-muted-foreground">{t('email.attachmentsLoading')}</span>
               ) : (
                 detail.messageDetail?.attachments?.map((attachment, index) => {
                   const sizeLabel = formatAttachmentSize(attachment.size);
@@ -210,7 +212,7 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
                       )}
                     >
                       <Download className="h-3 w-3" />
-                      {attachment.filename ?? "未命名附件"}
+                      {attachment.filename ?? t('email.unnamedAttachment')}
                       {sizeLabel ? ` · ${sizeLabel}` : ""}
                     </a>
                   );
@@ -224,18 +226,18 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
       <AlertDialog open={detail.deleteConfirmOpen} onOpenChange={detail.onDeleteConfirmOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t('email.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除这封邮件吗？此操作将把邮件移至已删除。
+              {t('email.deleteDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={detail.onDeleteConfirmed}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              删除
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

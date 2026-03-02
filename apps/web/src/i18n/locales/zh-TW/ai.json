@@ -244,5 +244,20 @@
     "sendMessage": "傳送訊息",
     "characterLimitExceeded": "內容超出 {{max}} 字元限制，請縮短訊息",
     "manageModels": "管理模型"
+  },
+  "modelTags": {
+    "chat": "對話",
+    "code": "程式碼",
+    "tool_call": "工具呼叫",
+    "reasoning": "推理",
+    "image_generation": "圖像生成",
+    "image_input": "圖片理解",
+    "image_multi_input": "多圖輸入",
+    "image_multi_generation": "多圖生成",
+    "image_edit": "圖像編輯",
+    "image_analysis": "圖像分析",
+    "video_generation": "影片生成",
+    "video_analysis": "影片理解",
+    "audio_analysis": "音訊分析"
   }
 }

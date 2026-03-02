@@ -35,6 +35,7 @@ import { getPreviewEndpoint } from "@/lib/image/uri";
 import { blobToBase64 } from "../../utils/base64";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
+import { useTranslation } from "react-i18next";
 import {
   VIDEO_GENERATE_DEFAULT_MAX_INPUT_IMAGES,
   VIDEO_GENERATE_NODE_FIRST_GAP,
@@ -67,6 +68,7 @@ export function VideoGenerateNodeView({
   onSelect,
   onUpdate,
 }: CanvasNodeViewProps<VideoGenerateNodeProps>) {
+  const { t } = useTranslation('board');
   /** Board engine used for lock checks. */
   const { engine, fileContext } = useBoardContext();
   /** SaaS video model list for selection. */
@@ -384,11 +386,11 @@ export function VideoGenerateNodeView({
   const canGenerate = authLoggedIn && canRun;
   const primaryLabel = authLoggedIn
     ? viewStatus === "error"
-      ? "重试"
-      : "生成"
+      ? t('videoGenerate.retry')
+      : t('videoGenerate.generate')
     : isLoginBusy
-      ? "登录中"
-      : "登录";
+      ? t('videoGenerate.loggingIn')
+      : t('videoGenerate.login');
   const primaryIcon = authLoggedIn ? (viewStatus === "error" ? RotateCcw : Play) : LogIn;
   const PrimaryIcon = primaryIcon;
 
@@ -407,7 +409,7 @@ export function VideoGenerateNodeView({
   );
 
   const handleCopyError = useCallback(async () => {
-    const copyText = errorText.trim() || "生成视频失败，请重试。";
+    const copyText = errorText.trim() || t('videoGenerate.hints.generateFailed');
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(copyText);
@@ -422,9 +424,9 @@ export function VideoGenerateNodeView({
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      toast.success("已复制错误信息");
+      toast.success(t('videoGenerate.errors.copyErrorSuccess'));
     } catch {
-      toast.error("复制失败");
+      toast.error(t('videoGenerate.errors.copyFailed'));
     }
   }, [errorText]);
 
@@ -449,42 +451,42 @@ export function VideoGenerateNodeView({
       const modelId = (effectiveModelId || (node.props as any)?.modelId || "").trim();
       if (!modelId) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "请选择支持「视频生成」的模型",
+          errorText: t('videoGenerate.errors.noModelSupport'),
         });
         return;
       }
 
       if (!hasPrompt && !hasAnyImageInput) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "请先输入提示词或连接图片",
+          errorText: t('videoGenerate.errors.noPrompt'),
         });
         return;
       }
 
       if (hasMissingRequiredParameters) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "请先填写必填参数",
+          errorText: t('videoGenerate.errors.missingParameters'),
         });
         return;
       }
 
       if (hasTooManyImages) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: `最多支持 ${maxInputImages} 张图片输入`,
+          errorText: t('videoGenerate.errors.tooManyImages', { max: maxInputImages }),
         });
         return;
       }
 
       if (hasInvalidImages) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "存在无法访问的图片地址，请检查输入",
+          errorText: t('videoGenerate.errors.invalidImageUrl'),
         });
         return;
       }
 
       if (!videoSaveDir) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "无法确定视频保存目录",
+          errorText: t('videoGenerate.errors.saveDirFailed'),
         });
         return;
       }
@@ -546,7 +548,7 @@ export function VideoGenerateNodeView({
             resolvedImages.map(async (image) => {
               const res = await fetch(image.url ?? "");
               if (!res.ok) {
-                throw new Error("图片读取失败");
+                throw new Error(t('videoGenerate.errors.imageReadFailed'));
               }
               const blob = await res.blob();
               const base64 = await blobToBase64(blob);
@@ -581,7 +583,7 @@ export function VideoGenerateNodeView({
           sourceNodeId: nodeId,
         });
         if (!result?.success || !result?.data?.taskId) {
-          throw new Error("视频任务提交失败");
+          throw new Error(t('videoGenerate.errors.submitFailed'));
         }
         if (loadingNodeIdRef.current) {
           engine.doc.updateNodeProps(loadingNodeIdRef.current, {
@@ -593,9 +595,9 @@ export function VideoGenerateNodeView({
         clearLoadingNode();
         if (!controller.signal.aborted) {
           engine.doc.updateNodeProps(nodeId, {
-            errorText: error instanceof Error ? error.message : "生成视频失败",
+            errorText: error instanceof Error ? error.message : t('videoGenerate.errors.generateFailed'),
           });
-          toast.error("生成视频失败");
+          toast.error(t('videoGenerate.errors.generateFailed'));
         }
       } finally {
         if (abortControllerRef.current === controller) {
@@ -654,48 +656,48 @@ export function VideoGenerateNodeView({
 
   const statusLabel =
     viewStatus === "done"
-      ? "已完成"
+      ? t('videoGenerate.status.completed')
     : viewStatus === "error"
-      ? "生成失败"
+      ? t('videoGenerate.status.failed')
     : viewStatus === "needs_model"
-      ? "需要配置模型"
+      ? t('videoGenerate.status.needModel')
     : viewStatus === "needs_prompt"
-      ? "需要提示词"
+      ? t('videoGenerate.status.needsPrompt')
     : viewStatus === "missing_parameters"
-      ? "参数未填写"
+      ? t('videoGenerate.status.missingParams')
     : viewStatus === "too_many_images"
-      ? "图片数量过多"
+      ? t('videoGenerate.status.tooManyImages')
     : viewStatus === "invalid_image"
-      ? "图片地址不可用"
-    : "待运行";
+      ? t('videoGenerate.status.invalidImage')
+    : t('videoGenerate.status.idle');
 
   const statusHint = useMemo(() => {
     if (viewStatus === "needs_prompt") {
-      return { tone: "warn", text: "需要输入提示词或连接图片后才能生成视频。" };
+      return { tone: "warn", text: t('videoGenerate.hints.needsPrompt') };
     }
     if (viewStatus === "missing_parameters") {
       const requiredText = missingRequiredParameters
         .map((field) => field.title || field.key)
         .join("、");
-      return { tone: "warn", text: `请先填写必填参数：${requiredText}` };
+      return { tone: "warn", text: t('videoGenerate.hints.missingParameters', { required: requiredText }) };
     }
     if (viewStatus === "too_many_images") {
       return {
         tone: "warn",
-        text: `最多支持 ${maxInputImages} 张图片输入，已连接 ${inputImageCount} 张。`,
+        text: t('videoGenerate.hints.tooManyImages', { max: maxInputImages, connected: inputImageCount }),
       };
     }
     if (viewStatus === "invalid_image") {
       return {
         tone: "warn",
-        text: "存在无法访问的图片地址，请检查输入。",
+        text: t('videoGenerate.hints.invalidImage'),
       };
     }
     if (viewStatus === "needs_model") {
-      return { tone: "warn", text: "未找到支持「视频生成」的模型，请先在设置中配置。" };
+      return { tone: "warn", text: t('videoGenerate.hints.needsModel') };
     }
     if (viewStatus === "error") {
-      return { tone: "error", text: errorText || "生成视频失败，请重试。" };
+      return { tone: "error", text: errorText || t('videoGenerate.hints.generateFailed') };
     }
     if (viewStatus === "done") return null;
     return null;
@@ -704,6 +706,7 @@ export function VideoGenerateNodeView({
     inputImageCount,
     maxInputImages,
     missingRequiredParameters,
+    t,
     viewStatus,
   ]);
 
@@ -740,7 +743,7 @@ export function VideoGenerateNodeView({
       <div ref={containerRef} className={containerClassName}>
       <div className="flex items-center gap-2">
         <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${BOARD_GENERATE_DOT_VIDEO}`} />
-        <div className="text-[13px] font-semibold leading-5">视频生成</div>
+        <div className="text-[13px] font-semibold leading-5">{t('videoGenerate.title')}</div>
         <span className={`rounded-full px-2 py-0.5 text-[10px] leading-3 ${BOARD_GENERATE_PILL_VIDEO}`}>
           {statusLabel}
         </span>
@@ -779,18 +782,18 @@ export function VideoGenerateNodeView({
 
       <div className="mt-1 flex shrink-0 flex-col gap-2" data-board-editor>
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[11px] text-[#5f6368] dark:text-slate-400">输出音频</div>
+          <div className="text-[11px] text-[#5f6368] dark:text-slate-400">{t('videoGenerate.outputAudio')}</div>
           <Switch
             checked={outputAudio}
             onCheckedChange={(checked) => {
               onUpdate({ outputAudio: checked });
             }}
             disabled={isLocked}
-            aria-label="输出音频"
+            aria-label={t('videoGenerate.outputAudio')}
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-[11px] text-[#5f6368] dark:text-slate-400">模型</div>
+          <div className="text-[11px] text-[#5f6368] dark:text-slate-400">{t('videoGenerate.model')}</div>
           <div className="min-w-0 flex-1">
             <ModelSelect
               authLoggedIn={authLoggedIn}
@@ -812,12 +815,12 @@ export function VideoGenerateNodeView({
         <div className="flex shrink-0 flex-col gap-1">
           {allowsPrompt ? (
             <>
-              <div className="text-[11px] text-[#5f6368] dark:text-slate-400">提示词</div>
+              <div className="text-[11px] text-[#5f6368] dark:text-slate-400">{t('videoGenerate.prompt')}</div>
               <div className="min-w-0 flex shrink-0 flex-col gap-1">
                 <Textarea
                   value={localPromptText}
                   maxLength={500}
-                  placeholder="请输入提示词"
+                  placeholder={t('videoGenerate.promptPlaceholder')}
                   onChange={(event) => {
                     const next = event.target.value.slice(0, 500);
                     onUpdate({ promptText: next });
@@ -887,7 +890,7 @@ export function VideoGenerateNodeView({
               >
                 <span className="inline-flex items-center gap-1">
                   <Copy size={10} />
-                  复制
+                  {t('selection.toolbar.copy')}
                 </span>
               </button>
               <pre className="whitespace-pre-wrap break-words pr-14 font-sans">

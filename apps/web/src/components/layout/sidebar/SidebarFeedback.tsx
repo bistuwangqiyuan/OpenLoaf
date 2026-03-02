@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { MessageSquare } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { Button } from "@openloaf/ui/button";
@@ -43,14 +44,8 @@ type FeedbackRequest = {
   email?: string;
 };
 
-/** Feedback type options for rendering. */
-const FEEDBACK_TYPE_OPTIONS: Array<{ value: FeedbackType; label: string }> = [
-  { value: "ui", label: "界面体验" },
-  { value: "performance", label: "性能问题" },
-  { value: "bug", label: "功能异常" },
-  { value: "feature", label: "功能建议" },
-  { value: "other", label: "其他" },
-];
+/** Feedback category values for rendering (labels resolved at runtime via i18n). */
+const FEEDBACK_TYPE_VALUES: FeedbackType[] = ["ui", "performance", "bug", "feature", "other"];
 
 /** Normalize a string value into a trimmed optional string. */
 function toOptionalText(value: unknown): string | undefined {
@@ -73,6 +68,7 @@ function buildDeviceInfo(): { platform?: string; userAgent?: string } | undefine
 
 /** Sidebar feedback entry with popover form. */
 export function SidebarFeedback() {
+  const { t } = useTranslation('nav');
   const { workspace: activeWorkspace } = useWorkspace();
   const activeTabId = useTabs((state) => state.activeTabId);
   const tabs = useTabs((state) => state.tabs);
@@ -146,17 +142,17 @@ export function SidebarFeedback() {
   const submitFeedback = React.useCallback(async () => {
     const trimmed = content.trim();
     if (!trimmed) {
-      toast.error("请填写反馈内容");
+      toast.error(t('sidebar.feedback.emptyError'));
       return;
     }
     if (!authLoggedIn && !isEmailValid) {
-      toast.error("邮箱格式不正确");
+      toast.error(t('sidebar.feedback.emailInvalid'));
       return;
     }
 
     const baseUrl = resolveSaasBaseUrl();
     if (!baseUrl) {
-      toast.error("SaaS 地址未配置");
+      toast.error(t('sidebar.feedback.saasNotConfigured'));
       return;
     }
 
@@ -170,7 +166,7 @@ export function SidebarFeedback() {
       const feedbackApi = (client as unknown as { feedback?: { submit: (input: FeedbackRequest) => Promise<unknown> } })
         .feedback;
       if (!feedbackApi?.submit) {
-        toast.error("反馈服务暂不可用");
+        toast.error(t('sidebar.feedback.serviceUnavailable'));
         return;
       }
       await feedbackApi.submit({
@@ -180,7 +176,7 @@ export function SidebarFeedback() {
         context,
         email: authLoggedIn ? undefined : email.trim() || undefined,
       });
-      toast.success("反馈已提交");
+      toast.success(t('sidebar.feedback.success'));
       setContent("");
       setEmail("");
       setType("other");
@@ -190,10 +186,10 @@ export function SidebarFeedback() {
       if (error instanceof SaaSHttpError) {
         const payload = error.payload as { message?: unknown } | undefined;
         const message = typeof payload?.message === "string" ? payload.message : "";
-        toast.error(message ? `反馈提交失败：${message}` : "反馈提交失败，请稍后重试");
+        toast.error(message ? t('sidebar.feedback.failedWithMessage', { message }) : t('sidebar.feedback.failed'));
         return;
       }
-      toast.error("反馈提交失败，请稍后重试");
+      toast.error(t('sidebar.feedback.failed'));
     } finally {
       setSubmitting(false);
     }
@@ -204,22 +200,22 @@ export function SidebarFeedback() {
       <SidebarMenuItem>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <SidebarMenuButton type="button" tooltip="反馈与建议">
+            <SidebarMenuButton type="button" tooltip={t('sidebar.feedback.title')}>
               <MessageSquare />
-              <span className="flex-1 truncate">反馈与建议</span>
+              <span className="flex-1 truncate">{t('sidebar.feedback.title')}</span>
             </SidebarMenuButton>
           </PopoverTrigger>
           <PopoverContent side="top" align="start" className="w-80 p-3">
             <div className="flex flex-col gap-3">
-              <div className="text-sm font-medium">反馈与建议</div>
+              <div className="text-sm font-medium">{t('sidebar.feedback.title')}</div>
               <Select value={type} onValueChange={(value) => setType(value as FeedbackType)}>
-                <SelectTrigger aria-label="反馈类型">
-                  <SelectValue placeholder="选择类型" />
+                <SelectTrigger aria-label={t('sidebar.feedback.typeLabel')}>
+                  <SelectValue placeholder={t('sidebar.feedback.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {FEEDBACK_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {FEEDBACK_TYPE_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {t(`sidebar.feedback.types.${value}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -227,7 +223,7 @@ export function SidebarFeedback() {
               <Textarea
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
-                placeholder="请描述你遇到的问题或建议"
+                placeholder={t('sidebar.feedback.contentPlaceholder')}
                 className="min-h-[96px]"
               />
               {authLoggedIn ? null : (
@@ -235,11 +231,11 @@ export function SidebarFeedback() {
                   <Input
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="可选邮箱，用于后续联系"
+                    placeholder={t('sidebar.feedback.emailPlaceholder')}
                     type="email"
                   />
                   {!isEmailValid ? (
-                    <div className="text-xs text-destructive">邮箱格式不正确</div>
+                    <div className="text-xs text-destructive">{t('sidebar.feedback.emailInvalid')}</div>
                   ) : null}
                 </>
               )}
@@ -250,7 +246,7 @@ export function SidebarFeedback() {
                   type="button"
                   onClick={() => setOpen(false)}
                 >
-                  取消
+                  {t('sidebar.feedback.cancel')}
                 </Button>
                 <Button
                   size="sm"
@@ -258,7 +254,7 @@ export function SidebarFeedback() {
                   onClick={submitFeedback}
                   disabled={submitting}
                 >
-                  {submitting ? "提交中" : "提交"}
+                  {submitting ? t('sidebar.feedback.submitting') : t('sidebar.feedback.submit')}
                 </Button>
               </div>
             </div>

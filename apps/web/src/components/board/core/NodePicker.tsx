@@ -10,6 +10,7 @@
 "use client";
 
 import { forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Type } from "lucide-react";
 
 import type { CanvasConnectorTemplateDefinition } from "../engine/types";
@@ -23,6 +24,7 @@ type NodePickerProps = {
 export const NodePicker = forwardRef<HTMLDivElement, NodePickerProps>(
   /** Render the node picker for connector drops. */
   function NodePicker({ position, templates, onSelect }, ref) {
+    const { t } = useTranslation('board');
     return (
       <div
         ref={ref}
@@ -31,7 +33,7 @@ export const NodePicker = forwardRef<HTMLDivElement, NodePickerProps>(
         style={{ left: position[0], top: position[1] }}
       >
         <div className="pointer-events-auto min-w-[260px] rounded-2xl border border-[#e3e8ef] bg-background/95 p-2.5 text-[#5f6368] shadow-[0_24px_56px_rgba(15,23,42,0.24)] ring-1 ring-[#e3e8ef] backdrop-blur dark:border-slate-700 dark:text-slate-200 dark:ring-slate-700">
-          <div className="mb-2 text-[11px] text-[#5f6368] dark:text-slate-300">选择节点</div>
+          <div className="mb-2 text-[11px] text-[#5f6368] dark:text-slate-300">{t('nodePicker.title')}</div>
           <div className="flex max-h-[280px] flex-col gap-1 overflow-auto pr-1">
             {templates.length ? (
               templates.map((item) => (
@@ -60,7 +62,7 @@ export const NodePicker = forwardRef<HTMLDivElement, NodePickerProps>(
               ))
             ) : (
               <div className="rounded-xl border border-dashed border-[#e3e8ef] px-2.5 py-2 text-[11px] text-[#5f6368] dark:border-slate-700 dark:text-slate-400">
-                无可用节点
+                {t('nodePicker.empty')}
               </div>
             )}
           </div>

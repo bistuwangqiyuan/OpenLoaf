@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabs } from "@/hooks/use-tabs";
 import { useProjects } from "@/hooks/use-projects";
@@ -78,19 +79,20 @@ function WidgetEntityPreview({
   widgetKey: DesktopWidgetItem["widgetKey"];
   scope: DesktopScope;
 }) {
+  const { t } = useTranslation('desktop');
   if (widgetKey === "clock") return <ClockWidget />;
   if (widgetKey === "chat-history") return <ChatHistoryWidget />;
   if (widgetKey === "calendar") {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/30 text-xs text-muted-foreground">
-        日历
+        {t('catalog.calendar')}
       </div>
     );
   }
   if (widgetKey === "email-inbox") {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/30 text-xs text-muted-foreground">
-        邮箱
+        {t('catalog.email-inbox')}
       </div>
     );
   }
@@ -101,7 +103,7 @@ function WidgetEntityPreview({
   if (widgetKey === "web-stack") {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/30 text-xs text-muted-foreground">
-        网页
+        {t('catalog.web-stack')}
       </div>
     );
   }
@@ -147,6 +149,7 @@ export default function DesktopWidgetLibraryPanel({
   panelKey,
   tabId,
 }: DesktopWidgetLibraryPanelProps) {
+  const { t } = useTranslation('desktop');
   // 当前 tab 的 stack 删除方法。
   const removeStackItem = useTabRuntime((s) => s.removeStackItem);
   // 过滤关键字。
@@ -218,7 +221,7 @@ export default function DesktopWidgetLibraryPanel({
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col gap-3 p-3">
-      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索组件…" />
+      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('library.searchPlaceholder')} />
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -251,14 +254,14 @@ export default function DesktopWidgetLibraryPanel({
                 </div>
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{item.title}</div>
+                <div className="truncate text-sm font-medium">{t('catalog.' + item.widgetKey)}</div>
               </div>
             </div>
           ))}
 
           {filtered.length === 0 && filteredIcons.length === 0 ? (
             <div className="col-span-full rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              没有匹配的组件
+              {t('library.noMatch')}
             </div>
           ) : null}
         </div>
@@ -266,7 +269,7 @@ export default function DesktopWidgetLibraryPanel({
         {filteredIcons.length > 0 ? (
           <>
             <div className="mt-4 mb-2">
-              <div className="text-xs font-medium text-muted-foreground">快捷方式</div>
+              <div className="text-xs font-medium text-muted-foreground">{t('library.shortcuts')}</div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {filteredIcons.map((item) => (
@@ -280,7 +283,7 @@ export default function DesktopWidgetLibraryPanel({
                       tabId,
                       widgetKey: "__icon__",
                       iconKey: item.iconKey,
-                      title: item.title,
+                      title: t('iconCatalog.' + item.iconKey),
                     });
                     removeStackItem(tabId, panelKey);
                   }}
@@ -291,7 +294,7 @@ export default function DesktopWidgetLibraryPanel({
                       tabId,
                       widgetKey: "__icon__",
                       iconKey: item.iconKey,
-                      title: item.title,
+                      title: t('iconCatalog.' + item.iconKey),
                     });
                     removeStackItem(tabId, panelKey);
                   }}
@@ -299,7 +302,7 @@ export default function DesktopWidgetLibraryPanel({
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground">
                     <DesktopIconWidget iconKey={item.iconKey} />
                   </div>
-                  <div className="truncate text-xs font-medium">{item.title}</div>
+                  <div className="truncate text-xs font-medium">{t('iconCatalog.' + item.iconKey)}</div>
                 </div>
               ))}
             </div>
@@ -309,7 +312,7 @@ export default function DesktopWidgetLibraryPanel({
         {filteredDynamic.length > 0 ? (
           <>
             <div className="mt-4 mb-2 flex items-center justify-between">
-              <div className="text-xs font-medium text-muted-foreground">AI 生成</div>
+              <div className="text-xs font-medium text-muted-foreground">{t('library.aiGenerated')}</div>
               <Button
                 type="button"
                 variant="ghost"
@@ -321,7 +324,7 @@ export default function DesktopWidgetLibraryPanel({
                   addTab({
                     workspaceId: workspace.id,
                     createNew: true,
-                    title: "AI 助手",
+                    title: t('library.aiAssistant'),
                     icon: "sparkles",
                     leftWidthPercent: 100,
                     base: undefined,
@@ -329,7 +332,7 @@ export default function DesktopWidgetLibraryPanel({
                   removeStackItem(tabId, panelKey);
                 }}
               >
-                + 新建
+                {t('library.newItem')}
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -367,12 +370,12 @@ export default function DesktopWidgetLibraryPanel({
                     className="absolute top-1.5 right-1.5 z-10 hidden rounded-md p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:block"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!confirm(`确定删除 Widget "${dw.name}"？`)) return;
+                      if (!confirm(t('library.confirmDelete', { name: dw.name }))) return;
                       trpcClient.dynamicWidget.delete.mutate({ workspaceId: workspaceId ?? '', projectId: dw.projectId, widgetId: dw.id }).then(() => {
                         refetchDynamicWidgets();
                       });
                     }}
-                    aria-label={`删除 ${dw.name}`}
+                    aria-label={t('library.deleteAriaLabel', { name: dw.name })}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>
@@ -388,7 +391,7 @@ export default function DesktopWidgetLibraryPanel({
           </>
         ) : (
           <div className="mt-4">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">AI 生成</div>
+            <div className="mb-2 text-xs font-medium text-muted-foreground">{t('library.aiGenerated')}</div>
             <button
               type="button"
               className="w-full rounded-xl border border-dashed border-border/60 p-4 text-center text-sm text-muted-foreground hover:bg-accent"
@@ -398,7 +401,7 @@ export default function DesktopWidgetLibraryPanel({
                 addTab({
                   workspaceId: workspace.id,
                   createNew: true,
-                  title: "AI 助手",
+                  title: t('library.aiAssistant'),
                   icon: "sparkles",
                   leftWidthPercent: 100,
                   base: undefined,
@@ -406,7 +409,7 @@ export default function DesktopWidgetLibraryPanel({
                 removeStackItem(tabId, panelKey);
               }}
             >
-              通过 AI 对话生成自定义 Widget
+              {t('library.generateWithAi')}
             </button>
           </div>
         )}

@@ -40,7 +40,30 @@
     "done": "完成",
     "addToWorkspace": "已添加到工作空间",
     "addError": "添加失败",
-    "feedback": "反馈"
+    "feedback": {
+      "title": "反馈与建议",
+      "typeLabel": "反馈类型",
+      "typePlaceholder": "选择类型",
+      "contentPlaceholder": "请描述你遇到的问题或建议",
+      "emailPlaceholder": "可选邮箱，用于后续联系",
+      "emailInvalid": "邮箱格式不正确",
+      "cancel": "取消",
+      "submit": "提交",
+      "submitting": "提交中",
+      "emptyError": "请填写反馈内容",
+      "saasNotConfigured": "SaaS 地址未配置",
+      "serviceUnavailable": "反馈服务暂不可用",
+      "success": "反馈已提交",
+      "failedWithMessage": "反馈提交失败：{{message}}",
+      "failed": "反馈提交失败，请稍后重试",
+      "types": {
+        "ui": "界面体验",
+        "performance": "性能问题",
+        "bug": "功能异常",
+        "feature": "功能建议",
+        "other": "其他"
+      }
+    }
   },
   "projectTree": {
     "open": "打开",

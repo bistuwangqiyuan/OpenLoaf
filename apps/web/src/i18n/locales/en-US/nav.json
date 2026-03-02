@@ -40,7 +40,30 @@
     "done": "Done",
     "addToWorkspace": "Added to workspace",
     "addError": "Add failed",
-    "feedback": "Feedback"
+    "feedback": {
+      "title": "Feedback",
+      "typeLabel": "Feedback type",
+      "typePlaceholder": "Select type",
+      "contentPlaceholder": "Describe your issue or suggestion",
+      "emailPlaceholder": "Optional email for follow-up",
+      "emailInvalid": "Invalid email format",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "submitting": "Submitting",
+      "emptyError": "Please enter your feedback",
+      "saasNotConfigured": "SaaS URL not configured",
+      "serviceUnavailable": "Feedback service unavailable",
+      "success": "Feedback submitted",
+      "failedWithMessage": "Submission failed: {{message}}",
+      "failed": "Submission failed, please try again later",
+      "types": {
+        "ui": "UI Experience",
+        "performance": "Performance",
+        "bug": "Bug Report",
+        "feature": "Feature Request",
+        "other": "Other"
+      }
+    }
   },
   "projectTree": {
     "open": "Open",

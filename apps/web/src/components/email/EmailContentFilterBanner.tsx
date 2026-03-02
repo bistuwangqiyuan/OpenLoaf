@@ -10,6 +10,7 @@
 'use client'
 
 import { useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ShieldAlert } from 'lucide-react'
 
 import { Button } from '@openloaf/ui/button'
@@ -24,13 +25,14 @@ export function EmailContentFilterBanner({
   showingRawHtml,
   onToggle,
 }: EmailContentFilterBannerProps) {
+  const { t } = useTranslation('common')
   return (
     <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
       <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
       <span className="flex-1">
         {showingRawHtml
-          ? '正在显示原始内容，可能包含外部资源'
-          : '部分内容已被过滤以保护安全'}
+          ? t('email.rawContentBanner')
+          : t('email.safeContentBanner')}
       </span>
       <Button
         type="button"
@@ -39,7 +41,7 @@ export function EmailContentFilterBanner({
         className="h-6 px-2 text-[11px] text-amber-800 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
         onClick={onToggle}
       >
-        {showingRawHtml ? '显示安全内容' : '加载原始内容'}
+        {showingRawHtml ? t('email.showSafeContent') : t('email.loadRawContent')}
       </Button>
     </div>
   )
@@ -51,6 +53,7 @@ type RawHtmlIframeProps = {
 
 /** Sandboxed iframe for rendering raw (unsanitized) email HTML. */
 export function RawHtmlIframe({ html }: RawHtmlIframeProps) {
+  const { t } = useTranslation('common')
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const handleLoad = useCallback(() => {
@@ -73,7 +76,7 @@ img { max-width: 100%; height: auto; }
       onLoad={handleLoad}
       className="w-full border-0"
       style={{ minHeight: 200 }}
-      title="邮件原始内容"
+      title={t('email.rawContentTitle')}
     />
   )
 }

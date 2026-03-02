@@ -13,6 +13,7 @@ import type {
   CanvasNodeViewProps,
 } from "../../engine/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Cloud, Copy, LogIn, Monitor, Play, RotateCcw, Square } from "lucide-react";
 import { generateId } from "ai";
 
@@ -38,6 +39,7 @@ import {
   SelectValue,
 } from "@openloaf/ui/select";
 import { IMAGE_GENERATE_NODE_TYPE } from "../imageGenerate/constants";
+import i18next from "i18next";
 import {
   filterModelOptionsByTags,
   runChatSseRequest,
@@ -69,27 +71,29 @@ export { IMAGE_PROMPT_GENERATE_NODE_TYPE };
 export type { ImagePromptGenerateNodeProps };
 
 /** Connector templates offered by the image prompt node. */
-const IMAGE_PROMPT_GENERATE_CONNECTOR_TEMPLATES: CanvasConnectorTemplateDefinition[] = [
-  {
-    id: IMAGE_GENERATE_NODE_TYPE,
-    label: "图片生成",
-    description: "基于提示词与图片生成新图",
-    size: [320, 260],
-    icon: (
-      <img
-        src="/board/converted_small.svg"
-        alt=""
-        aria-hidden="true"
-        className="h-4 w-4"
-        draggable={false}
-      />
-    ),
-    createNode: () => ({
-      type: IMAGE_GENERATE_NODE_TYPE,
-      props: {},
-    }),
-  },
-];
+function getImagePromptGenerateConnectorTemplates(): CanvasConnectorTemplateDefinition[] {
+  return [
+    {
+      id: IMAGE_GENERATE_NODE_TYPE,
+      label: i18next.t('board:connector.imageGenerate'),
+      description: i18next.t('board:connector.imageGenerateDesc'),
+      size: [320, 260],
+      icon: (
+        <img
+          src="/board/converted_small.svg"
+          alt=""
+          aria-hidden="true"
+          className="h-4 w-4"
+          draggable={false}
+        />
+      ),
+      createNode: () => ({
+        type: IMAGE_GENERATE_NODE_TYPE,
+        props: {},
+      }),
+    },
+  ];
+}
 
 /** Render the image prompt generation node. */
 export function ImagePromptGenerateNodeView({
@@ -98,6 +102,7 @@ export function ImagePromptGenerateNodeView({
   onSelect,
   onUpdate,
 }: CanvasNodeViewProps<ImagePromptGenerateNodeProps>) {
+  const { t } = useTranslation('board');
   const { engine, fileContext } = useBoardContext();
   const { basic } = useBasicConfig();
   const { providerItems } = useSettingsValues();
@@ -255,7 +260,7 @@ export function ImagePromptGenerateNodeView({
       const chatModelId = (input.chatModelId ?? (node.props as any)?.chatModelId ?? "").trim();
       if (!chatModelId) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "请选择支持当前输入类型的模型",
+          errorText: i18next.t('board:imagePromptGenerate.errors.noModelSupport'),
         });
         return;
       }
@@ -309,7 +314,7 @@ export function ImagePromptGenerateNodeView({
       const promptText = sourceType === "video" ? VIDEO_PROMPT_TEXT : IMAGE_PROMPT_TEXT;
       if (!resolvedUrl) {
         engine.doc.updateNodeProps(nodeId, {
-          errorText: "当前输入缺少可用的地址，无法生成描述",
+          errorText: i18next.t('board:imagePromptGenerate.errors.noInput'),
         });
         return;
       }
@@ -382,9 +387,9 @@ export function ImagePromptGenerateNodeView({
       } catch (error) {
         if (!controller.signal.aborted) {
           engine.doc.updateNodeProps(nodeId, {
-            errorText: "生成描述失败",
+            errorText: i18next.t('board:imagePromptGenerate.errors.generateFailed'),
           });
-          toast.error("生成描述失败");
+          toast.error(i18next.t('board:imagePromptGenerate.errors.generateFailed'));
         }
       } finally {
         if (abortControllerRef.current === controller) {
@@ -473,11 +478,11 @@ export function ImagePromptGenerateNodeView({
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      toast.success("已复制描述");
+      toast.success(t('imagePromptGenerate.errors.copySuccess'));
     } catch {
-      toast.error("复制失败");
+      toast.error(t('imagePromptGenerate.errors.copyFailed'));
     }
-  }, [resultText]);
+  }, [resultText, t]);
 
   /** Focus viewport to the node when the node is interacted with. */
   const handleNodeFocus = useCallback(() => {
@@ -509,7 +514,7 @@ export function ImagePromptGenerateNodeView({
       <div className={containerClassName} ref={containerRef}>
       <div className="flex items-center gap-2">
         <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${BOARD_GENERATE_DOT_PROMPT}`} />
-        <div className="text-[13px] font-semibold leading-5">视频图片理解</div>
+        <div className="text-[13px] font-semibold leading-5">{t('imagePromptGenerate.title')}</div>
         <div className="flex-1" />
         {viewStatus === "running" ? (
           <button
@@ -522,7 +527,7 @@ export function ImagePromptGenerateNodeView({
           >
             <span className="inline-flex items-center gap-1">
               <Square size={12} />
-              停止
+              {t('imagePromptGenerate.stop')}
             </span>
           </button>
         ) : !authLoggedIn && candidates.length === 0 ? (
@@ -538,7 +543,7 @@ export function ImagePromptGenerateNodeView({
           >
             <span className="inline-flex items-center gap-1">
               <LogIn size={12} />
-              {isLoginBusy ? "登录中" : "登录"}
+              {isLoginBusy ? t('imagePromptGenerate.loggingIn') : t('imagePromptGenerate.login')}
             </span>
           </button>
         ) : hasValidInput ? (
@@ -566,14 +571,14 @@ export function ImagePromptGenerateNodeView({
               ) : (
                 <Play size={12} />
               )}
-              {viewStatus === "error" ? "重试" : resultText ? "重新生成" : "运行"}
+              {viewStatus === "error" ? t('imagePromptGenerate.retry') : resultText ? t('imagePromptGenerate.regenerate') : t('imagePromptGenerate.run')}
             </span>
           </button>
         ) : null}
       </div>
 
       <div className="mt-1 flex items-center gap-2">
-        <div className="text-[11px] text-[#5f6368] dark:text-slate-400">模型</div>
+        <div className="text-[11px] text-[#5f6368] dark:text-slate-400">{t('imagePromptGenerate.model')}</div>
         <div className="min-w-0 flex-1">
           {!authLoggedIn && candidates.length === 0 ? (
             <button
@@ -587,7 +592,7 @@ export function ImagePromptGenerateNodeView({
             >
               <span className="inline-flex items-center gap-1">
                 <LogIn size={12} />
-                {isLoginBusy ? "登录中..." : "登录以使用云端模型"}
+                {isLoginBusy ? t('imagePromptGenerate.loggingIn') : t('imagePromptGenerate.loginHint')}
               </span>
             </button>
           ) : (
@@ -599,12 +604,12 @@ export function ImagePromptGenerateNodeView({
               disabled={candidates.length === 0 || isRunning}
             >
               <SelectTrigger className="h-7 w-full px-2 text-[11px] shadow-none">
-                <SelectValue placeholder="无可用模型" />
+                <SelectValue placeholder={t('imagePromptGenerate.noModel')} />
               </SelectTrigger>
               <SelectContent className="text-[11px]">
                 {candidates.length ? null : (
                   <SelectItem value="__none__" disabled className="text-[11px]">
-                    无可用模型
+                    {t('imagePromptGenerate.noModel')}
                   </SelectItem>
                 )}
                 {candidates.map((option) => {
@@ -636,7 +641,7 @@ export function ImagePromptGenerateNodeView({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] text-[#5f6368] dark:text-slate-400">
-              内容描述
+              {t('imagePromptGenerate.contentDescription')}
             </div>
             <button
               type="button"
@@ -679,5 +684,5 @@ export const ImagePromptGenerateNodeDefinition: CanvasNodeDefinition<ImagePrompt
       connectable: "anchors",
       minSize: { w: 260, h: IMAGE_PROMPT_GENERATE_MIN_HEIGHT },
     },
-    connectorTemplates: () => IMAGE_PROMPT_GENERATE_CONNECTOR_TEMPLATES,
+    connectorTemplates: () => getImagePromptGenerateConnectorTemplates(),
   };

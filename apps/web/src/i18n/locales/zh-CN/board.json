@@ -27,7 +27,10 @@
     "layers": "图层列表",
     "newLayer": "新建图层",
     "deleteLayer": "删除图层",
-    "renameLayer": "重命名图层"
+    "renameLayer": "重命名图层",
+    "imagePreview": "图片预览",
+    "renderError": "画布渲染出错",
+    "retry": "重试"
   },
   "tools": {
     "select": "选择",
@@ -104,7 +107,15 @@
     "imagePromptGenerate": "视频图片理解",
     "imagePromptGenerateDesc": "分析视频并生成描述",
     "imageGenerate": "图片生成",
-    "imageGenerateDesc": "基于提示词与图片生成新图"
+    "imageGenerateDesc": "基于提示词与图片生成新图",
+    "straight": "直线",
+    "elbow": "折线",
+    "curve": "曲线",
+    "hand": "手绘",
+    "fly": "飞行",
+    "colorTitle": "连线颜色 {{color}}",
+    "dashed": "虚线",
+    "deleteConnector": "删除连线"
   },
   "nodeDetail": {
     "detail": "详情"
@@ -218,7 +229,15 @@
       "imageReadFailed": "图片读取失败",
       "submitFailed": "图片任务提交失败",
       "generateFailed": "生成图片失败",
-      "copyFailed": "复制失败"
+      "copyFailed": "复制失败",
+      "tooManyImages": "最多支持 {{max}} 张图片输入"
+    },
+    "hints": {
+      "needsPrompt": "需要输入或连接提示词后才能生成图片。",
+      "tooManyImages": "最多支持 {{max}} 张图片输入，已连接 {{connected}} 张。",
+      "invalidImage": "存在无法访问的图片地址，请检查输入。",
+      "needsModel": "未找到支持「图片生成」的模型，请先在设置中配置。",
+      "generateFailed": "生成图片失败，请重试。"
     }
   },
   "videoGenerate": {
@@ -247,7 +266,12 @@
       "failed": "生成失败",
       "needModel": "需要配置模型",
       "generating": "生成中",
-      "waiting": "等待任务"
+      "waiting": "等待任务",
+      "needsPrompt": "需要提示词",
+      "missingParams": "参数未填写",
+      "tooManyImages": "图片数量过多",
+      "invalidImage": "图片地址不可用",
+      "idle": "待运行"
     },
     "errors": {
       "noModelSupport": "请选择支持「视频生成」的模型",
@@ -255,7 +279,25 @@
       "generateFailed": "生成视频失败",
       "saveFailed": "视频保存失败",
       "copyErrorSuccess": "已复制错误信息",
-      "copyFailed": "复制失败"
+      "copyFailed": "复制失败",
+      "imageReadFailed": "图片读取失败",
+      "invalidImageUrl": "存在无法访问的图片地址，请检查输入",
+      "missingParameters": "请先填写必填参数",
+      "tooManyImages": "最多支持 {{max}} 张图片输入",
+      "saveDirFailed": "无法确定视频保存目录",
+      "submitFailed": "视频任务提交失败"
+    },
+    "modelSelect": {
+      "noModel": "无可用模型",
+      "loginHint": "登录OpenLoaf账户，使用云端模型后选择模型"
+    },
+    "hints": {
+      "needsPrompt": "需要输入提示词或连接图片后才能生成视频。",
+      "missingParameters": "请先填写必填参数：{{required}}",
+      "tooManyImages": "最多支持 {{max}} 张图片输入，已连接 {{connected}} 张。",
+      "invalidImage": "存在无法访问的图片地址，请检查输入。",
+      "needsModel": "未找到支持「视频生成」的模型，请先在设置中配置。",
+      "generateFailed": "生成视频失败，请重试。"
     }
   },
   "imagePromptGenerate": {
@@ -278,10 +320,28 @@
       "copyFailed": "复制失败"
     }
   },
+  "imageDetail": {
+    "revisedPrompt": "改写提示词",
+    "userPrompt": "用户提示词"
+  },
+  "imageNode": {
+    "toolbar": {
+      "download": "下载",
+      "detail": "详情"
+    }
+  },
   "videoNode": {
     "toolbar": {
       "detail": "详情"
     }
+  },
+  "videoDetail": {
+    "fileLabel": "视频文件",
+    "unnamed": "未命名",
+    "pathValue": "路径: {{path}}",
+    "pathEmpty": "路径: -",
+    "durationValue": "时长: {{duration}}",
+    "sizeValue": "尺寸: {{size}}"
   },
   "linkNode": {
     "toolbar": {
@@ -308,7 +368,8 @@
     "videoGenerateError": "生成视频失败",
     "statusFailed": "失败",
     "statusGenerating": "生成中…",
-    "statusWaiting": "等待任务"
+    "statusWaiting": "等待任务",
+    "transcoding": "转码中"
   },
   "collab": {
     "imageTranscodeFailed": "图片转码失败，已使用原始文件插入"
@@ -326,6 +387,19 @@
     "imagePromptGenerate": "图片理解",
     "imageGenerate": "图片生成",
     "videoGenerate": "生成视频"
+  },
+  "nodeInspector": {
+    "panelTitle": "节点详情",
+    "close": "关闭",
+    "type": "类型",
+    "position": "位置",
+    "size": "尺寸",
+    "titleLabel": "标题",
+    "description": "描述"
+  },
+  "nodePicker": {
+    "title": "选择节点",
+    "empty": "无可用节点"
   },
   "styles": {
     "realistic": "写实",

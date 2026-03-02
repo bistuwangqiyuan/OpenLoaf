@@ -10,6 +10,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@openloaf/ui/button";
 import {
   Dialog,
@@ -106,6 +107,8 @@ export function ProviderEditorDialog({
   onSubmit,
   existingKeys = [],
 }: ProviderEditorDialogProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   const registryReady = isModelRegistryReady();
   const PROVIDER_OPTIONS = useMemo(() => {
     void registryReady;
@@ -158,31 +161,31 @@ export function ProviderEditorDialog({
     const apiUrl = draftApiUrl.trim();
     const normalizedName = name.toLowerCase();
     if (!name) {
-      setError("请填写名称");
+      setError(t('provider.errorFillName'));
       return;
     }
     if (!apiUrl) {
-      setError("请填写 API URL");
+      setError(t('provider.errorFillApiUrl'));
       return;
     }
     const authConfig = parseAuthConfigInput(draftAuthRaw);
     if (!authConfig) {
-      setError("请填写认证信息");
+      setError(t('provider.errorFillAuth'));
       return;
     }
     if (draftModelIds.length === 0) {
-      setError("请选择模型");
+      setError(t('provider.errorSelectModel'));
       return;
     }
     if (existingKeys.some((key) => key.toLowerCase() === normalizedName)) {
-      setError("名称已存在，请更换");
+      setError(t('provider.errorNameExists'));
       return;
     }
     const providerModels = getProviderModels(draftProvider);
     const modelIdSet = new Set(providerModels.map((model) => model.id));
     const modelIds = draftModelIds.filter((modelId) => modelIdSet.has(modelId));
     if (modelIds.length === 0) {
-      setError("模型定义缺失");
+      setError(t('provider.errorModelMissing'));
       return;
     }
     const models = modelIds.reduce<Record<string, ReturnType<typeof getProviderModels>[number]>>(
@@ -209,12 +212,12 @@ export function ProviderEditorDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>添加服务商</DialogTitle>
+          <DialogTitle>{t('provider.addProvider')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="text-sm font-medium">服务商</div>
+            <div className="text-sm font-medium">{t('provider.title')}</div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -265,25 +268,25 @@ export function ProviderEditorDialog({
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">名称</div>
+            <div className="text-sm font-medium">{t('provider.name')}</div>
             <Input
               value={draftName}
-              placeholder="例如：OPENAI"
+              placeholder={t('provider.namePlaceholder')}
               onChange={(event) => setDraftName(event.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">API URL</div>
+            <div className="text-sm font-medium">{t('provider.apiUrl')}</div>
             <Input
               value={draftApiUrl}
-              placeholder="例如：https://api.openai.com/v1"
+              placeholder={t('provider.apiUrlPlaceholder')}
               onChange={(event) => setDraftApiUrl(event.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">模型</div>
+            <div className="text-sm font-medium">{t('provider.model')}</div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -292,7 +295,11 @@ export function ProviderEditorDialog({
                   className="w-full justify-between font-normal"
                 >
                   <span className="truncate">
-                    {getModelSummary(modelOptions, draftModelIds)}
+                    {getModelSummary(modelOptions, draftModelIds, {
+                      empty: t('modelSelector.noModels'),
+                      unselected: t('modelSelector.unselected'),
+                      separator: t('modelSelector.separator'),
+                    })}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -300,7 +307,7 @@ export function ProviderEditorDialog({
               <DropdownMenuContent align="start" className="w-[320px]">
                 {modelOptions.length === 0 ? (
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                    暂无可选模型
+                    {t('modelSelector.noModels')}
                   </div>
                 ) : (
                   modelOptions.map((model) => (
@@ -326,12 +333,12 @@ export function ProviderEditorDialog({
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">认证信息</div>
+            <div className="text-sm font-medium">{t('provider.authentication')}</div>
             <div className="relative">
               <Input
                 type={showAuth ? "text" : "password"}
                 value={draftAuthRaw}
-                placeholder='API Key 或 {"apiKey":"xxx"}'
+                placeholder={t('provider.authPlaceholder')}
                 onChange={(event) => setDraftAuthRaw(event.target.value)}
                 className="pr-10"
               />
@@ -341,7 +348,7 @@ export function ProviderEditorDialog({
                 size="icon"
                 className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
                 onClick={() => setShowAuth((prev) => !prev)}
-                aria-label={showAuth ? "隐藏认证信息" : "显示认证信息"}
+                aria-label={showAuth ? t('provider.hideAuth') : t('provider.showAuth')}
               >
                 {showAuth ? (
                   <EyeOff className="h-4 w-4" />
@@ -357,9 +364,9 @@ export function ProviderEditorDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            取消
+            {tc('cancel')}
           </Button>
-          <Button onClick={() => void submitDraft()}>保存</Button>
+          <Button onClick={() => void submitDraft()}>{tc('save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

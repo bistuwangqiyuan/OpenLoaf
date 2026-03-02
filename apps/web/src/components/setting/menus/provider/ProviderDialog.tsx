@@ -33,7 +33,6 @@ import {
   getDefaultApiUrl,
   getDefaultModelIds,
   getDefaultProviderName,
-  MODEL_TAG_LABELS,
   copyToClipboard,
   resolveAuthMode,
   truncateDisplay,
@@ -126,7 +125,7 @@ type ProviderDialogProps = {
 /**
  * Render model tags for a model.
  */
-function renderModelTags(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
+function renderModelTags(tags: string[] | undefined, getTagLabel: (tag: string) => string) {
   return (
     <div className="flex flex-wrap gap-1">
       {(tags ?? []).map((tag) => (
@@ -134,7 +133,7 @@ function renderModelTags(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
           key={tag}
           className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
         >
-          {MODEL_TAG_LABELS[tag] ?? tag}
+          {getTagLabel(tag)}
         </span>
       ))}
     </div>
@@ -144,7 +143,7 @@ function renderModelTags(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
 /**
  * Render compact model tags.
  */
-function renderModelTagsCompact(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
+function renderModelTagsCompact(tags: string[] | undefined, getTagLabel: (tag: string) => string) {
   return (
     <div className="flex flex-wrap gap-1">
       {(tags ?? []).map((tag) => (
@@ -152,7 +151,7 @@ function renderModelTagsCompact(tags?: (keyof typeof MODEL_TAG_LABELS)[]) {
           key={tag}
           className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
         >
-          {MODEL_TAG_LABELS[tag] ?? tag}
+          {getTagLabel(tag)}
         </span>
       ))}
     </div>
@@ -209,6 +208,8 @@ export function ProviderDialog({
   onSubmit,
 }: ProviderDialogProps) {
   const { t } = useTranslation('settings');
+  const { t: tAi } = useTranslation('ai');
+  const getTagLabel = (tag: string) => tAi(`modelTags.${tag}`, { defaultValue: tag });
   const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
   const showResponsesToggle = draftProvider === "custom";
   const canEditFocusedModel = Boolean(
@@ -414,7 +415,7 @@ export function ProviderDialog({
                               <div className="text-foreground">{getModelLabel(model)}</div>
                             </div>
                             <div className="mt-1">
-                              {renderModelTagsCompact(resolveDisplayTags(model))}
+                              {renderModelTagsCompact(resolveDisplayTags(model), getTagLabel)}
                             </div>
                           </div>
                           <Switch
@@ -492,7 +493,7 @@ export function ProviderDialog({
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">{t('provider.capabilities')}</span>
                           <div className="min-w-0 flex-1">
-                            {renderModelTags(resolveDisplayTags(focusedModel))}
+                            {renderModelTags(resolveDisplayTags(focusedModel), getTagLabel)}
                           </div>
                         </div>
                       </div>

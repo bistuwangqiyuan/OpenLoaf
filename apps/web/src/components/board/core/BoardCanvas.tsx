@@ -39,6 +39,7 @@ import {
   parseScopedProjectPath,
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { trpc } from "@/utils/trpc";
+import i18next from "i18next";
 
 export type BoardCanvasProps = {
   /** External engine instance, optional for integration scenarios. */
@@ -89,14 +90,14 @@ class BoardErrorBoundary extends Component<
       return (
         <div className="flex h-full w-full items-center justify-center p-8 text-sm text-muted-foreground">
           <div className="max-w-md text-center">
-            <p className="mb-2 font-medium">画布渲染出错</p>
+            <p className="mb-2 font-medium">{i18next.t('board:board.renderError')}</p>
             <p className="mb-4 text-xs opacity-70">{this.state.error.message}</p>
             <button
               type="button"
               className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
               onClick={() => this.setState({ error: null })}
             >
-              重试
+              {i18next.t('board:board.retry')}
             </button>
           </div>
         </div>
@@ -276,7 +277,7 @@ export function BoardCanvas({
       items: [
         {
           uri: previewUri,
-          title: payload.fileName || "图片预览",
+          title: payload.fileName || i18next.t('board:board.imagePreview'),
           saveName: payload.fileName,
           mediaType: payload.mimeType,
         },

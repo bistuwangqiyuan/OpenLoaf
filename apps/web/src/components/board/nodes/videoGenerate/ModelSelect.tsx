@@ -12,6 +12,7 @@
 import type { AiModel } from "@openloaf-saas/sdk";
 import { ChevronDown, LogIn } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
+import { useTranslation } from "react-i18next";
 
 type ModelSelectProps = {
   authLoggedIn: boolean;
@@ -41,6 +42,7 @@ export function ModelSelect({
   onSelectModel,
   onOpenLogin,
 }: ModelSelectProps) {
+  const { t } = useTranslation('board');
   if (!authLoggedIn) {
     return (
       <button
@@ -57,7 +59,7 @@ export function ModelSelect({
           onOpenLogin();
         }}
       >
-        <span className="truncate">登录OpenLoaf账户，使用云端模型后选择模型</span>
+        <span className="truncate">{t('videoGenerate.modelSelect.loginHint')}</span>
         <LogIn size={14} />
       </button>
     );
@@ -90,7 +92,7 @@ export function ModelSelect({
           }}
         >
           <span className="truncate">
-            {selectedModel?.name || selectedModel?.id || "无可用模型"}
+            {selectedModel?.name || selectedModel?.id || t('videoGenerate.modelSelect.noModel')}
           </span>
           <ChevronDown size={14} />
         </button>
@@ -103,7 +105,7 @@ export function ModelSelect({
       >
         {candidates.length === 0 ? (
           <div className="px-2 py-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-            无可用模型
+            {t('videoGenerate.modelSelect.noModel')}
           </div>
         ) : (
           candidates.map((option) => (

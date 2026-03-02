@@ -14,6 +14,7 @@ import { IlamyCalendar } from "@openloaf/ui/calendar";
 import styles from "./Calendar.module.css";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import dayjs from "@openloaf/ui/calendar/lib/configs/dayjs-config";
 import { Button } from "@openloaf/ui/button";
 import { Download } from "lucide-react";
@@ -231,6 +232,7 @@ function SystemEventFormDialog({
   translations: IlamyCalendarProps["translations"];
   defaultCalendarId: string;
 }) {
+  const { t } = useTranslation('calendar');
   const initialKind = (props.selectedEvent?.data as { kind?: CalendarKind } | undefined)?.kind;
   const [eventKind, setEventKind] = useState<CalendarKind>(initialKind ?? "event");
   const [reminderTimeEnabled, setReminderTimeEnabled] = useState(
@@ -311,10 +313,10 @@ function SystemEventFormDialog({
             <div className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white/70 px-3 py-2 sm:justify-end">
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-slate-700">
-                  {uiLanguage === "zh-CN" ? "提醒事项" : "Reminder"}
+                  {t('reminderToggleLabel')}
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  {uiLanguage === "zh-CN" ? "关闭则为日历事件" : "Off for calendar event"}
+                  {t('reminderToggleDesc')}
                 </span>
               </div>
               <Switch
@@ -326,15 +328,11 @@ function SystemEventFormDialog({
         </DialogHeader>
         <div className="grid gap-2">
           <span className="text-xs font-medium text-slate-700">
-            {uiLanguage === "zh-CN"
-              ? eventKind === "reminder"
-                ? "提醒事项列表"
-                : "日历类型"
-              : "Calendar"}
+            {t(eventKind === "reminder" ? "reminderListLabel" : "calendarTypeLabel")}
           </span>
           <Select value={calendarId} onValueChange={setCalendarId} disabled={listSource.length === 0}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={uiLanguage === "zh-CN" ? "选择日历" : "Select calendar"} />
+              <SelectValue placeholder={t('selectCalendar')} />
             </SelectTrigger>
             <SelectContent>
               {listSource.map((calendar) => (
@@ -382,6 +380,7 @@ export default function CalendarPage({
   /** Optional trailing slot rendered after view controls in the header (replaces default new event button area). */
   headerTrailingSlot?: React.ReactNode;
 }) {
+  const { t } = useTranslation('calendar');
   const { basic } = useBasicConfig();
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id;
@@ -604,11 +603,11 @@ export default function CalendarPage({
     try {
       const result = await handleRequestPermission();
       if (!result.ok) {
-        toast.error(result.reason || "导入日历失败");
+        toast.error(result.reason || t('importCalendarFailed'));
         return;
       }
       if (result.data === "granted") {
-        toast.success("系统日历授权成功，正在同步…");
+        toast.success(t('authSuccess'));
         return;
       }
       // 权限被拒绝，弹出引导对话框
@@ -618,10 +617,10 @@ export default function CalendarPage({
           "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
         );
       } else {
-        toast.error("系统日历访问被拒绝，请在「系统设置 → 隐私与安全性 → 日历」中授权。");
+        toast.error(t('accessDenied'));
       }
     } catch {
-      toast.error("导入日历失败，请稍后重试。");
+      toast.error(t('importFailedRetry'));
     }
   }, [handleRequestPermission]);
 
@@ -652,7 +651,7 @@ export default function CalendarPage({
                   disabled={isLoading}
                 >
                   <Download className="h-3.5 w-3.5" />
-                  导入日历
+                  {t('importCalendar')}
                 </button>
               ) : undefined
             }
@@ -705,7 +704,7 @@ export default function CalendarPage({
                     }}
                     role="button"
                     aria-disabled={isReadOnly}
-                    aria-label="完成提醒事项"
+                    aria-label={t('completeReminder')}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isReadOnly) return;
@@ -790,18 +789,18 @@ export default function CalendarPage({
       <AlertDialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>需要日历访问权限</AlertDialogTitle>
+            <AlertDialogTitle>{t('permissionRequired')}</AlertDialogTitle>
             <AlertDialogDescription>
-              已为你打开系统隐私设置。请在「日历」列表中找到「OpenLoaf」或「Electron」并勾选，然后回到此处点击「重启应用」使授权生效。
+              {t('permissionDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>稍后再说</AlertDialogCancel>
+            <AlertDialogCancel>{t('later')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRelaunchApp}
               className="bg-[#1a73e8] text-white hover:bg-[#1557b0] dark:bg-sky-600 dark:hover:bg-sky-700"
             >
-              重启应用
+              {t('restart')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

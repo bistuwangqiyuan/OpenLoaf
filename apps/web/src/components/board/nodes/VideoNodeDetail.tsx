@@ -9,6 +9,7 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export type VideoNodeDetailProps = {
@@ -35,6 +36,7 @@ export function VideoNodeDetail({
   naturalHeight,
   className,
 }: VideoNodeDetailProps) {
+  const { t } = useTranslation('board');
   const sizeLabel =
     naturalWidth && naturalHeight ? `${naturalWidth} x ${naturalHeight}` : "";
   const durationLabel = typeof duration === "number" ? `${duration.toFixed(1)}s` : "";
@@ -48,18 +50,18 @@ export function VideoNodeDetail({
       )}
     >
       <div className="flex h-full flex-col gap-1 px-2 pt-2 pb-2">
-        <div className="text-[11px] font-medium text-muted-foreground/80">视频文件</div>
+        <div className="text-[11px] font-medium text-muted-foreground/80">{t('videoDetail.fileLabel')}</div>
         <div className="text-[13px] text-foreground truncate" title={name ?? path ?? ""}>
-          {name ?? path ?? "未命名"}
+          {name ?? path ?? t('videoDetail.unnamed')}
         </div>
         <div className="text-[11px] text-muted-foreground truncate" title={path ?? ""}>
-          {path ? `路径: ${path}` : "路径: -"}
+          {path ? t('videoDetail.pathValue', { path }) : t('videoDetail.pathEmpty')}
         </div>
         {hasMeta ? (
           <div className="text-[11px] text-muted-foreground">
-            {durationLabel ? `时长: ${durationLabel}` : null}
+            {durationLabel ? t('videoDetail.durationValue', { duration: durationLabel }) : null}
             {durationLabel && sizeLabel ? " · " : null}
-            {sizeLabel ? `尺寸: ${sizeLabel}` : null}
+            {sizeLabel ? t('videoDetail.sizeValue', { size: sizeLabel }) : null}
           </div>
         ) : null}
       </div>

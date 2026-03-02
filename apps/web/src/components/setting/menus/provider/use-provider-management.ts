@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSettingsValues } from "@/hooks/use-settings";
 import { queryClient, trpc } from "@/utils/trpc";
 import {
@@ -17,7 +18,6 @@ import {
   isModelRegistryReady,
 } from "@/lib/model-registry";
 import {
-  MODEL_TAG_LABELS,
   type ModelCapabilityParams,
   type ModelDefinition,
   type ModelTag,
@@ -132,10 +132,6 @@ type S3ProviderEntry = S3ProviderValue & {
   key: string;
 };
 
-const MODEL_TAG_OPTIONS = Object.entries(MODEL_TAG_LABELS).map(([value, label]) => ({
-  value: value as ModelTag,
-  label,
-}));
 
 /**
  * Mask the API key to show the first and last 6 characters.
@@ -379,6 +375,7 @@ function formatS3CredentialDisplay(accessKeyId: string, secretAccessKey: string)
 }
 
 export function useProviderManagement() {
+  const { t } = useTranslation('settings');
   const { providerItems, s3ProviderItems, setValue, removeValue, refresh } = useSettingsValues();
   // 注册表初始化后重新计算供应商选项，确保异步加载完成后 UI 能刷新。
   const registryReady = isModelRegistryReady();
@@ -566,11 +563,11 @@ export function useProviderManagement() {
     const apiUrl = draftApiUrl.trim();
     const normalizedName = name.toLowerCase();
     if (!name) {
-      setError("请填写名称");
+      setError(t('provider.errorFillName'));
       return;
     }
     if (!apiUrl) {
-      setError("请填写 API URL");
+      setError(t('provider.errorFillApiUrl'));
       return;
     }
     let authConfig: Record<string, unknown> | null = null;
@@ -578,20 +575,20 @@ export function useProviderManagement() {
       const accessKeyId = draftAccessKeyId.trim();
       const secretAccessKey = draftSecretAccessKey.trim();
       if (!accessKeyId || !secretAccessKey) {
-        setError("请填写 AccessKeyID 和 SecretAccessKey");
+        setError(t('provider.errorFillAccessKeys'));
         return;
       }
       authConfig = { accessKeyId, secretAccessKey };
     } else {
       const apiKey = draftApiKey.trim();
       if (!apiKey) {
-        setError("请填写 API Key");
+        setError(t('provider.errorFillApiKey'));
         return;
       }
       authConfig = { apiKey };
     }
     if (draftModelIds.length === 0) {
-      setError("请选择模型");
+      setError(t('provider.errorSelectModel'));
       return;
     }
     const nameExists = entries.some((entry) => {
@@ -599,7 +596,7 @@ export function useProviderManagement() {
       return entry.key.toLowerCase() === normalizedName;
     });
     if (nameExists) {
-      setError("名称已存在，请更换");
+      setError(t('provider.errorNameExists'));
       return;
     }
 
@@ -607,7 +604,7 @@ export function useProviderManagement() {
     const modelIdSet = new Set(providerModels.map((model) => model.id));
     const modelIds = draftModelIds.filter((modelId) => modelIdSet.has(modelId));
     if (modelIds.length === 0) {
-      setError("模型定义缺失");
+      setError(t('provider.errorModelMissing'));
       return;
     }
     const models = modelIds.reduce<Record<string, ModelDefinition>>((acc, modelId) => {
@@ -697,21 +694,21 @@ export function useProviderManagement() {
     const modelName = draftModelName.trim();
     const isEditing = Boolean(editingModelId);
     if (!modelId) {
-      setModelError("请填写模型 ID");
+      setModelError(t('provider.errorFillModelId'));
       return;
     }
     const existing = modelOptions.some((model) => model.id === modelId);
     if (existing && (!isEditing || modelId !== editingModelId)) {
-      setModelError("模型 ID 已存在");
+      setModelError(t('provider.errorModelIdExists'));
       return;
     }
     if (draftModelTags.length === 0) {
-      setModelError("请至少选择一个能力标签");
+      setModelError(t('provider.errorSelectCapability'));
       return;
     }
     const maxContextK = Number.parseFloat(draftModelContextK);
     if (!Number.isFinite(maxContextK) || maxContextK < 0) {
-      setModelError("请输入有效的上下文长度");
+      setModelError(t('provider.errorInvalidContextLength'));
       return;
     }
     const baseModel = editingModelSnapshot ?? {};
@@ -828,16 +825,16 @@ export function useProviderManagement() {
     const accessKeyId = draftS3AccessKeyId.trim();
     const secretAccessKey = draftS3SecretAccessKey.trim();
     if (!name) {
-      setS3Error("请填写名称");
+      setS3Error(t('provider.errorFillName'));
       return;
     }
     if (!bucket) {
-      setS3Error("请填写 Bucket");
+      setS3Error(t('provider.errorFillBucket'));
       return;
     }
     // 统一校验关键鉴权字段，避免保存不可用配置。
     if (!accessKeyId || !secretAccessKey) {
-      setS3Error("请填写 AccessKeyID 和 SecretAccessKey");
+      setS3Error(t('provider.errorFillAccessKeys'));
       return;
     }
     const normalizedName = name.toLowerCase();
@@ -846,7 +843,7 @@ export function useProviderManagement() {
       return entry.key.toLowerCase() === normalizedName;
     });
     if (nameExists) {
-      setS3Error("名称已存在，请更换");
+      setS3Error(t('provider.errorNameExists'));
       return;
     }
 
@@ -1021,8 +1018,6 @@ export {
   getDefaultS3ProviderName,
   getDefaultS3Region,
   getProviderCapabilities,
-  MODEL_TAG_LABELS,
-  MODEL_TAG_OPTIONS,
   resolveAuthMode,
   resolveMergedModelDefinition,
   S3_PROVIDER_CATEGORY,

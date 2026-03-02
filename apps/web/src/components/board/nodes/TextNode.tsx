@@ -1000,7 +1000,7 @@ export function TextNodeView({
           className="pointer-events-none absolute left-4 right-4 top-3 text-[11px] leading-4 text-slate-400 dark:text-slate-500"
           style={{ textAlign }}
         >
-          {TEXT_NODE_PLACEHOLDER}
+          {getTextNodePlaceholder()}
         </div>
       ) : null}
     </div>
