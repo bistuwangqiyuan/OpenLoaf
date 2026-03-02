@@ -183,5 +183,35 @@
     "loadFailed": "Failed to load component",
     "retry": "Retry",
     "missingParams": "Missing Widget parameters"
+  },
+  "calendarWidget": {
+    "openDetail": "Open calendar detail"
+  },
+  "taskBoard": {
+    "statusRunning": "Running",
+    "statusReview": "Review",
+    "statusTodo": "To Do",
+    "statusDone": "Done",
+    "loading": "Loading tasks...",
+    "noActiveTasks": "No active tasks",
+    "openTaskBoard": "Open Task Board",
+    "priorityUrgent": "Urgent",
+    "priorityHigh": "High",
+    "priorityMedium": "Medium",
+    "priorityLow": "Low"
+  },
+  "threeDFolder": {
+    "noFolderInfo": "Folder info not found",
+    "unnamedProject": "Untitled Project"
+  },
+  "videoWidget": {
+    "noFile": "No video selected",
+    "bindHint": "Please bind a video in settings",
+    "clickToPlay": "Click to play video",
+    "play": "Play"
+  },
+  "webStack": {
+    "updating": "Updating",
+    "openWeb": "Open webpage"
   }
 }

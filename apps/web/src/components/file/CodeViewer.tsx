@@ -18,6 +18,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MutableRefObject,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
 import type { PointerEvent } from "react";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -173,6 +174,7 @@ export default function CodeViewer({
   actionsRef,
   onStatusChange,
 }: CodeViewerProps) {
+  const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   /** File content query. */
@@ -471,10 +473,10 @@ export default function CodeViewer({
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("已复制");
+      toast.success(t('copied'));
     } catch (error) {
       console.warn("[CodeViewer] copy failed", error);
-      toast.error("复制失败");
+      toast.error(t('copyFailed'));
     }
   }, [draftContent]);
 
@@ -487,7 +489,7 @@ export default function CodeViewer({
     const range = selectionRangeRef.current;
     if (!text) return;
     if (!range) {
-      toast.error("请先选中代码片段");
+      toast.error(t('file.selectCodeFirst'));
       return;
     }
     try {
@@ -496,12 +498,12 @@ export default function CodeViewer({
       console.warn("[CodeViewer] copy for ai failed", error);
     }
     if (!activeTabId) {
-      toast.error("未找到当前标签页");
+      toast.error(t('noTab'));
       return;
     }
     const relativePath = uri ? getRelativePathFromUri(rootUri ?? "", uri) : null;
     if (!projectId || !relativePath) {
-      toast.error("无法解析文件路径");
+      toast.error(t('file.cannotResolvePath'));
       return;
     }
     const mentionValue = `${projectId}/${relativePath}:${range.startLine}-${range.endLine}`;
@@ -536,10 +538,10 @@ export default function CodeViewer({
             queryKey: trpc.fs.readFile.queryOptions({ workspaceId, projectId, uri })
               .queryKey,
           });
-          toast.success("已保存");
+          toast.success(t('saved'));
         },
         onError: (error) => {
-          toast.error(error?.message ?? "保存失败");
+          toast.error(error?.message ?? t('saveFailed'));
         },
       }
     );
@@ -594,7 +596,7 @@ export default function CodeViewer({
   }
 
   if (fileQuery.isLoading) {
-    return <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>;
+    return <div className="h-full w-full p-4 text-muted-foreground">{t('loading')}</div>;
   }
 
   if (fileQuery.data?.tooLarge) {

@@ -38,6 +38,29 @@ function stripUpdateComponents<TComponent extends IncrementalComponentManifest>(
   };
 }
 
+/** Pick the component with the higher version; return undefined if both are absent. */
+function pickHigherVersion<TComponent extends IncrementalComponentManifest>(
+  a: TComponent | undefined,
+  b: TComponent | undefined,
+): TComponent | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  return compareVersions(a.version, b.version) >= 0 ? a : b;
+}
+
+/** Merge electron metadata, taking the higher minVersion from either source. */
+function mergeElectronMeta(
+  a?: { minVersion?: string },
+  b?: { minVersion?: string },
+): { minVersion?: string } | undefined {
+  const aMin = a?.minVersion;
+  const bMin = b?.minVersion;
+  if (!aMin && !bMin) return a ?? b;
+  if (!aMin) return b;
+  if (!bMin) return a;
+  return compareVersions(aMin, bMin) >= 0 ? a : b;
+}
+
 type ParsedSemver = {
   core: number[];
   prerelease: Array<string | number> | null;
@@ -123,7 +146,11 @@ export function shouldUseBundled(
 
 /**
  * Gate beta manifest updates against the stable manifest.
- * Returns a sanitized manifest and whether updates should be skipped.
+ *
+ * Strategy: for each component (server, web), independently pick whichever
+ * version is higher between beta and stable. This ensures beta users always
+ * get the best available version — even when beta lags behind stable for one
+ * component while leading for another.
  */
 export function gateBetaManifest<
   TComponent extends IncrementalComponentManifest,
@@ -135,7 +162,10 @@ export function gateBetaManifest<
   const stable = args.stable ?? null;
 
   const hasBetaComponent = Boolean(beta.server || beta.web);
-  if (!hasBetaComponent) {
+  const hasStableComponent = Boolean(stable?.server || stable?.web);
+
+  // 双方都无组件 → 跳过
+  if (!hasBetaComponent && !hasStableComponent) {
     return {
       manifest: stripUpdateComponents(beta),
       skipped: true,
@@ -143,43 +173,34 @@ export function gateBetaManifest<
     };
   }
 
-  if (stable) {
-    const stableHasServer = Boolean(stable.server);
-    const stableHasWeb = Boolean(stable.web);
-
-    // 中文注释：beta 缺组件或版本落后时直接跳过本次更新。
-    if ((stableHasServer && !beta.server) || (stableHasWeb && !beta.web)) {
-      return {
-        manifest: stripUpdateComponents(beta),
-        skipped: true,
-        reason: "beta-missing-component",
-      };
-    }
-
-    if (
-      stable.server &&
-      beta.server &&
-      compareVersions(beta.server.version, stable.server.version) < 0
-    ) {
-      return {
-        manifest: stripUpdateComponents(beta),
-        skipped: true,
-        reason: "beta-older-than-stable-server",
-      };
-    }
-
-    if (
-      stable.web &&
-      beta.web &&
-      compareVersions(beta.web.version, stable.web.version) < 0
-    ) {
-      return {
-        manifest: stripUpdateComponents(beta),
-        skipped: true,
-        reason: "beta-older-than-stable-web",
-      };
-    }
+  // beta 无组件但 stable 有 → 回退到 stable 组件
+  if (!hasBetaComponent && hasStableComponent) {
+    return {
+      manifest: {
+        ...beta,
+        server: stable!.server,
+        web: stable!.web,
+        electron: stable!.electron ?? beta.electron,
+      },
+      skipped: false,
+      reason: "beta-empty-fallback-to-stable",
+    };
   }
 
-  return { manifest: beta, skipped: false };
+  // 有 stable 可比 → 逐组件取高版本，electron.minVersion 也取高
+  if (stable && hasStableComponent) {
+    return {
+      manifest: {
+        ...beta,
+        server: pickHigherVersion(beta.server, stable.server),
+        web: pickHigherVersion(beta.web, stable.web),
+        electron: mergeElectronMeta(beta.electron, stable.electron),
+      },
+      skipped: false,
+      reason: "beta-merged-with-stable",
+    };
+  }
+
+  // 无 stable 可比 → 直接用 beta
+  return { manifest: beta, skipped: false, reason: "beta-only" };
 }

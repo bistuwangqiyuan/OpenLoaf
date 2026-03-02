@@ -13,6 +13,7 @@ import * as React from "react";
 import { KanbanSquare } from "lucide-react";
 import { useQuery, skipToken } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
@@ -36,15 +37,9 @@ const STATUS_DOT: Record<string, string> = {
   cancelled: "bg-red-400",
 };
 
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "紧急",
-  high: "高",
-  medium: "中",
-  low: "低",
-};
-
 /** Compact task board widget for desktop. */
 export default function TaskBoardWidget() {
+  const { t } = useTranslation('desktop');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const activeTabId = useTabs((s) => s.activeTabId);
@@ -60,28 +55,35 @@ export default function TaskBoardWidget() {
 
   const counts = React.useMemo(() => {
     const c = { todo: 0, running: 0, review: 0, done: 0 };
-    for (const t of allTasks) {
-      if (t.status in c) c[t.status as keyof typeof c]++;
+    for (const task of allTasks) {
+      if (task.status in c) c[task.status as keyof typeof c]++;
     }
     return c;
   }, [allTasks]);
 
   const activeTasks = React.useMemo(
-    () => allTasks.filter((t) => t.status === "running" || t.status === "review" || t.status === "todo"),
+    () => allTasks.filter((task) => task.status === "running" || task.status === "review" || task.status === "todo"),
     [allTasks],
   );
+
+  const priorityLabel = React.useMemo(() => ({
+    urgent: t('taskBoard.priorityUrgent'),
+    high: t('taskBoard.priorityHigh'),
+    medium: t('taskBoard.priorityMedium'),
+    low: t('taskBoard.priorityLow'),
+  }), [t]);
 
   /** Open task board page in stack panel. */
   const handleOpenTaskBoard = React.useCallback(() => {
     if (!activeTabId) {
-      toast.error("未找到当前标签页");
+      toast.error(t('content.noTab'));
       return;
     }
     useTabRuntime.getState().pushStackItem(activeTabId, {
       id: "scheduled-tasks-page",
       sourceKey: "scheduled-tasks-page",
       component: "scheduled-tasks-page",
-      title: "任务看板",
+      title: t('catalog.task-board'),
     });
   }, [activeTabId]);
 
@@ -90,41 +92,41 @@ export default function TaskBoardWidget() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <KanbanSquare className="h-4 w-4 text-muted-foreground" />
-          <div className="text-sm font-semibold text-foreground">任务看板</div>
+          <div className="text-sm font-semibold text-foreground">{t('catalog.task-board')}</div>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-            {counts.running} 运行
+            {counts.running} {t('taskBoard.statusRunning')}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-            {counts.review} 审查
+            {counts.review} {t('taskBoard.statusReview')}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-            {counts.todo} 待办
+            {counts.todo} {t('taskBoard.statusTodo')}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:text-green-400">
-            {counts.done} 完成
+            {counts.done} {t('taskBoard.statusDone')}
           </span>
         </div>
       </div>
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1 text-sm show-scrollbar">
         {!workspaceId ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            未找到工作区
+            {t('content.noWorkspace')}
           </div>
         ) : isLoading ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            正在加载任务...
+            {t('taskBoard.loading')}
           </div>
         ) : activeTasks.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/10 text-xs text-muted-foreground">
-            <div>暂无活跃任务</div>
+            <div>{t('taskBoard.noActiveTasks')}</div>
             <button
               type="button"
               onClick={handleOpenTaskBoard}
               className="text-xs text-[var(--brand)] hover:underline"
             >
-              打开任务看板
+              {t('taskBoard.openTaskBoard')}
             </button>
           </div>
         ) : (
@@ -143,7 +145,7 @@ export default function TaskBoardWidget() {
                     "shrink-0 text-[10px] font-medium",
                     task.priority === "urgent" ? "text-red-500" : task.priority === "high" ? "text-orange-500" : "text-slate-400",
                   )}>
-                    {PRIORITY_LABEL[task.priority] ?? task.priority}
+                    {priorityLabel[task.priority as keyof typeof priorityLabel] ?? task.priority}
                   </span>
                 ) : null}
               </div>

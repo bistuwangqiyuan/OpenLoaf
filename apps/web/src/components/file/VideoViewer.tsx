@@ -10,6 +10,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { VideoPlayer } from "@openloaf/ui/video-player";
 import { StackHeader } from "@/components/layout/StackHeader";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -95,6 +96,7 @@ export default function VideoViewer({
   panelKey,
   tabId,
 }: VideoViewerProps) {
+  const { t } = useTranslation("common");
   const removeStackItem = useTabRuntime((state) => state.removeStackItem);
   const displayTitle = name ?? "";
   const shouldRenderStackHeader = Boolean(tabId && panelKey);
@@ -382,7 +384,7 @@ export default function VideoViewer({
   if (buildError) {
     return (
       <div className="h-full w-full p-4 text-muted-foreground">
-        无法加载视频：{buildError}
+        {t("file.videoLoadFailed", { error: buildError })}
       </div>
     );
   }

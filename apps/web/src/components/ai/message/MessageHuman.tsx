@@ -11,6 +11,7 @@
 
 import { type UIMessage } from "@ai-sdk/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   closeFilePreview,
   openFilePreview,
@@ -216,6 +217,7 @@ export default function MessageHuman({
   className,
   showText = true,
 }: MessageHumanProps) {
+  const { t } = useTranslation('ai')
   const { data: projects = [] } = useProjects();
   const { projectId, workspaceId } = useChatSession();
   const activeTabId = useTabs((s) => s.activeTabId);
@@ -444,10 +446,10 @@ export default function MessageHuman({
                       maskClassName="max-h-16 max-w-[90px] object-contain opacity-70"
                     />
                   ) : preview?.status === "error" ? (
-                    <div className="text-xs text-primary-foreground/80">图片加载失败</div>
+                    <div className="text-xs text-primary-foreground/80">{t('image.loadFailed')}</div>
                   ) : (
                     <Shimmer className="text-xs text-primary-foreground/80">
-                      图片加载中...
+                      {t('image.loading')}
                     </Shimmer>
                   )}
                 </Attachment>

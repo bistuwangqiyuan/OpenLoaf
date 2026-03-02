@@ -10,6 +10,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { resolveServerUrl } from "@/utils/server-url";
 import { Button } from "@openloaf/ui/button";
@@ -33,6 +34,7 @@ import {
  * Manage object storage providers and global S3 preferences.
  */
 export function ObjectStorageService() {
+  const { t } = useTranslation("settings");
   const [testingS3Key, setTestingS3Key] = useState<string | null>(null);
   const [s3TestDialogOpen, setS3TestDialogOpen] = useState(false);
   const [s3TestUrl, setS3TestUrl] = useState("");
@@ -106,14 +108,14 @@ export function ObjectStorageService() {
         if (!res.ok) {
           const errorText = await res.text();
           setS3TestUrl("");
-          setS3TestError(errorText || "S3 测试上传失败");
+          setS3TestError(errorText || t("s3.uploadFailed"));
           setS3TestDialogOpen(true);
           return;
         }
         const data = (await res.json()) as { url?: string };
         if (!data?.url) {
           setS3TestUrl("");
-          setS3TestError("S3 测试上传失败：服务端未返回地址");
+          setS3TestError(t("s3.noUrlReturned"));
           setS3TestCopyMessage("");
           setS3TestDialogOpen(true);
           return;
@@ -124,7 +126,7 @@ export function ObjectStorageService() {
         setS3TestDialogOpen(true);
       } catch (error) {
         setS3TestUrl("");
-        setS3TestError(error instanceof Error ? error.message : "S3 测试上传失败");
+        setS3TestError(error instanceof Error ? error.message : t("s3.uploadFailed"));
         setS3TestCopyMessage("");
         setS3TestDialogOpen(true);
       } finally {
@@ -144,7 +146,7 @@ export function ObjectStorageService() {
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(s3TestUrl);
-        setS3TestCopyMessage("已复制");
+        setS3TestCopyMessage(t("s3.copied"));
         return;
       }
     } catch {
@@ -156,10 +158,10 @@ export function ObjectStorageService() {
       input.focus();
       input.select();
       const copied = document.execCommand("copy");
-      setS3TestCopyMessage(copied ? "已复制" : "复制失败，请手动复制");
+      setS3TestCopyMessage(copied ? t("s3.copied") : t("s3.copyFailed"));
       return;
     }
-    setS3TestCopyMessage("复制失败，请手动复制");
+    setS3TestCopyMessage(t("s3.copyFailed"));
   }
 
   /**
@@ -234,8 +236,8 @@ export function ObjectStorageService() {
       />
 
       <ConfirmDeleteDialog
-        title="确认删除"
-        description="确认要删除这个 S3 服务商配置吗？"
+        title={t("s3.deleteTitle")}
+        description={t("s3.deleteDesc")}
         open={Boolean(confirmS3DeleteId)}
         onClose={() => setConfirmS3DeleteId(null)}
         onConfirm={async () => {
@@ -248,7 +250,7 @@ export function ObjectStorageService() {
       <Dialog open={s3TestDialogOpen} onOpenChange={setS3TestDialogOpen}>
         <DialogContent className="max-h-[80vh] w-full max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>S3 测试上传结果</DialogTitle>
+            <DialogTitle>{t("s3.testResultTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 text-sm">
             {s3TestError ? (
@@ -262,12 +264,10 @@ export function ObjectStorageService() {
           </div>
           <DialogFooter>
             {s3TestUrl ? (
-              <Button onClick={handleCopyS3TestUrl}>
-                复制地址
-              </Button>
+              <Button onClick={handleCopyS3TestUrl}>{t("s3.copyUrl")}</Button>
             ) : null}
             <Button variant="ghost" onClick={() => setS3TestDialogOpen(false)}>
-              关闭
+              {t("s3.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -7,6 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
+import { useTranslation } from "react-i18next";
 import { Button } from "@openloaf/ui/button";
 import {
   Dialog,
@@ -120,16 +121,17 @@ export function S3ProviderDialog({
   onShowSecretKeyChange,
   onSubmit,
 }: S3ProviderDialogProps) {
+  const { t } = useTranslation("settings");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80vh] w-full max-w-4xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingKey ? "编辑 S3 服务商" : "添加 S3 服务商"}</DialogTitle>
+          <DialogTitle>{editingKey ? t("s3.editProvider") : t("s3.addProvider")}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-sm font-medium">服务商</div>
+            <div className="text-sm font-medium">{t("s3.provider")}</div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="outline" className="w-full justify-between font-normal">
@@ -174,10 +176,10 @@ export function S3ProviderDialog({
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">名称</div>
+            <div className="text-sm font-medium">{t("s3.name")}</div>
             <Input
               value={draftName}
-              placeholder="例如：AWS-S3"
+              placeholder={t("s3.namePlaceholder")}
               onChange={(event) => onDraftNameChange(event.target.value)}
             />
           </div>
@@ -186,7 +188,7 @@ export function S3ProviderDialog({
             <div className="text-sm font-medium">Endpoint</div>
             <Input
               value={draftEndpoint}
-              placeholder="例如：https://s3.amazonaws.com"
+              placeholder={t("s3.endpointPlaceholder")}
               onChange={(event) => onDraftEndpointChange(event.target.value)}
             />
           </div>
@@ -195,7 +197,7 @@ export function S3ProviderDialog({
             <div className="text-sm font-medium">Region</div>
             <Input
               value={draftRegion}
-              placeholder="例如：us-east-1（可选）"
+              placeholder={t("s3.regionPlaceholder")}
               onChange={(event) => onDraftRegionChange(event.target.value)}
             />
           </div>
@@ -204,7 +206,7 @@ export function S3ProviderDialog({
             <div className="text-sm font-medium">Bucket</div>
             <Input
               value={draftBucket}
-              placeholder="例如：openloaf-bucket"
+              placeholder={t("s3.bucketPlaceholder")}
               onChange={(event) => onDraftBucketChange(event.target.value)}
             />
           </div>
@@ -213,7 +215,7 @@ export function S3ProviderDialog({
             <div className="text-sm font-medium">Public Base URL</div>
             <Input
               value={draftPublicBaseUrl}
-              placeholder="例如：https://cdn.example.com（可选）"
+              placeholder={t("s3.publicBaseUrlPlaceholder")}
               onChange={(event) => onDraftPublicBaseUrlChange(event.target.value)}
             />
           </div>
@@ -221,7 +223,7 @@ export function S3ProviderDialog({
           <div className="flex items-center justify-between rounded-md border px-3 py-2 md:col-span-2">
             <div>
               <div className="text-sm font-medium">Force Path Style</div>
-              <div className="text-xs text-muted-foreground">部分 S3 兼容服务需要开启</div>
+              <div className="text-xs text-muted-foreground">{t("s3.forcePathStyleDesc")}</div>
             </div>
             <Switch checked={draftForcePathStyle} onCheckedChange={onDraftForcePathStyleChange} />
           </div>
@@ -230,7 +232,7 @@ export function S3ProviderDialog({
             <div className="text-sm font-medium">AccessKeyID</div>
             <Input
               value={draftAccessKeyId}
-              placeholder="输入 AccessKeyID"
+              placeholder={t("s3.accessKeyIdPlaceholder")}
               onChange={(event) => onDraftAccessKeyIdChange(event.target.value)}
             />
           </div>
@@ -241,7 +243,7 @@ export function S3ProviderDialog({
               <Input
                 type={showSecretKey ? "text" : "password"}
                 value={draftSecretAccessKey}
-                placeholder="输入 SecretAccessKey"
+                placeholder={t("s3.secretAccessKeyPlaceholder")}
                 onChange={(event) => onDraftSecretAccessKeyChange(event.target.value)}
                 className="pr-10"
               />
@@ -251,7 +253,7 @@ export function S3ProviderDialog({
                 size="icon"
                 className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
                 onClick={() => onShowSecretKeyChange(!showSecretKey)}
-                aria-label={showSecretKey ? "隐藏 SecretAccessKey" : "显示 SecretAccessKey"}
+                aria-label={showSecretKey ? t("s3.hideSecretKey") : t("s3.showSecretKey")}
               >
                 {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -263,9 +265,9 @@ export function S3ProviderDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            取消
+            {t("s3.cancel")}
           </Button>
-          <Button onClick={onSubmit}>保存</Button>
+          <Button onClick={onSubmit}>{t("s3.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

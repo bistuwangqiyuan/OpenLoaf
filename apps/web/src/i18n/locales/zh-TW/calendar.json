@@ -24,5 +24,13 @@
   "permissionRequired": "需要日曆存取權限",
   "permissionDesc": "已為你開啟系統隱私設定。請在「日曆」列表中找到「OpenLoaf」或「Electron」並勾選，然後回到此處點擊「重啟應用程式」使授權生效。",
   "later": "稍後再說",
-  "restart": "重啟應用程式"
+  "restart": "重啟應用程式",
+  "errLoadSources": "日曆資料載入失敗。",
+  "errLoadItems": "日曆事件載入失敗。",
+  "errUnauthorized": "系統日曆存取未授權。",
+  "errAddEvent": "新增日曆事件失敗。",
+  "errUpdateEvent": "更新日曆事件失敗。",
+  "errDeleteEvent": "刪除日曆事件失敗。",
+  "errUpdateReminder": "更新提醒事項失敗。",
+  "errEventIdNotFound": "未找到系統事件 ID。"
 }

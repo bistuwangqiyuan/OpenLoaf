@@ -22,6 +22,7 @@ import {
 import { AnimatePresence, motion, type Transition } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, Code2, File, FileText, FolderOpen, Layers, Send, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useOnClickOutside } from "usehooks-ts";
 
 import {
@@ -266,18 +267,12 @@ function resolveStackFileEntry(item: DockItem): FileSystemEntry | null {
   };
 }
 
-const AI_SUGGESTIONS = [
-  { text: '帮我总结今天的工作进展', icon: ClipboardList, color: 'text-sky-500' },
-  { text: '分析当前项目的代码质量', icon: Code2, color: 'text-emerald-500' },
-  { text: '生成一份本周工作周报', icon: FileText, color: 'text-violet-500' },
-] as const;
-
 export function ExpandableDockTabs({
   tabs,
   className,
   size = "sm",
   expandedWidth = 360,
-  inputPlaceholder = "输入内容",
+  inputPlaceholder,
   onSend,
   onChange,
   selectedIndex,
@@ -286,6 +281,16 @@ export function ExpandableDockTabs({
   getTooltip,
   active = true,
 }: ExpandableDockTabsProps) {
+  const { t } = useTranslation('ai');
+  const resolvedInputPlaceholder = inputPlaceholder ?? t('dock.inputPlaceholder');
+  const aiSuggestions = useMemo(
+    () => [
+      { text: t('dock.suggestion1'), icon: ClipboardList, color: 'text-sky-500' },
+      { text: t('dock.suggestion2'), icon: Code2, color: 'text-emerald-500' },
+      { text: t('dock.suggestion3'), icon: FileText, color: 'text-violet-500' },
+    ],
+    [t],
+  );
   const [uncontrolledSelected, setUncontrolledSelected] = useState<
     number | null
   >(defaultSelectedIndex);
@@ -825,7 +830,7 @@ export function ExpandableDockTabs({
               exit={{ opacity: 0, y: 6, transition: { duration: 0.15 } }}
               transition={{ duration: 0.18, delay: 0.2 }}
             >
-              {AI_SUGGESTIONS.map((item, index) => {
+              {aiSuggestions.map((item, index) => {
                 const Icon = item.icon;
                 const isSelected = suggestionIndex === index;
                 return (
@@ -850,7 +855,7 @@ export function ExpandableDockTabs({
                     initial={{ opacity: 0, y: 16, scale: 0.8, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                     transition={{
-                      delay: 0.2 + (AI_SUGGESTIONS.length - 1 - index) * 0.06,
+                      delay: 0.2 + (aiSuggestions.length - 1 - index) * 0.06,
                       type: 'spring',
                       stiffness: 400,
                       damping: 25,
@@ -881,7 +886,7 @@ export function ExpandableDockTabs({
               whileHover={{ scale: 1.05, rotate: 8 }}
               transition={{ type: "spring", stiffness: 360, damping: 24 }}
               onClick={handleToggleExpand}
-              aria-label="AI助手"
+              aria-label={t('dock.aiAssistant')}
             >
               <motion.span
                 whileHover={{ y: -4 }}
@@ -897,7 +902,7 @@ export function ExpandableDockTabs({
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
             <span className="flex items-center gap-1.5">
-              AI助手
+              {t('dock.aiAssistant')}
               <KbdGroup className="gap-0.5">
                 <Kbd className="bg-transparent px-0 h-auto rounded-none">Space</Kbd>
               </KbdGroup>
@@ -938,20 +943,20 @@ export function ExpandableDockTabs({
                     if (event.key === 'ArrowUp') {
                       event.preventDefault();
                       setSuggestionIndex((prev) =>
-                        prev <= 0 ? AI_SUGGESTIONS.length - 1 : prev - 1,
+                        prev <= 0 ? aiSuggestions.length - 1 : prev - 1,
                       );
                       return;
                     }
                     if (event.key === 'ArrowDown') {
                       event.preventDefault();
                       setSuggestionIndex((prev) =>
-                        prev >= AI_SUGGESTIONS.length - 1 ? 0 : prev + 1,
+                        prev >= aiSuggestions.length - 1 ? 0 : prev + 1,
                       );
                       return;
                     }
                     if (event.key === "Enter") {
                       if (suggestionIndex >= 0) {
-                        sendToAiChat(AI_SUGGESTIONS[suggestionIndex].text);
+                        sendToAiChat(aiSuggestions[suggestionIndex].text);
                         setInputValue('');
                         setIsExpanded(false);
                         setSuggestionIndex(-1);
@@ -964,7 +969,7 @@ export function ExpandableDockTabs({
                       handleToggleExpand();
                     }
                   }}
-                  placeholder={inputPlaceholder}
+                  placeholder={resolvedInputPlaceholder}
                   className={cn(
                     "h-full w-full bg-transparent outline-none",
                     sizeToken.text,

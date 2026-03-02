@@ -290,16 +290,25 @@ export async function createMainWindow(args: {
       args.log(`[prod] Services started. serverUrl=${serverUrl}`);
 
       // 监听 server 崩溃，通过 IPC 通知 web 端显示错误。
-      serverCrashed?.then((stderr) => {
-        args.log(`[prod] Server crashed: ${stderr}`);
+      serverCrashed?.then((crashInfo) => {
+        args.log(`[prod] Server crashed: ${crashInfo.stderr}`);
         if (!mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('openloaf:server-crash', { error: stderr });
+          mainWindow.webContents.send('openloaf:server-crash', {
+            error: crashInfo.stderr,
+            isUpdatedServer: crashInfo.isUpdatedServer,
+            crashedVersion: crashInfo.crashedVersion,
+            rolledBack: crashInfo.rolledBack,
+          });
         }
       });
     }).catch((err) => {
       args.log(`[prod] Failed to start services: ${String(err)}`);
       if (!mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('openloaf:server-crash', { error: String(err) });
+        mainWindow.webContents.send('openloaf:server-crash', {
+          error: String(err),
+          isUpdatedServer: false,
+          rolledBack: false,
+        });
       }
     });
 
@@ -319,8 +328,8 @@ export async function createMainWindow(args: {
 
     const abortController = new AbortController();
     let crashError: string | undefined;
-    serverCrashed?.then((stderr) => {
-      crashError = stderr;
+    serverCrashed?.then((info) => {
+      crashError = info.stderr;
       abortController.abort();
     });
 

@@ -11,7 +11,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { app } from 'electron';
 import type { Logger } from '../logging/startupLogger';
 import { cleanupNextDevLock, ensureDevServices, findRepoRoot } from './devServices';
-import { startProductionServices } from './prodServices';
+import { startProductionServices, type ServerCrashInfo } from './prodServices';
 
 export type ServiceManager = {
   start: (args: {
@@ -21,8 +21,8 @@ export type ServiceManager = {
   }) => Promise<{
     serverUrl: string;
     webUrl: string;
-    /** Resolves with stderr summary when server process crashes; never resolves if healthy. */
-    serverCrashed?: Promise<string>;
+    /** Resolves with crash info when server process crashes; never resolves if healthy. */
+    serverCrashed?: Promise<ServerCrashInfo>;
   }>;
   stop: () => void;
 };

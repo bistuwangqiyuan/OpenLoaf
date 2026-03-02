@@ -21,6 +21,23 @@
 - Beta 渠道仅影响增量更新（server + web），Electron 本体始终 stable
 - 切换渠道后立即触发一次增量更新检查
 
+### 择优取高策略（Beta Gate）
+
+Beta 渠道检查更新时，同时拉取 beta 和 stable 的 manifest，**逐组件独立比较，取较高版本**：
+
+- 双方都无组件 → 跳过更新
+- beta 无组件但 stable 有 → 回退使用 stable 组件
+- 有 stable 可比 → server 和 web 各自取 `max(beta, stable)`
+- 无 stable 可比 → 直接使用 beta
+
+这确保 beta 用户始终能获得最佳可用版本，即使 beta 某个组件落后于 stable。
+
+### 渠道切换行为
+
+- **Beta → Stable**：保持当前已安装版本，未来只从 stable 获取更新。不降级。
+- **Stable → Beta**：未来从 beta 获取更新，如有更新版本则升级。
+- 现有 `switchUpdateChannel` + `checkForIncrementalUpdates('channel-switch')` 逻辑已满足需求。
+
 ## Remote Manifest 结构
 
 ```json
@@ -64,7 +81,8 @@
 ## 崩溃回滚
 
 `recordServerCrash()` 追踪 server 子进程崩溃：
-- 30 秒内连续 3 次崩溃 → 自动删除 `~/.openloaf/updates/server/current/`
+- 单次崩溃立即回滚：删除 `~/.openloaf/updates/server/current/`
+- 将崩溃版本加入黑名单（`crashedServerVersions`），防止再次自动升级到同一版本
 - 清除 local-manifest 中的 server 条目
 - 下次启动回退到 `process.resourcesPath/server.mjs`
 

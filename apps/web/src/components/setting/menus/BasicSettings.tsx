@@ -30,6 +30,7 @@ import { useBasicConfig } from "@/hooks/use-basic-config";
 import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
 import { SUPPORTED_UI_LANGUAGES } from "@/i18n/types";
 import type { LanguageId } from "@/i18n/types";
+import { detectSystemLanguage } from "@/i18n/detectLanguage";
 import LocalAccess from "./LocalAccess";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
@@ -51,11 +52,13 @@ export function BasicSettings() {
   const uiThemeManual = basic.uiThemeManual;
   const toolAllowOutsideScope = Boolean(basic.toolAllowOutsideScope);
 
-  const uiLanguage: LanguageId = SUPPORTED_UI_LANGUAGES.some(
-    l => l.value === uiLanguageRaw
-  )
-    ? (uiLanguageRaw as LanguageId)
-    : "zh-CN";
+  // Empty = follow system; FOLLOW_SYSTEM_VALUE is the sentinel for the radio group
+  const FOLLOW_SYSTEM_VALUE = '';
+  const isFollowingSystem = !uiLanguageRaw || !SUPPORTED_UI_LANGUAGES.some(l => l.value === uiLanguageRaw);
+  const uiLanguage: LanguageId | '' = isFollowingSystem ? FOLLOW_SYSTEM_VALUE : (uiLanguageRaw as LanguageId);
+  // For display only: when following system, show the detected language label
+  const systemLanguage = detectSystemLanguage();
+  const systemLanguageLabel = SUPPORTED_UI_LANGUAGES.find(l => l.value === systemLanguage)?.label ?? systemLanguage;
 
   const fontSize: FontSizeKey =
     fontSizeRaw === "small" ||
@@ -120,9 +123,10 @@ export function BasicSettings() {
       {({ resolved, toggleTheme }) => {
         const isAutoTheme = uiTheme === "system";
         const themeTabsValue = resolved;
-        const languageLabelById: Record<LanguageId, string> = Object.fromEntries(
-          SUPPORTED_UI_LANGUAGES.map(l => [l.value, l.label])
-        ) as Record<LanguageId, string>;
+        const languageLabelById: Record<string, string> = {
+          '': t('basicSettings.languageFollowSystem'),
+          ...Object.fromEntries(SUPPORTED_UI_LANGUAGES.map(l => [l.value, l.label])),
+        };
 
         return (
           <div className="space-y-6">
@@ -142,28 +146,31 @@ export function BasicSettings() {
                         <Button
                           type="button"
                           variant="outline"
-                        className="min-w-[200px] w-auto justify-between font-normal"
+                          className="min-w-[200px] w-auto justify-between font-normal"
                         >
                           <span className="truncate">
-                            {languageLabelById[uiLanguage]}
+                            {isFollowingSystem
+                              ? `${t('basicSettings.languageFollowSystem')} (${systemLanguageLabel})`
+                              : languageLabelById[uiLanguage]}
                           </span>
                           <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[220px]">
-                          <DropdownMenuRadioGroup
-                            value={uiLanguage}
-                            onValueChange={(next) => {
-                              void setBasic({ uiLanguage: next as LanguageId });
-                            }}
-                          >
-                          {SUPPORTED_UI_LANGUAGES.map(
-                            ({ value, label }) => (
-                              <DropdownMenuRadioItem key={value} value={value}>
-                                {label}
-                              </DropdownMenuRadioItem>
-                            ),
-                          )}
+                        <DropdownMenuRadioGroup
+                          value={uiLanguage}
+                          onValueChange={(next) => {
+                            void setBasic({ uiLanguage: (next as LanguageId) || null });
+                          }}
+                        >
+                          <DropdownMenuRadioItem value="">
+                            {t('basicSettings.languageFollowSystem')}
+                          </DropdownMenuRadioItem>
+                          {SUPPORTED_UI_LANGUAGES.map(({ value, label }) => (
+                            <DropdownMenuRadioItem key={value} value={value}>
+                              {label}
+                            </DropdownMenuRadioItem>
+                          ))}
                         </DropdownMenuRadioGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>

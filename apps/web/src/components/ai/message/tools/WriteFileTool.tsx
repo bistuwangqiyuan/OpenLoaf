@@ -10,6 +10,7 @@
 'use client'
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import {
   extractPatchDiffStats,
@@ -111,6 +112,7 @@ export default function WriteFileTool({
   part: AnyToolPart
   className?: string
 }) {
+  const { t } = useTranslation('ai')
   const { tabId, workspaceId, projectId } = useChatSession()
   const { toolParts } = useChatTools()
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
@@ -128,7 +130,7 @@ export default function WriteFileTool({
   const patch = typeof inputObj?.patch === 'string' ? inputObj.patch : ''
   const { fileName, fileCount, firstPath } = patch
     ? extractPatchFileInfo(patch)
-    : { fileName: '写入文件', fileCount: 1, firstPath: '' }
+    : { fileName: t('tool.writeFile'), fileCount: 1, firstPath: '' }
   const patchFiles = patch ? parsePatchFiles(patch) : []
   const state = typeof resolved.state === 'string' ? resolved.state : ''
   const errorText =
@@ -320,7 +322,7 @@ export default function WriteFileTool({
           {/* 错误信息 */}
           {isError ? (
             <div className="mt-1 text-destructive">
-              {errorText || '写入失败'}
+              {errorText || t('tool.writeFailed')}
             </div>
           ) : null}
 
@@ -328,7 +330,7 @@ export default function WriteFileTool({
           {isStreaming ? (
             <div className="mt-1 flex items-center gap-2 text-muted-foreground">
               <div className="size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-              写入中...
+              {t('tool.writing')}
             </div>
           ) : null}
         </div>
@@ -336,7 +338,7 @@ export default function WriteFileTool({
         {/* 审批区域（仅 pending 时显示） */}
         {isPending && approvalId ? (
           <div className="flex items-center justify-between border-t px-3 py-2.5">
-            <span className="text-xs text-muted-foreground">确认写入此文件？</span>
+            <span className="text-xs text-muted-foreground">{t('tool.confirmWrite')}</span>
             <ToolApprovalActions approvalId={approvalId} size="default" />
           </div>
         ) : null}

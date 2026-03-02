@@ -198,7 +198,8 @@ async function resolveSubAgentPromptContext(input: {
   // language
   let responseLanguage = UNKNOWN_VALUE
   try {
-    responseLanguage = readBasicConf().modelResponseLanguage
+    const conf = readBasicConf()
+    responseLanguage = conf.modelResponseLanguage ?? conf.uiLanguage ?? "zh-CN"
   } catch { /* fallback */ }
 
   // python

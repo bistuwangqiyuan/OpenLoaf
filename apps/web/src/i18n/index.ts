@@ -9,6 +9,7 @@
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { detectSystemLanguage } from './detectLanguage';
 
 // Import all translation files (static import for static export + Electron compatibility)
 // Simplified Chinese
@@ -46,7 +47,7 @@ import enUSDesktop from './locales/en-US/desktop.json';
 
 // Initialize react-i18next
 i18n.use(initReactI18next).init({
-  lng: 'zh-CN',
+  lng: detectSystemLanguage(),
   fallbackLng: 'zh-CN',
   debug: false,
   ns: ['common', 'nav', 'ai', 'settings', 'workspace', 'tasks', 'board', 'calendar', 'desktop'],

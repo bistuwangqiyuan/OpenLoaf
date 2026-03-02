@@ -15,6 +15,7 @@ import {
   useQueryClient,
   skipToken,
 } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import { FileText, Inbox, Send, Star, Trash2 } from 'lucide-react'
 
@@ -201,6 +202,7 @@ export type EmailCoreState = {
 
 export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): EmailCoreState {
   const queryClient = useQueryClient()
+  const { t } = useTranslation('common')
 
   // ── useState 声明 ──
   const [density, setDensityState] = React.useState<EmailDensity>(getStoredDensity)
@@ -210,10 +212,10 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   }, [])
   const [activeAccountEmail, setActiveAccountEmail] = React.useState<string | null>(null)
   const [activeMailbox, setActiveMailbox] = React.useState<string | null>(null)
-  const [activeView, setActiveView] = React.useState<UnifiedMailboxView>({
+  const [activeView, setActiveView] = React.useState<UnifiedMailboxView>(() => ({
     scope: 'all-inboxes',
-    label: '收件箱',
-  })
+    label: t('email.unifiedAllInboxes'),
+  }))
   const [expandedAccounts, setExpandedAccounts] = React.useState<Record<string, boolean>>({})
   const [expandedMailboxes, setExpandedMailboxes] = React.useState<Record<string, boolean>>({})
   const [mailboxOrderOverrides, setMailboxOrderOverrides] = React.useState<
@@ -253,7 +255,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   // ── 工作空间切换重置 ──
   React.useEffect(() => {
-    setActiveView({ scope: 'all-inboxes', label: '收件箱' })
+    setActiveView({ scope: 'all-inboxes', label: t('email.unifiedAllInboxes') })
     setActiveAccountEmail(null)
     setActiveMailbox(null)
     setSearchKeyword('')
@@ -264,7 +266,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
     setIsForwarding(false)
     setForwardDraft(null)
     setComposeDraft(null)
-  }, [workspaceId])
+  }, [workspaceId, t])
 
   React.useEffect(() => {
     flagOverridesRef.current = flagOverrides
@@ -381,13 +383,13 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const unifiedItems = React.useMemo(
     () => [
-      { scope: 'all-inboxes' as const, label: '收件箱', icon: Inbox, count: unifiedUnreadStats.allInboxes },
-      { scope: 'flagged' as const, label: '收藏', icon: Star, count: unifiedUnreadStats.flagged },
-      { scope: 'drafts' as const, label: '草稿', icon: FileText, count: unifiedUnreadStats.drafts },
-      { scope: 'sent' as const, label: '已发送', icon: Send, count: unifiedUnreadStats.sent },
-      { scope: 'deleted' as const, label: '已删除', icon: Trash2, count: 0 },
+      { scope: 'all-inboxes' as const, label: t('email.unifiedAllInboxes'), icon: Inbox, count: unifiedUnreadStats.allInboxes },
+      { scope: 'flagged' as const, label: t('email.favorite'), icon: Star, count: unifiedUnreadStats.flagged },
+      { scope: 'drafts' as const, label: t('email.unifiedDrafts'), icon: FileText, count: unifiedUnreadStats.drafts },
+      { scope: 'sent' as const, label: t('email.unifiedSent'), icon: Send, count: unifiedUnreadStats.sent },
+      { scope: 'deleted' as const, label: t('email.unifiedDeleted'), icon: Trash2, count: 0 },
     ],
-    [unifiedUnreadStats],
+    [t, unifiedUnreadStats],
   )
 
   // ── 服务端搜索 ──

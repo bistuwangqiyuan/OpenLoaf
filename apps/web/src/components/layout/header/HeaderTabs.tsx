@@ -659,7 +659,7 @@ export const HeaderTabs = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={6}>
-                新建标签页 ({newTabShortcut})
+                {t('header.newTab', { shortcut: newTabShortcut })}
               </TooltipContent>
             </Tooltip>
           </div>

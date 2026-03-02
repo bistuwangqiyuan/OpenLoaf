@@ -10,6 +10,7 @@
 'use client'
 
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { trpc } from '@/utils/trpc'
 import {
@@ -44,6 +45,7 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
   projectId,
   onOpenChat,
 }: TaskRunLogPanelProps) {
+  const { t } = useTranslation('ai')
   const logsQuery = useQuery({
     ...trpc.scheduledTask.runLogs.queryOptions(
       { taskId, workspaceId, projectId, limit: 50 },
@@ -56,18 +58,18 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[400px] sm:w-[440px] p-0">
         <SheetHeader className="px-5 pt-5 pb-3">
-          <SheetTitle className="text-base font-semibold">执行日志</SheetTitle>
+          <SheetTitle className="text-base font-semibold">{t('taskRunLog.title')}</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col overflow-y-auto max-h-[calc(100vh-100px)] px-5 pb-5">
           {logsQuery.isLoading ? (
             <div className="flex flex-col items-center gap-2 py-16">
               <Clock className="h-8 w-8 text-muted-foreground/30 animate-pulse" />
-              <span className="text-xs text-muted-foreground">加载中...</span>
+              <span className="text-xs text-muted-foreground">{t('taskRunLog.loading')}</span>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16">
               <Clock className="h-8 w-8 text-muted-foreground/20" />
-              <span className="text-xs text-muted-foreground">暂无执行记录</span>
+              <span className="text-xs text-muted-foreground">{t('taskRunLog.empty')}</span>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -94,7 +96,7 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
                     <div className={`flex-1 pb-4 ${isLast ? '' : ''}`}>
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-medium ${isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {isOk ? '成功' : '失败'}
+                          {isOk ? t('taskRunLog.statusOk') : t('taskRunLog.statusFailed')}
                         </span>
                         <span className="text-[11px] text-muted-foreground/60">
                           {formatDuration(log.durationMs)}
@@ -116,7 +118,7 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
                           onClick={() => onOpenChat(log.agentSessionId!)}
                         >
                           <MessageSquare className="mr-1 h-3 w-3" />
-                          查看对话
+                          {t('taskRunLog.viewChat')}
                         </Button>
                       ) : null}
                     </div>

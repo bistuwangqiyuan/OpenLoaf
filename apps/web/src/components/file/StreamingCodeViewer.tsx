@@ -10,6 +10,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from 'next-themes'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
@@ -84,6 +85,7 @@ export default function StreamingCodeViewer({
   workspaceId,
   projectId,
 }: StreamingCodeViewerProps) {
+  const { t } = useTranslation('common')
   // 逻辑：兼容单值和数组，合并为统一的 allToolCallIds。
   const allToolCallIds = useMemo(() => {
     if (toolCallIds?.length) return toolCallIds
@@ -287,17 +289,17 @@ export default function StreamingCodeViewer({
   // 逻辑：状态指示器。
   let statusIndicator: { text: string; color: string; destructive?: boolean } | null = null
   if (isError) {
-    statusIndicator = { text: '写入失败', color: 'bg-destructive', destructive: true }
+    statusIndicator = { text: t('saveFailed'), color: 'bg-destructive', destructive: true }
   } else if (isDone && patchResult?.isDelete) {
-    statusIndicator = { text: '文件已删除', color: 'bg-destructive', destructive: true }
+    statusIndicator = { text: t('file.fileDeleted'), color: 'bg-destructive', destructive: true }
   } else if (isDone && patchResult?.isAdd) {
-    statusIndicator = { text: '新建文件', color: 'bg-green-500' }
+    statusIndicator = { text: t('file.newFile'), color: 'bg-green-500' }
   } else if (isDone) {
-    statusIndicator = { text: '已完成', color: 'bg-green-500' }
+    statusIndicator = { text: t('saved'), color: 'bg-green-500' }
   } else if (loadingOriginal) {
-    statusIndicator = { text: '加载文件...', color: 'bg-blue-500 animate-pulse' }
+    statusIndicator = { text: t('file.loadingFile'), color: 'bg-blue-500 animate-pulse' }
   } else if (isStreaming) {
-    statusIndicator = { text: '变更中...', color: 'bg-blue-500 animate-pulse' }
+    statusIndicator = { text: t('file.changing'), color: 'bg-blue-500 animate-pulse' }
   }
 
   return (

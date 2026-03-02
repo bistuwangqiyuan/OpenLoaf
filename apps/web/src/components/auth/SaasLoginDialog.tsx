@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 import {
   Dialog,
@@ -32,6 +33,7 @@ type SaasLoginDialogProps = {
 
 /** SaasLoginDialog renders the SaaS login modal content. */
 export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
+  const { t } = useTranslation('common');
   // Login status from SaaS auth store.
   const {
     loggedIn,
@@ -51,7 +53,7 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
 
   const isBusy = loginStatus === "opening" || loginStatus === "polling";
   const isClosingAfterLogin = open && loggedIn && selectedProvider !== null && loginStatus === "idle";
-  const isLoginInProgress = isBusy || isClosingAfterLogin || isClosing;
+  const isLoginInProgress = isBusy || isClosingAfterLogin;
   const providerMeta =
     selectedProvider === "google"
       ? { src: "/icons/google.png", alt: "Google" }
@@ -60,14 +62,14 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
         : null;
   const subtitleText =
     isClosingAfterLogin
-      ? "登录成功，正在关闭…"
+      ? t('login.subtitleSuccess')
       : loginStatus === "opening"
-        ? "正在打开系统浏览器…"
+        ? t('login.subtitleOpening')
         : loginStatus === "polling"
-          ? "已在浏览器中打开，等待登录完成…"
+          ? t('login.subtitlePolling')
           : loginStatus === "error"
-            ? loginError ?? "登录失败，请重试"
-            : "连接你的云端账号";
+            ? loginError ?? t('login.subtitleError')
+            : t('login.subtitleDefault');
 
   /** Handle dialog open state changes. */
   const handleOpenChange = (nextOpen: boolean) => {
@@ -139,40 +141,37 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
         }}
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>登录云端账号</DialogTitle>
-          <DialogDescription>选择登录方式并继续</DialogDescription>
+          <DialogTitle>{t('login.dialogTitle')}</DialogTitle>
+          <DialogDescription>{t('login.dialogDesc')}</DialogDescription>
         </DialogHeader>
         <div className="bg-card text-card-foreground">
-          <div className="space-y-2 px-8 pt-8 pb-6 text-center">
-              <h1
-                className={cn(
-                  "text-[1.9rem] font-semibold leading-tight tracking-tight",
-                  isLoginInProgress && "flex justify-center",
-                )}
-              >
-                {isLoginInProgress && providerMeta ? (
-                  <>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-muted/40">
-                      <img
-                        src={providerMeta.src}
-                        alt={providerMeta.alt}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 object-contain"
-                      />
-                    </span>
-                    <span className="sr-only">欢迎使用 OpenLoaf</span>
-                  </>
-                ) : (
-                  <>
-                    欢迎使用 OpenLoaf
+          <div className="space-y-2 px-8 pt-10 pb-6 text-center">
+              {isLoginInProgress && providerMeta ? (
+                <div className="flex justify-center pb-2">
+                  <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-muted/40">
                     <img
-                      src="/logo_nobody.png"
-                      alt="OpenLoaf"
-                      className="ml-2 inline-block h-[2.85rem] w-[2.85rem] align-bottom"
+                      src={providerMeta.src}
+                      alt={providerMeta.alt}
+                      width={32}
+                      height={32}
+                      className="h-8 w-8 object-contain"
                     />
-                  </>
-                )}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex justify-center pb-2">
+                  <img
+                    src="/logo_nobody.png"
+                    alt="OpenLoaf"
+                    className="h-16 w-16 object-contain"
+                  />
+                </div>
+              )}
+              <h1 className="text-[1.9rem] font-semibold leading-tight tracking-tight">
+                {isLoginInProgress
+                  ? <span className="sr-only">{t('login.welcome')}</span>
+                  : t('login.welcome')
+                }
               </h1>
               <p
                 className={cn(
@@ -200,7 +199,7 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
                       onOpenChange(false);
                     }}
                   >
-                    取消登录
+                    {t('login.cancelLogin')}
                   </button>
                 )}
               </div>
@@ -225,12 +224,12 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
                       className="h-5 w-5 object-contain"
                     />
                   </span>
-                  <span>使用 Google 登录</span>
+                  <span>{t('login.loginWithGoogle')}</span>
                 </button>
 
                 <div className="flex items-center gap-4">
                   <div className="h-px flex-1 bg-border/60" />
-                  <span className="text-xs text-muted-foreground">或</span>
+                  <span className="text-xs text-muted-foreground">{t('login.orDivider')}</span>
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
 
@@ -253,7 +252,7 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
                       className="h-5 w-5 object-contain"
                     />
                   </span>
-                  <span>使用微信登录</span>
+                  <span>{t('login.loginWithWechat')}</span>
                 </button>
               </>
             )}
@@ -261,42 +260,27 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
 
           {!isLoginInProgress && (
             <div className="border-t border-border/60 px-8 py-4 text-xs text-muted-foreground">
-              登录即表示你同意{" "}
-              <Link
-                href="#"
-                className="text-muted-foreground underline transition-colors hover:text-foreground"
-              >
-                MSA
+              {t('login.agreePrefix')}{" "}
+              <Link href="#" className="text-muted-foreground underline transition-colors hover:text-foreground">
+                {t('login.msa')}
               </Link>
-              ，{" "}
-              <Link
-                href="#"
-                className="text-muted-foreground underline transition-colors hover:text-foreground"
-              >
-                产品条款
+              {", "}
+              <Link href="#" className="text-muted-foreground underline transition-colors hover:text-foreground">
+                {t('login.productTerms')}
               </Link>
-              ，{" "}
-              <Link
-                href="#"
-                className="text-muted-foreground underline transition-colors hover:text-foreground"
-              >
-                政策
+              {", "}
+              <Link href="#" className="text-muted-foreground underline transition-colors hover:text-foreground">
+                {t('login.policy')}
               </Link>
-              ，{" "}
-              <Link
-                href="#"
-                className="text-muted-foreground underline transition-colors hover:text-foreground"
-              >
-                隐私声明
+              {", "}
+              <Link href="#" className="text-muted-foreground underline transition-colors hover:text-foreground">
+                {t('login.privacyStatement')}
               </Link>
-              ，以及{" "}
-              <Link
-                href="#"
-                className="text-muted-foreground underline transition-colors hover:text-foreground"
-              >
-                Cookie 声明
+              {", "}
+              <Link href="#" className="text-muted-foreground underline transition-colors hover:text-foreground">
+                {t('login.cookieStatement')}
               </Link>
-              。
+              {t('login.agreeSuffix')}
             </div>
           )}
         </div>

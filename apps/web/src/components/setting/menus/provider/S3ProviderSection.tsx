@@ -7,6 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
+import { useTranslation } from "react-i18next";
 import { Button } from "@openloaf/ui/button";
 import {
   Table,
@@ -67,20 +68,19 @@ export function S3ProviderSection({
   activeS3Id,
   testingKey,
 }: S3ProviderSectionProps) {
+  const { t } = useTranslation("settings");
   return (
     <>
       <OpenLoafSettingsGroup
-        title="S3 存储服务商"
-        subtitle="配置对象存储服务商的 Endpoint 与访问凭证。"
+        title={t("s3.groupTitle")}
+        subtitle={t("s3.groupSubtitle")}
         className="pb-4"
       >
         <div className="divide-y divide-border">
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">图片自动上传</div>
-              <div className="text-xs text-muted-foreground">
-                AI 对话需要公网访问图片时，将自动把图片上传到 S3。
-              </div>
+              <div className="text-sm font-medium">{t("s3.autoUpload")}</div>
+              <div className="text-xs text-muted-foreground">{t("s3.autoUploadDesc")}</div>
             </div>
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end">
               <Switch checked={autoUploadEnabled} onCheckedChange={onAutoUploadChange} />
@@ -88,10 +88,8 @@ export function S3ProviderSection({
           </div>
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">S3 图片自动删除</div>
-              <div className="text-xs text-muted-foreground">
-                经过指定小时数后，自动从 S3 清理已上传的图片。
-              </div>
+              <div className="text-sm font-medium">{t("s3.autoDelete")}</div>
+              <div className="text-xs text-muted-foreground">{t("s3.autoDeleteDesc")}</div>
             </div>
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
@@ -104,7 +102,7 @@ export function S3ProviderSection({
                 <Minus className="h-4 w-4" />
               </Button>
               <div className="min-w-[56px] text-center text-sm tabular-nums">
-                {autoDeleteHours} 小时
+                {autoDeleteHours} {t("s3.hours")}
               </div>
               <Button
                 size="icon"
@@ -121,12 +119,12 @@ export function S3ProviderSection({
       </OpenLoafSettingsGroup>
 
       <OpenLoafSettingsGroup
-        title="服务商列表"
-        subtitle="管理已添加的服务商配置，支持激活与测试。"
+        title={t("s3.providerListTitle")}
+        subtitle={t("s3.providerListSubtitle")}
         showBorder={false}
         action={
           <Button variant="default" onClick={onAdd}>
-            添加
+            {t("s3.add")}
           </Button>
         }
       >
@@ -134,12 +132,12 @@ export function S3ProviderSection({
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>名称</TableHead>
-                <TableHead>服务商</TableHead>
+                <TableHead>{t("s3.colName")}</TableHead>
+                <TableHead>{t("s3.colProvider")}</TableHead>
                 <TableHead>Endpoint</TableHead>
                 <TableHead>Region</TableHead>
                 <TableHead>Bucket</TableHead>
-                <TableHead className="text-right">操作</TableHead>
+                <TableHead className="text-right">{t("s3.colActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,7 +150,7 @@ export function S3ProviderSection({
                         <span>{entry.key}</span>
                         {isActive ? (
                           <span className="px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700">
-                            激活
+                            {t("s3.active")}
                           </span>
                         ) : null}
                       </div>
@@ -179,7 +177,7 @@ export function S3ProviderSection({
                             onClick={() => onActivate(entry)}
                             aria-label="Activate S3 entry"
                           >
-                            激活
+                            {t("s3.activate")}
                           </Button>
                         ) : null}
                         <Button
@@ -219,7 +217,7 @@ export function S3ProviderSection({
               {entries.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
-                    暂无 S3 存储服务商，点击右上角添加。
+                    {t("s3.empty")}
                   </TableCell>
                 </TableRow>
               ) : null}

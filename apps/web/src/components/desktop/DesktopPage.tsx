@@ -45,7 +45,7 @@ function getEditMaxWidth(breakpoint: DesktopBreakpoint) {
 }
 
 const resolveIconTitle = (iconKey: DesktopIconKey) =>
-  desktopIconCatalog.find((item) => item.iconKey === iconKey)?.title ?? i18next.t('desktop:page.iconFallback');
+  i18next.t(`desktop:iconCatalog.${iconKey}`, { defaultValue: i18next.t('desktop:page.iconFallback') });
 
 const BASE_DESKTOP_ITEMS: DesktopItem[] = [
   {
@@ -435,7 +435,7 @@ export default function DesktopPage({
           <ContextMenuTrigger asChild>{desktopBody}</ContextMenuTrigger>
           <ContextMenuContent className="w-40">
             <ContextMenuItem icon={PencilLine} onClick={() => onSetEditMode(true)}>
-              编辑
+              {t('page.edit')}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>

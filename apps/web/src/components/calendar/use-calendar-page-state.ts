@@ -10,6 +10,7 @@
 import type { CalendarEvent as UiCalendarEvent } from "@openloaf/ui/calendar/components/types";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import i18next from "i18next";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "@openloaf/ui/calendar/lib/configs/dayjs-config";
 import { trpc } from "@/utils/trpc";
@@ -235,13 +236,13 @@ export function useCalendarPageState({
 
   useEffect(() => {
     if (sourcesQuery.error) {
-      setErrorMessage(sourcesQuery.error.message ?? "日历数据加载失败。");
+      setErrorMessage(sourcesQuery.error.message ?? i18next.t('calendar:errLoadSources'));
     }
   }, [sourcesQuery.error]);
 
   useEffect(() => {
     if (itemsQuery.error) {
-      setErrorMessage(itemsQuery.error.message ?? "日历事件加载失败。");
+      setErrorMessage(itemsQuery.error.message ?? i18next.t('calendar:errLoadItems'));
     }
   }, [itemsQuery.error]);
 
@@ -329,7 +330,7 @@ export function useCalendarPageState({
     }
     setPermissionState(result.data);
     if (result.data !== "granted") {
-      setErrorMessage("未授权系统日历访问权限。");
+      setErrorMessage(i18next.t('calendar:errUnauthorized'));
       return result;
     }
     setErrorMessage(null);
@@ -403,7 +404,7 @@ export function useCalendarPageState({
         });
       },
       onError: (error) => {
-        setErrorMessage(error.message || "新增日历事件失败。");
+        setErrorMessage(error.message || i18next.t('calendar:errAddEvent'));
       },
     }),
   );
@@ -421,7 +422,7 @@ export function useCalendarPageState({
         });
       },
       onError: (error) => {
-        setErrorMessage(error.message || "更新日历事件失败。");
+        setErrorMessage(error.message || i18next.t('calendar:errUpdateEvent'));
       },
     }),
   );
@@ -439,7 +440,7 @@ export function useCalendarPageState({
         });
       },
       onError: (error) => {
-        setErrorMessage(error.message || "删除日历事件失败。");
+        setErrorMessage(error.message || i18next.t('calendar:errDeleteEvent'));
       },
     }),
   );
@@ -457,7 +458,7 @@ export function useCalendarPageState({
         });
       },
       onError: (error) => {
-        setErrorMessage(error.message || "更新提醒事项失败。");
+        setErrorMessage(error.message || i18next.t('calendar:errUpdateReminder'));
       },
     }),
   );
@@ -506,7 +507,7 @@ export function useCalendarPageState({
         const externalId = (event.data as { externalId?: string | null } | undefined)
           ?.externalId;
         if (!externalId) {
-          setErrorMessage("未找到系统事件 ID。");
+          setErrorMessage(i18next.t('calendar:errEventIdNotFound'));
           return;
         }
         const systemEvent = toSystemEvent({
@@ -633,7 +634,7 @@ export function useCalendarPageState({
           return;
         }
       } else if (source.provider !== "local") {
-        setErrorMessage("未找到系统事件 ID。");
+        setErrorMessage(i18next.t('calendar:errEventIdNotFound'));
         return;
       }
       try {
@@ -689,7 +690,7 @@ export function useCalendarPageState({
         return;
       }
     } else if (source && source.provider !== "local") {
-      setErrorMessage("未找到系统事件 ID。");
+      setErrorMessage(i18next.t('calendar:errEventIdNotFound'));
       return;
     }
     try {

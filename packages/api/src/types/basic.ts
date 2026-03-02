@@ -86,7 +86,7 @@ export const basicConfigSchema = z.object({
   activeS3Id: z.string().optional(),
   s3AutoUpload: z.boolean(),
   s3AutoDeleteHours: z.number().int().min(1).max(168),
-  modelResponseLanguage: modelResponseLanguageSchema,
+  modelResponseLanguage: modelResponseLanguageSchema.nullable(),
   /** @deprecated Use per-agent model config instead. */
   modelQuality: modelQualitySchema,
   chatOnlineSearchMemoryScope: chatOnlineSearchMemoryScopeSchema,
@@ -95,7 +95,7 @@ export const basicConfigSchema = z.object({
   autoSummaryEnabled: z.boolean(),
   /** @deprecated Use scheduled tasks instead. */
   autoSummaryHours: z.array(z.number().int().min(0).max(24)),
-  uiLanguage: uiLanguageSchema,
+  uiLanguage: uiLanguageSchema.nullable(),
   uiFontSize: uiFontSizeSchema,
   // UI animation intensity.
   uiAnimationLevel: uiAnimationLevelSchema,

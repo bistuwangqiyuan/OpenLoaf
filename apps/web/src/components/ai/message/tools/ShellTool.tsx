@@ -10,6 +10,7 @@
 'use client'
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { TrafficLights } from '@openloaf/ui/traffic-lights'
 import {
@@ -137,6 +138,7 @@ export default function ShellTool({
   part: AnyToolPart
   className?: string
 }) {
+  const { t } = useTranslation('ai')
   const command = resolveCommand(part)
   const isStreaming = isToolStreaming(part)
   const hasError =
@@ -225,7 +227,7 @@ export default function ShellTool({
         {/* 审批区域 */}
         {isPending && approvalId ? (
           <div className="flex items-center justify-between px-3 py-2.5">
-            <span className="text-xs text-muted-foreground">确认执行此命令？</span>
+            <span className="text-xs text-muted-foreground">{t('tool.confirmExec')}</span>
             <ToolApprovalActions approvalId={approvalId} size="default" />
           </div>
         ) : null}

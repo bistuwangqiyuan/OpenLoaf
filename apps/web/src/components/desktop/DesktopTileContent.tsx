@@ -181,7 +181,7 @@ export default function DesktopTileContent({
         type="button"
         className="group flex h-full w-full items-center justify-center p-2"
         onClick={() => handleIconClick(item.iconKey)}
-        aria-label={item.title}
+        aria-label={t('iconCatalog.' + item.iconKey, { defaultValue: item.title })}
       >
         <div className={
           isWide
@@ -197,11 +197,11 @@ export default function DesktopTileContent({
           </div>
           {isWide ? (
             <span className="whitespace-nowrap text-xs font-medium text-foreground transition-transform duration-200 ease-out group-hover:scale-[1.03]">
-              {item.title}
+              {t('iconCatalog.' + item.iconKey, { defaultValue: item.title })}
             </span>
           ) : (
             <DesktopIconLabel className="-mt-0.5 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:scale-[1.03]">
-              {item.title}
+              {t('iconCatalog.' + item.iconKey, { defaultValue: item.title })}
             </DesktopIconLabel>
           )}
         </div>
@@ -328,7 +328,7 @@ export default function DesktopTileContent({
   return (
     <div className="flex h-full w-full flex-col p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="truncate text-sm font-medium">{item.title}</div>
+        <div className="truncate text-sm font-medium">{widgetKey ? t('catalog.' + widgetKey, { defaultValue: item.title }) : item.title}</div>
       </div>
       <div className="mt-3 min-h-0 flex-1">
         {widgetKey === "clock" ? <ClockWidget variant={item.variant as 'hm' | 'hms' | undefined} /> : <QuickActionsWidget scope={scope} />}

@@ -183,5 +183,35 @@
     "loadFailed": "元件載入失敗",
     "retry": "重試",
     "missingParams": "缺少 Widget 參數"
+  },
+  "calendarWidget": {
+    "openDetail": "開啟日曆詳情"
+  },
+  "taskBoard": {
+    "statusRunning": "執行中",
+    "statusReview": "審查",
+    "statusTodo": "待辦",
+    "statusDone": "完成",
+    "loading": "正在載入任務...",
+    "noActiveTasks": "暫無活躍任務",
+    "openTaskBoard": "開啟任務看板",
+    "priorityUrgent": "緊急",
+    "priorityHigh": "高",
+    "priorityMedium": "中",
+    "priorityLow": "低"
+  },
+  "threeDFolder": {
+    "noFolderInfo": "未找到資料夾資訊",
+    "unnamedProject": "未命名專案"
+  },
+  "videoWidget": {
+    "noFile": "未選擇視頻",
+    "bindHint": "請在設定中綁定視頻",
+    "clickToPlay": "點擊播放視頻",
+    "play": "播放"
+  },
+  "webStack": {
+    "updating": "更新中",
+    "openWeb": "開啟網頁"
   }
 }

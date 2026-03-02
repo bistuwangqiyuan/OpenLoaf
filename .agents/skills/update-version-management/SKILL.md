@@ -203,6 +203,30 @@ gh run list --limit 3 --json status,conclusion
 
 4. **等待 Actions 成功后再执行 Step 7（版本号加一）**
 
+### Beta-first 发布流程
+
+推荐的安全发布流程：先发 beta 渠道 → 内部验证 → promote 到 stable。
+
+#### 完整步骤
+
+1. **版本号设为 beta**：`npm version prerelease --preid=beta`（如 0.3.0 → 0.3.0-beta.0）
+2. **发布到 beta**：
+   ```bash
+   cd apps/server && pnpm run publish-update  # 自动检测 -beta → beta 渠道
+   cd apps/web && pnpm run publish-update
+   ```
+3. **打 tag + push**：
+   ```bash
+   git tag server-v0.3.0-beta.0 && git tag web-v0.3.0-beta.0
+   git push && git push origin --tags
+   ```
+4. **内部测试**（beta 用户自动收到更新）
+5. **有 bug** → 修复 → `npm version prerelease` → 重复 2-4
+6. **验证通过 → promote**：`pnpm promote [--dry-run]`
+7. **版本号递增**：`npm version patch --no-git-tag-version`（0.3.0-beta.N → 0.3.1）
+
+> **渠道切换行为：** Beta → Stable 保持当前版本不降级。Stable → Beta 如有更新版本则升级。
+
 ---
 
 ### Electron 桌面端发布（CI/CD 自动化）
@@ -310,6 +334,7 @@ git push origin electron-v{version}
 | 版本号加一（minor） | `npm version minor --no-git-tag-version` |
 | 版本号加一（major） | `npm version major --no-git-tag-version` |
 | Beta 版本号 | `x.y.z-beta.n`（自动归入 beta 渠道） |
+| Beta → Stable promote | `pnpm promote [--component=server\|web] [--dry-run]` |
 
 ## Common Mistakes
 
@@ -325,6 +350,7 @@ git push origin electron-v{version}
 | 直接用 `dist:production` 本地发布 Electron | 只有单平台产物 | 通过 git tag 触发 CI 全平台构建 |
 | Lockfile 未更新就推送 tag | CI 构建失败 `ERR_PNPM_OUTDATED_LOCKFILE` | 打包前先运行 `pnpm install --no-frozen-lockfile` 提交后再推送 tag |
 | GitHub Actions 成功前改版本号 | 版本号与 tag 不一致 | 必须等 Actions 显示 `success` 状态后再执行版本号加一 |
+| 直接发 stable 未经 beta 验证 | 问题版本影响全量用户 | 先发 beta → 内部测试通过 → `pnpm promote` 转正 |
 
 ---
 

@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Terminal } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { StackHeader } from "@/components/layout/StackHeader";
@@ -132,6 +133,7 @@ function TerminalSessionView({
   /** Clear one-time auto-run command after it is consumed. */
   onAutoRunConsumed?: (tabId: string, nonce: string) => void;
 }) {
+  const { t } = useTranslation('common');
   const pwdUri = getTerminalTabPwdUri(tab);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -303,13 +305,13 @@ function TerminalSessionView({
             terminal.write(payload.data);
           } else if (payload.type === "exit") {
             setStatus("error");
-            setErrorMessage("终端已退出");
+            setErrorMessage(t('terminal.exited'));
           }
         };
 
         socket.onerror = () => {
           setStatus("error");
-          setErrorMessage("终端连接失败");
+          setErrorMessage(t('terminal.connectFailed'));
         };
         socket.onclose = () => {
           if (disposed) return;
@@ -319,7 +321,7 @@ function TerminalSessionView({
         if (disposed) return;
         setStatus("error");
         setErrorMessage(
-          error instanceof Error ? error.message : "终端连接失败"
+          error instanceof Error ? error.message : t('terminal.connectFailed')
         );
       }
     };
@@ -361,11 +363,11 @@ function TerminalSessionView({
       <div className="terminal-viewer flex-1" ref={containerRef} />
       {status === "connecting" ? (
         <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
-          正在连接终端…
+          {t('terminal.connecting')}
         </div>
       ) : status === "error" ? (
         <div className="border-t border-border/60 px-3 py-2 text-xs text-destructive">
-          {errorMessage ?? "终端连接失败"}
+          {errorMessage ?? t('terminal.connectFailed')}
         </div>
       ) : null}
     </div>
@@ -380,6 +382,7 @@ export default function TerminalViewer({
   panelKey,
   tabId,
 }: TerminalViewerProps) {
+  const { t } = useTranslation('common');
   const terminalStatus = useTerminalStatus();
   const { workspace } = useWorkspace();
   const tabActive = useTabActive();
@@ -496,13 +499,13 @@ export default function TerminalViewer({
   const onNewTerminalTab = useCallback(() => {
     if (!safeTabId) return;
     if (!enabled) {
-      toast.error("终端功能未开启");
+      toast.error(t('terminal.disabled'));
       return;
     }
     const activePwd = activeTab ? getTerminalTabPwdUri(activeTab) : "";
     const fallbackPwd = activePwd || workspace?.rootUri || "";
     if (!fallbackPwd) {
-      toast.error("未找到工作区目录");
+      toast.error(t('terminal.noWorkspaceDir'));
       return;
     }
     // 中文注释：默认沿用当前标签的 pwd，不存在则回退到 workspace 根目录。
@@ -562,7 +565,7 @@ export default function TerminalViewer({
   /** Close the terminal panel with confirmation. */
   const onClosePanel = () => {
     if (!safeTabId) return;
-    const ok = window.confirm("关闭终端面板将关闭所有标签，确定继续？");
+    const ok = window.confirm(t('terminal.closeConfirm'));
     if (!ok) return;
     useTabRuntime.getState().removeStackItem(safeTabId, resolvedPanelKey);
   };
@@ -585,7 +588,7 @@ export default function TerminalViewer({
   if (!safeTabId) {
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-        缺少 TabId
+        {t('terminal.missingTabId')}
       </div>
     );
   }
@@ -616,15 +619,15 @@ export default function TerminalViewer({
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {terminalStatus.isLoading ? (
           <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-            正在检查终端状态…
+            {t('terminal.checkingStatus')}
           </div>
         ) : !terminalStatus.enabled ? (
           <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-            终端功能未开启
+            {t('terminal.disabled')}
           </div>
         ) : normalizedTabs.length === 0 ? (
           <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-            未选择目录
+            {t('terminal.noDir')}
           </div>
         ) : (
           normalizedTabs.map((tab) => {
@@ -644,7 +647,7 @@ export default function TerminalViewer({
                       : "pointer-events-none opacity-0",
                   )}
                 >
-                  暂不支持的终端标签
+                  {t('terminal.unsupportedTab')}
                 </div>
               );
             }

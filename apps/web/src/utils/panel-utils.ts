@@ -11,6 +11,7 @@
  * 面板工具函数，包含组件映射和面板标题处理
  */
 import React from "react";
+import i18next from "i18next";
 import { Chat } from "@/components/ai/Chat";
 import ElectrronBrowserWindow from "@/components/browser/ElectrronBrowserWindow";
 import ToolResultPanel from "@/components/tools/ToolResultPanel";
@@ -73,8 +74,8 @@ function SettingsStackSlotButton({ settingsMenu }: { settingsMenu: string }) {
         {
           type: "button",
           className: "inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors",
-          title: "在设置中打开",
-          "aria-label": "在设置中打开",
+          title: i18next.t('nav:panelTitle.openInSettings'),
+          "aria-label": i18next.t('nav:panelTitle.openInSettings'),
           onClick: () => {
             if (workspace?.id) openSettingsTab(workspace.id, settingsMenu);
           },
@@ -151,81 +152,12 @@ export const ComponentMap: Record<string, PanelComponent> = {
  * @returns 格式化后的面板标题
  */
 export const getPanelTitle = (componentName: string) => {
-  switch (componentName) {
-    case "ai-chat":
-      return "AI 对话";
-    case "plant-page":
-      return "项目";
-    case "electron-browser-window":
-      return "浏览器窗口";
-    case "tool-result":
-      return "工具结果";
-    case "settings-page":
-      return "设置";
-    case "provider-management":
-      return "模型供应商管理";
-    case "calendar-page":
-      return "日历";
-    case "email-page":
-      return "邮箱";
-    case "email-compose-stack":
-      return "写邮件";
-    case "email-message-stack":
-      return "邮件正文";
-    case "inbox-page":
-      return "收件箱";
-    case "template-page":
-      return "模板";
-    case "file-viewer":
-      return "文件";
-    case "image-viewer":
-      return "图片";
-    case "code-viewer":
-      return "代码";
-    case "markdown-viewer":
-      return "Markdown";
-    case "pdf-viewer":
-      return "PDF";
-    case "doc-viewer":
-      return "文档";
-    case "sheet-viewer":
-      return "表格";
-    case "video-viewer":
-      return "视频";
-    case "board-viewer":
-      return "画布";
-    case "terminal-viewer":
-      return "终端";
-    case "desktop-widget-library":
-      return "组件库";
-    case "workspace-desktop":
-      return "工作台";
-    case "folder-tree-preview":
-      return "文件夹";
-    case "scheduler-task-history":
-      return "任务历史";
-    case "scheduled-tasks-page":
-      return "任务看板";
-    case "agent-detail":
-      return "Agent助手 详情";
-    case "agent-management":
-      return "Agent助手 管理";
-    case "skill-settings":
-      return "技能设置";
-    case "streaming-code-viewer":
-      return "写入文件";
-    case "plate-doc-viewer":
-      return "文稿";
-    case "streaming-plate-viewer":
-      return "编辑文稿";
-    case "dynamic-widget-viewer":
-      return "Widget";
-    case "sub-agent-chat":
-      return "子代理";
-    case "task-detail":
-      return "任务详情";
-    default:
-      // 如果没有匹配的标题，直接返回组件名称
-      return componentName;
-  }
+  // markdown-viewer and pdf-viewer keep their non-localized names
+  if (componentName === "markdown-viewer") return "Markdown";
+  if (componentName === "pdf-viewer") return "PDF";
+  if (componentName === "dynamic-widget-viewer") return "Widget";
+  const key = `nav:panelTitle.${componentName}`;
+  const translated = i18next.t(key);
+  // If the key doesn't exist, i18next returns the key itself — fall back to componentName
+  return translated === key ? componentName : translated;
 };

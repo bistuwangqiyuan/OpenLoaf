@@ -25,6 +25,7 @@
     "check": "biome check .",
     "publish:server": "pnpm --filter server run publish-update",
     "publish:web": "pnpm --filter web run publish-update",
+    "promote": "node scripts/promote-beta-to-stable.mjs",
     "clean": "pnpm -r exec node -e \"const fs=require('fs');['node_modules','dist','.turbo','.next','out','build'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch{}})\" && node -e \"const fs=require('fs');['node_modules','dist','.turbo','.next','out','build'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch{}})\""
   },
   "dependencies": {

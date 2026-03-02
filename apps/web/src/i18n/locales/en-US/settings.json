@@ -32,6 +32,7 @@
     "preferencesSubtitle": "Adjust model response language and interaction preferences.",
     "modelResponseLanguage": "Model Response Language",
     "modelResponseLanguageNote": "Switching not yet supported, preferences saved only",
+    "modelResponseLanguageFollowUI": "Follow app language",
     "chatMemoryScope": "Chat Input Memory Scope",
     "chatMemoryScopeDesc": "Control whether \"Web Search / Model Selection\" in chat input is remembered per Tab or globally",
     "chatMemoryScopeTab": "Tab Memory",
@@ -88,6 +89,7 @@
     "systemConfig": "System Settings",
     "language": "Language",
     "languageDesc": "Change the UI display language",
+    "languageFollowSystem": "Follow system",
     "theme": "Theme",
     "themeDesc": "Choose dark or light mode",
     "themeDark": "Dark",
@@ -601,5 +603,110 @@
     "noModels": "No available models",
     "unselected": "Select a model",
     "separator": ", "
+  },
+  "s3": {
+    "addProvider": "Add S3 Provider",
+    "editProvider": "Edit S3 Provider",
+    "provider": "Provider",
+    "name": "Name",
+    "namePlaceholder": "e.g.: AWS-S3",
+    "endpointPlaceholder": "e.g.: https://s3.amazonaws.com",
+    "regionPlaceholder": "e.g.: us-east-1 (optional)",
+    "bucketPlaceholder": "e.g.: openloaf-bucket",
+    "publicBaseUrlPlaceholder": "e.g.: https://cdn.example.com (optional)",
+    "forcePathStyleDesc": "Required by some S3-compatible services",
+    "accessKeyIdPlaceholder": "Enter AccessKeyID",
+    "secretAccessKeyPlaceholder": "Enter SecretAccessKey",
+    "showSecretKey": "Show SecretAccessKey",
+    "hideSecretKey": "Hide SecretAccessKey",
+    "cancel": "Cancel",
+    "save": "Save",
+    "groupTitle": "S3 Storage Providers",
+    "groupSubtitle": "Configure endpoint and credentials for object storage providers.",
+    "autoUpload": "Auto Image Upload",
+    "autoUploadDesc": "When AI chat needs public access to images, they will be automatically uploaded to S3.",
+    "autoDelete": "S3 Auto Image Deletion",
+    "autoDeleteDesc": "Automatically clean up uploaded images from S3 after the specified number of hours.",
+    "hours": "hours",
+    "providerListTitle": "Provider List",
+    "providerListSubtitle": "Manage configured providers with activation and testing support.",
+    "add": "Add",
+    "colName": "Name",
+    "colProvider": "Provider",
+    "colActions": "Actions",
+    "activate": "Activate",
+    "active": "Active",
+    "empty": "No S3 providers yet. Click the button above to add one.",
+    "deleteTitle": "Confirm Delete",
+    "deleteDesc": "Are you sure you want to delete this S3 provider configuration?",
+    "testResultTitle": "S3 Test Upload Result",
+    "uploadFailed": "S3 test upload failed",
+    "noUrlReturned": "S3 test upload failed: server did not return a URL",
+    "copyUrl": "Copy URL",
+    "close": "Close",
+    "copied": "Copied",
+    "copyFailed": "Copy failed, please copy manually"
+  },
+  "auxiliaryCapabilities": {
+    "project.classify": {
+      "label": "Project Classification",
+      "description": "When a user creates or imports a project, scans the file structure to automatically determine the project type and recommend an icon.",
+      "triggers": ["After Git clone completes", "When importing an existing folder", "First time opening a legacy project (silent background)"]
+    },
+    "chat.suggestions": {
+      "label": "Input Suggestions",
+      "description": "When the user pauses in the input box, generates smart input suggestions based on context.",
+      "triggers": ["Input box paused for 500ms", "Input box focused (no content)"]
+    },
+    "chat.title": {
+      "label": "Summary Title",
+      "description": "Automatically generates a short, meaningful title for the conversation after it ends.",
+      "triggers": ["Auto-named after conversation ends", "User manually triggers rename"]
+    },
+    "project.ephemeralName": {
+      "label": "Temporary Project Naming",
+      "description": "When Agent creates a temporary project, automatically generates a project name, icon, and type based on task context.",
+      "triggers": ["When Agent creates a temporary project"]
+    },
+    "git.commitMessage": {
+      "label": "Commit Message",
+      "description": "Automatically generates a standardized Git commit message based on code changes.",
+      "triggers": ["User requests commit message generation"]
+    },
+    "text.translate": {
+      "label": "Text Translation",
+      "description": "Translates selected text or conversation content to the target language, auto-detecting the source language.",
+      "triggers": ["User selects text and requests translation", "Translation requested in conversation"]
+    }
+  },
+  "agentTemplates": {
+    "browser": { "name": "Browser Assistant", "description": "Web browsing and data extraction" },
+    "calendar": { "name": "Calendar Assistant", "description": "Calendar event management" },
+    "coder": { "name": "Coding Assistant", "description": "Code development using AI CLI tools" },
+    "document": { "name": "Document Assistant", "description": "File reading/writing, document analysis and auto-summarization" },
+    "email": { "name": "Email Assistant", "description": "Email query and operations" },
+    "master": { "name": "Master Assistant", "description": "Hybrid-mode master agent that can execute simple tasks directly or dispatch sub-agents" },
+    "project": { "name": "Project Assistant", "description": "Project data query and operations" },
+    "shell": { "name": "Terminal Assistant", "description": "Shell command execution" },
+    "vision": { "name": "Visual Analysis", "description": "Image/video understanding and description generation" },
+    "widget": { "name": "Widget Assistant", "description": "Dynamic widget creation" }
+  },
+  "capabilityGroups": {
+    "browser": "Browser",
+    "file-read": "File Read",
+    "file-write": "File Write",
+    "shell": "Terminal",
+    "email": "Email",
+    "calendar": "Calendar",
+    "office": "Office Docs",
+    "image-generate": "Image Gen",
+    "video-generate": "Video Gen",
+    "chart": "Charts",
+    "widget": "Widget",
+    "project": "Project",
+    "web": "Network",
+    "agent": "Sub-Agent",
+    "code-interpreter": "JS REPL",
+    "system": "System"
   }
 }

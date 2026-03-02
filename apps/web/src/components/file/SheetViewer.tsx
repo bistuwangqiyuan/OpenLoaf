@@ -10,6 +10,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Save } from "lucide-react";
@@ -420,6 +421,7 @@ export default function SheetViewer({
   tabId,
   readOnly,
 }: SheetViewerProps) {
+  const { t } = useTranslation('common');
   // 逻辑：仅在 stack 面板场景下展示最小化/关闭按钮。
   const canMinimize = Boolean(tabId);
   const canClose = Boolean(tabId && panelKey);
@@ -588,12 +590,12 @@ export default function SheetViewer({
   const handleSave = async () => {
     // 逻辑：导出当前快照为 Excel，并写回本地文件。
     if (!uri || !shouldUseFs) {
-      toast.error("暂不支持保存此地址");
+      toast.error(t('file.noSaveTarget'));
       return;
     }
     const workbook = workbookRef.current;
     if (!workbook) {
-      toast.error("没有可保存的内容");
+      toast.error(t('file.noContent'));
       return;
     }
     try {
@@ -610,12 +612,12 @@ export default function SheetViewer({
       });
       setIsDirty(false);
       if (saveUri !== uri) {
-        toast.success("已另存为 Excel 文件");
+        toast.success(t('file.savedAsExcel'));
       } else {
-        toast.success("已保存");
+        toast.success(t('saved'));
       }
     } catch {
-      toast.error("保存失败");
+      toast.error(t('saveFailed'));
     }
   };
 
@@ -636,14 +638,14 @@ export default function SheetViewer({
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label="保存"
+                  aria-label={t('save')}
                   onClick={() => void handleSave()}
                   disabled={!shouldUseFs || status !== "ready" || writeBinaryMutation.isPending}
                 >
                   <Save className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">保存</TooltipContent>
+              <TooltipContent side="bottom">{t('save')}</TooltipContent>
             </Tooltip>
           ) : null
         }
@@ -659,7 +661,7 @@ export default function SheetViewer({
           canClose
             ? () => {
                 if (isDirty) {
-                  const ok = window.confirm("当前表格尚未保存，确定要关闭吗？");
+                  const ok = window.confirm(t('file.unsavedSheet'));
                   if (!ok) return;
                 }
                 removeStackItem(tabId!, panelKey!);
@@ -675,12 +677,12 @@ export default function SheetViewer({
         ) : null}
         {status === "loading" || fileQuery.isLoading ? (
           <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            加载中…
+            {t('loading')}
           </div>
         ) : null}
         {status === "error" || fileQuery.isError ? (
           <div className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            表格预览失败
+            {t('file.sheetLoadFailed')}
           </div>
         ) : null}
         <div className="h-full min-h-0 flex-1" ref={containerRef} />

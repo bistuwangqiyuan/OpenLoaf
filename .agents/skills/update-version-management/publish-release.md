@@ -144,12 +144,36 @@ date: 2026-02-08
 
 CI 中这些变量通过 GitHub Secrets 注入。
 
-## Beta 转 Stable
+## Beta 转 Stable（Promote 脚本）
 
-当 beta 版本测试通过后，转正流程：
-1. 更新 `stable/manifest.json`，将组件的 URL 指向已有的 beta 构件
-2. 无需重新构建或上传构件（共享池复用）
-3. 可通过发布脚本 `--channel=stable` 配合已有版本号实现
+当 beta 版本测试通过后，使用 promote 脚本将 beta manifest 条目复制到 stable：
+
+```bash
+# 预览变更（不实际写入）
+pnpm promote --dry-run
+
+# 全部 promote
+pnpm promote
+
+# 仅 promote server
+pnpm promote --component=server
+
+# 仅 promote web
+pnpm promote --component=web
+```
+
+### 工作原理
+
+1. 从 R2 下载 `beta/manifest.json` 和 `stable/manifest.json`
+2. 将 beta 中的组件条目（包括 version、url、sha256 等）复制到 stable
+3. 同步 `electron.minVersion`
+4. 上传更新后的 `stable/manifest.json`
+
+**版本号保留原样**（如 `0.3.0-beta.1`），构件 URL 不变（共享池复用）。
+
+### 凭证
+
+脚本从 `apps/server/.env.prod` 加载 R2 凭证，也可通过环境变量直接设置。
 
 ## 注意事项
 

@@ -17,6 +17,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { Streamdown, defaultRemarkPlugins, type StreamdownProps } from "streamdown";
 import remarkMdx from "remark-mdx";
@@ -377,6 +378,7 @@ export default function MarkdownViewer({
   __chatHistorySessionId,
   __chatHistoryJsonlPath,
 }: MarkdownViewerProps) {
+  const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const workspaceRootUri = workspace?.rootUri ?? "";
@@ -459,7 +461,7 @@ export default function MarkdownViewer({
       sessionId: chatHistorySessionId,
     });
     if (!targetUri) {
-      toast.error("未找到日志目录");
+      toast.error(t('file.logDirNotFound'));
       return;
     }
     const api = window.openloafElectron;
@@ -482,19 +484,19 @@ export default function MarkdownViewer({
     }
     const res = await api.openPath({ uri: targetUri });
     if (!res?.ok) {
-      toast.error(res?.reason ?? "无法打开文件管理器");
+      toast.error(res?.reason ?? t('file.openFileMgrFailed'));
     }
   }, [chatHistoryJsonlPath, chatHistorySessionId, workspaceRootUri, tabId, projectId, pushStackItem]);
 
   /** Copy chat history jsonl file path for the current branch. */
   const handleCopyChatHistoryJsonlPath = async () => {
     if (!chatHistoryJsonlPath) {
-      toast.error("未找到聊天日志文件");
+      toast.error(t('file.logFileNotFound'));
       return;
     }
     try {
       await navigator.clipboard.writeText(chatHistoryJsonlPath);
-      toast.success("已复制聊天日志路径");
+      toast.success(t('file.logPathCopied'));
     } catch {
       // 逻辑：剪贴板 API 失败时使用降级复制，保证 Electron/Web 均可复制。
       const textarea = document.createElement("textarea");
@@ -505,7 +507,7 @@ export default function MarkdownViewer({
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      toast.success("已复制聊天日志路径");
+      toast.success(t('file.logPathCopied'));
     }
   };
 
@@ -516,7 +518,7 @@ export default function MarkdownViewer({
   }, []);
 
   const previewContent = !hasInlineContent && fileQuery.isLoading ? (
-    <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>
+    <div className="h-full w-full p-4 text-muted-foreground">{t('loading')}</div>
   ) : !hasInlineContent && fileQuery.data?.tooLarge ? (
     <ReadFileErrorFallback
       uri={uri}
@@ -587,8 +589,8 @@ export default function MarkdownViewer({
                     size="icon"
                     onClick={handleSave}
                     disabled={!codeStatus.canSave}
-                    aria-label="保存"
-                    title="保存"
+                    aria-label={t('save')}
+                    title={t('save')}
                   >
                     <Save className="h-4 w-4" />
                   </Button>
@@ -597,8 +599,8 @@ export default function MarkdownViewer({
                     size="icon"
                     onClick={handleUndo}
                     disabled={!codeStatus.canUndo}
-                    aria-label="撤销"
-                    title="撤销"
+                    aria-label={t('undo')}
+                    title={t('undo')}
                   >
                     <Undo2 className="h-4 w-4" />
                   </Button>
@@ -609,8 +611,8 @@ export default function MarkdownViewer({
                   variant="ghost"
                   size="icon"
                   onClick={toggleMode}
-                  aria-label={isEditMode ? "预览" : "编辑"}
-                  title={isEditMode ? "预览" : "编辑"}
+                  aria-label={isEditMode ? t('preview') : t('edit')}
+                  title={isEditMode ? t('preview') : t('edit')}
                 >
                   {isEditMode ? (
                     <Eye className="h-4 w-4" />
@@ -628,8 +630,8 @@ export default function MarkdownViewer({
                   variant="ghost"
                   size="icon"
                   onClick={handleCopyChatHistoryJsonlPath}
-                  aria-label="复制日志路径"
-                  title="复制日志路径"
+                  aria-label={t('file.copyLogPath')}
+                  title={t('file.copyLogPath')}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -637,8 +639,8 @@ export default function MarkdownViewer({
                   variant="ghost"
                   size="icon"
                   onClick={handleOpenChatHistoryFolder}
-                  aria-label="打开日志目录"
-                  title="打开日志目录"
+                  aria-label={t('file.openLogDir')}
+                  title={t('file.openLogDir')}
                 >
                   <FolderOpen className="h-4 w-4" />
                 </Button>

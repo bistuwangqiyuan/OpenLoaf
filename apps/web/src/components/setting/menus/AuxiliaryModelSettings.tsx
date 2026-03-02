@@ -358,7 +358,7 @@ export function AuxiliaryModelSettings() {
         >
           <div className="flex h-full min-h-0 gap-0">
             {/* Left: capability list */}
-            <div className="w-36 shrink-0 overflow-y-auto border-r border-border/60">
+            <div className="w-44 shrink-0 overflow-y-auto border-r border-border/60">
               <div className="py-1">
                 {capabilitiesQuery.data.map((cap) => {
                   const mapping = CAP_ICON_MAP[cap.key]
@@ -372,14 +372,14 @@ export function AuxiliaryModelSettings() {
                       type="button"
                       onClick={() => setActiveCapKey(cap.key)}
                       className={cn(
-                        'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors duration-150',
+                        'flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-left text-xs transition-colors duration-150',
                         isActive
                           ? 'bg-accent/80 text-accent-foreground font-medium'
                           : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground',
                       )}
                     >
                       <Icon className={cn('h-3.5 w-3.5 shrink-0', iconColor)} />
-                      <span className="truncate">{cap.label}</span>
+                      <span className="truncate">{t(`auxiliaryCapabilities.${cap.key}.label`, { defaultValue: cap.label })}</span>
                       {hasCustom && (
                         <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-500/15 dark:bg-sky-400/15">
                           <Check className="h-2.5 w-2.5 text-sky-600 dark:text-sky-400" />
@@ -405,7 +405,7 @@ export function AuxiliaryModelSettings() {
                           const iconColor = mapping?.color ?? 'text-muted-foreground'
                           return <Icon className={cn('h-4 w-4', iconColor)} />
                         })()}
-                        {activeCap.label}
+                        {t(`auxiliaryCapabilities.${activeCap.key}.label`, { defaultValue: activeCap.label })}
                         {activeCap.outputMode && OUTPUT_MODE_CLASS[activeCap.outputMode] && (
                           <span
                             className={cn(
@@ -418,7 +418,7 @@ export function AuxiliaryModelSettings() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        {activeCap.description}
+                        {t(`auxiliaryCapabilities.${activeCap.key}.description`, { defaultValue: activeCap.description })}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
@@ -449,7 +449,7 @@ export function AuxiliaryModelSettings() {
                   <div className="shrink-0">
                     <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('auxiliaryModel.triggerScene')}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {activeCap.triggers.map((trigger, idx) => (
+                      {(t(`auxiliaryCapabilities.${activeCap.key}.triggers`, { returnObjects: true, defaultValue: activeCap.triggers }) as string[]).map((trigger, idx) => (
                         <span
                           key={trigger}
                           className={cn(
@@ -505,7 +505,7 @@ export function AuxiliaryModelSettings() {
           open={testDialogOpen}
           onOpenChange={setTestDialogOpen}
           capabilityKey={activeCap.key}
-          capabilityLabel={activeCap.label}
+          capabilityLabel={t(`auxiliaryCapabilities.${activeCap.key}.label`, { defaultValue: activeCap.label })}
           outputMode={activeCap.outputMode}
           currentPrompt={currentPrompt}
         />

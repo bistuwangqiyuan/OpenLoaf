@@ -16,6 +16,7 @@
     "checkUpdateTriggered": "已觸發更新檢查",
     "checkUpdateError": "更新檢查失敗",
     "loggedIn": "已登入",
+    "notLoggedIn": "未登入",
     "wechatUser": "微信用戶",
     "wechatLogin": "微信登入",
     "currentAccount": "目前帳戶",

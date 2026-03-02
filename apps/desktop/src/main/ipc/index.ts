@@ -554,6 +554,19 @@ export function registerIpcHandlers(args: { log: Logger }) {
     return { ok: true as const, count: getWebContentsViewCount(win) };
   });
 
+  // 读取 startup.log 内容（最后 5000 字符），供崩溃反馈时附带。
+  ipcMain.handle('openloaf:startup-log:read', async () => {
+    try {
+      const logPath = path.join(app.getPath('userData'), 'startup.log');
+      const content = await fs.readFile(logPath, 'utf-8');
+      // 截取最后 5000 字符，避免反馈体积过大
+      const tail = content.length > 5000 ? content.slice(-5000) : content;
+      return { ok: true as const, content: tail };
+    } catch {
+      return { ok: false as const, reason: 'Failed to read startup log' };
+    }
+  });
+
   // 手动触发增量更新检查（server/web 增量更新）。
   ipcMain.handle('openloaf:incremental-update:check', async () => {
     return await checkForIncrementalUpdates('manual');

@@ -286,7 +286,7 @@ export const SidebarWorkspace = () => {
                     {workspaceDisplayName}
                   </div>
                   <div className="truncate text-[11px] text-muted-foreground leading-4">
-                    {sidebarAccountLabel ?? t('loggedIn')}
+                    {sidebarAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))}
                   </div>
                 </div>
                 <ChevronsUpDown className="text-muted-foreground size-4 group-data-[collapsible=icon]:hidden" />
@@ -314,7 +314,7 @@ export const SidebarWorkspace = () => {
                     {authUser?.name || t('currentAccount')}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground leading-4">
-                    <span className="truncate">{dropdownAccountLabel ?? t('loggedIn')}</span>
+                    <span className="truncate">{dropdownAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))}</span>
                     {authLoggedIn && userProfileQuery.data && (
                       <span className="ml-auto flex shrink-0 items-center gap-1.5">
                         <span

@@ -9,11 +9,13 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { AnimatedThemeToggle } from "@openloaf/ui/animated-theme-toggle";
 
 /** Toggle theme and persist the selection. */
 export const ModeToggle = () => {
+  const { t } = useTranslation('nav');
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -22,7 +24,7 @@ export const ModeToggle = () => {
         />
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
-        切换主题
+        {t('header.toggleTheme')}
       </TooltipContent>
     </Tooltip>
   );

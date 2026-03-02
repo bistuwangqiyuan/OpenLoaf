@@ -17,6 +17,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { exportToDocx, importDocx } from "@platejs/docx-io";
 import { DocxPlugin } from "@platejs/docx";
@@ -170,6 +171,7 @@ export default function DocViewer({
   tabId,
   readOnly,
 }: DocViewerProps) {
+  const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   /** Current viewer status. */
@@ -315,11 +317,11 @@ export default function DocViewer({
   const handleSave = async () => {
     // 逻辑：仅在可编辑且内容变更时保存。
     if (!uri || !shouldUseFs) {
-      toast.error("暂不支持保存此地址");
+      toast.error(t('file.noSaveTarget'));
       return;
     }
     if (!workspaceId) {
-      toast.error("未找到工作区");
+      toast.error(t('noWorkspace'));
       return;
     }
     if (!canEdit || !isDirty || !editor) return;
@@ -337,9 +339,9 @@ export default function DocViewer({
         contentBase64,
       });
       setIsDirty(false);
-      toast.success("已保存");
+      toast.success(t('saved'));
     } catch {
-      toast.error("保存失败");
+      toast.error(t('saveFailed'));
     }
   };
 
@@ -368,8 +370,8 @@ export default function DocViewer({
                       status !== "ready" ||
                       !isDirty
                     }
-                    aria-label="保存"
-                    title="保存"
+                    aria-label={t('save')}
+                    title={t('save')}
                   >
                     <Save className="h-4 w-4" />
                   </Button>
@@ -378,8 +380,8 @@ export default function DocViewer({
                   variant="ghost"
                   size="icon"
                   onClick={toggleMode}
-                  aria-label={isEditMode ? "预览" : "编辑"}
-                  title={isEditMode ? "预览" : "编辑"}
+                  aria-label={isEditMode ? t('preview') : t('edit')}
+                  title={isEditMode ? t('preview') : t('edit')}
                 >
                   {isEditMode ? <Eye className="h-4 w-4" /> : <PencilLine className="h-4 w-4" />}
                 </Button>
@@ -394,7 +396,7 @@ export default function DocViewer({
           onClose={() => {
             if (!tabId || !panelKey) return;
             if (isDirty) {
-              const ok = window.confirm("当前文档尚未保存，确定要关闭吗？");
+              const ok = window.confirm(t('file.unsavedDoc'));
               if (!ok) return;
             }
             removeStackItem(tabId, panelKey);
@@ -416,7 +418,7 @@ export default function DocViewer({
         ) : null}
         {status === "loading" || fileQuery.isLoading ? (
           <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            加载中…
+            {t('loading')}
           </div>
         ) : null}
         {status === "error" || fileQuery.isError ? (
@@ -426,7 +428,7 @@ export default function DocViewer({
             projectId={projectId}
             rootUri={rootUri}
             error={fileQuery.error ?? parseError ?? undefined}
-            message="文档预览失败"
+            message={t('file.docLoadFailed')}
             description="请检查文件格式或权限后重试。"
             className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
           />

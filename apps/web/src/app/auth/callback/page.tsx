@@ -11,18 +11,20 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { exchangeLoginCode } from "@/lib/saas-auth";
 
 type Status = "loading" | "success" | "error";
 
 export default function AuthCallbackPage() {
+  const { t } = useTranslation('common');
   return (
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
           <div className="rounded-2xl border border-border/60 bg-background px-6 py-8 text-center shadow-sm">
-            <h1 className="text-lg font-semibold">正在完成登录</h1>
-            <p className="mt-2 text-sm text-muted-foreground">请稍候...</p>
+            <h1 className="text-lg font-semibold">{t('login.completing')}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t('login.pleaseWait')}</p>
           </div>
         </div>
       }
@@ -35,6 +37,7 @@ export default function AuthCallbackPage() {
 function AuthCallbackContent() {
   const router = useRouter();
   const search = useSearchParams();
+  const { t } = useTranslation('common');
   const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
@@ -62,17 +65,17 @@ function AuthCallbackContent() {
       <div className="rounded-2xl border border-border/60 bg-background px-6 py-8 text-center shadow-sm">
         <h1 className="text-lg font-semibold">
           {status === "loading"
-            ? "正在完成登录"
+            ? t('login.completing')
             : status === "success"
-              ? "登录成功"
-              : "登录失败"}
+              ? t('login.success')
+              : t('login.failed')}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {status === "loading"
-            ? "请稍候..."
+            ? t('login.pleaseWait')
             : status === "success"
-              ? "正在跳转..."
-              : "请返回并重试登录"}
+              ? t('login.redirecting')
+              : t('login.tryAgain')}
         </p>
       </div>
     </div>

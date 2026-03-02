@@ -1,4 +1,16 @@
 {
+  "blocked": {
+    "titleCloudLogin": "登入後使用雲端模型",
+    "titleLocalEmpty": "本地模型未設定",
+    "titleDefault": "開始智能對話",
+    "descCloudLogin": "目前選擇的是雲端模型，登入後即可使用",
+    "descLocalEmptySwitch": "切換到雲端模型，或設定本地 AI 服務商",
+    "descDefault": "登入雲端或設定本地 AI 服務商",
+    "btnSwitchCloud": "使用雲端模型",
+    "btnLoginCloud": "登入 OpenLoaf 雲端",
+    "btnSwitchLocal": "切換到本地模型",
+    "btnConfigLocal": "自訂AI服務商"
+  },
   "chat": {
     "newChat": "新對話",
     "placeholder": "輸入您的問題…",
@@ -20,6 +32,9 @@
     "retry": "重試",
     "likeThis": "讚同",
     "dislikeThis": "不讚同",
+    "editPlaceholder": "編輯訊息…",
+    "send": "傳送",
+    "cancel": "取消",
     "deleteNode": "刪除節點",
     "deleteNodeTitle": "確認刪除節點",
     "deleteNodeConfirm": "確認刪除該節點及其子節點？",
@@ -173,7 +188,9 @@
     "uploadFailed": "影像上傳失敗，請重試",
     "noServerUrl": "影像上傳失敗：伺服器未回傳地址",
     "networkError": "影像上傳失敗，請檢查網路連線",
-    "fileTooLarge": "檔案過大（{{size}}），請小於 {{max}}"
+    "fileTooLarge": "檔案過大（{{size}}），請小於 {{max}}",
+    "loadFailed": "圖片載入失敗",
+    "loading": "圖片載入中…"
   },
   "aiModel": {
     "openaiKey": "OpenAI API Key",
@@ -245,6 +262,13 @@
     "characterLimitExceeded": "內容超出 {{max}} 字元限制，請縮短訊息",
     "manageModels": "管理模型"
   },
+  "dock": {
+    "aiAssistant": "AI 助手",
+    "inputPlaceholder": "輸入內容",
+    "suggestion1": "幫我總結今天的工作進展",
+    "suggestion2": "分析目前專案的程式碼品質",
+    "suggestion3": "產生一份本週工作週報"
+  },
   "modelTags": {
     "chat": "對話",
     "code": "程式碼",
@@ -259,5 +283,33 @@
     "video_generation": "影片生成",
     "video_analysis": "影片理解",
     "audio_analysis": "音訊分析"
+  },
+  "tool": {
+    "writeFile": "寫入檔案",
+    "writeFailed": "寫入失敗",
+    "writing": "寫入中…",
+    "confirmWrite": "確認寫入此檔案？",
+    "approvalRequest": "工具呼叫請求審批",
+    "approvalContinue": "確認後將繼續執行。",
+    "approvalAccepted": "已批准執行",
+    "approvalRejected": "已拒絕執行",
+    "rejected": "已拒絕",
+    "outputLoading": "輸出載入中…",
+    "confirmExec": "確認執行此命令？"
+  },
+  "error": {
+    "title": "發生錯誤",
+    "unknown": "發生未知錯誤",
+    "copied": "已複製",
+    "copyLog": "複製日誌",
+    "retry": "重試"
+  },
+  "taskRunLog": {
+    "title": "執行日誌",
+    "loading": "載入中...",
+    "empty": "暫無執行記錄",
+    "statusOk": "成功",
+    "statusFailed": "失敗",
+    "viewChat": "查看對話"
   }
 }

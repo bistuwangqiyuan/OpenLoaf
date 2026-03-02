@@ -493,7 +493,7 @@ export default function DesktopTileGridstack({
                 >
                   {variants.map((v) => (
                     <ContextMenuRadioItem key={v.key} value={v.key}>
-                      {v.label}
+                      {t('variants.' + v.key)}
                     </ContextMenuRadioItem>
                   ))}
                 </ContextMenuRadioGroup>

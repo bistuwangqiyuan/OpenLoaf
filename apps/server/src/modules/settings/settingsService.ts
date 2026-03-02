@@ -319,11 +319,13 @@ export async function setBasicConfigFromWeb(update: BasicConfigUpdate): Promise<
     ...update,
   };
   const responseLanguage =
-    ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-      next.modelResponseLanguage,
-    )
-      ? next.modelResponseLanguage
-      : current.modelResponseLanguage;
+    next.modelResponseLanguage === null
+      ? null
+      : ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
+            next.modelResponseLanguage as string,
+          )
+        ? next.modelResponseLanguage
+        : current.modelResponseLanguage;
   const modelQuality =
     next.modelQuality === "high" || next.modelQuality === "medium" || next.modelQuality === "low"
       ? next.modelQuality
@@ -349,10 +351,9 @@ export async function setBasicConfigFromWeb(update: BasicConfigUpdate): Promise<
     current.autoSummaryHours,
   );
   const uiLanguage =
-    typeof next.uiLanguage === "string" &&
-    ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-      next.uiLanguage,
-    )
+    next.uiLanguage === null ? null
+    : typeof next.uiLanguage === "string" &&
+      ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(next.uiLanguage)
       ? next.uiLanguage
       : current.uiLanguage;
   const uiFontSize =
@@ -588,7 +589,7 @@ export async function deleteSettingValueFromWeb(key: string, category?: string) 
     return;
   }
   if (key === MODEL_RESPONSE_LANGUAGE_KEY) {
-    writeBasicConf({ ...readBasicConfig(), modelResponseLanguage: "zh-CN" });
+    writeBasicConf({ ...readBasicConfig(), modelResponseLanguage: null });
     return;
   }
   if (key === MODEL_CHAT_QUALITY_KEY) {

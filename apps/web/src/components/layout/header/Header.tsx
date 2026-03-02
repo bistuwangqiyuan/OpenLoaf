@@ -9,6 +9,7 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { PanelLeft, PanelRight, Settings, Sparkles } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
@@ -57,6 +58,7 @@ function formatShortcutLabel(shortcut: string, isMac: boolean): string {
 }
 
 export const Header = () => {
+  const { t } = useTranslation('nav');
   const { toggleSidebar, open: leftOpen } = useSidebar();
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id;
@@ -116,7 +118,7 @@ export const Header = () => {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
-            切换侧边栏 ({sidebarShortcut})
+            {t('header.toggleSidebar', { shortcut: sidebarShortcut })}
           </TooltipContent>
         </Tooltip>
         <div className="flex-1"></div>
@@ -136,7 +138,7 @@ export const Header = () => {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
-            {settingsShortcut ? `打开设置 (${settingsShortcut})` : "打开设置"}
+            {settingsShortcut ? t('header.openSettingsWithShortcut', { shortcut: settingsShortcut }) : t('header.openSettings')}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -192,7 +194,7 @@ export const Header = () => {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
-            切换聊天面板 ({chatShortcut})
+            {t('header.toggleChatPanel', { shortcut: chatShortcut })}
           </TooltipContent>
         </Tooltip>
       </div>

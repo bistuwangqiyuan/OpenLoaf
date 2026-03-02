@@ -18,6 +18,7 @@ import zlib from 'node:zlib'
 
 const execFileAsync = promisify(execFile)
 import type { Logger } from './logging/startupLogger'
+import { getAutoUpdateStatus } from './autoUpdate'
 import { getUpdatesRoot } from './incrementalUpdatePaths'
 import { resolveUpdateBaseUrl, resolveUpdateChannel } from './updateConfig'
 import {
@@ -37,11 +38,6 @@ const INITIAL_CHECK_DELAY_MS = 10_000
 /** 定期检查间隔（24 小时） */
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 
-/** server 连续崩溃达到此次数则自动回滚 */
-const MAX_CRASH_COUNT = 3
-
-/** 判定为"连续崩溃"的时间窗口 */
-const CRASH_WINDOW_MS = 30_000
 
 // ---------------------------------------------------------------------------
 // 类型
@@ -74,6 +70,8 @@ type LocalComponentState = {
 type LocalManifest = {
   server?: LocalComponentState
   web?: LocalComponentState
+  /** Server versions that crashed after incremental update; skip these during update checks. */
+  crashedServerVersions?: string[]
 }
 
 type ComponentInfo = {
@@ -96,6 +94,11 @@ export type IncrementalUpdateStatus = {
 
 export type IncrementalUpdateResult = { ok: true } | { ok: false; reason: string }
 
+export type ServerCrashResult = {
+  rolledBack: boolean
+  crashedVersion?: string
+}
+
 // ---------------------------------------------------------------------------
 // 模块状态
 // ---------------------------------------------------------------------------
@@ -105,8 +108,6 @@ let cachedLog: Logger | null = null
 let checkTimer: NodeJS.Timeout | null = null
 let lastStatus: IncrementalUpdateStatus = buildIdleStatus()
 
-/** server 子进程崩溃时间戳（用于判定连续崩溃） */
-const serverCrashTimestamps: number[] = []
 
 // ---------------------------------------------------------------------------
 // 辅助
@@ -187,6 +188,23 @@ function pruneOutdatedUpdates(log: Logger): void {
     )
   }
 
+  // 清理低于打包版本的崩溃黑名单条目
+  if (local.crashedServerVersions?.length) {
+    const bundledServerVersion = resolveBundledVersion('server')
+    if (bundledServerVersion) {
+      const filtered = local.crashedServerVersions.filter(
+        (v) => compareVersions(v, bundledServerVersion) > 0
+      )
+      if (filtered.length !== local.crashedServerVersions.length) {
+        local.crashedServerVersions = filtered.length > 0 ? filtered : undefined
+        changed = true
+        log(
+          `[incremental-update] Pruned crashed server version blacklist to: [${filtered.join(', ')}]`
+        )
+      }
+    }
+  }
+
   if (changed) {
     writeLocalManifest(local)
   }
@@ -197,6 +215,7 @@ function writeLocalManifest(manifest: LocalManifest): void {
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(localManifestPath(), JSON.stringify(manifest, null, 2), 'utf-8')
 }
+
 
 function getComponentInfo(component: 'server' | 'web'): ComponentInfo {
   const local = readLocalManifest()
@@ -507,6 +526,18 @@ export async function checkForIncrementalUpdates(
     return { ok: false, reason: 'not-packaged' }
   }
 
+  // Desktop 更新优先：如果有 Electron 新版本正在下载或已就绪，跳过增量更新。
+  // Desktop 更新会重新打包 server/web，增量更新在此时是浪费带宽。
+  const autoStatus = getAutoUpdateStatus()
+  if (['available', 'downloading', 'downloaded'].includes(autoStatus.state)) {
+    cachedLog?.(
+      `[incremental-update] Skipped (${reason}): desktop update ${autoStatus.state}` +
+        (autoStatus.nextVersion ? ` (v${autoStatus.nextVersion})` : '') +
+        '. Desktop update takes priority.'
+    )
+    return { ok: false, reason: 'desktop-update-pending' }
+  }
+
   try {
     emitStatus({
       state: 'checking',
@@ -544,13 +575,10 @@ export async function checkForIncrementalUpdates(
         log(`[incremental-update] Failed to fetch stable manifest: ${message}`)
       }
 
-      // 中文注释：beta 渠道缺版本或落后于 stable 时，跳过本次增量更新。
       const decision = gateBetaManifest<ComponentManifest>({ beta: remoteRaw, stable })
-      if (decision.skipped) {
-        log(
-          `[incremental-update] Beta updates skipped (${decision.reason ?? 'beta-unavailable-or-older'}).`
-        )
-      }
+      log(
+        `[incremental-update] Beta gate decision: ${decision.reason ?? 'unknown'}${decision.skipped ? ' (skipped)' : ''}`
+      )
       remote = decision.manifest
     }
 
@@ -575,12 +603,20 @@ export async function checkForIncrementalUpdates(
     const currentWebVersion = resolveCurrentVersion('web', local)
     let hasUpdate = false
 
-    // 检查 server 更新
+    // 检查 server 更新（跳过黑名单中的崩溃版本）
     if (remote.server && isRemoteNewer(currentServerVersion, remote.server.version)) {
-      log(
-        `[incremental-update] Server update available: ${currentServerVersion ?? 'unknown'} → ${remote.server.version}`
-      )
-      hasUpdate = true
+      const blacklist = local.crashedServerVersions ?? []
+      if (blacklist.includes(remote.server.version)) {
+        log(
+          `[incremental-update] Server v${remote.server.version} is in crash blacklist. Skipping.`
+        )
+        remote = { ...remote, server: undefined }
+      } else {
+        log(
+          `[incremental-update] Server update available: ${currentServerVersion ?? 'unknown'} → ${remote.server.version}`
+        )
+        hasUpdate = true
+      }
     }
 
     // 检查 web 更新
@@ -670,6 +706,7 @@ export function getIncrementalUpdateStatus(): IncrementalUpdateStatus {
 // 重置到打包版本
 // ---------------------------------------------------------------------------
 
+
 export function resetToBuiltinVersion(): IncrementalUpdateResult {
   try {
     const root = updatesRoot()
@@ -692,44 +729,38 @@ export function resetToBuiltinVersion(): IncrementalUpdateResult {
 
 /**
  * 当 server 子进程崩溃时调用此函数。
- * 如果在 CRASH_WINDOW_MS 内连续崩溃 MAX_CRASH_COUNT 次，
- * 自动删除增量更新的 server，回退到打包版本。
+ * 立即删除增量更新的 server，回退到打包版本，并将崩溃版本加入黑名单。
  */
-export function recordServerCrash(): boolean {
-  const now = Date.now()
-  serverCrashTimestamps.push(now)
+export function recordServerCrash(): ServerCrashResult {
+  const serverCurrentDir = path.join(updatesRoot(), 'server', 'current')
+  const local = readLocalManifest()
+  const crashedVersion = local.server?.version
 
-  // 只保留窗口期内的记录
-  while (
-    serverCrashTimestamps.length > 0 &&
-    now - serverCrashTimestamps[0] > CRASH_WINDOW_MS
-  ) {
-    serverCrashTimestamps.shift()
-  }
+  if (fs.existsSync(serverCurrentDir)) {
+    cachedLog?.('[incremental-update] Server crashed. Rolling back to bundled version.')
+    fs.rmSync(serverCurrentDir, { recursive: true, force: true })
 
-  if (serverCrashTimestamps.length >= MAX_CRASH_COUNT) {
-    const serverCurrentDir = path.join(updatesRoot(), 'server', 'current')
-    if (fs.existsSync(serverCurrentDir)) {
-      cachedLog?.(
-        `[incremental-update] Server crashed ${MAX_CRASH_COUNT} times in ${CRASH_WINDOW_MS}ms. Rolling back to bundled version.`
-      )
-      fs.rmSync(serverCurrentDir, { recursive: true, force: true })
-
-      // 清除本地清单中的 server 条目
-      const local = readLocalManifest()
-      delete local.server
-      writeLocalManifest(local)
-
-      emitStatus({
-        server: getComponentInfo('server'),
-        error: 'Server 连续崩溃，已回滚到打包版本',
-      })
-
-      serverCrashTimestamps.length = 0
-      return true // 已回滚
+    // 将崩溃版本加入黑名单，防止再次自动升级到同一版本
+    if (crashedVersion) {
+      const blacklist = local.crashedServerVersions ?? []
+      if (!blacklist.includes(crashedVersion)) {
+        blacklist.push(crashedVersion)
+      }
+      local.crashedServerVersions = blacklist
+      cachedLog?.(`[incremental-update] Added server v${crashedVersion} to crash blacklist.`)
     }
+
+    delete local.server
+    writeLocalManifest(local)
+
+    emitStatus({
+      server: getComponentInfo('server'),
+      error: 'Server 崩溃，已回滚到打包版本',
+    })
+
+    return { rolledBack: true, crashedVersion }
   }
-  return false // 未回滚
+  return { rolledBack: false }
 }
 
 // ---------------------------------------------------------------------------

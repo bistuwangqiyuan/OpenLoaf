@@ -297,13 +297,13 @@ function resolveAccountSnapshot(): AccountSnapshot {
 
 /** Resolve response language configuration for prompt injection. */
 function resolveResponseLanguage(): string {
-  let language = UNKNOWN_VALUE;
   try {
-    language = readBasicConf().modelResponseLanguage;
+    const conf = readBasicConf();
+    // null means "follow UI language"
+    return conf.modelResponseLanguage ?? conf.uiLanguage ?? "zh-CN";
   } catch {
-    language = UNKNOWN_VALUE;
+    return UNKNOWN_VALUE;
   }
-  return language;
 }
 
 /** Resolve timezone string for prompt injection. */

@@ -12,6 +12,8 @@
 import * as React from "react";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { AnimatedFolder, type AnimatedFolderProject } from "@openloaf/ui/3d-folder";
 import { useProjects } from "@/hooks/use-projects";
 import { getPreviewEndpoint } from "@/lib/image/uri";
@@ -57,10 +59,11 @@ const FALLBACK_PROJECTS: FolderProject[] = [];
 
 /** Resolve a friendly folder title based on the selected URI. */
 function resolveFolderTitle(folderUri?: string) {
-  if (!folderUri) return "文件夹";
+  const fallback = i18next.t('desktop:page.folderFallback');
+  if (!folderUri) return fallback;
   const displayPath = getDisplayPathFromUri(folderUri);
   const parts = displayPath.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? "文件夹";
+  return parts[parts.length - 1] ?? fallback;
 }
 
 type ResolvedFolderInfo = {
@@ -120,6 +123,7 @@ export default function ThreeDFolderWidget({
   projects,
   hovered,
 }: ThreeDFolderWidgetProps) {
+  const { t } = useTranslation('desktop');
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const activeTabId = useTabs((state) => state.activeTabId);
@@ -227,11 +231,11 @@ export default function ThreeDFolderWidget({
   const openFolderInFileSystem = React.useCallback(
     (input: { projectId?: string; rootUri?: string; uri?: string }) => {
       if (!workspaceId) {
-        toast.error("未找到工作区");
+        toast.error(t('content.noWorkspace'));
         return;
       }
       if (!input.projectId || !input.rootUri || input.uri === undefined || input.uri === null) {
-        toast.error("未找到文件夹信息");
+        toast.error(t('threeDFolder.noFolderInfo'));
         return;
       }
       const baseId = `project:${input.projectId}`;
@@ -257,7 +261,7 @@ export default function ThreeDFolderWidget({
       addTab({
         workspaceId,
         createNew: true,
-        title: projectNode?.title || "未命名项目",
+        title: projectNode?.title || t('threeDFolder.unnamedProject'),
         icon: projectNode?.icon ?? undefined,
         leftWidthPercent: 90,
         base: {
@@ -283,7 +287,7 @@ export default function ThreeDFolderWidget({
       }
 
       if (!activeTabId) {
-        toast.error("未找到当前标签页");
+        toast.error(t('content.noTab'));
         return;
       }
       if (!project.uri) return;

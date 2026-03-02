@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useChatActions, useChatSession, useChatState, useChatTools } from "@/components/ai/context";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -115,6 +116,7 @@ export default function UnifiedTool({
   variant?: ToolVariant;
   messageId?: string;
 }) {
+  const { t } = useTranslation('ai')
   const { tabId: contextTabId, sessionId } = useChatSession();
   const { upsertToolPart } = useChatTools();
   const { updateMessage } = useChatActions();
@@ -252,23 +254,23 @@ export default function UnifiedTool({
         <ToolInput input={stripActionName(inputPayload) as any} />
         {isApprovalRequested && approvalId ? (
           <Confirmation approval={part.approval as any} state={part.state as any}>
-            <ConfirmationTitle>工具调用请求审批</ConfirmationTitle>
+            <ConfirmationTitle>{t('tool.approvalRequest')}</ConfirmationTitle>
             <ConfirmationRequest>
-              确认后将继续执行。
+              {t('tool.approvalContinue')}
               <ConfirmationActions>{actions}</ConfirmationActions>
             </ConfirmationRequest>
-            <ConfirmationAccepted>已批准执行</ConfirmationAccepted>
-            <ConfirmationRejected>已拒绝执行</ConfirmationRejected>
+            <ConfirmationAccepted>{t('tool.approvalAccepted')}</ConfirmationAccepted>
+            <ConfirmationRejected>{t('tool.approvalRejected')}</ConfirmationRejected>
           </Confirmation>
         ) : null}
         {showOutput ? (
           <ToolOutput
-            output={isRejected ? "已拒绝" : part.output}
+            output={isRejected ? t('tool.rejected') : part.output}
             errorText={displayErrorText}
           />
         ) : null}
         {isOutputLoading && !hasOutputPayload ? (
-          <div className="text-muted-foreground text-xs">输出加载中...</div>
+          <div className="text-muted-foreground text-xs">{t('tool.outputLoading')}</div>
         ) : null}
       </ToolContent>
     </Tool>

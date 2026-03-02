@@ -48,13 +48,13 @@ const DEFAULT_BASIC_CONF: BasicConf = {
   activeS3Id: undefined,
   s3AutoUpload: true,
   s3AutoDeleteHours: 2,
-  modelResponseLanguage: "zh-CN",
+  modelResponseLanguage: null,
   modelQuality: "medium",
   chatOnlineSearchMemoryScope: "tab",
   modelSoundEnabled: true,
   autoSummaryEnabled: true,
   autoSummaryHours: [0, 8, 12, 17],
-  uiLanguage: "zh-CN",
+  uiLanguage: null,
   uiFontSize: "medium",
   // UI animation intensity.
   uiAnimationLevel: "high",
@@ -179,18 +179,18 @@ function normalizeBasicConf(raw?: Partial<BasicConf>, fallback?: Partial<BasicCo
         ? fallbackSource.s3AutoDeleteHours
         : DEFAULT_BASIC_CONF.s3AutoDeleteHours;
   const s3AutoDeleteHours = Math.min(168, Math.max(1, Math.floor(rawDeleteHours)));
+  const VALID_RESPONSE_LANGS = ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"];
   const modelResponseLanguage =
-    source.modelResponseLanguage &&
-    ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-      source.modelResponseLanguage,
-    )
-      ? source.modelResponseLanguage
-      : fallbackSource.modelResponseLanguage &&
-          ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-            fallbackSource.modelResponseLanguage,
-          )
-        ? fallbackSource.modelResponseLanguage
-        : DEFAULT_BASIC_CONF.modelResponseLanguage;
+    source.modelResponseLanguage === null
+      ? null
+      : source.modelResponseLanguage && VALID_RESPONSE_LANGS.includes(source.modelResponseLanguage)
+        ? source.modelResponseLanguage
+        : fallbackSource.modelResponseLanguage === null
+          ? null
+          : fallbackSource.modelResponseLanguage &&
+              VALID_RESPONSE_LANGS.includes(fallbackSource.modelResponseLanguage)
+            ? fallbackSource.modelResponseLanguage
+            : DEFAULT_BASIC_CONF.modelResponseLanguage;
   const modelQuality =
     source.modelQuality === "high" || source.modelQuality === "medium" || source.modelQuality === "low"
       ? source.modelQuality
@@ -222,18 +222,14 @@ function normalizeBasicConf(raw?: Partial<BasicConf>, fallback?: Partial<BasicCo
     source.autoSummaryHours,
     normalizeAutoSummaryHours(fallbackSource.autoSummaryHours, DEFAULT_BASIC_CONF.autoSummaryHours),
   );
+  const VALID_LANGUAGES = ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"];
+  // null = follow system (valid preference); only fall through if key is missing/undefined
   const uiLanguage =
-    source.uiLanguage &&
-    ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-      source.uiLanguage,
-    )
-      ? source.uiLanguage
-      : fallbackSource.uiLanguage &&
-          ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE", "es-ES"].includes(
-            fallbackSource.uiLanguage,
-          )
-        ? fallbackSource.uiLanguage
-        : DEFAULT_BASIC_CONF.uiLanguage;
+    source.uiLanguage === null ? null
+    : source.uiLanguage && VALID_LANGUAGES.includes(source.uiLanguage) ? source.uiLanguage
+    : fallbackSource.uiLanguage === null ? null
+    : fallbackSource.uiLanguage && VALID_LANGUAGES.includes(fallbackSource.uiLanguage) ? fallbackSource.uiLanguage
+    : DEFAULT_BASIC_CONF.uiLanguage;
   const uiFontSize =
     source.uiFontSize === "small" ||
     source.uiFontSize === "medium" ||

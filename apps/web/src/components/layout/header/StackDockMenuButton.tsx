@@ -9,6 +9,7 @@
  */
 "use client";
 
+import { useTranslation } from "react-i18next";
 import * as React from "react";
 import { motion, useAnimationControls } from "motion/react";
 import { Layers, X } from "lucide-react";
@@ -61,6 +62,7 @@ function destroyBrowserViewsIfNeeded(item: DockItem) {
 }
 
 export function StackDockMenuButton() {
+  const { t } = useTranslation('nav');
   const activeTabId = useTabs((s) => s.activeTabId);
   const stack = useTabRuntime((s) =>
     activeTabId ? s.runtimeByTabId[activeTabId]?.stack ?? EMPTY_STACK : EMPTY_STACK,
@@ -141,7 +143,7 @@ export function StackDockMenuButton() {
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sideOffset={6}>
-          恢复堆栈
+          {t('header.restoreStack')}
         </TooltipContent>
       </Tooltip>
     );
@@ -169,7 +171,7 @@ export function StackDockMenuButton() {
               </span>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={6}>
-              堆栈菜单
+              {t('header.stackMenu')}
             </TooltipContent>
           </Tooltip>
         </Button>
@@ -178,7 +180,7 @@ export function StackDockMenuButton() {
         <DropdownMenuLabel className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
             {activeTabTitle || "Stack"}
-            {stackHidden ? "（已最小化）" : ""}
+            {stackHidden ? t('header.minimized') : ""}
           </span>
           <span className="text-xs text-muted-foreground">{stack.length}</span>
         </DropdownMenuLabel>
@@ -225,7 +227,7 @@ export function StackDockMenuButton() {
           className="justify-center"
           onSelect={() => closeAll()}
         >
-          关闭全部
+          {t('header.closeAll')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

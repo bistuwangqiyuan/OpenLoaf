@@ -206,7 +206,7 @@ export function AboutOpenLoaf() {
 
     const changelogUrl = buildChangelogUrl(component, version);
     if (changelogUrl) {
-      const lang = primaryLang(basic.uiLanguage);
+      const lang = primaryLang(basic.uiLanguage ?? "zh-CN");
       const content = await fetchChangelogWithLang(changelogUrl, lang);
       setChangelogSheet((prev) => ({
         ...prev,

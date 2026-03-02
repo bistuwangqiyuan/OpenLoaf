@@ -11,6 +11,7 @@
 
 import type { UIMessage } from "@ai-sdk/react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { generateId } from "ai";
 import { cn } from "@/lib/utils";
 import { ChatInputBox } from "../input/ChatInput";
@@ -47,6 +48,7 @@ function MessageItem({
   isLastAiActionMessage,
   hideAiActions,
 }: MessageItemProps) {
+  const { t } = useTranslation('ai')
   const { resendUserMessage, clearError } = useChatActions();
   const { status } = useChatState();
   const { branchMessageIds, siblingNav, projectId, workspaceId, tabId } = useChatSession();
@@ -320,11 +322,11 @@ function MessageItem({
                 onChange={setDraft}
                 variant="inline"
                 compact
-                placeholder="编辑消息…"
+                placeholder={t('message.editPlaceholder')}
                 className="w-full max-w-[88%]"
                 actionVariant="text"
-                submitLabel="发送"
-                cancelLabel="取消"
+                submitLabel={t('message.send')}
+                cancelLabel={t('message.cancel')}
                 onCancel={cancelEdit}
                 submitDisabled={status !== "ready" && status !== "error"}
                 attachments={editAttachments}

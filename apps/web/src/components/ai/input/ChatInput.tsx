@@ -819,19 +819,19 @@ export function ChatInputBox({
             <div className="text-center">
               <p className="text-[13px] font-medium text-[#202124] dark:text-slate-50">
                 {blockedReason === 'cloud-login'
-                  ? '登录后使用云端模型'
+                  ? t('blocked.titleCloudLogin')
                   : blockedReason === 'local-empty'
-                    ? '本地模型未配置'
-                    : '开始智能对话'}
+                    ? t('blocked.titleLocalEmpty')
+                    : t('blocked.titleDefault')}
               </p>
               <p className="mt-0.5 text-[11px] text-[#5f6368] dark:text-slate-400">
                 {blockedReason === 'cloud-login'
-                  ? '当前选择的是云端模型，登录后即可使用'
+                  ? t('blocked.descCloudLogin')
                   : blockedReason === 'local-empty'
                     ? onRequestSwitchCloud
-                      ? '切换到云端模型，或配置本地 AI 服务商'
-                      : '登录云端或配置本地 AI 服务商'
-                    : '登录云端或配置本地 AI 服务商'}
+                      ? t('blocked.descLocalEmptySwitch')
+                      : t('blocked.descDefault')
+                    : t('blocked.descDefault')}
               </p>
             </div>
           )}
@@ -843,7 +843,7 @@ export function ChatInputBox({
                 onClick={onRequestSwitchCloud}
               >
                 <Cloud className="size-3.5" />
-                使用云端模型
+                {t('blocked.btnSwitchCloud')}
               </button>
             ) : (
               <button
@@ -852,7 +852,7 @@ export function ChatInputBox({
                 onClick={onRequestLogin}
                 disabled={!onRequestLogin}
               >
-                登录 OpenLoaf 云端
+                {t('blocked.btnLoginCloud')}
               </button>
             )}
             {blockedReason === 'cloud-login' && onRequestSwitchLocal ? (
@@ -861,7 +861,7 @@ export function ChatInputBox({
                 className="h-8 rounded-full bg-[#f1f3f4] px-4 text-[12px] font-medium text-[#3c4043] transition-colors duration-150 hover:bg-[#e3e8ef] dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-300 dark:hover:bg-[hsl(var(--muted)/0.50)]"
                 onClick={onRequestSwitchLocal}
               >
-                切换到本地模型
+                {t('blocked.btnSwitchLocal')}
               </button>
             ) : (
               <button
@@ -871,7 +871,7 @@ export function ChatInputBox({
                 disabled={!onRequestLocalConfig}
               >
                 <Settings2 className="size-3.5" />
-                自定义AI服务商
+                {t('blocked.btnConfigLocal')}
               </button>
             )}
           </div>
@@ -1104,7 +1104,7 @@ export default function ChatInput({
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const { basic, setBasic } = useBasicConfig();
   const setTabDictationStatus = useChatRuntime((s) => s.setTabDictationStatus);
-  const dictationLanguage = basic.modelResponseLanguage;
+  const dictationLanguage = basic.modelResponseLanguage ?? undefined;
   const dictationSoundEnabled = basic.appNotificationSoundEnabled;
   const onlineSearchMemoryScope: "tab" | "global" =
     basic.chatOnlineSearchMemoryScope === "global" ? "global" : "tab";

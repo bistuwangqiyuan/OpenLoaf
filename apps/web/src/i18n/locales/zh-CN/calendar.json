@@ -24,5 +24,13 @@
   "permissionRequired": "需要日历访问权限",
   "permissionDesc": "已为你打开系统隐私设置。请在「日历」列表中找到「OpenLoaf」或「Electron」并勾选，然后回到此处点击「重启应用」使授权生效。",
   "later": "稍后再说",
-  "restart": "重启应用"
+  "restart": "重启应用",
+  "errLoadSources": "日历数据加载失败。",
+  "errLoadItems": "日历事件加载失败。",
+  "errUnauthorized": "未授权系统日历访问权限。",
+  "errAddEvent": "新增日历事件失败。",
+  "errUpdateEvent": "更新日历事件失败。",
+  "errDeleteEvent": "删除日历事件失败。",
+  "errUpdateReminder": "更新提醒事项失败。",
+  "errEventIdNotFound": "未找到系统事件 ID。"
 }

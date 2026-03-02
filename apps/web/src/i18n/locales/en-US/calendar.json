@@ -24,5 +24,13 @@
   "permissionRequired": "Calendar access required",
   "permissionDesc": "We've opened System Privacy Settings. Find 'OpenLoaf' or 'Electron' in the Calendars list, check it, then click 'Restart App' here to apply.",
   "later": "Later",
-  "restart": "Restart App"
+  "restart": "Restart App",
+  "errLoadSources": "Calendar data load failed.",
+  "errLoadItems": "Calendar events load failed.",
+  "errUnauthorized": "System calendar access not authorized.",
+  "errAddEvent": "Failed to add calendar event.",
+  "errUpdateEvent": "Failed to update calendar event.",
+  "errDeleteEvent": "Failed to delete calendar event.",
+  "errUpdateReminder": "Failed to update reminder.",
+  "errEventIdNotFound": "System event ID not found."
 }

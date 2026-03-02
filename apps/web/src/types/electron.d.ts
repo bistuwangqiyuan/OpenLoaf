@@ -175,6 +175,8 @@ declare global {
       setTitleBarOverlayHeight?: (payload: {
         height: number;
       }) => Promise<{ ok: true } | { ok: false; reason?: string }>;
+      /** Read startup.log content for crash feedback. */
+      readStartupLog?: () => Promise<{ ok: true; content: string } | { ok: false; reason: string }>;
       /** Trigger incremental update check (server/web). */
       checkIncrementalUpdate?: () => Promise<{ ok: true } | { ok: false; reason: string }>;
       /** Get incremental update status snapshot. */

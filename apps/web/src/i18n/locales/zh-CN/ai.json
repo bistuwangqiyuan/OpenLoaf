@@ -1,4 +1,16 @@
 {
+  "blocked": {
+    "titleCloudLogin": "登录后使用云端模型",
+    "titleLocalEmpty": "本地模型未配置",
+    "titleDefault": "开始智能对话",
+    "descCloudLogin": "当前选择的是云端模型，登录后即可使用",
+    "descLocalEmptySwitch": "切换到云端模型，或配置本地 AI 服务商",
+    "descDefault": "登录云端或配置本地 AI 服务商",
+    "btnSwitchCloud": "使用云端模型",
+    "btnLoginCloud": "登录 OpenLoaf 云端",
+    "btnSwitchLocal": "切换到本地模型",
+    "btnConfigLocal": "自定义AI服务商"
+  },
   "chat": {
     "newChat": "新对话",
     "placeholder": "输入您的问题…",
@@ -20,6 +32,9 @@
     "retry": "重试",
     "likeThis": "赞同",
     "dislikeThis": "不赞同",
+    "editPlaceholder": "编辑消息…",
+    "send": "发送",
+    "cancel": "取消",
     "deleteNode": "删除节点",
     "deleteNodeTitle": "确认删除节点",
     "deleteNodeConfirm": "确认删除该节点及其子节点？",
@@ -173,7 +188,9 @@
     "uploadFailed": "图片上传失败，请重试",
     "noServerUrl": "图片上传失败：服务端未返回地址",
     "networkError": "图片上传失败，请检查网络连接",
-    "fileTooLarge": "文件过大（{{size}}），请小于 {{max}}"
+    "fileTooLarge": "文件过大（{{size}}），请小于 {{max}}",
+    "loadFailed": "图片加载失败",
+    "loading": "图片加载中…"
   },
   "aiModel": {
     "openaiKey": "OpenAI API Key",
@@ -259,5 +276,40 @@
     "video_generation": "视频生成",
     "video_analysis": "视频理解",
     "audio_analysis": "音频分析"
+  },
+  "dock": {
+    "aiAssistant": "AI助手",
+    "inputPlaceholder": "输入内容",
+    "suggestion1": "帮我总结今天的工作进展",
+    "suggestion2": "分析当前项目的代码质量",
+    "suggestion3": "生成一份本周工作周报"
+  },
+  "tool": {
+    "writeFile": "写入文件",
+    "writeFailed": "写入失败",
+    "writing": "写入中…",
+    "confirmWrite": "确认写入此文件？",
+    "approvalRequest": "工具调用请求审批",
+    "approvalContinue": "确认后将继续执行。",
+    "approvalAccepted": "已批准执行",
+    "approvalRejected": "已拒绝执行",
+    "rejected": "已拒绝",
+    "outputLoading": "输出加载中…",
+    "confirmExec": "确认执行此命令？"
+  },
+  "error": {
+    "title": "出错了",
+    "unknown": "发生未知错误",
+    "copied": "已复制",
+    "copyLog": "复制日志",
+    "retry": "重试"
+  },
+  "taskRunLog": {
+    "title": "执行日志",
+    "loading": "加载中...",
+    "empty": "暂无执行记录",
+    "statusOk": "成功",
+    "statusFailed": "失败",
+    "viewChat": "查看对话"
   }
 }

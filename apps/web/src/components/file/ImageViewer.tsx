@@ -10,6 +10,7 @@
 "use client";
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -209,6 +210,7 @@ export default function ImageViewer({
   onApplyMask,
   onClose,
 }: ImageViewerProps) {
+  const { t } = useTranslation("common");
   const isRelative = typeof uri === "string" && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(uri);
   const isDataUrl = typeof uri === "string" && uri.startsWith("data:");
   const isBlob = isBlobUrl(uri);
@@ -403,12 +405,12 @@ export default function ImageViewer({
       });
       if (!result?.ok) {
         if (result?.canceled) return;
-        toast.error(result?.reason ?? "保存失败");
+        toast.error(result?.reason ?? t("saveFailed"));
         return;
       }
-      toast.success("图片已保存");
+      toast.success(t("file.imageSaved"));
     } catch (error) {
-      toast.error((error as Error)?.message ?? "保存失败");
+      toast.error((error as Error)?.message ?? t("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -772,20 +774,20 @@ export default function ImageViewer({
     if (!dataUrl) return;
     if (!enableEdit) return;
     if (!chat?.addAttachments || (!chat?.addMaskedAttachment && !onApplyMask)) {
-      toast.error("仅聊天中可用");
+      toast.error(t("file.onlyChatAvailable"));
       return;
     }
     if (!hasS3Storage) {
-      toast.error("需要配置 S3 存储服务");
+      toast.error(t("file.noS3Config"));
       return;
     }
     if (rawChatSource !== "cloud" && rawChatSource !== "local") {
-      toast.error("没有可用的图片调整模型，请添加或者使用云端模型");
+      toast.error(t("file.noImageModel"));
       return;
     }
     const maskModels = modelOptions.filter((option) => supportsImageInput(option));
     if (maskModels.length === 0) {
-      toast.error("没有可用的图片调整模型，请添加或者使用云端模型");
+      toast.error(t("file.noImageModel"));
       return;
     }
     maskModelIdRef.current = maskModels[0]?.id ?? "";
@@ -797,7 +799,7 @@ export default function ImageViewer({
     if (!dataUrl) return;
     if (!enableEdit) return;
     if (!chat?.addAttachments || (!chat?.addMaskedAttachment && !onApplyMask)) {
-      toast.error("仅聊天中可用");
+      toast.error(t("file.onlyChatAvailable"));
       return;
     }
     const imageFile = await createFileFromUrl({
@@ -806,7 +808,7 @@ export default function ImageViewer({
       fallbackType: mediaType,
     });
     if (!imageFile) {
-      toast.error("图片处理失败");
+      toast.error(t("file.imageProcessFailed"));
       return;
     }
 
@@ -823,13 +825,13 @@ export default function ImageViewer({
     const maskFileName = resolveMaskFileName(fileName);
     const maskFile = await canvasToPngFile(maskCanvasRef.current, maskFileName);
     if (!maskFile) {
-      toast.error("遮罩生成失败");
+      toast.error(t("file.maskGenFailed"));
       return;
     }
 
     const overlayCanvas = overlayCanvasRef.current;
     if (!overlayCanvas || !imageSize.width || !imageSize.height) {
-      toast.error("图片处理失败");
+      toast.error(t("file.imageProcessFailed"));
       return;
     }
 
@@ -838,7 +840,7 @@ export default function ImageViewer({
     previewCanvas.height = imageSize.height;
     const previewCtx = previewCanvas.getContext("2d");
     if (!previewCtx) {
-      toast.error("图片处理失败");
+      toast.error(t("file.imageProcessFailed"));
       return;
     }
     // 中文注释：预览使用合成后的 overlay 结果（包含棋盘格 + 透明区域）。
@@ -847,7 +849,7 @@ export default function ImageViewer({
       previewCanvas.toBlob((value) => resolve(value), "image/png");
     });
     if (!previewBlob) {
-      toast.error("图片处理失败");
+      toast.error(t("file.imageProcessFailed"));
       return;
     }
     const previewUrl = URL.createObjectURL(previewBlob);
@@ -885,11 +887,11 @@ export default function ImageViewer({
   }
 
   if (isRelative && !shouldUseBinary && (!preview || preview.status === "loading")) {
-    return <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>;
+    return <div className="h-full w-full p-4 text-muted-foreground">{t("loading")}</div>;
   }
 
   if (shouldUseBinary && imageQuery.isLoading && !placeholderSrc) {
-    return <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>;
+    return <div className="h-full w-full p-4 text-muted-foreground">{t("loading")}</div>;
   }
 
   if (isRelative && !shouldUseBinary && preview?.status === "error") {
@@ -906,7 +908,7 @@ export default function ImageViewer({
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
         <AlertTriangle className="h-8 w-8 text-destructive/70" />
-        <div className="text-base font-medium text-destructive">图片加载失败</div>
+        <div className="text-base font-medium text-destructive">{t("file.imageLoadFailed")}</div>
         <div className="text-xs text-muted-foreground">
           {imageQuery.error?.message ?? "读取失败"}
         </div>

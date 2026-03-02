@@ -131,7 +131,7 @@ export default function WorkspaceSwitchDockTabs({ tabId }: { tabId: string }) {
         size="md"
         active={isActive}
         expandedWidth={520}
-        inputPlaceholder="搜索页面"
+        inputPlaceholder={t('ai:input.defaultPlaceholder')}
       />
     </div>
   );

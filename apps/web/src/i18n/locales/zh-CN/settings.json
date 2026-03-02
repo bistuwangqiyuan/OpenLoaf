@@ -32,6 +32,7 @@
     "preferencesSubtitle": "调整模型响应语言与交互偏好。",
     "modelResponseLanguage": "模型返回语言",
     "modelResponseLanguageNote": "暂不支持切换，仅保存偏好",
+    "modelResponseLanguageFollowUI": "跟随软件语言",
     "chatMemoryScope": "聊天输入记忆范围",
     "chatMemoryScopeDesc": "控制聊天输入中的「联网搜索 / 模型选择」按 Tab 或全局记忆",
     "chatMemoryScopeTab": "Tab记忆",
@@ -88,6 +89,7 @@
     "systemConfig": "系统配置",
     "language": "语言",
     "languageDesc": "更改 UI 显示语言",
+    "languageFollowSystem": "跟随系统",
     "theme": "主题",
     "themeDesc": "选择深色或浅色",
     "themeDark": "黑夜",
@@ -601,5 +603,80 @@
     "noModels": "暂无可选模型",
     "unselected": "请选择模型",
     "separator": "、"
+  },
+  "s3": {
+    "addProvider": "添加 S3 服务商",
+    "editProvider": "编辑 S3 服务商",
+    "provider": "服务商",
+    "name": "名称",
+    "namePlaceholder": "例如：AWS-S3",
+    "endpointPlaceholder": "例如：https://s3.amazonaws.com",
+    "regionPlaceholder": "例如：us-east-1（可选）",
+    "bucketPlaceholder": "例如：openloaf-bucket",
+    "publicBaseUrlPlaceholder": "例如：https://cdn.example.com（可选）",
+    "forcePathStyleDesc": "部分 S3 兼容服务需要开启",
+    "accessKeyIdPlaceholder": "输入 AccessKeyID",
+    "secretAccessKeyPlaceholder": "输入 SecretAccessKey",
+    "showSecretKey": "显示 SecretAccessKey",
+    "hideSecretKey": "隐藏 SecretAccessKey",
+    "cancel": "取消",
+    "save": "保存",
+    "groupTitle": "S3 存储服务商",
+    "groupSubtitle": "配置对象存储服务商的 Endpoint 与访问凭证。",
+    "autoUpload": "图片自动上传",
+    "autoUploadDesc": "AI 对话需要公网访问图片时，将自动把图片上传到 S3。",
+    "autoDelete": "S3 图片自动删除",
+    "autoDeleteDesc": "经过指定小时数后，自动从 S3 清理已上传的图片。",
+    "hours": "小时",
+    "providerListTitle": "服务商列表",
+    "providerListSubtitle": "管理已添加的服务商配置，支持激活与测试。",
+    "add": "添加",
+    "colName": "名称",
+    "colProvider": "服务商",
+    "colActions": "操作",
+    "activate": "激活",
+    "active": "激活",
+    "empty": "暂无 S3 存储服务商，点击右上角添加。",
+    "deleteTitle": "确认删除",
+    "deleteDesc": "确认要删除这个 S3 服务商配置吗？",
+    "testResultTitle": "S3 测试上传结果",
+    "uploadFailed": "S3 测试上传失败",
+    "noUrlReturned": "S3 测试上传失败：服务端未返回地址",
+    "copyUrl": "复制地址",
+    "close": "关闭",
+    "copied": "已复制",
+    "copyFailed": "复制失败，请手动复制"
+  },
+  "auxiliaryCapabilities": {
+    "project.classify": {
+      "label": "项目分类",
+      "description": "当用户创建/导入项目时，扫描文件结构，自动判断项目类型并推荐图标。",
+      "triggers": ["Git 克隆完成后", "导入已有文件夹时", "老项目首次打开时（后台静默）"]
+    },
+    "chat.suggestions": {
+      "label": "输入推荐",
+      "description": "当用户在输入框停顿时，根据上下文生成智能输入建议。",
+      "triggers": ["输入框停顿 500ms", "输入框获得焦点时（无内容）"]
+    },
+    "chat.title": {
+      "label": "摘要标题",
+      "description": "对话结束后自动为对话生成一个简短、有意义的标题。",
+      "triggers": ["对话结束后自动命名", "用户手动触发重命名"]
+    },
+    "project.ephemeralName": {
+      "label": "临时项目命名",
+      "description": "Agent 创建临时项目时，根据任务上下文自动生成项目名称、图标和类型。",
+      "triggers": ["Agent 创建临时项目时"]
+    },
+    "git.commitMessage": {
+      "label": "Commit 信息",
+      "description": "根据代码变更内容，自动生成规范的 Git commit message。",
+      "triggers": ["用户请求生成 commit message"]
+    },
+    "text.translate": {
+      "label": "文本翻译",
+      "description": "将选中文本或对话内容翻译为目标语言，自动检测源语言。",
+      "triggers": ["用户选中文本请求翻译", "对话中要求翻译内容"]
+    }
   }
 }

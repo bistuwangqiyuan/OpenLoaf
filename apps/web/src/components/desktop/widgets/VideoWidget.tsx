@@ -10,6 +10,7 @@
 "use client";
 
 import { Play } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@openloaf/ui/button";
 import { openFilePreview } from "@/components/file/lib/file-preview-store";
 
@@ -22,16 +23,18 @@ export interface VideoWidgetProps {
 
 /** Render a lightweight video widget with a play action. */
 export default function VideoWidget({ title, fileRef }: VideoWidgetProps) {
+  const { t } = useTranslation('desktop');
   const handlePlay = () => {
     if (!fileRef) return;
     // 逻辑：使用统一预览弹窗播放视频，保持桌面区轻量。
+    const videoTitle = title ?? t('catalog.video');
     openFilePreview({
       viewer: "video",
       items: [
         {
           uri: fileRef,
-          title: title ?? "视频",
-          name: title ?? "视频",
+          title: videoTitle,
+          name: videoTitle,
         },
       ],
       activeIndex: 0,
@@ -41,18 +44,18 @@ export default function VideoWidget({ title, fileRef }: VideoWidgetProps) {
   if (!fileRef) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
-        <div>未选择视频</div>
-        <div className="text-[10px]">请在设置中绑定视频</div>
+        <div>{t('videoWidget.noFile')}</div>
+        <div className="text-[10px]">{t('videoWidget.bindHint')}</div>
       </div>
     );
   }
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-xl border border-border/70 bg-background/80 p-4">
-      <div className="text-xs text-muted-foreground">点击播放视频</div>
+      <div className="text-xs text-muted-foreground">{t('videoWidget.clickToPlay')}</div>
       <Button type="button" size="sm" onClick={handlePlay} className="gap-2">
         <Play className="h-4 w-4" />
-        播放
+        {t('videoWidget.play')}
       </Button>
     </div>
   );

@@ -25,16 +25,16 @@ import { Switch } from '@openloaf/ui/switch'
 import { cn } from '@/lib/utils'
 import type { AddDialogState } from './use-email-page-state'
 
-/** 预设账户类型 */
+/** 预设账户类型（id 为存储键，labelKey 用于 i18n 显示） */
 const ACCOUNT_TYPE_PRESETS = [
-  { label: '工作', color: 'bg-blue-500' },
-  { label: '个人', color: 'bg-green-500' },
-  { label: '客服', color: 'bg-orange-500' },
-  { label: '通知', color: 'bg-purple-500' },
-  { label: '营销', color: 'bg-pink-500' },
-  { label: '财务', color: 'bg-amber-500' },
-  { label: '技术', color: 'bg-cyan-500' },
-  { label: '订阅', color: 'bg-slate-500' },
+  { id: 'work', labelKey: 'email.accountPreset_work', color: 'bg-blue-500' },
+  { id: 'personal', labelKey: 'email.accountPreset_personal', color: 'bg-green-500' },
+  { id: 'support', labelKey: 'email.accountPreset_support', color: 'bg-orange-500' },
+  { id: 'notifications', labelKey: 'email.accountPreset_notifications', color: 'bg-purple-500' },
+  { id: 'marketing', labelKey: 'email.accountPreset_marketing', color: 'bg-pink-500' },
+  { id: 'finance', labelKey: 'email.accountPreset_finance', color: 'bg-amber-500' },
+  { id: 'tech', labelKey: 'email.accountPreset_tech', color: 'bg-cyan-500' },
+  { id: 'subscriptions', labelKey: 'email.accountPreset_subscriptions', color: 'bg-slate-500' },
 ] as const
 
 type ConfigureStepProps = {
@@ -55,7 +55,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
     : []
 
   const customLabels = selectedLabels.filter(
-    (l) => !ACCOUNT_TYPE_PRESETS.some((p) => p.label === l),
+    (l) => !ACCOUNT_TYPE_PRESETS.some((p) => p.id === l),
   )
 
   const handleToggleLabel = (label: string) => {
@@ -323,12 +323,12 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
         </Label>
         <div className="flex flex-wrap items-center gap-2">
           {ACCOUNT_TYPE_PRESETS.map((preset) => {
-            const isSelected = selectedLabels.includes(preset.label)
+            const isSelected = selectedLabels.includes(preset.id)
             return (
               <button
-                key={preset.label}
+                key={preset.id}
                 type="button"
-                onClick={() => handleToggleLabel(preset.label)}
+                onClick={() => handleToggleLabel(preset.id)}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
                   isSelected
@@ -337,7 +337,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                 )}
               >
                 <span className={cn('size-2 rounded-full', preset.color)} />
-                {preset.label}
+                {t(preset.labelKey)}
               </button>
             )
           })}

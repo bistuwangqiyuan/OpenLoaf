@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { normalizeUrl } from "@/components/browser/browser-utils";
 import { getPreviewEndpoint } from "@/lib/image/uri";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export default function WebStackWidget({
   workspaceId,
   onOpen,
 }: WebStackWidgetProps) {
+  const { t } = useTranslation('desktop');
   const normalizedUrl = normalizeUrl(item.webUrl ?? "");
   const displayTitle = item.title || item.webTitle || "";
   const description = item.webDescription || "";
@@ -148,7 +150,7 @@ export default function WebStackWidget({
         <div className="line-clamp-1 text-xs font-medium text-foreground">{displayTitle}</div>
         {isLoading ? (
           <div className="absolute right-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm">
-            更新中
+            {t('webStack.updating')}
           </div>
         ) : null}
       </button>
@@ -184,7 +186,7 @@ export default function WebStackWidget({
         </div>
         {isLoading ? (
           <div className="absolute right-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm">
-            更新中
+            {t('webStack.updating')}
           </div>
         ) : null}
       </button>
@@ -210,7 +212,7 @@ export default function WebStackWidget({
         )}
         {isLoading ? (
           <div className="absolute right-3 top-3 z-10 rounded-full bg-background/90 px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm">
-            更新中
+            {t('webStack.updating')}
           </div>
         ) : null}
         <div className="relative z-10 w-full overflow-hidden rounded-b-2xl bg-background/80">
@@ -241,7 +243,7 @@ export default function WebStackWidget({
                 "shadow-sm"
               )}
             >
-              打开网页
+              {t('webStack.openWeb')}
             </div>
           </div>
         </div>

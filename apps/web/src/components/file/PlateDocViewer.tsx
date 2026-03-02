@@ -10,6 +10,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { deserializeMd, serializeMd } from '@platejs/markdown'
 import { Check, Loader2, Save } from 'lucide-react'
@@ -56,6 +57,7 @@ export default function PlateDocViewer({
   panelKey,
   tabId,
 }: PlateDocViewerProps) {
+  const { t } = useTranslation('common')
   const { workspace } = useWorkspace()
   const workspaceId = workspace?.id ?? ''
   const [status, setStatus] = useState<DocStatus>('idle')
@@ -146,12 +148,12 @@ export default function PlateDocViewer({
       })
       setIsDirty(false)
       setSaveIndicator('saved')
-      if (!silent) toast.success('已保存')
+      if (!silent) toast.success(t('saved'))
       // 逻辑：短暂显示"已保存"后恢复空闲状态。
       setTimeout(() => setSaveIndicator('idle'), 2000)
     } catch {
       setSaveIndicator('idle')
-      if (!silent) toast.error('保存失败')
+      if (!silent) toast.error(t('saveFailed'))
     }
   }, [readUri, shouldUseFs, workspaceId, editor, projectId, writeFileMutation])
 
@@ -213,8 +215,8 @@ export default function PlateDocViewer({
               size="icon"
               onClick={() => void doSave(false)}
               disabled={writeFileMutation.isPending || !isDirty || status !== 'ready'}
-              aria-label="保存"
-              title="保存"
+              aria-label={t('save')}
+              title={t('save')}
             >
               {saveIcon}
             </Button>
@@ -247,7 +249,7 @@ export default function PlateDocViewer({
         ) : null}
         {(status === 'loading' || fileQuery.isLoading) ? (
           <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            加载中…
+            {t('loading')}
           </div>
         ) : null}
         {(status === 'error' || fileQuery.isError) ? (
@@ -257,7 +259,7 @@ export default function PlateDocViewer({
             projectId={projectId}
             rootUri={rootUri}
             error={fileQuery.error ?? undefined}
-            message="文稿加载失败"
+            message={t('file.loadFailed')}
             description="请检查文件格式或权限后重试。"
             className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
           />

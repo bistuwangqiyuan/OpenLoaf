@@ -1,4 +1,16 @@
 {
+  "blocked": {
+    "titleCloudLogin": "Sign in to use cloud models",
+    "titleLocalEmpty": "Local model not configured",
+    "titleDefault": "Start AI conversation",
+    "descCloudLogin": "You selected a cloud model. Sign in to get started",
+    "descLocalEmptySwitch": "Switch to cloud models, or configure a local AI provider",
+    "descDefault": "Sign in to cloud or configure a local AI provider",
+    "btnSwitchCloud": "Use cloud models",
+    "btnLoginCloud": "Sign in to OpenLoaf Cloud",
+    "btnSwitchLocal": "Switch to local model",
+    "btnConfigLocal": "Custom AI provider"
+  },
   "chat": {
     "newChat": "New Chat",
     "placeholder": "Ask your question…",
@@ -20,6 +32,9 @@
     "retry": "Retry",
     "likeThis": "Like",
     "dislikeThis": "Dislike",
+    "editPlaceholder": "Edit message…",
+    "send": "Send",
+    "cancel": "Cancel",
     "deleteNode": "Delete node",
     "deleteNodeTitle": "Confirm delete node",
     "deleteNodeConfirm": "Delete this node and all its children?",
@@ -173,7 +188,9 @@
     "uploadFailed": "Image upload failed, please retry",
     "noServerUrl": "Image upload failed: server did not return address",
     "networkError": "Image upload failed, please check network connection",
-    "fileTooLarge": "File too large ({{size}}), must be less than {{max}}"
+    "fileTooLarge": "File too large ({{size}}), must be less than {{max}}",
+    "loadFailed": "Failed to load image",
+    "loading": "Loading image…"
   },
   "aiModel": {
     "openaiKey": "OpenAI API Key",
@@ -245,6 +262,13 @@
     "characterLimitExceeded": "Content exceeds the {{max}} character limit. Please shorten your message.",
     "manageModels": "Manage models"
   },
+  "dock": {
+    "aiAssistant": "AI Assistant",
+    "inputPlaceholder": "Enter text",
+    "suggestion1": "Summarize today's work progress",
+    "suggestion2": "Analyze the current project's code quality",
+    "suggestion3": "Generate a weekly work report"
+  },
   "modelTags": {
     "chat": "Chat",
     "code": "Code",
@@ -259,5 +283,33 @@
     "video_generation": "Video Generation",
     "video_analysis": "Video Analysis",
     "audio_analysis": "Audio Analysis"
+  },
+  "tool": {
+    "writeFile": "Write File",
+    "writeFailed": "Write failed",
+    "writing": "Writing…",
+    "confirmWrite": "Confirm writing to this file?",
+    "approvalRequest": "Tool call approval request",
+    "approvalContinue": "Execution will proceed after confirmation.",
+    "approvalAccepted": "Approved",
+    "approvalRejected": "Rejected",
+    "rejected": "Rejected",
+    "outputLoading": "Loading output…",
+    "confirmExec": "Confirm executing this command?"
+  },
+  "error": {
+    "title": "An error occurred",
+    "unknown": "An unknown error occurred",
+    "copied": "Copied",
+    "copyLog": "Copy log",
+    "retry": "Retry"
+  },
+  "taskRunLog": {
+    "title": "Run Logs",
+    "loading": "Loading...",
+    "empty": "No run records yet",
+    "statusOk": "Success",
+    "statusFailed": "Failed",
+    "viewChat": "View Chat"
   }
 }

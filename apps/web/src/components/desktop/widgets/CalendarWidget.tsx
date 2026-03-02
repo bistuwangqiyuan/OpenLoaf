@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { Maximize2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import CalendarPage from "@/components/calendar/Calendar";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -33,6 +34,7 @@ const VARIANT_TO_VIEW: Record<string, 'day' | 'week' | 'month'> = {
 
 /** Render the desktop calendar widget in compact mode. */
 export default function CalendarWidget({ tabId, variant }: CalendarWidgetProps) {
+  const { t } = useTranslation('desktop');
   const resolvedTabId = tabId ?? "desktop-calendar";
   const compact = variant !== 'full';
   const initialView = variant ? VARIANT_TO_VIEW[variant] : undefined;
@@ -46,7 +48,7 @@ export default function CalendarWidget({ tabId, variant }: CalendarWidgetProps) 
       id: "calendar-page",
       sourceKey: "calendar-page",
       component: "calendar-page",
-      title: "日历",
+      title: t('catalog.calendar'),
     });
   }, []);
 
@@ -56,7 +58,7 @@ export default function CalendarWidget({ tabId, variant }: CalendarWidgetProps) 
       variant="ghost"
       className="h-7 w-7"
       onClick={handleOpenCalendarPage}
-      aria-label="打开日历详情"
+      aria-label={t('calendarWidget.openDetail')}
     >
       <Maximize2 className="h-3.5 w-3.5" />
     </Button>

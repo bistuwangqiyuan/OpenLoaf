@@ -183,5 +183,35 @@
     "loadFailed": "组件加载失败",
     "retry": "重试",
     "missingParams": "缺少 Widget 参数"
+  },
+  "calendarWidget": {
+    "openDetail": "打开日历详情"
+  },
+  "taskBoard": {
+    "statusRunning": "运行",
+    "statusReview": "审查",
+    "statusTodo": "待办",
+    "statusDone": "完成",
+    "loading": "正在加载任务...",
+    "noActiveTasks": "暂无活跃任务",
+    "openTaskBoard": "打开任务看板",
+    "priorityUrgent": "紧急",
+    "priorityHigh": "高",
+    "priorityMedium": "中",
+    "priorityLow": "低"
+  },
+  "threeDFolder": {
+    "noFolderInfo": "未找到文件夹信息",
+    "unnamedProject": "未命名项目"
+  },
+  "videoWidget": {
+    "noFile": "未选择视频",
+    "bindHint": "请在设置中绑定视频",
+    "clickToPlay": "点击播放视频",
+    "play": "播放"
+  },
+  "webStack": {
+    "updating": "更新中",
+    "openWeb": "打开网页"
   }
 }

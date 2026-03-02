@@ -58,6 +58,8 @@ type ModelResponseLanguageId =
   | "de-DE"
   | "es-ES";
 
+const FOLLOW_UI_VALUE = "";
+
 
 /**
  * Compose provider management sections and dialogs.
@@ -76,7 +78,10 @@ export function ProviderManagement({ panelKey }: ProviderManagementProps) {
   const { models: cloudModels } = useCloudModels();
   const installedCliProviderIds = useInstalledCliProviderIds();
 
-  const modelResponseLanguage: ModelResponseLanguageId = basic.modelResponseLanguage;
+  const isFollowingUI = !basic.modelResponseLanguage;
+  const modelResponseLanguage: ModelResponseLanguageId | "" = isFollowingUI
+    ? FOLLOW_UI_VALUE
+    : (basic.modelResponseLanguage as ModelResponseLanguageId);
   const chatOnlineSearchMemoryScope: "tab" | "global" =
     basic.chatOnlineSearchMemoryScope === "global" ? "global" : "tab";
   const localToolModelOptions = useMemo(
@@ -86,7 +91,8 @@ export function ProviderManagement({ panelKey }: ProviderManagementProps) {
       ),
     [providerItems, cloudModels, installedCliProviderIds],
   );
-  const modelResponseLanguageLabelById: Record<ModelResponseLanguageId, string> = useMemo(() => ({
+  const modelResponseLanguageLabelById: Record<string, string> = useMemo(() => ({
+    "": t('provider.modelResponseLanguageFollowUI'),
     "zh-CN": t('provider.zh-CN'),
     "zh-TW": t('provider.zh-TW'),
     "en-US": t('provider.en-US'),
@@ -215,7 +221,7 @@ export function ProviderManagement({ panelKey }: ProviderManagementProps) {
                   <DropdownMenuRadioGroup
                     value={modelResponseLanguage}
                     onValueChange={(next) =>
-                      void setBasic({ modelResponseLanguage: next as ModelResponseLanguageId })
+                      void setBasic({ modelResponseLanguage: (next as ModelResponseLanguageId) || null })
                     }
                   >
                     {Object.entries(modelResponseLanguageLabelById).map(

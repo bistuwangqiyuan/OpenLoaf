@@ -16,6 +16,7 @@
     "checkUpdateTriggered": "Update check triggered",
     "checkUpdateError": "Update check failed",
     "loggedIn": "Logged in",
+    "notLoggedIn": "Not signed in",
     "wechatUser": "WeChat User",
     "wechatLogin": "WeChat Login",
     "currentAccount": "Current account",

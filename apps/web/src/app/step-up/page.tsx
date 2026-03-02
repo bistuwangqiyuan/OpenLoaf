@@ -10,6 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { Button } from "@openloaf/ui/button";
 import { Switch } from "@openloaf/ui/switch";
@@ -39,24 +40,6 @@ import { StepUpWorkspaceStep } from "@/components/step-up/StepUpWorkspaceStep";
 import { StepUpBasicInput } from "@/components/step-up/StepUpBasicInput";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 
-const LOGIN_OPTIONS: StepUpLoginProviderOption[] = [
-  { id: "google", label: "Google", description: "适合已有 Google 账号" },
-  { id: "github", label: "GitHub", description: "开发者常用" },
-  { id: "microsoft", label: "Microsoft", description: "企业与学校账号" },
-  { id: "apple", label: "Apple", description: "使用 Apple ID" },
-];
-
-const LOGIN_REGIONS: StepUpLoginRegionOption[] = [
-  { id: "asia", label: "亚洲", description: "新加坡 / 东京节点" },
-  { id: "europe", label: "欧洲", description: "法兰克福 / 伦敦节点" },
-  { id: "americas", label: "美洲", description: "北美 / 南美节点" },
-];
-
-const LANGUAGE_OPTIONS: Array<{ id: string; label: string }> = [
-  { id: "zh-CN", label: "简体中文" },
-  { id: "en-US", label: "English" },
-];
-
 type StepId = "workspace" | "model" | "provider" | "login" | "finish";
 
 type WorkspaceChoice = "local" | "cloud";
@@ -66,6 +49,7 @@ type LanguageChoice = "zh-CN" | "en-US";
 
 /** Render the step-up wizard page. */
 export default function StepUpPage() {
+  const { t } = useTranslation('common');
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [workspaceChoice, setWorkspaceChoice] = useState<WorkspaceChoice | null>("cloud");
@@ -93,6 +77,24 @@ export default function StepUpPage() {
   const [proxySeeded, setProxySeeded] = useState(false);
 
   const { basic, setBasic, isLoading: basicLoading } = useBasicConfig();
+
+  const LOGIN_OPTIONS = useMemo<StepUpLoginProviderOption[]>(() => [
+    { id: "google", label: "Google", description: t('stepUp.loginOptionGoogle') },
+    { id: "github", label: "GitHub", description: t('stepUp.loginOptionGithub') },
+    { id: "microsoft", label: "Microsoft", description: t('stepUp.loginOptionMicrosoft') },
+    { id: "apple", label: "Apple", description: t('stepUp.loginOptionApple') },
+  ], [t]);
+
+  const LOGIN_REGIONS = useMemo<StepUpLoginRegionOption[]>(() => [
+    { id: "asia", label: t('stepUp.regionAsia'), description: t('stepUp.regionAsiaDesc') },
+    { id: "europe", label: t('stepUp.regionEurope'), description: t('stepUp.regionEuropeDesc') },
+    { id: "americas", label: t('stepUp.regionAmericas'), description: t('stepUp.regionAmericasDesc') },
+  ], [t]);
+
+  const LANGUAGE_OPTIONS = useMemo<Array<{ id: string; label: string }>>(() => [
+    { id: "zh-CN", label: t('stepUp.langZhCN') },
+    { id: "en-US", label: "English" },
+  ], [t]);
 
   const needsLogin = workspaceChoice === "cloud" || modelChoice === "cloud";
   const requiresProvider = modelChoice === "custom";
@@ -184,7 +186,7 @@ export default function StepUpPage() {
 
   const isFinalStep = stepId === "login" || stepId === "finish";
   const primaryLabel =
-    stepId === "login" ? "登录并完成" : stepId === "finish" ? "完成" : "下一步";
+    stepId === "login" ? t('stepUp.loginAndFinish') : stepId === "finish" ? t('stepUp.finish') : t('stepUp.next');
 
   /** Update UI language selection during setup. */
   const handleLanguageChange = useCallback(async (next: LanguageChoice) => {
@@ -264,17 +266,17 @@ export default function StepUpPage() {
   const finishSummary: StepUpFinishSummary = {
     workspace:
       workspaceChoice === "cloud"
-        ? "云端备份"
+        ? t('stepUp.cloudBackup')
         : workspaceChoice === "local"
-          ? "本地备份"
-          : "未选择",
+          ? t('stepUp.localBackup')
+          : t('stepUp.notSelected'),
     model:
       modelChoice === "cloud"
         ? "OpenLoaf Cloud"
         : modelChoice === "custom"
-          ? "自定义模型"
-          : "未选择",
-    provider: providerSelection?.display ?? "未选择",
+          ? t('stepUp.customModel')
+          : t('stepUp.notSelected'),
+    provider: providerSelection?.display ?? t('stepUp.notSelected'),
   };
 
   return (
@@ -285,7 +287,7 @@ export default function StepUpPage() {
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" variant="secondary" aria-label="语言">
+            <Button type="button" size="sm" variant="secondary" aria-label={t('stepUp.languageLabel')}>
               <Globe className="size-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -309,7 +311,7 @@ export default function StepUpPage() {
           size="sm"
           variant={proxyOpen ? "default" : "secondary"}
           onClick={() => setProxyOpen((prev) => !prev)}
-          aria-label="代理设置"
+          aria-label={t('stepUp.proxySettings')}
         >
           <Network className="size-4" />
         </Button>
@@ -318,7 +320,7 @@ export default function StepUpPage() {
           size="sm"
           variant="outline"
           onClick={() => void completeSetup()}
-          aria-label="退出"
+          aria-label={t('stepUp.exit')}
         >
           <LogOut className="size-4" />
         </Button>
@@ -334,7 +336,7 @@ export default function StepUpPage() {
             variant="ghost"
             disabled={stepIndex === 0 || isFinishing}
             onClick={handleBack}
-            aria-label="上一步"
+            aria-label={t('stepUp.back')}
           >
             <ArrowLeft className="size-4" />
           </Button>
@@ -346,9 +348,9 @@ export default function StepUpPage() {
           <div className="rounded-3xl border border-border bg-background/80 p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className="text-base font-medium">系统代理</div>
+                <div className="text-base font-medium">{t('stepUp.systemProxy')}</div>
                 <div className="text-sm text-muted-foreground">
-                  配置系统代理以便访问外部服务（模拟）。
+                  {t('stepUp.proxyDesc')}
                 </div>
               </div>
               <Switch
@@ -360,13 +362,13 @@ export default function StepUpPage() {
                   }
                   setProxyEnabled(true);
                 }}
-                aria-label="启用系统代理"
+                aria-label={t('stepUp.enableProxy')}
               />
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <label htmlFor="proxy-host" className="text-xs font-medium">
-                  代理地址
+                  {t('stepUp.proxyHost')}
                 </label>
                 <StepUpBasicInput
                   id="proxy-host"
@@ -378,7 +380,7 @@ export default function StepUpPage() {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="proxy-port" className="text-xs font-medium">
-                  端口
+                  {t('stepUp.proxyPort')}
                 </label>
                 <StepUpBasicInput
                   id="proxy-port"
@@ -390,7 +392,7 @@ export default function StepUpPage() {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="proxy-username" className="text-xs font-medium">
-                  用户名（可选）
+                  {t('stepUp.proxyUsername')}
                 </label>
                 <StepUpBasicInput
                   id="proxy-username"
@@ -402,7 +404,7 @@ export default function StepUpPage() {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="proxy-password" className="text-xs font-medium">
-                  密码（可选）
+                  {t('stepUp.proxyPassword')}
                 </label>
                 <StepUpBasicInput
                   id="proxy-password"
@@ -416,7 +418,7 @@ export default function StepUpPage() {
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-end gap-3 text-xs">
               <Button type="button" size="sm" variant="ghost" onClick={() => setProxyOpen(false)}>
-                取消
+                {t('cancel')}
               </Button>
               {proxyChanged ? (
                 <Button
@@ -425,7 +427,7 @@ export default function StepUpPage() {
                   disabled={!proxyReady}
                   onClick={handleApplyProxy}
                 >
-                  保存
+                  {t('save')}
                 </Button>
               ) : null}
             </div>
@@ -476,7 +478,7 @@ export default function StepUpPage() {
             disabled={!canProceed || isFinishing}
             onClick={() => void handleNext()}
           >
-            {isFinishing ? "处理中..." : primaryLabel}
+            {isFinishing ? t('stepUp.processing') : primaryLabel}
           </Button>
         </div>
       </div>

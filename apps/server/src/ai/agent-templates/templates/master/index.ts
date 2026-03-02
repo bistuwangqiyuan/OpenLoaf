@@ -50,6 +50,7 @@ export const masterTemplate: AgentTemplate = {
     'task-status',
     // project
     'project-query',
+    'project-mutate',
     // calendar
     'calendar-query',
     // email

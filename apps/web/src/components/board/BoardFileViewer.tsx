@@ -10,6 +10,7 @@
 "use client";
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { BoardCanvas } from "./core/BoardCanvas";
 import { BOARD_NODE_DEFINITIONS } from "./core/board-nodes";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
@@ -41,6 +42,7 @@ const BoardFileViewer = memo(function BoardFileViewer({
   panelKey,
   tabId,
 }: BoardFileViewerProps) {
+  const { t } = useTranslation("common");
   const { workspace } = useWorkspace();
   const runtimeStack = useTabRuntime((state) =>
     tabId ? state.runtimeByTabId[tabId]?.stack : undefined,
@@ -60,7 +62,7 @@ const BoardFileViewer = memo(function BoardFileViewer({
   const uiHidden = stackHidden && isStackItem && activeStackId === panelKey;
 
   if (!workspace?.id) {
-    return <div className="h-full w-full p-4 text-muted-foreground">工作区加载中</div>;
+    return <div className="h-full w-full p-4 text-muted-foreground">{t("file.workspaceLoading")}</div>;
   }
 
   if (!boardFolderUri || !boardFileUri) {

@@ -172,16 +172,16 @@ export default function DesktopWidgetLibraryPanel({
     const q = query.trim().toLowerCase();
     const scopedCatalog = desktopWidgetCatalog.filter((item) => item.support[scope]);
     if (!q) return scopedCatalog;
-    return scopedCatalog.filter((item) => item.title.toLowerCase().includes(q));
-  }, [query, scope]);
+    return scopedCatalog.filter((item) => t('catalog.' + item.widgetKey).toLowerCase().includes(q));
+  }, [query, scope, t]);
 
   // 过滤后的图标列表。
   const filteredIcons = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     const scopedIcons = desktopIconCatalog.filter((item) => item.support[scope]);
     if (!q) return scopedIcons;
-    return scopedIcons.filter((item) => item.title.toLowerCase().includes(q));
-  }, [query, scope]);
+    return scopedIcons.filter((item) => t('iconCatalog.' + item.iconKey).toLowerCase().includes(q));
+  }, [query, scope, t]);
 
   // Query workspace-level dynamic widgets (no projectId).
   const workspaceId = workspace?.id
