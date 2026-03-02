@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream, readFileSync, existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 
 // ---------------------------------------------------------------------------
 // env 文件加载
@@ -301,4 +301,129 @@ export async function uploadChangelogs({ s3, bucket, component, changelogsDir, p
  */
 export function buildChangelogUrl(publicUrl, component, version) {
   return `https://raw.githubusercontent.com/OpenLoaf/OpenLoaf/main/apps/${component}/changelogs/${version}`
+}
+
+// ---------------------------------------------------------------------------
+// 旧版本清理
+// ---------------------------------------------------------------------------
+
+/**
+ * 列出 R2 bucket 中指定前缀下的所有对象 Key。
+ */
+async function listAllKeys(s3, bucket, prefix) {
+  const keys = []
+  let continuationToken
+  do {
+    const res = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    )
+    for (const obj of res.Contents ?? []) {
+      if (obj.Key) keys.push(obj.Key)
+    }
+    continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
+  } while (continuationToken)
+  return keys
+}
+
+/**
+ * 批量删除 R2 对象（每批最多 1000 个）。
+ */
+async function deleteKeys(s3, bucket, keys) {
+  const batchSize = 1000
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const batch = keys.slice(i, i + batchSize)
+    await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: { Objects: batch.map((Key) => ({ Key })) },
+      })
+    )
+  }
+}
+
+/**
+ * 从 R2 对象 Key 中提取版本号。
+ * 支持两种结构：
+ *   - 版本文件夹：desktop/0.2.3/OpenLoaf-0.2.3.dmg → "0.2.3"
+ *   - 版本文件夹：server/0.2.3/server.mjs.gz → "0.2.3"
+ *   - 旧平铺结构：desktop/OpenLoaf-0.2.3.dmg → "0.2.3"（向后兼容）
+ * latest-*.yml 等根目录文件返回 null（不参与清理）。
+ * @returns {string|null} 版本号，如 "0.2.3" 或 "0.3.0-beta.1"
+ */
+function extractVersionFromKey(key) {
+  const parts = key.split('/')
+  // 版本文件夹结构：prefix/X.Y.Z/filename → parts[1] 是版本号
+  if (parts.length >= 3) {
+    const candidate = parts[parts.length - 2]
+    if (/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$/.test(candidate)) {
+      return candidate
+    }
+  }
+  // 旧平铺结构回退：从文件名提取
+  const filename = parts.pop() ?? ''
+  const match = filename.match(/^OpenLoaf-(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/)
+  return match ? match[1] : null
+}
+
+/**
+ * 按语义化版本降序排序。
+ */
+function compareVersionsDesc(a, b) {
+  const pa = a.split(/[-.]/)
+  const pb = b.split(/[-.]/)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = Number(pa[i]) || 0
+    const nb = Number(pb[i]) || 0
+    if (na !== nb) return nb - na
+    // 非数字部分按字符串比较（如 beta vs rc）
+    if (pa[i] !== pb[i]) return (pb[i] ?? '').localeCompare(pa[i] ?? '')
+  }
+  return 0
+}
+
+/**
+ * 清理 R2 中旧版本文件，仅保留最近 N 个版本。
+ * latest-*.yml 等非版本化文件不受影响。
+ *
+ * @param {object} opts
+ * @param {S3Client} opts.s3 - S3 客户端
+ * @param {string} opts.bucket - Bucket 名称
+ * @param {string} opts.prefix - 对象前缀，如 "desktop/"
+ * @param {number} [opts.keep=3] - 保留最近版本数
+ */
+export async function cleanupOldVersions({ s3, bucket, prefix, keep = 3 }) {
+  console.log(`\n🧹 Cleaning up old versions in ${prefix} (keeping latest ${keep})...`)
+
+  const allKeys = await listAllKeys(s3, bucket, prefix)
+
+  // 按版本号分组
+  /** @type {Map<string, string[]>} */
+  const versionMap = new Map()
+  for (const key of allKeys) {
+    const ver = extractVersionFromKey(key)
+    if (!ver) continue // latest-*.yml 等跳过
+    if (!versionMap.has(ver)) versionMap.set(ver, [])
+    versionMap.get(ver).push(key)
+  }
+
+  const sortedVersions = [...versionMap.keys()].sort(compareVersionsDesc)
+  console.log(`   Found ${sortedVersions.length} version(s): ${sortedVersions.join(', ')}`)
+
+  if (sortedVersions.length <= keep) {
+    console.log(`   Nothing to clean up (${sortedVersions.length} <= ${keep})`)
+    return
+  }
+
+  const toRemoveVersions = sortedVersions.slice(keep)
+  const keysToDelete = toRemoveVersions.flatMap((ver) => versionMap.get(ver) ?? [])
+
+  console.log(`   Removing ${toRemoveVersions.length} old version(s): ${toRemoveVersions.join(', ')}`)
+  console.log(`   Deleting ${keysToDelete.length} file(s)...`)
+
+  await deleteKeys(s3, bucket, keysToDelete)
+  console.log(`   Done.`)
 }

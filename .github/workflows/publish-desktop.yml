@@ -398,12 +398,74 @@ jobs:
           npm init -y > /dev/null 2>&1
           npm install @aws-sdk/client-s3
 
-      - name: Download all platform artifacts
+      - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
+        if: needs.build-mac-arm64.result == 'success'
         with:
-          pattern: openloaf-desktop-*
+          name: openloaf-desktop-macos-arm64
           path: apps/desktop/dist
-          merge-multiple: true
+
+      - name: Save ARM64 latest-mac.yml
+        if: needs.build-mac-arm64.result == 'success'
+        run: |
+          if [ -f apps/desktop/dist/latest-mac.yml ]; then
+            cp apps/desktop/dist/latest-mac.yml /tmp/latest-mac-arm64.yml
+          fi
+
+      - name: Download macOS x64 artifacts
+        uses: actions/download-artifact@v4
+        if: needs.build-mac-x64.result == 'success'
+        with:
+          name: openloaf-desktop-macos-x64
+          path: apps/desktop/dist
+
+      - name: Save x64 latest-mac.yml
+        if: needs.build-mac-x64.result == 'success'
+        run: |
+          if [ -f apps/desktop/dist/latest-mac.yml ]; then
+            cp apps/desktop/dist/latest-mac.yml /tmp/latest-mac-x64.yml
+          fi
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        if: needs.build-windows.result == 'success'
+        with:
+          name: openloaf-desktop-windows
+          path: apps/desktop/dist
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        if: needs.build-linux.result == 'success'
+        with:
+          name: openloaf-desktop-linux
+          path: apps/desktop/dist
+
+      - name: Merge macOS latest-mac.yml (ARM64 + x64)
+        run: |
+          # Merge both architectures' files entries into one latest-mac.yml.
+          # If both exist, concatenate the 'files:' sections from x64 into arm64.
+          ARM="/tmp/latest-mac-arm64.yml"
+          X64="/tmp/latest-mac-x64.yml"
+          OUT="apps/desktop/dist/latest-mac.yml"
+          if [ -f "$ARM" ] && [ -f "$X64" ]; then
+            # Use ARM64 as base, append x64 file entries after the ARM64 entries
+            node -e "
+              const fs = require('fs');
+              const arm = fs.readFileSync('$ARM','utf8');
+              const x64 = fs.readFileSync('$X64','utf8');
+              // Extract 'files:' block from x64 (each entry starts with '  - ')
+              const x64Files = x64.split(/\nfiles:\n/)[1] || '';
+              const x64Entries = x64Files.split('\n').filter(l => l.match(/^  - |^    /)).join('\n');
+              // Append x64 entries to arm64 yml
+              const merged = arm.trimEnd() + '\n' + x64Entries + '\n';
+              fs.writeFileSync('$OUT', merged);
+              console.log('Merged latest-mac.yml (arm64 + x64)');
+            "
+          elif [ -f "$ARM" ]; then
+            cp "$ARM" "$OUT"
+          elif [ -f "$X64" ]; then
+            cp "$X64" "$OUT"
+          fi
 
       - name: List artifacts
         run: ls -la apps/desktop/dist/

@@ -36,6 +36,10 @@
       ".webpack/**/*",
       "package.json"
     ],
+    "publish": {
+      "provider": "generic",
+      "url": "https://r2-openloaf-update.hexems.com/desktop"
+    },
     "extraResources": [
       {
         "from": "out/OpenLoaf-win32-x64/resources/node_modules",
