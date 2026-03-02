@@ -12,7 +12,7 @@
 import i18next from "i18next";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { DEFAULT_TAB_INFO, WORKBENCH_TAB_INPUT, type DockItem } from "@openloaf/api/common";
+import { DEFAULT_TAB_INFO, type DockItem } from "@openloaf/api/common";
 import { createChatSessionId } from "@/lib/chat-session-id";
 import { useChatRuntime } from "./use-chat-runtime";
 import { useTabRuntime } from "./use-tab-runtime";
@@ -541,11 +541,7 @@ export const useTabs = create<TabsState>()(
           createNew: true,
           title: i18next.t(DEFAULT_TAB_INFO.titleKey),
           icon: DEFAULT_TAB_INFO.icon,
-          leftWidthPercent: 70,
-          base: {
-            id: WORKBENCH_TAB_INPUT.baseId,
-            component: WORKBENCH_TAB_INPUT.component,
-          },
+          leftWidthPercent: 100,
         });
       },
     }),

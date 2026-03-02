@@ -56,6 +56,7 @@
       "success": "反饋已提交",
       "failedWithMessage": "反饋提交失敗：{{message}}",
       "failed": "反饋提交失敗，請稍後重試",
+      "includeLogs": "附帶應用日誌（幫助定位問題）",
       "types": {
         "ui": "介面體驗",
         "performance": "效能問題",

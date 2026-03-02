@@ -73,6 +73,6 @@ export const AI_ASSISTANT_TAB_INPUT = {
 } as const;
 
 export const DEFAULT_TAB_INFO = {
-  titleKey: WORKBENCH_TAB_INPUT.titleKey,
-  icon: WORKBENCH_TAB_INPUT.icon,
+  titleKey: AI_ASSISTANT_TAB_INPUT.titleKey,
+  icon: AI_ASSISTANT_TAB_INPUT.icon,
 } as const;

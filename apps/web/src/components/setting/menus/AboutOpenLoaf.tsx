@@ -10,6 +10,7 @@
 "use client";
 
 import { Button } from "@openloaf/ui/button";
+import { Switch } from "@openloaf/ui/switch";
 import { useTranslation } from "react-i18next";
 import { getWebClientId } from "@/lib/chat/streamClientId";
 import { ChevronRight, Download, FileText, Loader2 } from "lucide-react";
@@ -115,6 +116,8 @@ export function AboutOpenLoaf() {
   const isElectron = React.useMemo(() => isElectronEnv(), []);
   // 开发模式下禁用更新功能（pnpm desktop）。
   const isDevDesktop = isElectron && process.env.NODE_ENV !== "production";
+  const [updateChannel, setUpdateChannel] = React.useState<"stable" | "beta">("stable");
+  const [channelSwitching, setChannelSwitching] = React.useState(false);
 
   /** 复制到剪贴板（navigator.clipboard 不可用时做降级）。 */
   const copyToClipboard = async (text: string, key: "clientId") => {
@@ -157,6 +160,34 @@ export function AboutOpenLoaf() {
       if (status) setUpdateStatus(status);
     } catch {
       // ignore
+    }
+  }, [isElectron]);
+
+  /** Fetch current update channel. */
+  const fetchUpdateChannel = React.useCallback(async () => {
+    const api = window.openloafElectron;
+    if (!isElectron || !api?.getUpdateChannel) return;
+    try {
+      const ch = await api.getUpdateChannel();
+      if (ch) setUpdateChannel(ch);
+    } catch {
+      // ignore
+    }
+  }, [isElectron]);
+
+  /** Switch update channel. */
+  const handleChannelSwitch = React.useCallback(async (beta: boolean) => {
+    const api = window.openloafElectron;
+    if (!isElectron || !api?.switchUpdateChannel) return;
+    const target = beta ? "beta" : "stable";
+    setChannelSwitching(true);
+    try {
+      const res = await api.switchUpdateChannel(target);
+      if (res?.ok) setUpdateChannel(target);
+    } catch {
+      // ignore
+    } finally {
+      setChannelSwitching(false);
     }
   }, [isElectron]);
 
@@ -245,7 +276,8 @@ export function AboutOpenLoaf() {
     if (!isElectron) return;
     void fetchAppVersion();
     void fetchUpdateStatus();
-  }, [isElectron, fetchAppVersion, fetchUpdateStatus]);
+    void fetchUpdateChannel();
+  }, [isElectron, fetchAppVersion, fetchUpdateStatus, fetchUpdateChannel]);
 
   React.useEffect(() => {
     if (!isElectron) return;
@@ -416,6 +448,21 @@ export function AboutOpenLoaf() {
               >
                 {updateActionLabel}
               </Button>
+            </div>
+          </div>
+          <div className="border-t border-border px-3 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium">{t('aboutAdditions.betaChannel', 'Beta 体验')}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t('aboutAdditions.betaChannelDesc', '开启后优先获取测试版更新，可能包含未完善的功能')}
+                </div>
+              </div>
+              <Switch
+                checked={updateChannel === "beta"}
+                disabled={channelSwitching || isDevDesktop}
+                onCheckedChange={(checked) => void handleChannelSwitch(checked)}
+              />
             </div>
           </div>
         </OpenLoafSettingsGroup>

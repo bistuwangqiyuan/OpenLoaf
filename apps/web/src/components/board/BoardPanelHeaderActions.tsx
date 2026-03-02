@@ -187,8 +187,6 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     item.id,
   ]);
 
-  if (!isBoardPanel) return null;
-
   const shouldCollapsePanels = leftOpen || !rightChatCollapsed;
   // 逻辑：左右面板都收起时视为画布全屏。
   const isBoardFull = !shouldCollapsePanels;
@@ -198,15 +196,6 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
     return isMac ? "Cmd+K" : "Ctrl+K";
   }, []);
-  const toggleLabel = canToggleSidebar
-    ? isBoardFull
-      ? t('panelHeader.exitFullscreen')
-      : t('panelHeader.enterFullscreen')
-    : rightChatCollapsed
-      ? t('panelHeader.showAIPanel')
-      : t('panelHeader.hideAIPanel');
-  const toggleTooltip = canToggleSidebar ? `${toggleLabel} (${shortcutLabel})` : toggleLabel;
-  const exportLabel = t('panelHeader.screenshot');
 
   useEffect(() => {
     if (!isBoardPanel) return;
@@ -225,6 +214,18 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleTogglePanels, isActiveStackItem, isBoardPanel]);
+
+  if (!isBoardPanel) return null;
+
+  const toggleLabel = canToggleSidebar
+    ? isBoardFull
+      ? t('panelHeader.exitFullscreen')
+      : t('panelHeader.enterFullscreen')
+    : rightChatCollapsed
+      ? t('panelHeader.showAIPanel')
+      : t('panelHeader.hideAIPanel');
+  const toggleTooltip = canToggleSidebar ? `${toggleLabel} (${shortcutLabel})` : toggleLabel;
+  const exportLabel = t('panelHeader.screenshot');
 
   return (
     <>

@@ -115,6 +115,42 @@ function ThemeSettingsBootstrap() {
   return null;
 }
 
+/** Error boundary that catches render errors in panel roots. */
+class PanelErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[PanelErrorBoundary]", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full w-full items-center justify-center">
+          <button
+            type="button"
+            className="rounded-full bg-muted px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted/80"
+            onClick={() => this.setState({ hasError: false })}
+          >
+            重新加载面板
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Provide shared providers for panel roots.
 function PanelProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -126,7 +162,9 @@ function PanelProviders({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <ThemeSettingsBootstrap />
-        <WorkspaceProvider>{children}</WorkspaceProvider>
+        <WorkspaceProvider>
+          <PanelErrorBoundary>{children}</PanelErrorBoundary>
+        </WorkspaceProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

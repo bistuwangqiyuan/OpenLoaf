@@ -13,7 +13,7 @@ import { AnimatedTabs } from "@openloaf/ui/animated-tabs";
 import { useTabs } from "@/hooks/use-tabs";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { DEFAULT_TAB_INFO, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
+import { AI_ASSISTANT_TAB_INPUT, DEFAULT_TAB_INFO, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import type { TabMeta } from "@/hooks/tab-types";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { Button } from "@openloaf/ui/button";
@@ -218,8 +218,7 @@ export const HeaderTabs = () => {
         createNew: true,
         title: t(DEFAULT_TAB_INFO.titleKey),
         icon: DEFAULT_TAB_INFO.icon,
-        leftWidthPercent: 70,
-        base: { id: WORKBENCH_TAB_INPUT.baseId, component: WORKBENCH_TAB_INPUT.component },
+        leftWidthPercent: 100,
       });
     }
   }, [activeWorkspace, tabs, addTab]);
@@ -313,8 +312,7 @@ export const HeaderTabs = () => {
       createNew: true,
       title: t(DEFAULT_TAB_INFO.titleKey),
       icon: DEFAULT_TAB_INFO.icon,
-      leftWidthPercent: 70,
-      base: { id: WORKBENCH_TAB_INPUT.baseId, component: WORKBENCH_TAB_INPUT.component },
+      leftWidthPercent: 100,
     });
   }, [activeWorkspace, addTab, t]);
 

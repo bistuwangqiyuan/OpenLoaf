@@ -27,6 +27,14 @@ export function useLanguageSync() {
     if (i18n.language !== target) {
       void i18n.changeLanguage(target);
     }
+
+    // Cache resolved language in localStorage so next page load starts with the right language
+    // (eliminates flash of wrong language before tRPC responds)
+    try {
+      localStorage.setItem('openloaf-ui-language', target);
+    } catch {
+      // Silently ignore if localStorage is unavailable
+    }
   }, [basic.uiLanguage, isLoading, i18n]);
 }
 

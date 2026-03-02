@@ -18,9 +18,10 @@ import ChatHeader from "./ChatHeader";
 import { useChatActions, useChatSession, useChatState } from "./context";
 import { useChatSessions } from "@/hooks/use-chat-sessions";
 import { useTabs } from "@/hooks/use-tabs";
+import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { generateId } from "ai";
 import * as React from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { LayoutDashboard, CalendarDays, Mail, Clock } from "lucide-react";
 import {
   CHAT_ATTACHMENT_MAX_FILE_SIZE_BYTES,
@@ -146,17 +147,15 @@ function QuickLaunchBar() {
   const handleQuickLaunch = React.useCallback(
     (item: (typeof QUICK_LAUNCH_ITEMS)[number]) => {
       if (!tabId) return
-      const state = useTabs.getState()
-      const currentTab = state.tabs.find((t) => t.id === tabId)
+      const tabState = useTabs.getState()
+      const currentTab = tabState.tabs.find((tab) => tab.id === tabId)
       if (!currentTab) return
-      state.addTab({
-        workspaceId: currentTab.workspaceId,
-        createNew: true,
-        title: t(item.titleKey),
-        icon: item.tabIcon,
-        leftWidthPercent: 100,
-        base: { id: item.baseId, component: item.component },
-      })
+      // 在当前 tab 左侧面板打开，保持右侧 AI 聊天。
+      const runtime = useTabRuntime.getState()
+      runtime.setTabBase(tabId, { id: item.baseId, component: item.component })
+      runtime.setTabLeftWidthPercent(tabId, 100)
+      tabState.setTabTitle(tabId, t(item.titleKey))
+      tabState.setTabIcon(tabId, item.tabIcon)
     },
     [tabId, t],
   )
@@ -243,10 +242,8 @@ function ChatFullPageLayout({
   const isEmpty = !isHistoryLoading && messages.length === 0 && !pendingCloudMessage
 
   return (
-    <motion.div
-      layout
+    <div
       className="relative flex flex-1 w-full flex-col min-h-0 min-w-0"
-      transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -257,88 +254,73 @@ function ChatFullPageLayout({
         onCloseSession={onCloseSession}
         iconPalette="email"
       />
-      <AnimatePresence mode="wait">
-        {isEmpty ? (
-          <motion.div
-            key="empty"
-            className="flex flex-1 flex-col min-h-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="flex flex-1 flex-col items-center justify-center min-h-0">
-              <div className="flex w-full max-w-2xl flex-col items-center gap-4 px-4 -mt-20">
-                <motion.img
-                  src="/logo_nobody.png"
-                  alt="OpenLoaf"
-                  className="mb-2 h-24 w-24"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.25 }}
-                />
-                <motion.p
-                  className="mb-4 text-base text-muted-foreground"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.2 }}
-                >
-                  {t('chat.welcomeMessage')}
-                </motion.p>
-                <ChatInput
-                  className="w-full !max-h-none !mt-0"
-                  attachments={attachments}
-                  onAddAttachments={onAddAttachments}
-                  onRemoveAttachment={onRemoveAttachment}
-                  onClearAttachments={onClearAttachments}
-                  onReplaceMaskedAttachment={onReplaceMaskedAttachment}
-                  canAttachAll={canAttachAll}
-                  canAttachImage={canAttachImage}
-                  model={model}
-                  isAutoModel={isAutoModel}
-                  canImageGeneration={canImageGeneration}
-                  canImageEdit={canImageEdit}
-                  isCodexProvider={isCodexProvider}
-                  onDropHandled={onDropHandled}
-                  blockedCompact
-                />
-                <div className="mt-4">
-                  <MessageHelper compact />
-                </div>
+      {isEmpty ? (
+        <div className="flex flex-1 flex-col min-h-0">
+          <div className="flex flex-1 flex-col items-center justify-center min-h-0">
+            <div className="flex w-full max-w-2xl flex-col items-center gap-4 px-4 -mt-20">
+              <motion.img
+                src="/logo_nobody.png"
+                alt="OpenLoaf"
+                className="mb-2 h-24 w-24"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.25 }}
+              />
+              <motion.p
+                className="mb-4 text-base text-muted-foreground"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                {t('chat.welcomeMessage')}
+              </motion.p>
+              <ChatInput
+                className="w-full !max-h-none !mt-0"
+                attachments={attachments}
+                onAddAttachments={onAddAttachments}
+                onRemoveAttachment={onRemoveAttachment}
+                onClearAttachments={onClearAttachments}
+                onReplaceMaskedAttachment={onReplaceMaskedAttachment}
+                canAttachAll={canAttachAll}
+                canAttachImage={canAttachImage}
+                model={model}
+                isAutoModel={isAutoModel}
+                canImageGeneration={canImageGeneration}
+                canImageEdit={canImageEdit}
+                isCodexProvider={isCodexProvider}
+                onDropHandled={onDropHandled}
+                blockedCompact
+              />
+              <div className="mt-4">
+                <MessageHelper compact />
               </div>
             </div>
-            <QuickLaunchBar />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="filled"
-            className="flex flex-1 flex-col min-h-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-          >
-            <MessageList className="flex-1 min-h-0" />
-            <RecentSessionsBar />
-            <ChatInput
-              className="mx-2 mb-2"
-              attachments={attachments}
-              onAddAttachments={onAddAttachments}
-              onRemoveAttachment={onRemoveAttachment}
-              onClearAttachments={onClearAttachments}
-              onReplaceMaskedAttachment={onReplaceMaskedAttachment}
-              canAttachAll={canAttachAll}
-              canAttachImage={canAttachImage}
-              model={model}
-              isAutoModel={isAutoModel}
-              canImageGeneration={canImageGeneration}
-              canImageEdit={canImageEdit}
-              isCodexProvider={isCodexProvider}
-              onDropHandled={onDropHandled}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          </div>
+          <QuickLaunchBar />
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col min-h-0">
+          <MessageList className="flex-1 min-h-0" />
+          <RecentSessionsBar />
+          <ChatInput
+            className="mx-2 mb-2"
+            attachments={attachments}
+            onAddAttachments={onAddAttachments}
+            onRemoveAttachment={onRemoveAttachment}
+            onClearAttachments={onClearAttachments}
+            onReplaceMaskedAttachment={onReplaceMaskedAttachment}
+            canAttachAll={canAttachAll}
+            canAttachImage={canAttachImage}
+            model={model}
+            isAutoModel={isAutoModel}
+            canImageGeneration={canImageGeneration}
+            canImageEdit={canImageEdit}
+            isCodexProvider={isCodexProvider}
+            onDropHandled={onDropHandled}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1042,11 +1024,8 @@ export function Chat({
           handleDrop={handleDrop}
         />
       ) : (
-        <motion.div
-          layout
-          layoutId={`session-content-${effectiveSessionId}`}
+        <div
           className="relative flex flex-1 w-full flex-col min-h-0 min-w-0"
-          transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -1063,7 +1042,7 @@ export function Chat({
             className="mx-2 mb-2"
             {...sharedInputProps}
           />
-        </motion.div>
+        </div>
       )}
     </ChatCoreProvider>
   );

@@ -179,6 +179,16 @@ export async function resolvePythonInstallInfo(): Promise<{
   const candidates = ["python3", "python"];
   for (const command of candidates) {
     try {
+      // On macOS, resolve the path first to avoid triggering the system stub dialog.
+      // /usr/bin/python3 is an Apple stub that shows an "Install Developer Tools" popup.
+      if (process.platform === "darwin") {
+        const whichResult = await execa("which", [command], { all: true, reject: false });
+        const resolvedPath = (whichResult.stdout || "").trim();
+        if (!resolvedPath || resolvedPath === `/usr/bin/${command}`) {
+          logger.debug({ command, resolvedPath }, "[cli] skipping macOS python stub");
+          continue;
+        }
+      }
       const result = await execa(command, ["--version"], { all: true });
       const output = (result.stdout || result.stderr || result.all || "").trim();
       const versionMatch = output.match(/(\d+\.\d+\.\d+)/);

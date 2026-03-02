@@ -10,6 +10,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { detectSystemLanguage } from './detectLanguage';
+import { SUPPORTED_UI_LANGUAGES } from './types';
 
 // Import all translation files (static import for static export + Electron compatibility)
 // Simplified Chinese
@@ -45,9 +46,29 @@ import enUSBoard from './locales/en-US/board.json';
 import enUSCalendar from './locales/en-US/calendar.json';
 import enUSDesktop from './locales/en-US/desktop.json';
 
+/**
+ * Resolve initial language:
+ * 1. localStorage cache (written by useLanguageSync on every change)
+ * 2. detectSystemLanguage() as fallback
+ * This eliminates the "flash of wrong language" on page load.
+ */
+function getInitialLanguage(): string {
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('openloaf-ui-language');
+      if (cached && SUPPORTED_UI_LANGUAGES.some(l => l.value === cached)) {
+        return cached;
+      }
+    } catch {
+      // localStorage may be unavailable (SSR, privacy mode, etc.)
+    }
+  }
+  return detectSystemLanguage();
+}
+
 // Initialize react-i18next
 i18n.use(initReactI18next).init({
-  lng: detectSystemLanguage(),
+  lng: getInitialLanguage(),
   fallbackLng: 'zh-CN',
   debug: false,
   ns: ['common', 'nav', 'ai', 'settings', 'workspace', 'tasks', 'board', 'calendar', 'desktop'],

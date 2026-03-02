@@ -424,6 +424,21 @@ tests:
             ? { pass: true, score: 1, reason: '第二轮调用了 project-mutate' }
             : { pass: false, score: 0, reason: `未调用 project-mutate，实际: [${tools}]` };
 
+  # ─── Master 身份与通用对话测试（master-060 ~）───
+
+  - description: "master-060: 自我介绍不应调用任何工具"
+    vars:
+      prompt: "自我介绍一下"
+    assert:
+      - type: javascript
+        value: |
+          const tools = context.providerResponse?.metadata?.toolNames || [];
+          return tools.length === 0
+            ? { pass: true, score: 1, reason: '未调用任何工具，直接文本回复' }
+            : { pass: false, score: 0, reason: `不应调用工具，实际调用了: [${tools}]` };
+      - type: llm-rubric
+        value: "回复应说明自己是 OpenLoaf AI 助手，并简要介绍自身能力（如项目管理、邮件、日历、文件操作、AI 对话等），语气友好简洁"
+
   # ════════════════════════════════════════════════════════════════
   # Calendar 日历助手（agentType: calendar）
   # ════════════════════════════════════════════════════════════════

@@ -15,7 +15,9 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { Button } from "@openloaf/ui/button";
+import { Checkbox } from "@openloaf/ui/checkbox";
 import { Input } from "@openloaf/ui/input";
+import { Label } from "@openloaf/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
 import {
   Select,
@@ -81,7 +83,11 @@ export function SidebarFeedback() {
   const [type, setType] = React.useState<FeedbackType>("other");
   const [content, setContent] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [includeLogs, setIncludeLogs] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+
+  // 仅在 Electron 环境下显示日志上传选项。
+  const showLogOption = isElectronEnv();
 
   /** Resolve active tab metadata for context. */
   const activeTab = React.useMemo(() => {
@@ -117,6 +123,15 @@ export function SidebarFeedback() {
     const openUri = toOptionalText(activeParams.openUri);
     const uri = toOptionalText(activeParams.uri);
 
+    // 读取 startup.log（仅 Electron 且用户勾选时）
+    let startupLog: string | undefined;
+    if (includeLogs && isElectron) {
+      const result = await window.openloafElectron?.readStartupLog?.();
+      if (result?.ok) {
+        startupLog = (result as { ok: true; content: string }).content;
+      }
+    }
+
     // 中文注释：按需剔除空值，避免上下文噪音。
     const context: Record<string, unknown> = {
       page: toOptionalText(page),
@@ -131,12 +146,13 @@ export function SidebarFeedback() {
       rootUri,
       openUri,
       uri,
+      startupLog,
     };
 
     return Object.fromEntries(
       Object.entries(context).filter(([, value]) => value !== undefined && value !== null)
     );
-  }, [activeParams, activeTab, activeWorkspace]);
+  }, [activeParams, activeTab, activeWorkspace, includeLogs]);
 
   /** Submit feedback to SaaS. */
   const submitFeedback = React.useCallback(async () => {
@@ -170,7 +186,7 @@ export function SidebarFeedback() {
         return;
       }
       await feedbackApi.submit({
-        source: "openloaf",
+        source: "openloaf-saas",
         type,
         content: trimmed,
         context,
@@ -180,6 +196,7 @@ export function SidebarFeedback() {
       setContent("");
       setEmail("");
       setType("other");
+      setIncludeLogs(false);
       setOpen(false);
     } catch (error) {
       // 中文注释：优先展示服务端返回的错误信息。
@@ -239,6 +256,21 @@ export function SidebarFeedback() {
                   ) : null}
                 </>
               )}
+              {showLogOption ? (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="feedback-include-logs"
+                    checked={includeLogs}
+                    onCheckedChange={(checked) => setIncludeLogs(checked === true)}
+                  />
+                  <Label
+                    htmlFor="feedback-include-logs"
+                    className="text-xs text-muted-foreground cursor-pointer select-none"
+                  >
+                    {t('sidebar.feedback.includeLogs')}
+                  </Label>
+                </div>
+              ) : null}
               <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="ghost"

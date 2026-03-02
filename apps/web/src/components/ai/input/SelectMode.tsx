@@ -9,7 +9,7 @@
  */
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -17,6 +17,7 @@ import { SaasLoginDialog } from '@/components/auth/SaasLoginDialog'
 import { useModelPreferences } from './model-preferences/useModelPreferences'
 import { ModelPreferencesPanel } from './model-preferences/ModelPreferencesPanel'
 import { ModelSelectionTooltip } from './model-preferences/ModelSelectionTooltip'
+import { CLI_TOOLS_META } from './model-preferences/CliToolsList'
 import { useOptionalChatSession } from '../context'
 import { useTabs } from '@/hooks/use-tabs'
 import {
@@ -52,6 +53,14 @@ export default function SelectMode({
   const activeTabId = useTabs((s) => s.activeTabId)
   const tabId = chatSession?.tabId ?? activeTabId
   const isIconTrigger = triggerVariant === 'icon'
+
+  // CLI 模式下显示选中工具的 icon
+  const cliToolMeta = useMemo(() => {
+    if (chatMode !== 'cli') return null
+    const selectedId = prefs.preferredCodeIds[0]
+    return CLI_TOOLS_META.find((t) => t.id === selectedId) ?? CLI_TOOLS_META[0]
+  }, [chatMode, prefs.preferredCodeIds])
+  const CliIcon = cliToolMeta?.icon
 
   // 逻辑：Popover 打开时刷新配置和云端模型
   useEffect(() => {
@@ -113,7 +122,7 @@ export default function SelectMode({
       )}
       aria-label={t('mode.customizeSettings')}
     >
-      <Settings2 className="h-4 w-4" />
+      {CliIcon ? <CliIcon size={16} className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
     </PromptInputButton>
   ) : (
     <PromptInputButton
@@ -127,7 +136,7 @@ export default function SelectMode({
         className,
       )}
     >
-      <Settings2 className="h-3.5 w-3.5" />
+      {CliIcon ? <CliIcon size={14} className="h-3.5 w-3.5" /> : <Settings2 className="h-3.5 w-3.5" />}
       <span className="truncate">{t('mode.customizeSettings')}</span>
     </PromptInputButton>
   )

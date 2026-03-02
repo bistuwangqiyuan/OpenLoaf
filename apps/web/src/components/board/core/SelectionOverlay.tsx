@@ -57,6 +57,20 @@ export function SingleSelectionToolbar({
 }: SingleSelectionToolbarProps) {
   const { t } = useTranslation('board');
   const { fileContext } = useBoardContext();
+  // 逻辑：Hook 必须在条件 return 之前调用，避免 Hook 顺序变化。
+  const [openPanelId, setOpenPanelId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openPanelId) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-node-toolbar]")) return;
+      // 逻辑：点击工具条外部时收起二级面板。
+      setOpenPanelId(null);
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [openPanelId]);
+
   // 逻辑：画布锁定时隐藏节点工具条。
   if (snapshot.locked) return null;
   const definition = engine.nodes.getDefinition(element.type);
@@ -84,7 +98,6 @@ export function SingleSelectionToolbar({
   });
   const mindmapLayoutItems = buildMindmapLayoutItems(t, engine, element, snapshot);
   const customItems = items ?? [];
-  const [openPanelId, setOpenPanelId] = useState<string | null>(null);
   if (
     customItems.length === 0
     && commonItems.length === 0
@@ -94,17 +107,6 @@ export function SingleSelectionToolbar({
   }
 
   const bounds = computeSelectionBounds([element], snapshot.viewport.zoom);
-  useEffect(() => {
-    if (!openPanelId) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("[data-node-toolbar]")) return;
-      // 逻辑：点击工具条外部时收起二级面板。
-      setOpenPanelId(null);
-    };
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [openPanelId]);
 
   return (
     <SelectionToolbarContainer

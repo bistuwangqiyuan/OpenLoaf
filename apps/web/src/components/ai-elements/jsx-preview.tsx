@@ -20,6 +20,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -39,6 +40,7 @@ type JSXPreviewComponents = Record<
 interface JSXPreviewContextValue {
   jsx: string;
   processedJsx: string;
+  isStreaming: boolean;
   error: Error | null;
   setError: (error: Error | null) => void;
   components: JSXPreviewComponents | undefined;
@@ -164,6 +166,7 @@ export const JSXPreview = memo(
           bindings,
           components,
           error,
+          isStreaming,
           jsx,
           onErrorProp: onError,
           processedJsx,
@@ -184,14 +187,19 @@ export type JSXPreviewContentProps = Omit<ComponentProps<"div">, "children">;
 
 export const JSXPreviewContent = memo(
   ({ className, ...props }: JSXPreviewContentProps) => {
-    const { processedJsx, components, bindings, setError, onErrorProp } =
+    const { processedJsx, isStreaming, components, bindings, setError, onErrorProp } =
       useJSXPreview();
     const errorReportedRef = useRef<string | null>(null);
+    // 记录上一次成功渲染的 JSX，流式期间出错时回退到此内容
+    const stableJsxRef = useRef<string | null>(null);
+    // 标记当前 processedJsx 渲染是否触发了 onError
+    const hasErrorThisRenderRef = useRef(false);
 
-    // Reset error tracking when jsx changes
+    // processedJsx 变化时重置标志位和 errorReportedRef
     // biome-ignore lint/correctness/useExhaustiveDependencies: processedJsx change should reset tracking
     useEffect(() => {
       errorReportedRef.current = null;
+      hasErrorThisRenderRef.current = false;
     }, [processedJsx]);
 
     const handleError = useCallback(
@@ -201,21 +209,39 @@ export const JSXPreviewContent = memo(
           return;
         }
         errorReportedRef.current = processedJsx;
-        // 逻辑：JsxParser 在渲染阶段调用 onError，需延迟 setState 避免 React 警告。
+        hasErrorThisRenderRef.current = true;
+
+        // 流式期间：静默忽略错误，保持稳定内容不闪烁
+        if (isStreaming) return;
+
+        // 流式结束后：正常上报错误
         queueMicrotask(() => {
           setError(err);
           onErrorProp?.(err);
         });
       },
-      [processedJsx, onErrorProp, setError]
+      [processedJsx, isStreaming, onErrorProp, setError]
     );
+
+    // 若本次渲染没触发 onError，则认为渲染成功，更新稳定内容
+    useLayoutEffect(() => {
+      if (!hasErrorThisRenderRef.current) {
+        stableJsxRef.current = processedJsx;
+      }
+    }, [processedJsx]);
+
+    // 流式期间且本帧有错误：回退到上次稳定内容；否则使用当前内容
+    const jsxToRender =
+      isStreaming && hasErrorThisRenderRef.current && stableJsxRef.current !== null
+        ? stableJsxRef.current
+        : processedJsx;
 
     return (
       <div className={cn("jsx-preview-content", className)} {...props}>
         <JsxParser
           bindings={bindings}
           components={components as JsxParserProps["components"]}
-          jsx={processedJsx}
+          jsx={jsxToRender}
           onError={handleError}
           renderInWrapper={false}
         />
