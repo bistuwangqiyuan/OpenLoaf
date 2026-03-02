@@ -551,14 +551,27 @@ export async function checkForIncrementalUpdates(
     const updateChannel = resolveUpdateChannel()
     const manifestUrl = `${updateBaseUrl}/${updateChannel}/manifest.json`
     log(`[incremental-update] Checking for updates (${reason}) from ${manifestUrl}...`)
-    const remoteRaw = (await fetchJson(manifestUrl)) as RemoteManifest
 
-    if (remoteRaw.schemaVersion !== 1) {
-      throw new Error(`Unsupported manifest schemaVersion: ${remoteRaw.schemaVersion}`)
-    }
+    let remote: RemoteManifest
 
-    let remote = remoteRaw
     if (updateChannel === 'beta') {
+      // Beta 渠道：先尝试获取 beta 清单，404 时回退到 stable
+      let betaManifest: RemoteManifest | null = null
+      try {
+        const betaRaw = (await fetchJson(manifestUrl)) as RemoteManifest
+        if (betaRaw.schemaVersion === 1) {
+          betaManifest = betaRaw
+        } else {
+          log(
+            `[incremental-update] Ignoring beta manifest with schemaVersion ${betaRaw.schemaVersion}`
+          )
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        log(`[incremental-update] Beta manifest not available: ${message}`)
+      }
+
+      // 获取 stable 清单用于合并或回退
       let stable: RemoteManifest | null = null
       const stableUrl = `${updateBaseUrl}/stable/manifest.json`
       try {
@@ -575,11 +588,32 @@ export async function checkForIncrementalUpdates(
         log(`[incremental-update] Failed to fetch stable manifest: ${message}`)
       }
 
-      const decision = gateBetaManifest<ComponentManifest>({ beta: remoteRaw, stable })
-      log(
-        `[incremental-update] Beta gate decision: ${decision.reason ?? 'unknown'}${decision.skipped ? ' (skipped)' : ''}`
-      )
-      remote = decision.manifest
+      if (!betaManifest && !stable) {
+        // beta 和 stable 都不可用
+        throw new Error('Beta 版本暂不可用，稳定版本也无法获取')
+      }
+
+      if (!betaManifest && stable) {
+        // beta 不可用，回退到 stable
+        log('[incremental-update] Beta 版本暂不可用，回退到稳定版本')
+        remote = stable
+      } else {
+        // beta 可用，走正常合并逻辑
+        const decision = gateBetaManifest<ComponentManifest>({
+          beta: betaManifest!,
+          stable,
+        })
+        log(
+          `[incremental-update] Beta gate decision: ${decision.reason ?? 'unknown'}${decision.skipped ? ' (skipped)' : ''}`
+        )
+        remote = decision.manifest
+      }
+    } else {
+      const remoteRaw = (await fetchJson(manifestUrl)) as RemoteManifest
+      if (remoteRaw.schemaVersion !== 1) {
+        throw new Error(`Unsupported manifest schemaVersion: ${remoteRaw.schemaVersion}`)
+      }
+      remote = remoteRaw
     }
 
     // 检查 electron 最低版本要求

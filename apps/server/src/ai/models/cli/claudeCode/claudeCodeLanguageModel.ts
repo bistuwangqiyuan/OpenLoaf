@@ -482,11 +482,14 @@ async function* processQueryStream(
           : [];
         for (const block of contentBlocks) {
           if (block.type !== "tool_result") continue;
-          const resultContent = Array.isArray(block.content) ? block.content : [];
-          const text = resultContent
-            .filter((c: any) => c.type === "text")
-            .map((c: any) => c.text as string)
-            .join("\n");
+          const text = typeof block.content === "string"
+            ? block.content
+            : Array.isArray(block.content)
+              ? (block.content as any[])
+                  .filter((c: any) => c.type === "text")
+                  .map((c: any) => c.text as string)
+                  .join("\n")
+              : "";
           uiWriter.write({
             type: "data-cc-tool-result",
             data: {

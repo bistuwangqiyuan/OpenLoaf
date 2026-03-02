@@ -109,7 +109,9 @@ const args = [
   ...process.argv.slice(2),
 ]
 
-console.log(`[dist] arch=${arch}, main=${mainPath}`)
-console.log(`[dist] pnpm ${args.join(' ')}`)
+const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 
-execFileSync('pnpm', args, { stdio: 'inherit' })
+console.log(`[dist] arch=${arch}, main=${mainPath}`)
+console.log(`[dist] ${pnpmBin} ${args.join(' ')}`)
+
+execFileSync(pnpmBin, args, { stdio: 'inherit' })
