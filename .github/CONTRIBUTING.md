@@ -14,6 +14,8 @@ You can read the full text of our CLA [here](./CLA.md).
 
 ## 🚀 How to Contribute
 
+Please read [DEVELOPMENT.md](../DEVELOPMENT.md) for the complete development guide, including commit conventions, branch strategy, and PR workflow.
+
 1. **Fork the Repository** and clone your fork locally.
 2. **Install Dependencies:**
    ```bash
@@ -21,14 +23,19 @@ You can read the full text of our CLA [here](./CLA.md).
    ```
 3. **Create a Branch** for your feature or bug fix:
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/<scope>-<description>
    ```
 4. **Make Your Changes** and ensure all existing tests and linters pass.
    ```bash
    pnpm run lint
    pnpm run check-types
    ```
-5. **Commit Your Changes** using clear and descriptive commit messages.
+5. **Commit Your Changes** following [Conventional Commits](https://www.conventionalcommits.org/) format:
+   ```bash
+   # Format: <type>(<scope>): <subject>
+   git commit -m "feat(web): add dark mode toggle"
+   ```
+   Commit messages are automatically validated by commitlint. See [DEVELOPMENT.md](../DEVELOPMENT.md) for the full list of types and scopes.
 6. **Push to Your Fork** and open a Pull Request against the `main` branch.
 
 ## 🐛 Reporting Bugs

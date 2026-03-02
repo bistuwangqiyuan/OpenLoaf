@@ -3,7 +3,7 @@ name: Publish Desktop
 on:
   push:
     tags:
-      - 'electron-v*'
+      - 'desktop-v*'
   workflow_dispatch:
     inputs:
       channel:
@@ -65,7 +65,7 @@ jobs:
       - name: Validate tag version matches package.json
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          TAG_VERSION="${GITHUB_REF#refs/tags/electron-v}"
+          TAG_VERSION="${GITHUB_REF#refs/tags/desktop-v}"
           PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
@@ -424,7 +424,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION="${GITHUB_REF#refs/tags/electron-v}"
+          VERSION="${GITHUB_REF#refs/tags/desktop-v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Read changelog
@@ -466,7 +466,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           # Collect installer files only (exclude yml, blockmap, and zip archives used by auto-updater)
           FILES=$(find dist -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" \))
-          gh release create "electron-v${VERSION}" \
+          gh release create "desktop-v${VERSION}" \
             --title "OpenLoaf Desktop v${VERSION}" \
             --notes-file /tmp/release-notes.md \
             $FILES

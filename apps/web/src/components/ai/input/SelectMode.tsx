@@ -143,16 +143,18 @@ export default function SelectMode({
           <PromptInputHoverCardTrigger asChild>
             <PopoverTrigger asChild>{triggerButton}</PopoverTrigger>
           </PromptInputHoverCardTrigger>
-          <PromptInputHoverCardContent className="max-w-[16rem]">
-            <ModelSelectionTooltip
-              chatModels={prefs.chatModels}
-              imageModels={prefs.imageModels}
-              videoModels={prefs.videoModels}
-              preferredChatIds={prefs.preferredChatIds}
-              preferredImageIds={prefs.preferredImageIds}
-              preferredVideoIds={prefs.preferredVideoIds}
-            />
-          </PromptInputHoverCardContent>
+          {chatMode !== 'cli' && (
+            <PromptInputHoverCardContent className="max-w-[16rem]">
+              <ModelSelectionTooltip
+                chatModels={prefs.chatModels}
+                imageModels={prefs.imageModels}
+                videoModels={prefs.videoModels}
+                preferredChatIds={prefs.preferredChatIds}
+                preferredImageIds={prefs.preferredImageIds}
+                preferredVideoIds={prefs.preferredVideoIds}
+              />
+            </PromptInputHoverCardContent>
+          )}
           <PopoverContent
             side="top"
             align="end"
@@ -165,6 +167,7 @@ export default function SelectMode({
               prefs={prefs}
               showCloudLogin={prefs.showCloudLogin}
               authLoggedIn={prefs.authLoggedIn}
+              chatMode={chatMode}
               onOpenLogin={handleOpenLogin}
               onClose={() => setPopoverOpen(false)}
             />

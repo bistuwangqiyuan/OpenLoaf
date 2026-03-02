@@ -41,12 +41,14 @@ Electron 通过 GitHub Actions 全自动构建发布，不再本地执行。
 cat apps/desktop/package.json | grep version
 ls apps/desktop/changelogs/{version}/
 
-# 2. 打 tag 触发 CI 构建
-git tag electron-v{version}
-git push origin electron-v{version}
+# 2. 打 tag 触发 CI 构建（tag message 使用英文 changelog）
+git tag -a desktop-v{version} -F apps/desktop/changelogs/{version}/en.md
+git push origin desktop-v{version}
 ```
 
 CI 自动完成：多平台构建（macOS ARM64/x64 + Windows + Linux）→ R2 上传 → GitHub Release → 版本号 +1。
+
+**Desktop 与增量更新的协调**：Desktop 打包时已包含最新的 server 和 web。客户端检测到 Desktop 新版本后会自动跳过 server/web 增量更新（节省带宽）。因此发布 Desktop 时，确保其打包的 server/web 版本 ≥ 当前 stable manifest 中的版本，避免 Desktop 更新期间用户无法获取增量修复。
 
 详见 SKILL.md 中「Electron 桌面端发布」章节。
 
