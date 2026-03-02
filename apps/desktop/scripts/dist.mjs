@@ -114,4 +114,5 @@ const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 console.log(`[dist] arch=${arch}, main=${mainPath}`)
 console.log(`[dist] ${pnpmBin} ${args.join(' ')}`)
 
-execFileSync(pnpmBin, args, { stdio: 'inherit' })
+// .cmd files on Windows must be invoked via cmd.exe (shell:true).
+execFileSync(pnpmBin, args, { stdio: 'inherit', shell: process.platform === 'win32' })
