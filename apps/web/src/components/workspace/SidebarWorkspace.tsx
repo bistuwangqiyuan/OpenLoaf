@@ -54,6 +54,7 @@ import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { fetchUserProfile } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 import { useTabs } from "@/hooks/use-tabs";
+import { isElectronEnv } from "@/utils/is-electron-env";
 
 // Membership labels will be dynamically set via useTranslation hook in component
 
@@ -234,10 +235,28 @@ export const SidebarWorkspace = () => {
     toast.success(t('loggedOut'));
   };
 
+  const isElectron = React.useMemo(() => isElectronEnv(), []);
+  const isDevDesktop = isElectron && process.env.NODE_ENV !== "production";
+
+  const [updateStatus, setUpdateStatus] = React.useState<OpenLoafIncrementalUpdateStatus | null>(null);
+
+  React.useEffect(() => {
+    if (!isElectron) return;
+    const onUpdateStatus = (event: Event) => {
+      const detail = (event as CustomEvent<OpenLoafIncrementalUpdateStatus>).detail;
+      if (detail) setUpdateStatus(detail);
+    };
+    window.addEventListener("openloaf:incremental-update:status", onUpdateStatus);
+    // 初始拉取一次状态。
+    void window.openloafElectron?.getIncrementalUpdateStatus?.().then((s) => {
+      if (s) setUpdateStatus(s);
+    });
+    return () => window.removeEventListener("openloaf:incremental-update:status", onUpdateStatus);
+  }, [isElectron]);
+
   /** Trigger incremental update check for Electron. */
   const handleCheckUpdate = React.useCallback(async () => {
-    // 开发模式禁用更新检查，避免触发无效请求。
-    if (process.env.NODE_ENV !== "production") {
+    if (isDevDesktop) {
       toast.message(t('devModeNoUpdate'));
       return;
     }
@@ -246,18 +265,8 @@ export const SidebarWorkspace = () => {
       toast.message(t('envNoUpdate'));
       return;
     }
-    const result = await api.checkIncrementalUpdate();
-    if (result.ok) {
-      toast.success(t('checkUpdateTriggered'));
-      return;
-    }
-    // 未打包环境的错误提示需要转换为可读文案。
-    const reason =
-      result.reason === "not-packaged"
-        ? t('envNoUpdate')
-        : result.reason;
-    toast.error(reason ? `${t('checkUpdateError')}：${reason}` : t('checkUpdateError'));
-  }, [t]);
+    await api.checkIncrementalUpdate();
+  }, [isDevDesktop, t]);
 
   return (
     <SidebarMenu>
@@ -352,13 +361,30 @@ export const SidebarWorkspace = () => {
                     {t('loginAccount')}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onSelect={() => void handleCheckUpdate()}
-                  className="rounded-lg"
-                >
-                  <RefreshCcw className="size-4" />
-                  {t('checkUpdate')}
-                </DropdownMenuItem>
+                {isElectron && (
+                  <DropdownMenuItem
+                    onSelect={() => void handleCheckUpdate()}
+                    disabled={
+                      isDevDesktop ||
+                      updateStatus?.state === "checking" ||
+                      updateStatus?.state === "downloading" ||
+                      updateStatus?.state === "ready"
+                    }
+                    className="rounded-lg"
+                  >
+                    <RefreshCcw className="size-4" />
+                    <span className="flex-1">
+                      {updateStatus?.state === "ready"
+                        ? t('updateReady')
+                        : updateStatus?.state === "checking" || updateStatus?.state === "downloading"
+                          ? t('updating')
+                          : t('checkUpdate')}
+                    </span>
+                    {updateStatus?.state === "ready" && (
+                      <span className="ml-1 size-2 rounded-full bg-blue-500" />
+                    )}
+                  </DropdownMenuItem>
+                )}
               </div>
 
               <DropdownMenuSeparator className="my-2" />

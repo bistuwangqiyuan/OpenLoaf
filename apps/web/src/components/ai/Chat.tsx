@@ -238,8 +238,9 @@ function ChatFullPageLayout({
   handleDrop: (e: React.DragEvent) => void
 }) {
   const { t } = useTranslation('ai')
-  const { messages, isHistoryLoading, pendingCloudMessage } = useChatState()
-  const isEmpty = !isHistoryLoading && messages.length === 0 && !pendingCloudMessage
+  const { messages, pendingCloudMessage } = useChatState()
+  // 逻辑：不依赖 isHistoryLoading，避免加载期间先显示底部布局再跳到居中布局的闪烁。
+  const isEmpty = messages.length === 0 && !pendingCloudMessage
 
   return (
     <div

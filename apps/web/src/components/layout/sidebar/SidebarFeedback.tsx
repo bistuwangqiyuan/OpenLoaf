@@ -186,7 +186,7 @@ export function SidebarFeedback() {
         return;
       }
       await feedbackApi.submit({
-        source: "openloaf-saas",
+        source: "openloaf",
         type,
         content: trimmed,
         context,

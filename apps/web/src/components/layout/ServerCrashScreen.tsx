@@ -74,7 +74,7 @@ export function ServerCrashScreen({ crashInfo }: { crashInfo: CrashInfo }) {
       }
 
       await feedbackApi.submit({
-        source: "openloaf-saas",
+        source: "openloaf",
         type: "bug",
         content: `[Server Crash] ${crashInfo.isUpdatedServer ? `Updated server v${crashInfo.crashedVersion ?? "unknown"} crashed` : "Server process crashed"}`,
         context: {

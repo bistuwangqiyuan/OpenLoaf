@@ -17,7 +17,7 @@
  * Usage (from pnpm scripts):
  *   node scripts/dist.mjs [electron-builder flags...]
  */
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -95,22 +95,21 @@ if (isWinTarget) {
   }
 }
 
-const extraArgs = [...extraFlags, ...process.argv.slice(2)].join(' ')
-
 // 禁止 electron-builder 自动发布（检测到 git tag 时会尝试）。
 // 发布由 CI workflow 的独立 job（publish-to-r2、create-release）处理。
 const hasPublishFlag = process.argv.some((arg) => arg === '--publish' || arg.startsWith('--publish='))
 
-const cmd = [
-  'pnpm exec dotenv -e .env --',
+const args = [
+  'exec', 'dotenv', '-e', '.env', '--',
   'electron-builder',
   `--config.extraMetadata.main=${mainPath}`,
   '--config.afterPack=./scripts/afterPack.js',
-  hasPublishFlag ? '' : '--publish=never',
-  extraArgs,
-].filter(Boolean).join(' ')
+  ...(hasPublishFlag ? [] : ['--publish=never']),
+  ...extraFlags,
+  ...process.argv.slice(2),
+]
 
 console.log(`[dist] arch=${arch}, main=${mainPath}`)
-console.log(`[dist] ${cmd}`)
+console.log(`[dist] pnpm ${args.join(' ')}`)
 
-execSync(cmd, { stdio: 'inherit' })
+execFileSync('pnpm', args, { stdio: 'inherit' })

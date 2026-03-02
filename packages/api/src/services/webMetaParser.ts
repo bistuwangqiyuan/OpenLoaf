@@ -137,6 +137,11 @@ export function parseWebMetadataFromHtml(html: string, url: string): WebMetadata
   if (!html) {
     return { title: "", description: "", iconUrl: "" };
   }
+  // Limit input size to prevent ReDoS on crafted HTML (metadata lives in <head>)
+  const MAX_HTML_LEN = 100_000;
+  if (html.length > MAX_HTML_LEN) {
+    html = html.slice(0, MAX_HTML_LEN);
+  }
   const baseHref = extractBaseHref(html);
   let baseUrl = url;
   if (baseHref) {

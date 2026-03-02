@@ -87,7 +87,9 @@
       "deleteWorkspaceConfirm": "确认删除工作空间「{{name}}」？此操作不可撤销。",
       "sessionsClearedSuccess": "已清除：{{count}} 个会话",
       "workspaceDeletedSuccess": "已删除当前工作空间，并切换到其他工作空间"
-    }
+    },
+    "updateReady": "更新已就绪",
+    "updating": "正在检查..."
   },
   "file": {
     "name": "文件名",

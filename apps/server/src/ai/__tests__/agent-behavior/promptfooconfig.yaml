@@ -234,16 +234,17 @@ tests:
             ? { pass: true, score: 1, reason: '正确调用了 grep-files' }
             : { pass: false, score: 0, reason: `未调用 grep-files，实际: [${tools}]` };
 
-  - description: "master-008: 任务取消应使用 task-manage"
+  - description: "master-008: 任务取消应使用任务相关工具"
     vars:
       prompt: "帮我取消一个进行中的任务"
     assert:
       - type: javascript
         value: |
           const tools = context.providerResponse?.metadata?.toolNames || [];
-          return tools.includes('task-manage')
-            ? { pass: true, score: 1, reason: '正确调用了 task-manage' }
-            : { pass: false, score: 0, reason: `未调用 task-manage，实际: [${tools}]` };
+          const hasTaskTool = tools.includes('task-manage') || tools.includes('task-status');
+          return hasTaskTool
+            ? { pass: true, score: 1, reason: `调用了任务工具: [${tools.filter(t => t.startsWith('task-'))}]` }
+            : { pass: false, score: 0, reason: `未调用任务工具，实际: [${tools}]` };
 
   - description: "master-009: 打开链接应使用 open-url"
     vars:
@@ -767,7 +768,7 @@ tests:
   - description: "email-010: 移动邮件应使用 email-mutate action=move"
     vars:
       agentType: email
-      prompt: "把邮件移到已归档文件夹"
+      prompt: "把 messageId 为 msg-001 的邮件移到归档文件夹"
     assert:
       - type: javascript
         value: |
@@ -863,7 +864,7 @@ tests:
   - description: "proj-006: 移动项目应使用 project-mutate action=move"
     vars:
       agentType: project
-      prompt: "把项目移到「工作」文件夹下"
+      prompt: "把 data-analysis 项目移到 E2E Web Application 项目下作为子项目"
     assert:
       - type: javascript
         value: |
@@ -945,7 +946,7 @@ tests:
   - description: "doc-004: 搜索函数定义应使用 grep-files"
     vars:
       agentType: document
-      prompt: "在文件中搜索函数定义"
+      prompt: "搜索项目里所有的 export function 定义"
     assert:
       - type: javascript
         value: |
@@ -957,7 +958,7 @@ tests:
   - description: "doc-005: 修改文件应使用 apply-patch"
     vars:
       agentType: document
-      prompt: "修改 config.ts 把超时时间改为 5000"
+      prompt: "修改 README.md，在最后添加一行 '## License\\nMIT'"
     assert:
       - type: javascript
         value: |

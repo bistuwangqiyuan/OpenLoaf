@@ -61,10 +61,7 @@ export function useChatModelSelection(_tabId?: string, projectId?: string) {
   const isAutoModel = normalizedMasterIds.length === 0 || !selectedModel;
   const isCodeModel = supportsCode(selectedModel);
   const canAttachAll = isAutoModel || supportsToolCall(selectedModel) || isCodeModel;
-  const canAttachImage =
-    isAutoModel ||
-    supportsImageInput(selectedModel) ||
-    (supportsToolCall(selectedModel) && !isCodeModel);
+  const canAttachImage = isAutoModel || supportsImageInput(selectedModel);
   const canImageGeneration = false;
   const canImageEdit = supportsImageInput(selectedModel);
   const isCodexProvider = selectedModel?.providerId === "codex-cli";

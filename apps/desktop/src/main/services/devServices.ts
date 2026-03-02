@@ -91,16 +91,16 @@ function spawnLogged(
   args: string[],
   opts: { cwd: string; env: NodeJS.ProcessEnv }
 ): ChildProcess {
+  // On Windows, .cmd/.bat files require shell mode for proper execution.
+  // Node.js handles cmd.exe escaping internally when shell: true is set.
   const isWin = process.platform === 'win32';
-  // Node 25 on Windows can throw EINVAL when spawning .cmd directly.
   const useCmdShim = isWin && /\.(cmd|bat)$/i.test(command);
-  const spawnCommand = useCmdShim ? 'cmd.exe' : command;
-  const spawnArgs = useCmdShim ? ['/d', '/s', '/c', command, ...args] : args;
 
-  const child = spawn(spawnCommand, spawnArgs, {
+  const child = spawn(command, args, {
     cwd: opts.cwd,
     env: opts.env,
     stdio: ['ignore', 'pipe', 'pipe'],
+    shell: useCmdShim,
   });
 
   child.stdout?.on('data', (d) => process.stdout.write(`[${label}] ${d}`));

@@ -697,11 +697,13 @@ export const PageTreeMenu = ({
 
   const openProjectTab = (project: ProjectInfo) => {
     if (!workspace?.id) return;
-    const baseId = `project:${project.projectId}`;
+    // 逻辑：点击项目打开居中 AI 聊天 tab（无 leftDock），通过 chatParams 关联项目上下文。
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const existing = tabs.find(
       (tab) =>
-        tab.workspaceId === workspace.id && runtimeByTabId[tab.id]?.base?.id === baseId,
+        tab.workspaceId === workspace.id &&
+        !runtimeByTabId[tab.id]?.base &&
+        tab.chatParams?.projectId === project.projectId,
     );
     if (existing) {
       startTransition(() => {
@@ -715,12 +717,7 @@ export const PageTreeMenu = ({
       createNew: true,
       title: project.title || "Untitled Project",
       icon: project.icon ?? undefined,
-      leftWidthPercent: 90,
-      base: {
-        id: baseId,
-        component: "plant-page",
-        params: { projectId: project.projectId, rootUri: project.rootUri },
-      },
+      leftWidthPercent: 100,
       chatParams: { projectId: project.projectId },
     });
   };

@@ -87,7 +87,9 @@
       "deleteWorkspaceConfirm": "Confirm deletion of workspace \"{{name}}\"? This action cannot be undone.",
       "sessionsClearedSuccess": "Cleared: {{count}} sessions",
       "workspaceDeletedSuccess": "Current workspace deleted and switched to another workspace"
-    }
+    },
+    "updateReady": "Update Ready",
+    "updating": "Checking..."
   },
   "file": {
     "name": "Name",

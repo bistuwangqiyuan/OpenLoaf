@@ -27,9 +27,9 @@ export function supportsTextGeneration(model: ModelWithTags | null | undefined) 
   return hasTag(model, "chat");
 }
 
-/** Return true when the model supports image generation. */
+/** Return true when the model supports image input (understanding or analysis). */
 export function supportsImageInput(model: ModelWithTags | null | undefined) {
-  return hasTag(model, "image_input");
+  return hasTag(model, "image_input") || hasTag(model, "image_analysis");
 }
 
 /** Return true when the model supports tool calling. */

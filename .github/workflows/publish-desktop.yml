@@ -30,6 +30,9 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+
 concurrency:
   group: desktop-publish
   cancel-in-progress: false

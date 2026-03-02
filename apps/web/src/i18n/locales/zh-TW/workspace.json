@@ -87,7 +87,9 @@
       "deleteWorkspaceConfirm": "確認刪除工作區「{{name}}」？此操作無法撤銷。",
       "sessionsClearedSuccess": "已清除：{{count}} 個工作階段",
       "workspaceDeletedSuccess": "已刪除目前工作區，並切換至其他工作區"
-    }
+    },
+    "updateReady": "更新已就緒",
+    "updating": "正在檢查..."
   },
   "file": {
     "name": "檔案名稱",

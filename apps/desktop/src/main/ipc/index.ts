@@ -702,7 +702,7 @@ export function registerIpcHandlers(args: { log: Logger }) {
     if (paths.length === 0) {
       return { ok: false as const, reason: 'Invalid drag payload' };
     }
-    const dragSessionId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const dragSessionId = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const icon = await resolveDragIcon(paths);
     event.sender.send('openloaf:fs:drag-log', {
       stage: 'pre-start',
