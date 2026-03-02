@@ -239,6 +239,10 @@ export const SidebarWorkspace = () => {
   const isDevDesktop = isElectron && process.env.NODE_ENV !== "production";
 
   const [updateStatus, setUpdateStatus] = React.useState<OpenLoafIncrementalUpdateStatus | null>(null);
+  const [restartDialogOpen, setRestartDialogOpen] = React.useState(false);
+  const updateTriggeredRef = React.useRef(false);
+
+  const UPDATE_TOAST_ID = 'sidebar-update-check';
 
   React.useEffect(() => {
     if (!isElectron) return;
@@ -254,6 +258,37 @@ export const SidebarWorkspace = () => {
     return () => window.removeEventListener("openloaf:incremental-update:status", onUpdateStatus);
   }, [isElectron]);
 
+  React.useEffect(() => {
+    if (!updateStatus) return;
+    switch (updateStatus.state) {
+      case 'checking':
+        break;
+      case 'downloading': {
+        const pct = updateStatus.progress?.percent;
+        const msg = pct != null
+          ? `${t('downloadingUpdate')} ${Math.round(pct)}%`
+          : t('downloadingUpdate');
+        toast.loading(msg, { id: UPDATE_TOAST_ID });
+        break;
+      }
+      case 'ready':
+        toast.dismiss(UPDATE_TOAST_ID);
+        setRestartDialogOpen(true);
+        break;
+      case 'error':
+        toast.error(updateStatus.error ?? t('checkUpdateError'), { id: UPDATE_TOAST_ID });
+        updateTriggeredRef.current = false;
+        break;
+      case 'idle':
+        if (updateTriggeredRef.current && updateStatus.lastCheckedAt) {
+          toast.success(t('isLatest'), { id: UPDATE_TOAST_ID });
+          updateTriggeredRef.current = false;
+        }
+        break;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateStatus]);
+
   /** Trigger incremental update check for Electron. */
   const handleCheckUpdate = React.useCallback(async () => {
     if (isDevDesktop) {
@@ -265,6 +300,8 @@ export const SidebarWorkspace = () => {
       toast.message(t('envNoUpdate'));
       return;
     }
+    updateTriggeredRef.current = true;
+    toast.loading(t('checkingUpdate'), { id: UPDATE_TOAST_ID });
     await api.checkIncrementalUpdate();
   }, [isDevDesktop, t]);
 
@@ -307,40 +344,44 @@ export const SidebarWorkspace = () => {
               sideOffset={8}
               className="w-72 rounded-xl p-2"
             >
-              <div className="flex items-center gap-3 px-2 py-2">
-                <Avatar className="size-9">
-                  <AvatarImage src={displayAvatar || undefined} alt={avatarAlt} />
-                  <AvatarFallback>
-                    <img
-                      src="/logo.svg"
-                      alt="OpenLoaf"
-                      className="size-full object-cover"
-                    />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium leading-5">
-                    {authUser?.name || t('currentAccount')}
+              {authLoggedIn && (
+                <>
+                  <div className="flex items-center gap-3 px-2 py-2">
+                    <Avatar className="size-9">
+                      <AvatarImage src={displayAvatar || undefined} alt={avatarAlt} />
+                      <AvatarFallback>
+                        <img
+                          src="/logo.svg"
+                          alt="OpenLoaf"
+                          className="size-full object-cover"
+                        />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium leading-5">
+                        {authUser?.name || t('currentAccount')}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground leading-4">
+                        <span className="truncate">{dropdownAccountLabel}</span>
+                        {userProfileQuery.data && (
+                          <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                            <span
+                              className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${MEMBERSHIP_BADGE_STYLES[userProfileQuery.data.membershipLevel] ?? "bg-secondary text-secondary-foreground"}`}
+                            >
+                              {MEMBERSHIP_LABELS[userProfileQuery.data.membershipLevel] ?? userProfileQuery.data.membershipLevel}
+                            </span>
+                            <span className="text-[11px] leading-4">
+                              {Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()} {t('credits')}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground leading-4">
-                    <span className="truncate">{dropdownAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))}</span>
-                    {authLoggedIn && userProfileQuery.data && (
-                      <span className="ml-auto flex shrink-0 items-center gap-1.5">
-                        <span
-                          className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${MEMBERSHIP_BADGE_STYLES[userProfileQuery.data.membershipLevel] ?? "bg-secondary text-secondary-foreground"}`}
-                        >
-                          {MEMBERSHIP_LABELS[userProfileQuery.data.membershipLevel] ?? userProfileQuery.data.membershipLevel}
-                        </span>
-                        <span className="text-[11px] leading-4">
-                          {Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()} {t('credits')}
-                        </span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              <DropdownMenuSeparator className="my-2" />
+                  <DropdownMenuSeparator className="my-2" />
+                </>
+              )}
 
               <div className="space-y-1">
                 {authLoggedIn ? (
@@ -355,9 +396,9 @@ export const SidebarWorkspace = () => {
                 ) : (
                   <DropdownMenuItem
                     onSelect={() => handleOpenLogin()}
-                    className="rounded-lg"
+                    className="rounded-lg bg-sky-500/8 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 focus:bg-sky-500/15 focus:text-sky-600 dark:focus:bg-sky-500/15 dark:focus:text-sky-400"
                   >
-                    <LogIn className="size-4" />
+                    <LogIn className="size-4 text-sky-600 dark:text-sky-400" />
                     {t('loginAccount')}
                   </DropdownMenuItem>
                 )}
@@ -370,9 +411,9 @@ export const SidebarWorkspace = () => {
                       updateStatus?.state === "downloading" ||
                       updateStatus?.state === "ready"
                     }
-                    className="rounded-lg"
+                    className="rounded-lg text-amber-600 dark:text-amber-400 focus:bg-amber-500/10 focus:text-amber-600 dark:focus:bg-amber-500/10 dark:focus:text-amber-400"
                   >
-                    <RefreshCcw className="size-4" />
+                    <RefreshCcw className="size-4 text-amber-600 dark:text-amber-400" />
                     <span className="flex-1">
                       {updateStatus?.state === "ready"
                         ? t('updateReady')
@@ -428,15 +469,15 @@ export const SidebarWorkspace = () => {
 
               <DropdownMenuItem
                 onSelect={() => setCreateOpen(true)}
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-lg bg-emerald-500/8 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 focus:bg-emerald-500/15 focus:text-emerald-600 dark:focus:bg-emerald-500/15 dark:focus:text-emerald-400"
               >
-                <Plus className="size-4" />
+                <Plus className="size-4 text-emerald-600 dark:text-emerald-400" />
                 {t('addWorkspace')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md shadow-none border-border/60">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -490,7 +531,11 @@ export const SidebarWorkspace = () => {
                 >
                   {t('cancelButton')}
                 </Button>
-                <Button type="submit" disabled={createWorkspace.isPending}>
+                <Button
+                  type="submit"
+                  disabled={createWorkspace.isPending}
+                  className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 dark:hover:bg-sky-500/20 shadow-none"
+                >
                   {createWorkspace.isPending ? t('creatingButton') : t('createButton')}
                 </Button>
               </DialogFooter>
@@ -498,6 +543,34 @@ export const SidebarWorkspace = () => {
           </DialogContent>
         </Dialog>
       </SidebarMenuItem>
+
+      <Dialog open={restartDialogOpen} onOpenChange={setRestartDialogOpen}>
+        <DialogContent className="sm:max-w-sm shadow-none border-border/60">
+          <DialogHeader>
+            <DialogTitle>{t('updateReady')}</DialogTitle>
+            <DialogDescription>{t('restartToApply')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRestartDialogOpen(false)}
+            >
+              {t('cancelButton')}
+            </Button>
+            <Button
+              type="button"
+              className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 dark:hover:bg-sky-500/20 shadow-none"
+              onClick={async () => {
+                setRestartDialogOpen(false);
+                await window.openloafElectron?.relaunchApp?.();
+              }}
+            >
+              {t('relaunchNow')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarMenu>
   );
 };

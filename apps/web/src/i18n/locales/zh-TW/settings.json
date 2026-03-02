@@ -276,6 +276,7 @@
     "checkFailedRetry": "更新檢查失敗，請稍後重試",
     "isLatest": "目前已是最新版本",
     "changelogTitle": "{{component}} 更新日誌",
+    "changelogNotFound": "暫無更新日誌",
     "version": "版本",
     "loading": "載入中…",
     "info": "資訊",

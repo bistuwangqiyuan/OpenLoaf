@@ -89,7 +89,12 @@
       "workspaceDeletedSuccess": "Current workspace deleted and switched to another workspace"
     },
     "updateReady": "Update Ready",
-    "updating": "Checking..."
+    "updating": "Checking...",
+    "checkingUpdate": "Checking for updates...",
+    "downloadingUpdate": "Downloading update",
+    "isLatest": "You're on the latest version",
+    "restartToApply": "New version downloaded. Restart to apply.",
+    "relaunchNow": "Restart Now"
   },
   "file": {
     "name": "Name",

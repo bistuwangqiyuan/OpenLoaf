@@ -22,7 +22,7 @@ export function handleChatDataPart({
   upsertToolPartMerged: (key: string, next: any) => void;
 }) {
   // Claude Code runtime events：拦截 data-cc-* 并路由到 Zustand store。
-  if (handleClaudeCodeDataPart({ dataPart, tabId })) return;
+  if (handleClaudeCodeDataPart({ dataPart, tabId, upsertToolPartMerged })) return;
   // AI SDK 内置的 tool streaming chunks：单独处理（用于 ToolResultPanel 渲染）。
   handleToolChunk({ dataPart, tabId, upsertToolPartMerged });
 }
@@ -31,9 +31,11 @@ export function handleChatDataPart({
 function handleClaudeCodeDataPart({
   dataPart,
   tabId,
+  upsertToolPartMerged,
 }: {
   dataPart: any;
   tabId: string | undefined;
+  upsertToolPartMerged: (key: string, next: any) => void;
 }): boolean {
   const type = typeof dataPart?.type === "string" ? dataPart.type : "";
   if (!type.startsWith("data-cc-") || !tabId) return false;
@@ -178,6 +180,30 @@ function handleClaudeCodeDataPart({
           answered: false,
         },
       });
+      break;
+    }
+    case "data-cc-tool-call": {
+      const toolUseId = data.toolUseId as string;
+      if (!toolUseId) break;
+      const currentForCall = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      updateCcRuntime(tabId, {
+        toolProgress: {
+          ...(currentForCall?.toolProgress ?? {}),
+          [toolUseId]: {
+            toolName: data.toolName ?? "unknown",
+            elapsedSeconds: 0,
+          },
+        },
+      });
+      break;
+    }
+    case "data-cc-tool-result": {
+      const toolUseId = data.toolUseId as string;
+      if (!toolUseId) break;
+      const currentForResult = useChatRuntime.getState().ccRuntimeByTabId[tabId];
+      const nextProgress = { ...(currentForResult?.toolProgress ?? {}) };
+      delete nextProgress[toolUseId];
+      updateCcRuntime(tabId, { toolProgress: nextProgress });
       break;
     }
     default:

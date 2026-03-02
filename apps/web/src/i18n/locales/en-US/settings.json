@@ -276,6 +276,7 @@
     "checkFailedRetry": "Update check failed, please try again later",
     "isLatest": "Already up to date",
     "changelogTitle": "{{component}} Changelog",
+    "changelogNotFound": "No changelog available",
     "version": "Version",
     "loading": "Loading...",
     "info": "Information",

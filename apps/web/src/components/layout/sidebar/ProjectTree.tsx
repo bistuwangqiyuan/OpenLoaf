@@ -625,8 +625,14 @@ export const PageTreeMenu = ({
   }, [activeTabParams]);
   const activeProjectId = useMemo(() => {
     const projectId = activeTabParams.projectId;
-    return typeof projectId === "string" && projectId.trim() ? projectId : null;
-  }, [activeTabParams]);
+    if (typeof projectId === "string" && projectId.trim()) return projectId;
+    // 聊天标签页没有 base.params，回退到 chatParams.projectId
+    const chatProjectId = tabs.find((tab) => tab.id === activeTabId)?.chatParams
+      ?.projectId;
+    return typeof chatProjectId === "string" && chatProjectId.trim()
+      ? chatProjectId
+      : null;
+  }, [activeTabParams, activeTabId, tabs]);
 
   const setExpanded = (uri: string, isExpanded: boolean) => {
     setExpandedNodes((prev) => ({

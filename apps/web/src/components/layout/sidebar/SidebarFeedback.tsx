@@ -38,14 +38,6 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 /** Feedback category values supported by SaaS. */
 type FeedbackType = "ui" | "performance" | "bug" | "feature" | "other";
 
-type FeedbackRequest = {
-  source: string;
-  type: FeedbackType;
-  content: string;
-  context?: Record<string, unknown>;
-  email?: string;
-};
-
 /** Feedback category values for rendering (labels resolved at runtime via i18n). */
 const FEEDBACK_TYPE_VALUES: FeedbackType[] = ["ui", "performance", "bug", "feature", "other"];
 
@@ -123,15 +115,6 @@ export function SidebarFeedback() {
     const openUri = toOptionalText(activeParams.openUri);
     const uri = toOptionalText(activeParams.uri);
 
-    // 读取 startup.log（仅 Electron 且用户勾选时）
-    let startupLog: string | undefined;
-    if (includeLogs && isElectron) {
-      const result = await window.openloafElectron?.readStartupLog?.();
-      if (result?.ok) {
-        startupLog = (result as { ok: true; content: string }).content;
-      }
-    }
-
     // 中文注释：按需剔除空值，避免上下文噪音。
     const context: Record<string, unknown> = {
       page: toOptionalText(page),
@@ -146,13 +129,12 @@ export function SidebarFeedback() {
       rootUri,
       openUri,
       uri,
-      startupLog,
     };
 
     return Object.fromEntries(
       Object.entries(context).filter(([, value]) => value !== undefined && value !== null)
     );
-  }, [activeParams, activeTab, activeWorkspace, includeLogs]);
+  }, [activeParams, activeTab, activeWorkspace]);
 
   /** Submit feedback to SaaS. */
   const submitFeedback = React.useCallback(async () => {
@@ -179,13 +161,25 @@ export function SidebarFeedback() {
         getAccessToken: async () => (await getAccessToken()) ?? "",
       });
       const context = await buildContext();
-      const feedbackApi = (client as unknown as { feedback?: { submit: (input: FeedbackRequest) => Promise<unknown> } })
-        .feedback;
-      if (!feedbackApi?.submit) {
-        toast.error(t('sidebar.feedback.serviceUnavailable'));
-        return;
+
+      // 勾选日志时，先上传日志文件为附件，再将 URL 放入 context。
+      if (includeLogs && isElectronEnv()) {
+        const result = await window.openloafElectron?.readStartupLog?.();
+        if (result?.ok) {
+          const logContent = (result as { ok: true; content: string }).content;
+          const blob = new Blob([logContent], { type: "text/plain" });
+          try {
+            const attachment = await client.feedback.uploadAttachment(blob, "startup.log");
+            context.logAttachmentUrl = attachment.url;
+            context.logAttachmentKey = attachment.key;
+          } catch {
+            // 上传失败时回退：将日志内容内联到 context
+            context.startupLog = logContent;
+          }
+        }
       }
-      await feedbackApi.submit({
+
+      await client.feedback.submit({
         source: "openloaf",
         type,
         content: trimmed,
@@ -210,7 +204,7 @@ export function SidebarFeedback() {
     } finally {
       setSubmitting(false);
     }
-  }, [authLoggedIn, buildContext, content, email, isEmailValid, type]);
+  }, [authLoggedIn, buildContext, content, email, includeLogs, isEmailValid, type]);
 
   return (
     <SidebarMenu>
@@ -222,11 +216,19 @@ export function SidebarFeedback() {
               <span className="flex-1 truncate">{t('sidebar.feedback.title')}</span>
             </SidebarMenuButton>
           </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-80 p-3">
+          <PopoverContent side="top" align="start" className="w-80 p-3 shadow-none">
             <div className="flex flex-col gap-3">
-              <div className="text-sm font-medium">{t('sidebar.feedback.title')}</div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/15 dark:bg-sky-500/20">
+                  <MessageSquare className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                </div>
+                <span className="text-sm font-medium">{t('sidebar.feedback.title')}</span>
+              </div>
               <Select value={type} onValueChange={(value) => setType(value as FeedbackType)}>
-                <SelectTrigger aria-label={t('sidebar.feedback.typeLabel')}>
+                <SelectTrigger
+                  aria-label={t('sidebar.feedback.typeLabel')}
+                  className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
+                >
                   <SelectValue placeholder={t('sidebar.feedback.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,7 +243,7 @@ export function SidebarFeedback() {
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 placeholder={t('sidebar.feedback.contentPlaceholder')}
-                className="min-h-[96px]"
+                className="min-h-[96px] shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
               />
               {authLoggedIn ? null : (
                 <>
@@ -250,6 +252,7 @@ export function SidebarFeedback() {
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder={t('sidebar.feedback.emailPlaceholder')}
                     type="email"
+                    className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
                   />
                   {!isEmailValid ? (
                     <div className="text-xs text-destructive">{t('sidebar.feedback.emailInvalid')}</div>
@@ -276,6 +279,7 @@ export function SidebarFeedback() {
                   variant="ghost"
                   size="sm"
                   type="button"
+                  className="rounded-full transition-colors duration-150"
                   onClick={() => setOpen(false)}
                 >
                   {t('sidebar.feedback.cancel')}
@@ -283,6 +287,7 @@ export function SidebarFeedback() {
                 <Button
                   size="sm"
                   type="button"
+                  className="rounded-full bg-sky-500/15 text-sky-600 shadow-none hover:bg-sky-500/25 dark:bg-sky-500/20 dark:text-sky-400 dark:hover:bg-sky-500/30 transition-colors duration-150"
                   onClick={submitFeedback}
                   disabled={submitting}
                 >

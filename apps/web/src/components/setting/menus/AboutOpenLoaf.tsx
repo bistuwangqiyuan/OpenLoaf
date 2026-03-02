@@ -29,16 +29,15 @@ import {
 import { Streamdown } from "streamdown";
 
 const STEP_UP_ROUTE = "/step-up";
-const CHANGELOG_GITHUB_RAW =
-  "https://raw.githubusercontent.com/OpenLoaf/OpenLoaf/main";
+const UPDATE_BASE_URL = process.env.NEXT_PUBLIC_UPDATE_BASE_URL;
 
 /**
  * Build changelog URL for a given component and version.
- * Points directly to GitHub raw content (public repo).
+ * Points to R2 update server (NEXT_PUBLIC_UPDATE_BASE_URL).
  */
 function buildChangelogUrl(component: "server" | "web", version: string): string | undefined {
-  if (version === "—" || version === "bundled") return undefined;
-  return `${CHANGELOG_GITHUB_RAW}/apps/${component}/changelogs/${version}`;
+  if (!UPDATE_BASE_URL || version === "—" || version === "bundled") return undefined;
+  return `${UPDATE_BASE_URL}/changelogs/${component}/${version}`;
 }
 
 // ITEMS moved inside component to support translation
@@ -241,17 +240,17 @@ export function AboutOpenLoaf() {
       const content = await fetchChangelogWithLang(changelogUrl, lang);
       setChangelogSheet((prev) => ({
         ...prev,
-        content: content || "t('aboutAdditions.changelog')",
+        content: content || null,
         loading: false,
       }));
     } else {
       setChangelogSheet((prev) => ({
         ...prev,
-        content: "t('aboutAdditions.changelog')",
+        content: null,
         loading: false,
       }));
     }
-  }, []);
+  }, [basic.uiLanguage]);
 
   React.useEffect(() => {
     if (!isElectron) return;
@@ -593,10 +592,14 @@ export function AboutOpenLoaf() {
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
                 {t('aboutAdditions.loading')}
               </div>
-            ) : (
+            ) : changelogSheet.content ? (
               <Streamdown mode="static" className="prose prose-sm dark:prose-invert max-w-none">
-                {changelogSheet.content ?? ""}
+                {changelogSheet.content}
               </Streamdown>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                {t('aboutAdditions.changelogNotFound')}
+              </div>
             )}
           </div>
         </SheetContent>

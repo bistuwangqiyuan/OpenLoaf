@@ -89,7 +89,12 @@
       "workspaceDeletedSuccess": "已删除当前工作空间，并切换到其他工作空间"
     },
     "updateReady": "更新已就绪",
-    "updating": "正在检查..."
+    "updating": "正在检查...",
+    "checkingUpdate": "正在检查更新...",
+    "downloadingUpdate": "正在下载更新",
+    "isLatest": "当前已是最新版本",
+    "restartToApply": "新版本已下载完成，重启应用后生效",
+    "relaunchNow": "立即重启"
   },
   "file": {
     "name": "文件名",

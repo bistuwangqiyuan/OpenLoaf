@@ -268,6 +268,18 @@ async function* processQueryStream(
         if (block.type === "tool_use") {
           const toolInput = block.input as Record<string, unknown> | undefined;
 
+          if (uiWriter) {
+            uiWriter.write({
+              type: "data-cc-tool-call",
+              data: {
+                toolUseId: block.id,
+                toolName: block.name,
+                input: toolInput ?? {},
+              },
+              transient: true,
+            } as any);
+          }
+
           if (block.name === "Write" && isPlanFilePath(toolInput?.file_path)) {
             if (uiWriter) {
               uiWriter.write({
@@ -461,10 +473,37 @@ async function* processQueryStream(
       break;
     }
 
+    // --- 工具结果（user 消息中的 tool_result）---
+    if (message.type === "user") {
+      if (uiWriter) {
+        const userMsg = message as any;
+        const contentBlocks = Array.isArray(userMsg.message?.content)
+          ? userMsg.message.content
+          : [];
+        for (const block of contentBlocks) {
+          if (block.type !== "tool_result") continue;
+          const resultContent = Array.isArray(block.content) ? block.content : [];
+          const text = resultContent
+            .filter((c: any) => c.type === "text")
+            .map((c: any) => c.text as string)
+            .join("\n");
+          uiWriter.write({
+            type: "data-cc-tool-result",
+            data: {
+              toolUseId: block.tool_use_id,
+              isError: block.is_error ?? false,
+              content: text,
+            },
+            transient: true,
+          } as any);
+        }
+      }
+      continue;
+    }
+
     // --- 兜底 ---
     if (
       message.type === "system" ||
-      message.type === "user" ||
       message.type === "auth_status" ||
       message.type === "prompt_suggestion"
     ) {

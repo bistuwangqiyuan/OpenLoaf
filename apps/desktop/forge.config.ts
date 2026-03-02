@@ -42,6 +42,7 @@ const NATIVE_DEP_ROOTS = [
   'libsql', // SQLite native binding（webpack external: libsql）
   '@libsql', // Prisma libsql adapter 全部子包（webpack external: @libsql/*）
   'playwright-core', // 网页自动化（esbuild external）
+  '@anthropic-ai/claude-agent-sdk', // Claude Code SDK（含 cli.js + .wasm，依赖 import.meta.url 定位，不可打包）
 ];
 
 /**
