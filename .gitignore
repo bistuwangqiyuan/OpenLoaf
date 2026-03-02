@@ -111,6 +111,7 @@ apps/desktop/resources/speech/windows/openloaf-speech.exe
 apps/web/public/monaco/
 apps/openloaf-office-plugins
 .data/openloaf.db
-.claude
+.claude/*
+!.claude/commands/
 .npm-cache
 .openloaf
