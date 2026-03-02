@@ -5,7 +5,8 @@
  * 1. （可选）运行 dist:mac 构建签名后的安装包
  * 2. 扫描 dist/ 目录中的构建产物和 latest-*.yml
  * 3. 上传到 Cloudflare R2 的 desktop/ 路径下
- * 4. 上传 changelogs
+ * 4. （可选）同步上传到腾讯 COS（配置 COS_* 环境变量后生效）
+ * 5. 上传 changelogs
  *
  * 用法：
  *   node scripts/publish-update.mjs                   # 先构建再上传
@@ -21,7 +22,9 @@ import { execSync } from 'node:child_process'
 import {
   loadEnvFile,
   validateR2Config,
+  validateCosConfig,
   createS3Client,
+  createCosS3Client,
   uploadFile,
   uploadChangelogs,
 } from '../../../scripts/shared/publishUtils.mjs'
@@ -42,6 +45,15 @@ loadEnvFile(path.join(electronRoot, '.env.prod'))
 
 const r2Config = validateR2Config()
 const s3 = createS3Client(r2Config)
+
+const cosConfig = validateCosConfig()
+const cos = cosConfig ? createCosS3Client(cosConfig) : null
+
+if (cosConfig) {
+  console.log(`☁️  COS sync enabled: ${cosConfig.bucket}`)
+} else {
+  console.log('   COS sync disabled (COS_* env vars not set)')
+}
 
 // ---------------------------------------------------------------------------
 // 全平台产物匹配规则
@@ -90,30 +102,28 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`\n/**
- * Copyright (c) OpenLoaf. All rights reserved.
- *
- * This source code is licensed under the AGPLv3 license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * Project: OpenLoaf
- * Repository: https://github.com/OpenLoaf/OpenLoaf
- */
-📋 将上传 ${filesToUpload.length} 个文件到 R2 desktop/ 路径：`)
+  console.log(`\n📋 将上传 ${filesToUpload.length} 个文件到 desktop/ 路径：`)
   for (const f of filesToUpload) {
     console.log(`   - ${f}`)
   }
   console.log()
 
-  // 4. 上传到 R2
+  // 4. 上传到 R2 + COS（并行）
   for (const file of filesToUpload) {
-    const r2Key = `desktop/${file}`
+    const key = `desktop/${file}`
     const filePath = path.join(distDir, file)
-    console.log(`☁️  Uploading: ${r2Key}`)
-    await uploadFile(s3, r2Config.bucket, r2Key, filePath)
+    const uploads = [
+      uploadFile(s3, r2Config.bucket, key, filePath).then(() => console.log(`   [R2]  ${key}`)),
+    ]
+    if (cos && cosConfig) {
+      uploads.push(
+        uploadFile(cos, cosConfig.bucket, key, filePath).then(() => console.log(`   [COS] ${key}`)),
+      )
+    }
+    await Promise.all(uploads)
   }
 
-  // 5. 上传 changelogs
+  // 5. 上传 changelogs（R2 主存储，COS 可选同步）
   console.log('\n📝 Uploading changelogs...')
   await uploadChangelogs({
     s3,
@@ -122,9 +132,21 @@ async function main() {
     changelogsDir: path.join(electronRoot, 'changelogs'),
     publicUrl: r2Config.publicUrl,
   })
+  if (cos && cosConfig) {
+    await uploadChangelogs({
+      s3: cos,
+      bucket: cosConfig.bucket,
+      component: 'desktop',
+      changelogsDir: path.join(electronRoot, 'changelogs'),
+      publicUrl: cosConfig.publicUrl,
+    })
+  }
 
   console.log(`\n🎉 Electron v${version} published successfully!`)
-  console.log(`   Feed URL: ${r2Config.publicUrl}/desktop/`)
+  console.log(`   R2:  ${r2Config.publicUrl}/desktop/`)
+  if (cosConfig) {
+    console.log(`   COS: ${cosConfig.publicUrl}/desktop/`)
+  }
   console.log(`\n📥 Download URLs:`)
   for (const file of filesToUpload) {
     if (file.endsWith('.yml') || file.endsWith('.blockmap')) continue

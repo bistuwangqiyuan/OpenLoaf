@@ -53,6 +53,44 @@ export function createS3Client({ endpoint, accessKeyId, secretAccessKey }) {
 }
 
 /**
+ * 创建腾讯 COS S3 兼容客户端。
+ * COS 需要 forcePathStyle: false（默认虚拟主机风格）和明确的 region。
+ */
+export function createCosS3Client({ endpoint, region, accessKeyId, secretAccessKey }) {
+  return new S3Client({
+    region,
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: false,
+  })
+}
+
+/**
+ * 读取 COS 环境变量，配置不完整时返回 null（不强制退出，COS 为可选目标）。
+ */
+export function validateCosConfig() {
+  const COS_BUCKET = process.env.COS_BUCKET
+  const COS_PUBLIC_URL = process.env.COS_PUBLIC_URL
+  const COS_ENDPOINT = process.env.COS_ENDPOINT
+  const COS_REGION = process.env.COS_REGION
+  const COS_SECRET_ID = process.env.COS_SECRET_ID
+  const COS_SECRET_KEY = process.env.COS_SECRET_KEY
+
+  if (!COS_BUCKET || !COS_ENDPOINT || !COS_REGION || !COS_SECRET_ID || !COS_SECRET_KEY) {
+    return null
+  }
+
+  return {
+    bucket: COS_BUCKET,
+    publicUrl: (COS_PUBLIC_URL ?? '').trim().replace(/\/$/, ''),
+    endpoint: COS_ENDPOINT,
+    region: COS_REGION,
+    accessKeyId: COS_SECRET_ID,
+    secretAccessKey: COS_SECRET_KEY,
+  }
+}
+
+/**
  * 校验必要的 R2 环境变量并返回配置对象。
  * 缺少时直接 process.exit(1)。
  */
