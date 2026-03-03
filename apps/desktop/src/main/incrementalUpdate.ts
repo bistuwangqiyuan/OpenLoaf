@@ -179,7 +179,23 @@ function pruneOutdatedUpdates(log: Logger): void {
     // 逻辑：打包版本高于增量更新版本时，清理更新目录并回退到打包版本。
     const currentDir = path.join(updatesRoot(), component, 'current')
     if (fs.existsSync(currentDir)) {
-      fs.rmSync(currentDir, { recursive: true, force: true })
+      try {
+        // Windows junction points（node_modules/prebuilds）必须先单独删除，
+        // 否则 rmSync({recursive}) 会尝试进入 junction 目标目录导致 EPERM。
+        if (process.platform === 'win32') {
+          for (const junctionName of ['node_modules', 'prebuilds']) {
+            const junctionPath = path.join(currentDir, junctionName)
+            if (fs.existsSync(junctionPath)) {
+              try { fs.rmSync(junctionPath) } catch { /* ignore */ }
+            }
+          }
+        }
+        fs.rmSync(currentDir, { recursive: true, force: true })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log(`[incremental-update] Warning: failed to prune outdated ${component}: ${msg}`)
+        continue
+      }
     }
     delete local[component]
     changed = true
@@ -772,7 +788,13 @@ export function recordServerCrash(): ServerCrashResult {
 
   if (fs.existsSync(serverCurrentDir)) {
     cachedLog?.('[incremental-update] Server crashed. Rolling back to bundled version.')
-    fs.rmSync(serverCurrentDir, { recursive: true, force: true })
+    try {
+      fs.rmSync(serverCurrentDir, { recursive: true, force: true })
+    } catch (rmErr) {
+      const msg = rmErr instanceof Error ? rmErr.message : String(rmErr)
+      cachedLog?.(`[incremental-update] Warning: failed to remove crashed server dir: ${msg}`)
+      // 即使删除失败也继续更新 local manifest，下次启动会回退到 bundled
+    }
 
     // 将崩溃版本加入黑名单，防止再次自动升级到同一版本
     if (crashedVersion) {

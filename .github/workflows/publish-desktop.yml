@@ -448,16 +448,16 @@ jobs:
           X64="/tmp/latest-mac-x64.yml"
           OUT="apps/desktop/dist/latest-mac.yml"
           if [ -f "$ARM" ] && [ -f "$X64" ]; then
-            # Use ARM64 as base, append x64 file entries after the ARM64 entries
+            # Use ARM64 as base, insert x64 file entries into the files: block
             node -e "
               const fs = require('fs');
               const arm = fs.readFileSync('$ARM','utf8');
               const x64 = fs.readFileSync('$X64','utf8');
-              // Extract 'files:' block from x64 (each entry starts with '  - ')
-              const x64Files = x64.split(/\nfiles:\n/)[1] || '';
-              const x64Entries = x64Files.split('\n').filter(l => l.match(/^  - |^    /)).join('\n');
-              // Append x64 entries to arm64 yml
-              const merged = arm.trimEnd() + '\n' + x64Entries + '\n';
+              // Extract 'files:' entries from x64 (lines starting with '  - ' or '    ')
+              const x64FilesMatch = x64.match(/^files:\n((?:[ \t]+.*\n?)*)/m);
+              const x64Entries = x64FilesMatch ? x64FilesMatch[1].trimEnd() : '';
+              // Insert x64 entries inside the files: block of arm64 yml (before the 'path:' line)
+              const merged = arm.replace(/^(path:)/m, x64Entries + '\n\$1');
               fs.writeFileSync('$OUT', merged);
               console.log('Merged latest-mac.yml (arm64 + x64)');
             "
