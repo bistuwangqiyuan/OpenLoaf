@@ -264,6 +264,8 @@ export async function startProductionServices(args: {
           DOTENV_CONFIG_OVERRIDE: '1',
           ...userEnv,
           ...packagedEnv,
+          // 中文注释：确保 .env 文件不会覆盖修复后的 PATH，保留 Electron 主进程修复的完整路径。
+          PATH: process.env.PATH,
           // 中文注释：强制对齐 Electron 与 Server 的 CDP 端口，避免运行时不一致。
           OPENLOAF_REMOTE_DEBUGGING_PORT: String(args.cdpPort),
         },

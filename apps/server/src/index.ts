@@ -8,12 +8,17 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import "dotenv/config";
+import { fixServerPath } from "@/common/fixServerPath";
 import { startServer } from "@/bootstrap/startServer";
 import { installHttpProxy } from "@/modules/proxy/httpProxy";
 import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
 import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
 import { migrateLegacyServerData } from "@openloaf/config";
 import { ensureActiveWorkspaceDefaultAgent } from "@/ai/shared/workspaceAgentInit";
+
+// 修复 PATH：当 server 作为 Electron 子进程运行时，继承的 PATH 可能不完整。
+// 从用户 shell（macOS/Linux）或注册表（Windows）读取完整 PATH。
+fixServerPath();
 
 installHttpProxy();
 void syncSystemProxySettings();
