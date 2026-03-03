@@ -233,6 +233,52 @@ async function* processQueryStream(
   let hasStreamedText = false;
 
   for await (const message of queryStream) {
+    // ── 调试：输出每条 SDK 消息的摘要 ──
+    {
+      const m = message as any;
+      const msgType = m.type ?? "unknown";
+      const subtype = m.subtype ?? undefined;
+      const summary: Record<string, unknown> = { type: msgType };
+      if (subtype) summary.subtype = subtype;
+      if (msgType === "assistant" || msgType === "user") {
+        const blocks = Array.isArray(m.message?.content) ? m.message.content : [];
+        summary.contentTypes = blocks.map((b: any) => b.type);
+        // tool_use 块：输出 tool name 和 id
+        for (const b of blocks) {
+          if (b.type === "tool_use") {
+            logger.info(
+              { sessionId, toolName: b.name, toolUseId: b.id, inputKeys: Object.keys(b.input ?? {}) },
+              "[cli][debug] tool_use block",
+            );
+          }
+          if (b.type === "tool_result") {
+            const contentPreview = typeof b.content === "string"
+              ? b.content.slice(0, 200)
+              : Array.isArray(b.content)
+                ? JSON.stringify(b.content).slice(0, 200)
+                : String(b.content).slice(0, 200);
+            logger.info(
+              { sessionId, toolUseId: b.tool_use_id, isError: b.is_error, contentPreview },
+              "[cli][debug] tool_result block",
+            );
+          }
+        }
+      }
+      if (msgType === "result") {
+        summary.resultSubtype = m.subtype;
+        summary.numTurns = m.num_turns;
+        summary.durationMs = m.duration_ms;
+      }
+      if (msgType === "tool_progress") {
+        summary.toolName = m.tool_name;
+        summary.elapsed = m.elapsed_time_seconds;
+      }
+      if (msgType === "tool_use_summary") {
+        summary.summaryPreview = typeof m.summary === "string" ? m.summary.slice(0, 150) : undefined;
+      }
+      logger.info({ sessionId, ...summary }, "[cli][debug] SDK message");
+    }
+
     // --- 流式文本 delta ---
     if (message.type === "stream_event") {
       const event = (message as any).event;
@@ -555,8 +601,22 @@ async function* createClaudeCodeStream(
     ? `${cliPreface}\n\n${promptText}`
     : promptText;
 
-  logger.debug(
-    { sessionId, modelId: input.modelId, cwd, cliSessionId, isResume },
+  const hasCustomKey = !!(input.forceCustomApiKey && input.apiKey.trim());
+  const hasCustomUrl = !!(input.forceCustomApiKey && input.apiUrl.trim());
+  logger.info(
+    {
+      sessionId,
+      modelId: input.modelId,
+      cwd,
+      cliSessionId,
+      isResume,
+      hasCustomKey,
+      hasCustomUrl,
+      apiUrlPreview: hasCustomUrl ? input.apiUrl.trim().slice(0, 60) : undefined,
+      envKeySet: !!process.env.ANTHROPIC_API_KEY,
+      envUrlSet: !!process.env.ANTHROPIC_BASE_URL,
+      promptPreview: finalPrompt.slice(0, 100),
+    },
     "[cli] claude-code stream start",
   );
 
@@ -634,7 +694,12 @@ async function* createClaudeCodeStream(
       }
     }
   } catch (error) {
-    logger.error({ error, sessionId }, "[cli] claude-code stream error");
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    logger.error(
+      { sessionId, modelId: input.modelId, cwd, cliSessionId, isResume, errMsg, errStack },
+      "[cli] claude-code stream error",
+    );
     throw error;
   } finally {
     if (sessionId) clearActiveQuery(sessionId);

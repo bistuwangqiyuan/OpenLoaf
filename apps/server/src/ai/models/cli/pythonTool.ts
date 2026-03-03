@@ -185,6 +185,10 @@ export async function resolvePythonInstallInfo(): Promise<{
   path?: string;
 }> {
   const candidates = ["python3", "python"];
+  logger.info(
+    { candidates, platform: process.platform, PATH: process.env.PATH?.slice(0, 500) },
+    "[cli] resolvePythonInstallInfo — start",
+  );
   for (const command of candidates) {
     try {
       // On macOS, resolve the path first to avoid triggering the system stub dialog.
@@ -192,8 +196,9 @@ export async function resolvePythonInstallInfo(): Promise<{
       if (process.platform === "darwin") {
         const whichResult = await execa("which", [command], { all: true, reject: false });
         const resolvedPath = (whichResult.stdout || "").trim();
+        logger.info({ command, resolvedPath, exitCode: whichResult.exitCode }, "[cli] python which result");
         if (!resolvedPath || resolvedPath === `/usr/bin/${command}`) {
-          logger.debug({ command, resolvedPath }, "[cli] skipping macOS python stub");
+          logger.info({ command, resolvedPath }, "[cli] skipping macOS python stub");
           continue;
         }
       }
@@ -209,15 +214,19 @@ export async function resolvePythonInstallInfo(): Promise<{
         .split("\n")
         .map((line) => line.trim())
         .find(Boolean);
+      logger.info({ command, version, path: pathLine }, "[cli] python found");
       return {
         installed: true,
         version: version ?? undefined,
         path: pathLine ?? undefined,
       };
     } catch (error) {
-      logger.debug({ err: error, command }, "[cli] python command not found");
+      const msg = error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200);
+      const code = (error as any)?.code;
+      logger.info({ command, code, msg }, "[cli] python command not found");
     }
   }
+  logger.info("[cli] python not found on any candidate");
   return { installed: false };
 }
 

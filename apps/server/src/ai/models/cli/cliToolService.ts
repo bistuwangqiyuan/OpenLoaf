@@ -124,6 +124,10 @@ async function runCommand(command: string, args: string[]) {
       env: process.env,
       all: true,
     });
+    logger.info(
+      { command, args, stdout: result.stdout?.slice(0, 200), stderr: result.stderr?.slice(0, 200) },
+      "[cli] runCommand ok",
+    );
     return {
       ok: true as const,
       stdout: result.stdout,
@@ -131,6 +135,12 @@ async function runCommand(command: string, args: string[]) {
       all: result.all ?? "",
     };
   } catch (error) {
+    const code = (error as any)?.code;
+    const msg = error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300);
+    logger.warn(
+      { command, args, code, msg },
+      "[cli] runCommand failed",
+    );
     return { ok: false as const, error };
   }
 }
@@ -189,11 +199,16 @@ export async function getCliToolStatus(id: CliToolId): Promise<CliToolStatus> {
 
 /** Resolve CLI tools status list. */
 export async function getCliToolsStatus(): Promise<CliToolStatus[]> {
+  logger.info(
+    { PATH: process.env.PATH?.split(process.platform === "win32" ? ";" : ":") },
+    "[cli] getCliToolsStatus — current PATH",
+  );
   const ids: CliToolId[] = [
     "python",
     ...(Object.keys(CLI_TOOL_DEFINITIONS) as NpmCliToolId[]),
   ];
   const statuses = await Promise.all(ids.map((id) => getCliToolStatus(id)));
+  logger.info({ statuses }, "[cli] getCliToolsStatus — results");
   return statuses;
 }
 
