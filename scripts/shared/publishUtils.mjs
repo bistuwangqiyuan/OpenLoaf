@@ -216,6 +216,7 @@ export function resolveChannel(args, version) {
  * 本地结构：changelogs/{version}/{lang}.md（如 changelogs/0.1.0/zh.md）
  * R2 结构：changelogs/{component}/{version}/{lang}.md
  * 同时更新 changelogs/index.json。
+ * 如果提供了 versionDirPrefix，还会将当前版本的 changelog 额外写到版本目录下的 CHANGELOG.md。
  *
  * @param {object} opts
  * @param {S3Client} opts.s3
@@ -223,8 +224,10 @@ export function resolveChannel(args, version) {
  * @param {string} opts.component - 'server' | 'web' | 'electron'
  * @param {string} opts.changelogsDir - 本地 changelogs 目录路径
  * @param {string} opts.publicUrl - R2 公共 URL
+ * @param {string} [opts.versionDirPrefix] - 版本目录前缀（如 "desktop/0.1.1-beta.1"），
+ *   若提供则把当前版本的 en.md（或 zh.md）额外写到 {versionDirPrefix}/CHANGELOG.md
  */
-export async function uploadChangelogs({ s3, bucket, component, changelogsDir, publicUrl }) {
+export async function uploadChangelogs({ s3, bucket, component, changelogsDir, publicUrl, versionDirPrefix }) {
   if (!existsSync(changelogsDir)) {
     console.log(`   (No changelogs directory found at ${changelogsDir})`)
     return
@@ -292,6 +295,33 @@ export async function uploadChangelogs({ s3, bucket, component, changelogsDir, p
   index[component] = entries
   await uploadJson(s3, bucket, 'changelogs/index.json', index)
   console.log(`   Updated changelogs/index.json for ${component}`)
+
+  // 额外：把当前版本的 changelog 写到版本目录下的 CHANGELOG.md（仅 en.md 或第一个文件）
+  if (versionDirPrefix && entries.length > 0) {
+    // 找到版本目录对应的版本（取 prefix 中的版本号部分，如 "desktop/0.1.1-beta.1" → "0.1.1-beta.1"）
+    const prefixVersion = versionDirPrefix.split('/').pop()
+    const matchedEntry = entries.find((e) => e.version === prefixVersion)
+    if (matchedEntry) {
+      const versionDir = path.join(changelogsDir, prefixVersion)
+      // 优先 en.md，其次第一个文件
+      const preferredFile = matchedEntry.langs.includes('en') ? 'en.md'
+        : matchedEntry.langs[0] ? `${matchedEntry.langs[0]}.md` : null
+      if (preferredFile) {
+        const filePath = path.join(versionDir, preferredFile)
+        const content = readFileSync(filePath)
+        const changelogKey = `${versionDirPrefix}/CHANGELOG.md`
+        console.log(`   Uploading changelog to version dir: ${changelogKey}`)
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: changelogKey,
+            Body: content,
+            ContentType: 'text/markdown',
+          })
+        )
+      }
+    }
+  }
 }
 
 /**

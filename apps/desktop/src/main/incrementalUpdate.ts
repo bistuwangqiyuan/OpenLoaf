@@ -531,6 +531,36 @@ async function updateComponent(
 }
 
 // ---------------------------------------------------------------------------
+// Desktop 版本 manifest 两步读取
+// ---------------------------------------------------------------------------
+
+/**
+ * 两步读取 desktop 版本 manifest：
+ * 1. 读 `{baseUrl}/desktop/{version}/manifest.json`
+ * 2. 若 manifest 包含 `redirectTo` 字段（promote 创建的 redirect），
+ *    则再读 `{baseUrl}/desktop/{redirectTo}/manifest.json` 得到实际完整信息
+ *
+ * 用于支持 promote 流程：stable tag 打出后仅写 redirect 文件，
+ * 不重新构建，客户端通过 redirect 找到对应 beta 版本的完整信息。
+ */
+export async function resolveDesktopVersionManifest(
+  baseUrl: string,
+  version: string
+): Promise<unknown> {
+  const url = `${baseUrl}/desktop/${version}/manifest.json`
+  const manifest = (await fetchJson(url)) as Record<string, unknown>
+
+  if (typeof manifest.redirectTo === 'string') {
+    cachedLog?.(
+      `[incremental-update] Desktop manifest ${version} redirects to ${manifest.redirectTo}`
+    )
+    return fetchJson(`${baseUrl}/desktop/${manifest.redirectTo}/manifest.json`)
+  }
+
+  return manifest
+}
+
+// ---------------------------------------------------------------------------
 // 检查更新
 // ---------------------------------------------------------------------------
 

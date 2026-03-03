@@ -21,7 +21,9 @@ description: >
 
 ## Overview
 
-OpenLoaf 的版本发布采用"先发布、后加一"的流程：提交变更 → 直接打包并更新 → 发布成功后打 git tag → 发布完成后版本号自动加一并提交。这样每次代码改动都在新版本上进行，不需要再手动标记"是否改过代码"。每个 app 使用独立 tag（`server-v0.1.1`、`web-v0.1.2`、`desktop-v1.0.0`），通过 `git describe --match "{app}-v*"` 定位上次发布点，支持各 app 独立版本节奏。
+OpenLoaf 的版本发布采用"先发布、后加一"的流程：提交变更 → 打 tag 触发 CI → 构建发布 → 版本号自动加一。每个 app 使用独立 tag，支持各 app 独立版本节奏。
+
+**Desktop 采用 Beta-first 发布策略**：所有新版本必须先发 beta 渠道，经内部测试后通过打 stable tag 直接 promote（无需重新构建）。Server/Web 增量更新沿用旧的 stable/beta 渠道分离机制。
 
 ## When to Use
 
@@ -208,60 +210,80 @@ gh run list --limit 5
 
 3. **检查 changelog 是否需要更新：** 如果修复涉及用户可感知的变更（不是纯 CI/构建修复），更新 `apps/{app}/changelogs/{version}/en.md`，一并提交。
 
-4. **重新打 tag：** `-F` 会读取最新的 changelog 文件，确保 tag message 内容正确。
+4. **重新打 tag：**
    ```bash
-   git tag -a server-v{version} -F apps/server/changelogs/{version}/en.md
-   git tag -a web-v{version} -F apps/web/changelogs/{version}/en.md
+   git tag server-v{version}
+   git tag web-v{version}
    git push origin refs/tags/server-v{version} refs/tags/web-v{version}
    ```
 
 5. **等待 Actions 成功后再执行 Step 7（版本号加一）**
 
-### Beta-first 发布流程
-
-推荐的安全发布流程：先发 beta 渠道 → 内部验证 → promote 到 stable。
-
-#### 完整步骤
-
-1. **版本号设为 beta**：`npm version prerelease --preid=beta`（如 0.3.0 → 0.3.0-beta.0）
-2. **打 tag + push**（CI 自动检测 `-beta` 后缀 → beta 渠道）：
-   ```bash
-   git tag server-v0.3.0-beta.0 && git tag web-v0.3.0-beta.0
-   git push origin main
-   git push origin server-v0.3.0-beta.0 web-v0.3.0-beta.0
-   ```
-4. **内部测试**（beta 用户自动收到更新）
-5. **有 bug** → 修复 → `npm version prerelease` → 重复 2-4
-6. **验证通过 → promote**：`pnpm promote [--dry-run]`
-7. **版本号递增**：`npm version patch --no-git-tag-version`（0.3.0-beta.N → 0.3.1）
-
-> **渠道切换行为：** Beta → Stable 保持当前版本不降级。Stable → Beta 如有更新版本则升级。
-
 ---
 
-### Electron 桌面端发布（CI/CD 自动化）
+### Electron 桌面端发布（Beta-first CI/CD）
 
-Electron 桌面端通过 **GitHub Actions CI/CD** 全自动发布，**不再使用本地 `dist:production` 命令**。
+Desktop 采用 **Beta-first 策略**：所有新版本先发 beta 渠道，测试通过后打 stable tag 直接 promote（不重新构建）。CI 通过 tag 格式自动判断模式。
 
-#### 发布流程
+#### Tag 格式（重要）
 
-1. **确认版本号** — `apps/desktop/package.json` 中的 `version` 即为本次发布版本
-2. **确认 changelog** — 在 `apps/desktop/changelogs/{version}/` 下创建 `en.md` 和 `zh.md`
-3. **提交并推送代码** — 确保所有变更已提交到 `main` 分支
-4. **打 tag 触发构建**（tag message 使用英文 changelog）—
-   ```bash
-   git tag -a desktop-v{version} -F apps/desktop/changelogs/{version}/en.md
-   git push origin desktop-v{version}
-   ```
-5. **CI 自动完成以下所有步骤**（无需人工干预）：
-   - `build-prerequisites`：编译 server + web（含 `NEXT_PUBLIC_*` 环境变量）
-   - `build-mac-arm64`：macOS Apple Silicon 构建 + 签名 + 公证
-   - `build-mac-x64`：macOS Intel 构建（Rosetta 2 交叉编译）+ 签名 + 公证
-   - `build-windows`：Windows NSIS 安装包
-   - `build-linux`：Linux AppImage
-   - `publish-to-r2`：上传所有产物到 Cloudflare R2（自动更新用）
-   - `create-release`：创建 GitHub Release，附带安装包和 changelog
-   - `version-bump`：自动将 `apps/desktop/package.json`、`apps/server/package.json`、`apps/web/package.json` 版本号 +1 并推送（三个 app 同步加一，避免下次独立发布 server/web 时版本号与 Desktop 打包版本冲突）
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| Beta 发布 | `desktop@{x.y.z-beta.n}` | `desktop@0.1.1-beta.1` |
+| Stable promote | `desktop@{x.y.z}` | `desktop@0.1.1` |
+
+> ⚠️ 旧格式 `desktop-v*` 已废弃，**必须使用新格式 `desktop@*`**。
+
+#### 完整发布流程
+
+```
+Step 1: 开发完成，确认变更已提交到 main
+
+Step 2: 确认 changelog
+  - apps/desktop/changelogs/{x.y.z-beta.n}/zh.md
+  - apps/desktop/changelogs/{x.y.z-beta.n}/en.md
+
+Step 3: 打 beta tag → CI 自动构建
+  git tag desktop@{x.y.z-beta.n}
+  git push origin desktop@{x.y.z-beta.n}
+
+  CI 自动完成：
+  ├── determine-mode → mode=beta
+  ├── build-prerequisites（编译 server + web）
+  ├── build-mac-arm64 / build-mac-x64 / build-windows / build-linux
+  ├── publish-to-r2（上传安装包到版本目录 + 写版本 manifest）
+  │   desktop/{x.y.z-beta.n}/manifest.json  ← 完整版本信息
+  │   desktop/{x.y.z-beta.n}/latest-*.yml
+  │   beta/manifest.json                    ← 轻量指针（只有版本号）
+  └── create-release（GitHub Release，标记 prerelease=true）
+
+Step 4: Beta 用户安装测试
+
+Step 5: 如有 bug → 打 desktop@{x.y.z-beta.2} → 重复 Step 3-4
+
+Step 6: 测试通过 → 打 stable tag（触发 promote，不重新构建）
+  git tag desktop@{x.y.z}
+  git push origin desktop@{x.y.z}
+
+  CI 自动完成：
+  ├── determine-mode → mode=promote（检测到 R2 中有 {x.y.z-beta.N}）
+  ├── 跳过所有构建步骤
+  ├── promote-to-stable（scripts/promote-desktop.mjs）
+  │   desktop/{x.y.z}/manifest.json  ← redirect 文件（含 redirectTo 字段）
+  │   desktop/stable/latest-*.yml    ← 复制自 beta 版本目录
+  │   desktop/latest-*.yml           ← 向后兼容（根目录）
+  │   stable/manifest.json           ← 轻量指针更新
+  ├── create-release（GitHub Release，正式版）
+  └── version-bump（三个 app 版本号 +1）
+```
+
+#### CI 三种模式
+
+| mode | 触发条件 | 构建 | promote | version-bump |
+|------|---------|------|---------|-------------|
+| `beta` | tag 含 `-beta` | ✅ | ❌ | ❌ |
+| `promote` | stable tag + R2 中有 beta 版本 | ❌（跳过） | ✅ | ✅ |
+| `build` | stable tag + R2 无 beta（兼容旧流程） | ✅ | ❌ | ✅ |
 
 #### CI 产物命名规范
 
@@ -285,30 +307,25 @@ GitHub Release 重命名后的用户友好名称：
 
 > `.zip` 文件仅用于 electron-updater 自动更新（上传到 R2），不出现在 GitHub Release 中。
 
-#### Tag 构建失败后的恢复
-
-如果 CI 构建失败需要修复后重试：
+#### Tag 失败后的恢复
 
 ```bash
 # 1. 删除远端和本地 tag
-git push origin :refs/tags/desktop-v{version}
-git tag -d desktop-v{version}
+git push origin :refs/tags/desktop@{version}
+git tag -d desktop@{version}
 
 # 2. 修复问题，提交并推送
 git add ... && git commit -m "fix: ..." && git push origin main
 
-# 3. 如果修复涉及用户可感知的变更，更新 changelog 后一并提交
-#    纯 CI/构建修复则跳过此步
-
-# 4. 重新打 tag 触发构建（-F 读取最新 changelog，commit 消息不能包含 [skip ci]）
-git tag -a desktop-v{version} -F apps/desktop/changelogs/{version}/en.md
-git push origin desktop-v{version}
+# 3. 重新打 tag
+git tag desktop@{version}
+git push origin desktop@{version}
 ```
 
 #### CI Workflow 关键配置
 
 - **workflow 文件**：`.github/workflows/publish-desktop.yml`
-- **触发条件**：`push.tags: desktop-v*` 或 `workflow_dispatch`
+- **触发条件**：`push.tags: desktop@*` 或 `workflow_dispatch`
 - **Web 构建环境变量**（NEXT_PUBLIC_* 在构建时内联）：
   ```yaml
   NEXT_PUBLIC_SERVER_URL: http://127.0.0.1:23333
@@ -317,10 +334,7 @@ git push origin desktop-v{version}
   ```
 - **`dist.mjs`** 自动添加 `--publish=never` 阻止 electron-builder 自动发布
 - **Linux 仅构建 AppImage**（`package.json` 中 `build.linux.target: ["AppImage"]`）
-- **publish-to-r2 条件**：允许部分平台跳过（skipped），但任一平台失败则阻止发布：
-  ```yaml
-  if: always() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success')
-  ```
+- **publish-to-r2 条件**：允许部分平台跳过（skipped），但任一平台失败则阻止发布
 
 #### 手动触发（workflow_dispatch）
 
@@ -340,32 +354,29 @@ git push origin desktop-v{version}
 |------|------|
 | Server 增量发布 | `git tag server-v{version} && git push origin server-v{version}` |
 | Web 增量发布 | `git tag web-v{version} && git push origin web-v{version}` |
-| Electron 桌面端发布 | `git tag desktop-v{version} && git push origin desktop-v{version}` |
+| Desktop beta 发布 | `git tag desktop@{x.y.z-beta.n} && git push origin desktop@{x.y.z-beta.n}` |
+| Desktop stable promote | `git tag desktop@{x.y.z} && git push origin desktop@{x.y.z}` |
 | widget-sdk npm 发布 | `cd packages/widget-sdk && pnpm version patch && pnpm publish --no-git-checks` |
 | @openloaf-saas/sdk 更新 | 见下方「@openloaf-saas/sdk 依赖管理」章节 |
-| 版本号加一（发布后） | `npm version patch --no-git-tag-version` |
+| 版本号加一（patch） | `npm version patch --no-git-tag-version` |
 | 版本号加一（minor） | `npm version minor --no-git-tag-version` |
-| 版本号加一（major） | `npm version major --no-git-tag-version` |
-| Beta 版本号 | `x.y.z-beta.n`（自动归入 beta 渠道） |
-| Beta → Stable promote | `pnpm promote [--component=server\|web] [--dry-run]` |
+| Beta 版本号 | `x.y.z-beta.n`（desktop 专用，server/web 也支持） |
 
 ## Common Mistakes
 
 | 错误 | 后果 | 正确做法 |
 |------|------|----------|
-| 未打 app 前缀 tag | 下次发布 `git describe --match` 找不到上次发布点 | 始终为每个发布的 app 打 `{app}-v{version}` tag |
+| Desktop 用旧格式 `desktop-v*` 打 tag | CI 不触发 | 必须用 `desktop@{version}` 格式 |
+| 直接打 stable tag 跳过 beta | 问题版本影响全量用户，且 promote 模式找不到 beta 会 fallback 到重新构建 | 先打 `desktop@{x.y.z-beta.1}`，测试通过再打 `desktop@{x.y.z}` |
+| 未打 app 前缀 tag | 下次发布 `git describe --match` 找不到上次发布点 | 始终为每个发布的 app 打前缀 tag |
 | 未等 GitHub Actions 完成就继续 | 发布不完整，版本号未自动加一 | 用 `gh run watch` 等 Actions 成功后再 `git pull` |
 | 发布前先改版本号 | 版本号与发布产物不一致 | 先发布，CI 自动加一 |
 | 使用本地 `publish-update` 命令 | 绕过 CI，产物不一致 | 通过 git tag 触发 GitHub Actions |
 | commit 范围未加路径过滤 | changelog 包含不相关的变更 | 使用 `-- apps/{app}/ packages/` 过滤 |
 | SDK 混淆后 dev 编译挂起 | Turbopack 无限卡住 | 见「@openloaf-saas/sdk 依赖管理」排查步骤 |
 | Tag 所在 commit 包含 `[skip ci]` | CI 不会被触发 | commit 消息不要包含 `[skip ci]` |
-| 直接用 `dist:production` 本地发布 Electron | 只有单平台产物 | 通过 git tag 触发 CI 全平台构建 |
 | Lockfile 未更新就推送 tag | CI 构建失败 `ERR_PNPM_OUTDATED_LOCKFILE` | 打包前先运行 `pnpm install --no-frozen-lockfile` 提交后再推送 tag |
-| GitHub Actions 成功前改版本号 | 版本号与 tag 不一致 | 必须等 Actions 显示 `success` 状态后再执行版本号加一 |
-| 直接发 stable 未经 beta 验证 | 问题版本影响全量用户 | 先发 beta → 内部测试通过 → `pnpm promote` 转正 |
 | Desktop 打包的 server/web 落后于 stable manifest | Desktop 更新期间增量更新被跳过，用户暂时拿不到最新修复 | 发布 Desktop 前先确保其打包版本 ≥ stable manifest 中的版本 |
-| 只发 Desktop 后 server/web 版本未同步加一 | 下次独立发 server/web 时版本号与 Desktop 已打包版本相同，同一版本号对应不同构件 | `version-bump` job 已统一 bump 三个 app，无需手动处理 |
 
 ---
 
@@ -450,7 +461,6 @@ git push
 ```bash
 # 确认发布成功
 npm view @openloaf/widget-sdk version
-# 或访问 https://www.npmjs.com/package/@openloaf/widget-sdk
 ```
 
 ---
@@ -459,5 +469,5 @@ npm view @openloaf/widget-sdk version
 
 | 文件 | 查阅时机 |
 |------|----------|
-| [publish-release.md](publish-release.md) | 执行 Release Workflow、修改发布脚本、配置 R2 环境变量、了解 changelog 格式细节 |
-| [update-system.md](update-system.md) | 修改更新检查/下载/校验/安装逻辑、调试崩溃回滚、修改 IPC 通道、修改 manifest 结构 |
+| [publish-release.md](publish-release.md) | 执行 Release Workflow、修改发布脚本、配置 R2 环境变量、了解 changelog 格式细节、R2 目录结构 |
+| [update-system.md](update-system.md) | 修改更新检查/下载/校验/安装逻辑、调试崩溃回滚、修改 IPC 通道、修改 manifest 结构、两步读取协议 |

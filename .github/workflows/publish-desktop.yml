@@ -3,7 +3,7 @@ name: Publish Desktop
 on:
   push:
     tags:
-      - 'desktop-v*'
+      - 'desktop@*'
   workflow_dispatch:
     inputs:
       channel:
@@ -46,7 +46,76 @@ env:
   ELECTRON_BUILDER_CACHE: .cache/electron-builder
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # 判断发布模式：beta（构建+发布）或 promote（跳过构建，直接 promote 到 stable）
+  # ---------------------------------------------------------------------------
+  determine-mode:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.action.outputs.mode }}
+      version: ${{ steps.action.outputs.version }}
+      beta_version: ${{ steps.action.outputs.beta_version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/desktop@}"
+          else
+            # workflow_dispatch：从 package.json 读取
+            VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Determine action (beta or promote)
+        id: action
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if [[ "$VERSION" == *"-beta"* ]]; then
+            echo "mode=beta" >> $GITHUB_OUTPUT
+            echo "beta_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "🔵 Mode: beta build for $VERSION"
+          else
+            # 稳定版本 tag：检查 R2 中是否有对应的 beta 版本
+            echo "🔍 Stable tag detected, checking for beta versions in R2..."
+            # 安装 aws cli 以列举 R2
+            pip install awscli --quiet
+            BETA_VERSION=$(
+              aws s3 ls "s3://${R2_BUCKET}/desktop/" \
+                --endpoint-url "$R2_ENDPOINT" \
+                --recursive \
+              2>/dev/null \
+              | grep "/${VERSION}-beta" \
+              | grep "manifest.json$" \
+              | sed 's|.*desktop/\([^/]*\)/manifest.json|\1|' \
+              | sort -V \
+              | tail -1 \
+              || true
+            )
+            if [[ -n "$BETA_VERSION" ]]; then
+              echo "mode=promote" >> $GITHUB_OUTPUT
+              echo "beta_version=$BETA_VERSION" >> $GITHUB_OUTPUT
+              echo "✅ Mode: promote $BETA_VERSION → $VERSION"
+            else
+              # 没有找到对应 beta，直接构建（兼容旧流程）
+              echo "mode=build" >> $GITHUB_OUTPUT
+              echo "beta_version=" >> $GITHUB_OUTPUT
+              echo "⚠️  Mode: build (no beta found for $VERSION, building directly)"
+            fi
+          fi
+
   build-prerequisites:
+    needs: determine-mode
+    if: needs.determine-mode.outputs.mode != 'promote'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +141,7 @@ jobs:
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          TAG_VERSION="${GITHUB_REF#refs/tags/desktop-v}"
+          TAG_VERSION="${GITHUB_REF#refs/tags/desktop@}"
           cd apps/desktop
           npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
           echo "Set desktop version to $TAG_VERSION"
@@ -100,8 +169,8 @@ jobs:
             apps/web/out
 
   build-mac-arm64:
-    needs: build-prerequisites
-    if: github.event_name == 'push' || inputs.build_mac
+    needs: [determine-mode, build-prerequisites]
+    if: needs.determine-mode.outputs.mode != 'promote' && (github.event_name == 'push' || inputs.build_mac)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -174,8 +243,8 @@ jobs:
             apps/desktop/dist/latest-mac.yml
 
   build-mac-x64:
-    needs: build-prerequisites
-    if: github.event_name == 'push' || inputs.build_mac
+    needs: [determine-mode, build-prerequisites]
+    if: needs.determine-mode.outputs.mode != 'promote' && (github.event_name == 'push' || inputs.build_mac)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -249,8 +318,8 @@ jobs:
             apps/desktop/dist/latest-mac.yml
 
   build-windows:
-    needs: build-prerequisites
-    if: github.event_name == 'push' || inputs.build_windows
+    needs: [determine-mode, build-prerequisites]
+    if: needs.determine-mode.outputs.mode != 'promote' && (github.event_name == 'push' || inputs.build_windows)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -314,8 +383,8 @@ jobs:
             apps/desktop/dist/latest.yml
 
   build-linux:
-    needs: build-prerequisites
-    if: github.event_name == 'push' || inputs.build_linux
+    needs: [determine-mode, build-prerequisites]
+    if: needs.determine-mode.outputs.mode != 'promote' && (github.event_name == 'push' || inputs.build_linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -377,10 +446,14 @@ jobs:
             apps/desktop/dist/*.AppImage
             apps/desktop/dist/latest-linux.yml
 
+  # ---------------------------------------------------------------------------
+  # 发布到 R2（仅 beta/build 模式）
+  # ---------------------------------------------------------------------------
   publish-to-r2:
-    needs: [build-mac-arm64, build-mac-x64, build-windows, build-linux]
+    needs: [determine-mode, build-mac-arm64, build-mac-x64, build-windows, build-linux]
     if: >-
       always() &&
+      needs.determine-mode.outputs.mode != 'promote' &&
       !contains(needs.*.result, 'failure') &&
       contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
@@ -477,19 +550,46 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          # COS sync disabled (slow cross-region upload)
-          # Re-enable by uncommenting COS_* lines below:
-          # COS_BUCKET: ${{ secrets.COS_BUCKET }}
-          # COS_PUBLIC_URL: ${{ secrets.COS_PUBLIC_URL }}
-          # COS_ENDPOINT: ${{ secrets.COS_ENDPOINT }}
-          # COS_REGION: ${{ secrets.COS_REGION }}
-          # COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
-          # COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
         run: node apps/desktop/scripts/publish-update.mjs --skip-build
 
+  # ---------------------------------------------------------------------------
+  # Promote：stable tag → 从 beta 目录 promote（不重新构建）
+  # ---------------------------------------------------------------------------
+  promote-to-stable:
+    needs: determine-mode
+    if: needs.determine-mode.outputs.mode == 'promote'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install promote dependencies
+        run: |
+          cd scripts/shared
+          npm init -y > /dev/null 2>&1
+          npm install @aws-sdk/client-s3
+
+      - name: Promote beta to stable
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          STABLE_VERSION: ${{ needs.determine-mode.outputs.version }}
+          BETA_VERSION: ${{ needs.determine-mode.outputs.beta_version }}
+        run: node scripts/promote-desktop.mjs
+
   create-release:
-    needs: publish-to-r2
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [determine-mode, publish-to-r2, promote-to-stable]
+    if: >-
+      always() &&
+      startsWith(github.ref, 'refs/tags/') &&
+      (needs.publish-to-r2.result == 'success' || needs.promote-to-stable.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -499,8 +599,14 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION="${GITHUB_REF#refs/tags/desktop-v}"
+          VERSION="${GITHUB_REF#refs/tags/desktop@}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # 判断是否为 prerelease
+          if [[ "$VERSION" == *"-beta"* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Read changelog
         id: changelog
@@ -516,7 +622,8 @@ jobs:
           # Write to file for gh release create --notes-file
           echo "$BODY" > /tmp/release-notes.md
 
-      - name: Download all platform artifacts
+      - name: Download all platform artifacts (beta/build mode only)
+        if: needs.determine-mode.outputs.mode != 'promote'
         uses: actions/download-artifact@v4
         with:
           pattern: openloaf-desktop-*
@@ -524,6 +631,7 @@ jobs:
           merge-multiple: true
 
       - name: Rename installers for release
+        if: needs.determine-mode.outputs.mode != 'promote'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           cd dist
@@ -534,21 +642,46 @@ jobs:
           [ -f "OpenLoaf-${VERSION}-MacOS-x64.dmg" ] && \
             mv "OpenLoaf-${VERSION}-MacOS-x64.dmg" "OpenLoaf-${VERSION}-MacOS-Intel.dmg"
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (with artifacts)
+        if: needs.determine-mode.outputs.mode != 'promote'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Collect installer files only (exclude yml, blockmap, and zip archives used by auto-updater)
+          PRERELEASE="${{ steps.version.outputs.prerelease }}"
           FILES=$(find dist -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" \))
-          gh release create "desktop-v${VERSION}" \
+          PRERELEASE_FLAG=""
+          if [[ "$PRERELEASE" == "true" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "desktop@${VERSION}" \
             --title "OpenLoaf Desktop v${VERSION}" \
             --notes-file /tmp/release-notes.md \
+            $PRERELEASE_FLAG \
             $FILES
 
+      - name: Create GitHub Release (promote, no artifacts)
+        if: needs.determine-mode.outputs.mode == 'promote'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BETA_VERSION="${{ needs.determine-mode.outputs.beta_version }}"
+          echo "" >> /tmp/release-notes.md
+          echo "---" >> /tmp/release-notes.md
+          echo "_Promoted from ${BETA_VERSION} (no rebuild)_" >> /tmp/release-notes.md
+          gh release create "desktop@${VERSION}" \
+            --title "OpenLoaf Desktop v${VERSION}" \
+            --notes-file /tmp/release-notes.md
+
   version-bump:
-    needs: create-release
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [determine-mode, create-release]
+    # 只在 stable 发布后 bump 版本（beta 和 promote 均跳过）
+    if: >-
+      always() &&
+      startsWith(github.ref, 'refs/tags/') &&
+      needs.create-release.result == 'success' &&
+      !contains(needs.determine-mode.outputs.version, '-beta')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -575,6 +708,6 @@ jobs:
           SERVER_VERSION=$(node -p "require('./apps/server/package.json').version")
           WEB_VERSION=$(node -p "require('./apps/web/package.json').version")
           git add apps/desktop/package.json apps/server/package.json apps/web/package.json
-          git commit -m "chore: bump version to desktop-v${DESKTOP_VERSION}, server-v${SERVER_VERSION}, web-v${WEB_VERSION} [skip ci]"
+          git commit -m "chore: bump version to desktop@${DESKTOP_VERSION}, server-v${SERVER_VERSION}, web-v${WEB_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin main
