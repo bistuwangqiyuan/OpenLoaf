@@ -31,6 +31,20 @@ export type TabMeta = Pick<
   activeSessionIndex?: number;
   /** Session title overrides keyed by session id. */
   chatSessionTitles?: Record<string, string>;
+  /** Project id bound to each session (sessionId → projectId). */
+  chatSessionProjectIds?: Record<string, string>;
+};
+
+/** Snapshot of LeftDock state for a specific session. */
+export type DockSnapshot = {
+  base?: DockItem;
+  stack: DockItem[];
+  leftWidthPercent: number;
+  minLeftWidth?: number;
+  rightChatCollapsed?: boolean;
+  rightChatCollapsedSnapshot?: boolean;
+  stackHidden?: boolean;
+  activeStackItemId?: string;
 };
 
 /** Tab runtime state stored in memory only. */
@@ -51,6 +65,8 @@ export type TabRuntime = {
   stackHidden?: boolean;
   /** Active stack item id. */
   activeStackItemId?: string;
+  /** Dock state snapshots per session (sessionId → snapshot). */
+  dockSnapshotBySessionId?: Record<string, DockSnapshot>;
 };
 
 /** Tab view composed from meta + runtime. */

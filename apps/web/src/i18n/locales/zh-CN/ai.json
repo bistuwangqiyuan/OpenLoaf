@@ -232,24 +232,7 @@
   },
   "helper": {
     "tryAskMe": "你可以试着问我：",
-    "suggestions": [
-      {
-        "label": "测试审批",
-        "value": "测试审批：请调用 sub-agent，name 设为 TestApprovalSubAgent，先获取当前时间，再触发 test-approval，并等待我在工具卡片里点击允许/拒绝。"
-      },
-      {
-        "label": "打开淘宝搜索手机贴膜",
-        "value": "打开淘宝，搜索手机贴膜，告诉我销售额前三的店铺名称"
-      },
-      {
-        "label": "随机创建一个项目",
-        "value": "帮我随机创建一个测试项目"
-      },
-      {
-        "label": "生成一份本周工作周报",
-        "value": "帮我生成一份本周工作周报"
-      }
-    ]
+    "suggestions": []
   },
   "input": {
     "defaultPlaceholder": "提问、搜索或创作任何内容…",

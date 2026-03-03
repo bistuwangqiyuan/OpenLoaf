@@ -11,6 +11,7 @@ import type { UIMessageStreamWriter } from "ai";
 import type { LanguageModelV3 } from "@ai-sdk/provider";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { CodexRequestOptions } from "@/ai/models/cli/codex/codexOptions";
+import type { ClaudeCodeRequestOptions } from "@/ai/services/chat/messageOptionResolver";
 import type { UpdatePlanArgs } from "@openloaf/api/types/tools/runtime";
 
 export type AgentFrame = {
@@ -46,6 +47,8 @@ export type RequestContext = {
   chatModel?: LanguageModelV3;
   /** Codex request options for this request. */
   codexOptions?: CodexRequestOptions;
+  /** Claude Code request options for this request. */
+  claudeCodeOptions?: ClaudeCodeRequestOptions;
   /** Assistant message id for the current streaming response. */
   assistantMessageId?: string;
   /** Assistant parent message id for the current streaming response. */
@@ -181,6 +184,18 @@ export function setCodexOptions(options: CodexRequestOptions | undefined) {
 /** Gets Codex request options for this request. */
 export function getCodexOptions(): CodexRequestOptions | undefined {
   return getRequestContext()?.codexOptions;
+}
+
+/** Sets Claude Code request options for this request. */
+export function setClaudeCodeOptions(options: ClaudeCodeRequestOptions | undefined) {
+  const ctx = getRequestContext();
+  if (!ctx) return;
+  ctx.claudeCodeOptions = options;
+}
+
+/** Gets Claude Code request options for this request. */
+export function getClaudeCodeOptions(): ClaudeCodeRequestOptions | undefined {
+  return getRequestContext()?.claudeCodeOptions;
 }
 
 /** Set parent project root paths for this request. */

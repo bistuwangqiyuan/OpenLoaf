@@ -232,24 +232,7 @@
   },
   "helper": {
     "tryAskMe": "You can try asking me:",
-    "suggestions": [
-      {
-        "label": "Test Approval",
-        "value": "Test approval: Please call a sub-agent with name set to TestApprovalSubAgent, first get the current time, then trigger test-approval, and wait for me to click Allow/Deny on the tool card."
-      },
-      {
-        "label": "Search for phone screen protectors on Taobao",
-        "value": "Open Taobao, search for phone screen protectors, and tell me the top 3 shops by sales volume"
-      },
-      {
-        "label": "Randomly create a project",
-        "value": "Please randomly create a test project for me"
-      },
-      {
-        "label": "Generate a weekly work report",
-        "value": "Please generate a weekly work report for me"
-      }
-    ]
+    "suggestions": []
   },
   "input": {
     "defaultPlaceholder": "Ask, search, or create anything…",

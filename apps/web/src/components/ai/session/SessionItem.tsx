@@ -48,6 +48,8 @@ interface SessionItemProps {
   session: Session;
   /** Active state. */
   isActive?: boolean;
+  /** Whether this session is already open in some tab. */
+  isOpenInTab?: boolean;
   /** Select handler. */
   onSelect?: (session: Session) => void;
   /** Menu open state callback. */
@@ -59,6 +61,7 @@ interface SessionItemProps {
 export default function SessionItem({
   session,
   isActive,
+  isOpenInTab,
   onSelect,
   onMenuOpenChange,
   className,
@@ -153,6 +156,9 @@ export default function SessionItem({
           )}
         >
           <span className="flex min-w-0 items-center gap-1.5">
+            {isOpenInTab && (
+              <span className="inline-block size-1.5 shrink-0 rounded-full bg-sky-500" />
+            )}
             {session.projectLabel ? (
               <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 {session.projectLabel}

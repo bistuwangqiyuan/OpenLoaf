@@ -137,7 +137,12 @@
     "stackMenu": "Stack Menu",
     "newTab": "New Tab ({{shortcut}})",
     "closeAll": "Close All",
-    "minimized": " (Minimized)"
+    "minimized": " (Minimized)",
+    "chatHistory": "Chat History",
+    "sessionAlreadyOpen": "Session Already Open",
+    "sessionAlreadyOpenDesc": "This conversation is already open in another tab. Would you like to switch to it?",
+    "stayHere": "Stay Here",
+    "switchTab": "Switch Tab"
   },
   "panelTitle": {
     "ai-chat": "AI Chat",

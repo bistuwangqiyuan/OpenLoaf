@@ -137,7 +137,12 @@
     "stackMenu": "堆疊選單",
     "newTab": "新建分頁 ({{shortcut}})",
     "closeAll": "關閉全部",
-    "minimized": "（已最小化）"
+    "minimized": "（已最小化）",
+    "chatHistory": "聊天記錄",
+    "sessionAlreadyOpen": "對話已開啟",
+    "sessionAlreadyOpenDesc": "該對話已在其他分頁中開啟，是否切換到對應分頁？",
+    "stayHere": "留在這裡",
+    "switchTab": "切換分頁"
   },
   "panelTitle": {
     "ai-chat": "AI 對話",

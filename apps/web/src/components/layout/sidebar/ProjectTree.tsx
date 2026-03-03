@@ -701,30 +701,64 @@ export const PageTreeMenu = ({
     tabs,
   ]);
 
+  const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
   const openProjectTab = (project: ProjectInfo) => {
     if (!workspace?.id) return;
-    // 逻辑：点击项目打开居中 AI 聊天 tab（无 leftDock），通过 chatParams 关联项目上下文。
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
-    const existing = tabs.find(
-      (tab) =>
-        tab.workspaceId === workspace.id &&
-        !runtimeByTabId[tab.id]?.base &&
-        tab.chatParams?.projectId === project.projectId,
-    );
-    if (existing) {
-      startTransition(() => {
-        setActiveTab(existing.id);
-      });
-      return;
+    const targetProjectId = project.projectId;
+
+    // 1. 当前 Tab：遍历 chatSessionProjectIds 查找匹配的 sessionId
+    const currentTab = activeTabId ? tabs.find((t) => t.id === activeTabId) : undefined;
+    if (currentTab && currentTab.workspaceId === workspace.id && !runtimeByTabId[currentTab.id]?.base) {
+      const projectMap = currentTab.chatSessionProjectIds ?? {};
+      const matchedSessionId = Object.entries(projectMap).find(
+        ([, pid]) => pid === targetProjectId,
+      )?.[0];
+      if (matchedSessionId) {
+        startTransition(() => {
+          setActiveTabSession(currentTab.id, matchedSessionId, { loadHistory: true });
+        });
+        return;
+      }
+      // 也检查旧的 chatParams.projectId（无映射的 Tab）
+      if (currentTab.chatParams?.projectId === targetProjectId && !Object.keys(projectMap).length) {
+        return; // 已经在当前 Tab 上
+      }
     }
 
+    // 2. 其他 Tab：遍历所有 Tab 的 chatSessionProjectIds 查找匹配
+    for (const tab of tabs) {
+      if (tab.id === activeTabId) continue;
+      if (tab.workspaceId !== workspace.id) continue;
+      if (runtimeByTabId[tab.id]?.base) continue;
+      const projectMap = tab.chatSessionProjectIds ?? {};
+      const matchedSessionId = Object.entries(projectMap).find(
+        ([, pid]) => pid === targetProjectId,
+      )?.[0];
+      if (matchedSessionId) {
+        startTransition(() => {
+          setActiveTab(tab.id);
+          setActiveTabSession(tab.id, matchedSessionId, { loadHistory: true });
+        });
+        return;
+      }
+      // 向后兼容：旧 Tab 可能只有 chatParams.projectId
+      if (tab.chatParams?.projectId === targetProjectId && !Object.keys(projectMap).length) {
+        startTransition(() => {
+          setActiveTab(tab.id);
+        });
+        return;
+      }
+    }
+
+    // 3. 创建新 Tab
     addTab({
       workspaceId: workspace.id,
       createNew: true,
       title: project.title || "Untitled Project",
       icon: project.icon ?? undefined,
       leftWidthPercent: 100,
-      chatParams: { projectId: project.projectId },
+      chatParams: { projectId: targetProjectId },
     });
   };
 

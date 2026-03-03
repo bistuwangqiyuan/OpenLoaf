@@ -24,7 +24,7 @@ import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state"
 import { BOARD_VIEWER_COMPONENT, LEFT_DOCK_DEFAULT_PERCENT, clampPercent } from "./tab-utils";
 import { isBrowserWindowItem, normalizeBrowserWindowItem } from "./browser-panel";
 import { isTerminalWindowItem, normalizeTerminalWindowItem } from "./terminal-panel";
-import type { TabRuntime } from "./tab-types";
+import type { DockSnapshot, TabRuntime } from "./tab-types";
 
 /** Storage key for tab runtime persistence. */
 const TAB_RUNTIME_STORAGE_KEY = "openloaf:tab-runtime";
@@ -65,6 +65,12 @@ export type TabRuntimeState = {
   setBrowserTabs: (tabId: string, tabs: BrowserTab[], activeId?: string) => void;
   /** Replace terminal tabs in runtime. */
   setTerminalTabs: (tabId: string, tabs: TerminalTab[], activeId?: string) => void;
+  /** Save current dock state as a snapshot for the given session. */
+  saveDockSnapshot: (tabId: string, sessionId: string) => void;
+  /** Restore dock state from a session snapshot. Returns true if snapshot existed. */
+  restoreDockSnapshot: (tabId: string, sessionId: string) => boolean;
+  /** Clean up dock snapshots for a removed session. */
+  clearDockSnapshot: (tabId: string, sessionId: string) => void;
 };
 
 const DEFAULT_RUNTIME: TabRuntime = {
@@ -112,6 +118,7 @@ function normalizeRuntime(input?: TabRuntime): TabRuntime {
     stackHidden: Boolean(input?.stackHidden),
     activeStackItemId:
       typeof input?.activeStackItemId === "string" ? input.activeStackItemId : "",
+    dockSnapshotBySessionId: input?.dockSnapshotBySessionId,
   };
 }
 
@@ -544,6 +551,66 @@ export const useTabRuntime = create<TabRuntimeState>()(
           });
           return {
             runtimeByTabId: { ...state.runtimeByTabId, [tabId]: nextRuntime },
+          };
+        });
+      },
+      saveDockSnapshot: (tabId, sessionId) => {
+        set((state) => {
+          const current = resolveRuntime(state.runtimeByTabId[tabId]);
+          const snapshot: DockSnapshot = {
+            base: current.base,
+            stack: current.stack,
+            leftWidthPercent: current.leftWidthPercent,
+            minLeftWidth: current.minLeftWidth,
+            rightChatCollapsed: current.rightChatCollapsed,
+            rightChatCollapsedSnapshot: current.rightChatCollapsedSnapshot,
+            stackHidden: current.stackHidden,
+            activeStackItemId: current.activeStackItemId,
+          };
+          const nextSnapshots = {
+            ...(current.dockSnapshotBySessionId ?? {}),
+            [sessionId]: snapshot,
+          };
+          return {
+            runtimeByTabId: {
+              ...state.runtimeByTabId,
+              [tabId]: { ...current, dockSnapshotBySessionId: nextSnapshots },
+            },
+          };
+        });
+      },
+      restoreDockSnapshot: (tabId, sessionId) => {
+        const state = get();
+        const current = resolveRuntime(state.runtimeByTabId[tabId]);
+        const snapshot = current.dockSnapshotBySessionId?.[sessionId];
+        if (!snapshot) return false;
+        const nextRuntime = normalizeRuntime({
+          ...current,
+          base: snapshot.base,
+          stack: snapshot.stack,
+          leftWidthPercent: snapshot.leftWidthPercent,
+          minLeftWidth: snapshot.minLeftWidth,
+          rightChatCollapsed: snapshot.rightChatCollapsed,
+          rightChatCollapsedSnapshot: snapshot.rightChatCollapsedSnapshot,
+          stackHidden: snapshot.stackHidden,
+          activeStackItemId: snapshot.activeStackItemId,
+        });
+        set({
+          runtimeByTabId: { ...state.runtimeByTabId, [tabId]: nextRuntime },
+        });
+        return true;
+      },
+      clearDockSnapshot: (tabId, sessionId) => {
+        set((state) => {
+          const current = state.runtimeByTabId[tabId];
+          if (!current?.dockSnapshotBySessionId?.[sessionId]) return state;
+          const nextSnapshots = { ...current.dockSnapshotBySessionId };
+          delete nextSnapshots[sessionId];
+          return {
+            runtimeByTabId: {
+              ...state.runtimeByTabId,
+              [tabId]: { ...current, dockSnapshotBySessionId: nextSnapshots },
+            },
           };
         });
       },

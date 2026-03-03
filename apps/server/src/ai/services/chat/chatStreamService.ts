@@ -26,6 +26,7 @@ import {
   setChatModel,
   setAbortSignal,
   setCodexOptions,
+  setClaudeCodeOptions,
   setParentProjectRootPaths,
   setAssistantParentMessageId,
   setCliSession,
@@ -66,7 +67,7 @@ import {
   saveLastMessageAndResolveParent,
   stripImagePartsForNonVisionModel,
 } from "./chatStreamHelpers";
-import { resolveCodexRequestOptions, resolveImageGenerateOptions } from "./messageOptionResolver";
+import { resolveCodexRequestOptions, resolveClaudeCodeRequestOptions, resolveImageGenerateOptions } from "./messageOptionResolver";
 import {
   resolveExplicitModelDefinition,
   resolvePreviousChatModelId,
@@ -493,6 +494,7 @@ export async function runChatStream(input: {
     messages = chainResult.messages as UIMessage[];
     modelMessages = chainResult.modelMessages as UIMessage[];
     setCodexOptions(resolveCodexRequestOptions(messages));
+    setClaudeCodeOptions(resolveClaudeCodeRequestOptions(messages));
   } else {
     // directCli：modelMessages 只需要最后一条用户消息
     modelMessages = [lastMessage] as UIMessage[];

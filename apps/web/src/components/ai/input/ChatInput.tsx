@@ -75,6 +75,7 @@ import { resolveServerUrl } from "@/utils/server-url";
 import { toast } from "sonner";
 import ChatImageOutputOption, { type ChatImageOutputTarget } from "./ChatImageOutputOption";
 import CodexOption from "./CodexOption";
+import ClaudeCodeOption from "./ClaudeCodeOption";
 import { useSpeechDictation } from "@/hooks/use-speech-dictation";
 import ChatCommandMenu, { type ChatCommandMenuHandle } from "./ChatCommandMenu";
 import { useChatMessageComposer } from "../hooks/use-chat-message-composer";
@@ -1162,7 +1163,7 @@ export default function ChatInput({
   const { sendMessage, stopGenerating, clearError, setPendingCloudMessage } = useChatActions();
   const { status, isHistoryLoading, messages } = useChatState();
   const conversationStarted = messages.length > 0;
-  const { input, setInput, imageOptions, codexOptions, addMaskedAttachment } = useChatOptions();
+  const { input, setInput, imageOptions, codexOptions, claudeCodeOptions, addMaskedAttachment } = useChatOptions();
   const { projectId, workspaceId, tabId, sessionId } = useChatSession();
   const hasReasoningModel = useHasPreferredReasoningModel(projectId);
 
@@ -1189,6 +1190,7 @@ export default function ChatInput({
     [sessionId, projectId, workspaceId]
   );
   const activeTabId = useTabs((state) => state.activeTabId);
+  const setSessionProjectId = useTabs((state) => state.setSessionProjectId);
   const setTabChatParams = useTabs((state) => state.setTabChatParams);
   const tabOnlineSearchEnabled = useTabs((state) => {
     const targetTabId = tabId ?? state.activeTabId;
@@ -1212,10 +1214,10 @@ export default function ChatInput({
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {
       const targetTabId = tabId ?? activeTabId;
-      if (!targetTabId) return;
-      setTabChatParams(targetTabId, { projectId: nextProjectId ?? "" });
+      if (!targetTabId || !sessionId) return;
+      setSessionProjectId(targetTabId, sessionId, nextProjectId ?? "");
     },
-    [tabId, activeTabId, setTabChatParams],
+    [tabId, activeTabId, sessionId, setSessionProjectId],
   );
   const { providerItems } = useSettingsValues();
   const { loggedIn: authLoggedIn } = useSaasAuth();
@@ -1259,6 +1261,15 @@ export default function ChatInput({
     const tool = CLI_TOOLS_META.find((t) => t.id === codeId);
     return tool?.label ?? codeId;
   }, [mainAgentDetail?.codeModelIds]);
+  // 逻辑：判断当前选中的 CLI 工具是否为 Claude Code，用于显示专属选项栏。
+  const isClaudeCodeSelected = useMemo(() => {
+    const codeId = mainAgentDetail?.codeModelIds?.[0];
+    if (!codeId) {
+      // 未指定时，检查 Claude Code 是否是第一个已安装的 CLI 工具。
+      return installedCliProviderIds.has("claude-code-cli");
+    }
+    return codeId.startsWith("claude-code-cli:");
+  }, [mainAgentDetail?.codeModelIds, installedCliProviderIds]);
   /** Global online-search switch state. */
   const [globalOnlineSearchEnabled, setGlobalOnlineSearchEnabled] =
     useState(false);
@@ -1524,6 +1535,7 @@ export default function ChatInput({
       imageParts,
       imageOptions,
       codexOptions,
+      claudeCodeOptions,
       reasoningMode: hasReasoningModel ? (basic.chatThinkingMode === "deep" ? "deep" : "fast") : undefined,
       onlineSearchEnabled,
       autoApproveTools: approvalMode === "auto",
@@ -1614,7 +1626,7 @@ export default function ChatInput({
         onProjectChange={handleProjectChange}
         projectSelectorDisabled={conversationStarted}
         header={
-          !isUnconfigured && (showImageOutputOptions || isCodexProvider) ? (
+          !isUnconfigured && (showImageOutputOptions || isCodexProvider || (chatMode === 'cli' && isClaudeCodeSelected)) ? (
             <div className="flex flex-col gap-2">
               {showImageOutputOptions ? (
                 <ChatImageOutputOption
@@ -1624,6 +1636,9 @@ export default function ChatInput({
                 />
               ) : null}
               {resolvedIsCodexProvider ? <CodexOption variant="inline" /> : null}
+              {chatMode === 'cli' && isClaudeCodeSelected ? (
+                <ClaudeCodeOption variant="inline" />
+              ) : null}
             </div>
           ) : null
         }

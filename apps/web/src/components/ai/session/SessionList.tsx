@@ -12,7 +12,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import SessionItem, { type Session } from "./SessionItem";
-import { useChatSessions } from "@/hooks/use-chat-sessions";
+import { useChatSessions, type ChatSessionListItem } from "@/hooks/use-chat-sessions";
 import {
   Queue,
   QueueItem,
@@ -27,6 +27,12 @@ interface SessionListProps {
   tabId?: string;
   /** Current active session id. */
   activeSessionId?: string;
+  /** Set of session ids already open in tabs (renders blue dot). */
+  openSessionIds?: Set<string>;
+  /** External sessions list (skips internal useChatSessions hook). */
+  externalSessions?: ChatSessionListItem[];
+  /** Loading state when using external sessions. */
+  externalLoading?: boolean;
   /** Select handler. */
   onSelect?: (session: Session) => void;
   /** Menu open state callback. */
@@ -123,12 +129,18 @@ function buildSessionDisplayName(input: SessionDisplayNameInput): string {
 export default function SessionList({
   tabId,
   activeSessionId,
+  openSessionIds,
+  externalSessions,
+  externalLoading,
   onSelect,
   onMenuOpenChange,
   className,
 }: SessionListProps) {
   const { t } = useTranslation('ai');
-  const { sessions: chatSessions, isLoading, scopeProjectId } = useChatSessions({ tabId });
+  const internal = useChatSessions(externalSessions ? undefined : { tabId });
+  const chatSessions = externalSessions ?? internal.sessions;
+  const isLoading = externalSessions ? (externalLoading ?? false) : internal.isLoading;
+  const scopeProjectId = externalSessions ? undefined : internal.scopeProjectId;
   const sessions: Session[] = React.useMemo(() => {
     const showProjectLabel = !scopeProjectId;
     return chatSessions.map((s) => ({
@@ -173,6 +185,7 @@ export default function SessionList({
                       <SessionItem
                         session={s}
                         isActive={Boolean(activeSessionId && s.id === activeSessionId)}
+                        isOpenInTab={openSessionIds?.has(s.id)}
                         onSelect={onSelect}
                         onMenuOpenChange={onMenuOpenChange}
                       />

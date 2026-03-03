@@ -232,24 +232,7 @@
   },
   "helper": {
     "tryAskMe": "你可以試著問我：",
-    "suggestions": [
-      {
-        "label": "測試審批",
-        "value": "測試審批：請呼叫 sub-agent，name 設為 TestApprovalSubAgent，先取得目前時間，再觸發 test-approval，並等待我在工具卡片裡點擊允許/拒絕。"
-      },
-      {
-        "label": "開啟淘寶搜尋手機貼膜",
-        "value": "開啟淘寶，搜尋手機貼膜，告訴我銷售額前三的店鋪名稱"
-      },
-      {
-        "label": "隨機建立一個專案",
-        "value": "幫我隨機建立一個測試專案"
-      },
-      {
-        "label": "產生一份本週工作週報",
-        "value": "幫我產生一份本週工作週報"
-      }
-    ]
+    "suggestions": []
   },
   "input": {
     "defaultPlaceholder": "提問、搜尋或創作任何內容…",

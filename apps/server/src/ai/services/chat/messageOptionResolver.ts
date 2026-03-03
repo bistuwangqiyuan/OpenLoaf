@@ -177,6 +177,29 @@ export function resolveCodexRequestOptions(messages: UIMessage[]): CodexRequestO
   };
 }
 
+export type ClaudeCodeRequestOptions = {
+  effort?: "low" | "medium" | "high";
+};
+
+const CC_EFFORT_VALUES = new Set(["low", "medium", "high"]);
+
+/** Resolve Claude Code options from message metadata. */
+export function resolveClaudeCodeRequestOptions(
+  messages: UIMessage[],
+): ClaudeCodeRequestOptions | undefined {
+  const message = findLastUserTextMessage(messages) as any;
+  if (!message) return undefined;
+  const metadata = message.metadata;
+  if (!isRecord(metadata)) return undefined;
+  const raw = isRecord(metadata.claudeCodeOptions) ? metadata.claudeCodeOptions : undefined;
+  if (!raw) return undefined;
+  const effort =
+    typeof raw.effort === "string" && CC_EFFORT_VALUES.has(raw.effort)
+      ? (raw.effort as "low" | "medium" | "high")
+      : "medium";
+  return { effort };
+}
+
 /** Resolve image generation options from message metadata. */
 export function resolveImageGenerateOptions(
   messages: UIMessage[],

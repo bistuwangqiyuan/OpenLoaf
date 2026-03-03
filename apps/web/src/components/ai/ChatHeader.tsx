@@ -63,6 +63,7 @@ export default function ChatHeader({
   const menuLockRef = React.useRef(false);
   const { sessions, refetch: refetchSessions } = useChatSessions({ tabId });
   const setTabTitle = useTabs((s) => s.setTabTitle);
+  const setSessionProjectId = useTabs((s) => s.setSessionProjectId);
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const { basic } = useBasicConfig();
   const tabView = useTabView(tabId);
@@ -75,7 +76,8 @@ export default function ChatHeader({
   }, [tabView?.chatParams]);
   const { data: quickLaunchProjectData } = useProject(quickLaunchProjectId || undefined);
   const hasBase = Boolean(tabView?.base);
-  const showDockButton = messages.length > 0;
+  // 只要有左侧面板或有消息就显示 dock 按钮；仅 full 空聊天状态（无 base + 无消息）隐藏。
+  const showDockButton = hasBase || messages.length > 0;
   /** Resolve icon tone classes for header actions. */
   const resolveActionIconClass = React.useCallback(
     (action: keyof typeof CHAT_HEADER_EMAIL_ICON_CLASS) =>
@@ -370,6 +372,10 @@ export default function ChatHeader({
                 if (tabId && !hasTabBase) {
                   const nextTitle = session.name.trim();
                   if (nextTitle) setTabTitle(tabId, nextTitle);
+                }
+                // 历史会话可能属于不同项目，写入 chatSessionProjectIds 映射
+                if (tabId && selectedSessionMeta?.projectId) {
+                  setSessionProjectId(tabId, session.id, selectedSessionMeta.projectId);
                 }
                 selectSession(session.id);
               }}

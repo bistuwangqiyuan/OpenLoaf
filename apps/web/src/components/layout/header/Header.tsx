@@ -23,6 +23,7 @@ import type { CSSProperties } from "react";
 import { openSettingsTab } from "@/lib/globalShortcuts";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
+import { HeaderChatHistory } from "./HeaderChatHistory";
 import { HeaderTabs } from "./HeaderTabs";
 import { ModeToggle } from "./ModeToggle";
 
@@ -122,6 +123,7 @@ export const Header = () => {
           </TooltipContent>
         </Tooltip>
         <div className="flex-1"></div>
+        {workspaceId && <HeaderChatHistory workspaceId={workspaceId} />}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

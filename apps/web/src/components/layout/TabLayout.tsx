@@ -22,7 +22,7 @@ import { ArrowDown, ArrowUp, PencilLine, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Chat } from "@/components/ai/Chat";
 import { ChatSessionBarItem } from "@/components/ai/session/ChatSessionBar";
-import { useTabs, LEFT_DOCK_MIN_PX } from "@/hooks/use-tabs";
+import { useTabs, LEFT_DOCK_MIN_PX, LEFT_DOCK_DEFAULT_PERCENT } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
 import { createChatSessionId } from "@/lib/chat-session-id";
@@ -60,6 +60,24 @@ import {
   setPanelActive,
   syncPanelTabs,
 } from "@/lib/panel-runtime";
+
+/** Recursively find a project node by id in a tree. */
+function findProjectInTree(
+  nodes: Array<{ projectId: string; rootUri: string; children?: unknown[] }>,
+  targetId: string,
+): { projectId: string; rootUri: string } | undefined {
+  for (const node of nodes) {
+    if (node.projectId === targetId) return node;
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      const found = findProjectInTree(
+        node.children as Array<{ projectId: string; rootUri: string; children?: unknown[] }>,
+        targetId,
+      );
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
 
 const RIGHT_CHAT_MIN_PX = 360;
 const DIVIDER_GAP_PX = 10;
@@ -222,6 +240,104 @@ function RightChatPanel({ tabId }: { tabId: string }) {
     });
   }, [activeSessionId, chatStatusBySessionId]);
 
+  // 切换会话 / 切换项目时，保存恢复 LeftDock 状态并同步 plant-page
+  const saveDockSnapshot = useTabRuntime((s) => s.saveDockSnapshot);
+  const restoreDockSnapshot = useTabRuntime((s) => s.restoreDockSnapshot);
+  const setTabBase = useTabRuntime((s) => s.setTabBase);
+  const setTabLeftWidthPercent = useTabRuntime((s) => s.setTabLeftWidthPercent);
+  const currentProjectId = React.useMemo(() => {
+    const params = tab?.chatParams as Record<string, unknown> | undefined;
+    const pid = params?.projectId;
+    return typeof pid === "string" ? pid.trim() : "";
+  }, [tab?.chatParams]);
+  const prevActiveSessionIdRef = React.useRef(activeSessionId);
+  const prevProjectIdRef = React.useRef(currentProjectId);
+
+  /** 从 projects 缓存查找 rootUri */
+  const resolveProjectRootUri = React.useCallback((projectId: string) => {
+    const projectsQueryKey = trpc.project.list.pathKey();
+    const cachedProjects = queryClient.getQueriesData<
+      Array<{ projectId: string; rootUri: string; title: string; icon?: string }>
+    >({ queryKey: projectsQueryKey });
+    for (const [, data] of cachedProjects) {
+      if (!Array.isArray(data)) continue;
+      const found = findProjectInTree(data, projectId);
+      if (found) return found.rootUri;
+    }
+    return "";
+  }, []);
+
+  /** 创建或更新 plant-page base（保留当前 projectTab） */
+  const applyPlantPageForProject = React.useCallback(
+    (projectId: string) => {
+      if (!projectId) return;
+      const runtime = useTabRuntime.getState().runtimeByTabId[tabId];
+      const currentBase = runtime?.base;
+      const currentParams = (currentBase?.params ?? {}) as Record<string, unknown>;
+      const rootUri = resolveProjectRootUri(projectId);
+
+      if (currentBase?.component === "plant-page") {
+        // 已有 plant-page → 更新项目，保留 projectTab 子页签
+        if (currentParams.projectId === projectId) return;
+        setTabBase(tabId, {
+          id: `project:${projectId}`,
+          component: "plant-page",
+          params: { projectId, rootUri, projectTab: currentParams.projectTab },
+        });
+      } else if (!currentBase) {
+        // 无 base（Workspace 模式）→ 创建 plant-page
+        setTabBase(tabId, {
+          id: `project:${projectId}`,
+          component: "plant-page",
+          params: { projectId, rootUri },
+        });
+        // 给 LeftDock 一个合理的初始宽度
+        if (!runtime?.leftWidthPercent || runtime.leftWidthPercent === 0) {
+          setTabLeftWidthPercent(tabId, LEFT_DOCK_DEFAULT_PERCENT);
+        }
+      }
+      // 其他类型的 base（文件查看器等）不动
+    },
+    [tabId, resolveProjectRootUri, setTabBase, setTabLeftWidthPercent],
+  );
+
+  React.useEffect(() => {
+    const prevSessionId = prevActiveSessionIdRef.current;
+    const prevProjectId = prevProjectIdRef.current;
+    const sessionChanged = activeSessionId !== prevSessionId;
+    const projectChanged = currentProjectId !== prevProjectId;
+    prevActiveSessionIdRef.current = activeSessionId;
+    prevProjectIdRef.current = currentProjectId;
+
+    if (!activeSessionId) return;
+    if (!sessionChanged && !projectChanged) return;
+
+    if (sessionChanged) {
+      // —— 切换会话：save 旧 dock → restore 新 dock ——
+      if (prevSessionId) {
+        saveDockSnapshot(tabId, prevSessionId);
+      }
+      const restored = restoreDockSnapshot(tabId, activeSessionId);
+      if (!restored) {
+        // 无快照 fallback：根据新会话的 projectId 创建/更新 plant-page
+        applyPlantPageForProject(currentProjectId);
+      }
+      return;
+    }
+
+    if (projectChanged) {
+      // —— 同一会话内切换项目（如 ChatInput 项目选择器）——
+      applyPlantPageForProject(currentProjectId);
+    }
+  }, [
+    activeSessionId,
+    currentProjectId,
+    tabId,
+    tab?.chatSessionProjectIds,
+    saveDockSnapshot,
+    restoreDockSnapshot,
+    applyPlantPageForProject,
+  ]);
   // 新建会话
   const handleNewSession = React.useCallback(() => {
     const newId = createChatSessionId();
@@ -237,9 +353,11 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   );
 
   // 移除会话（从本地列表移除，不删除服务端数据）
+  const clearDockSnapshot = useTabRuntime((s) => s.clearDockSnapshot);
   const handleRemoveSession = React.useCallback(
     (id: string) => {
       removeTabSession(tabId, id);
+      clearDockSnapshot(tabId, id);
       setSessionIndicators((prev) => {
         if (!prev[id]) return prev;
         const next = { ...prev };
@@ -247,7 +365,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
         return next;
       });
     },
-    [removeTabSession, tabId]
+    [removeTabSession, clearDockSnapshot, tabId]
   );
   const handleCloseActiveSession = React.useCallback(() => {
     if (!activeSessionId) return;

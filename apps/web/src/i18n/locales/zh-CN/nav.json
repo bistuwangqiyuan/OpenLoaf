@@ -137,7 +137,12 @@
     "stackMenu": "堆栈菜单",
     "newTab": "新建标签页 ({{shortcut}})",
     "closeAll": "关闭全部",
-    "minimized": "（已最小化）"
+    "minimized": "（已最小化）",
+    "chatHistory": "聊天记录",
+    "sessionAlreadyOpen": "会话已打开",
+    "sessionAlreadyOpenDesc": "该对话已在其他标签页中打开，是否切换到对应标签页？",
+    "stayHere": "留在这里",
+    "switchTab": "切换标签页"
   },
   "panelTitle": {
     "ai-chat": "AI 对话",

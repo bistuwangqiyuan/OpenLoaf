@@ -103,6 +103,28 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   };
 }
 
+/** Fetch all chat sessions for a workspace (no project filter). */
+export function useWorkspaceChatSessions(input?: { workspaceId?: string }) {
+  const workspaceId = input?.workspaceId;
+  const listInput = useMemo(() => {
+    if (!workspaceId) return undefined;
+    return { workspaceId, boardId: null } as const;
+  }, [workspaceId]);
+
+  const query = useQuery({
+    ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const sessions = (query.data ?? []) as ChatSessionListItem[];
+
+  return {
+    sessions,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+  };
+}
+
 /** Invalidate session list cache. */
 export function invalidateChatSessions(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: trpc.chat.listSessions.pathKey() });

@@ -55,6 +55,8 @@ export interface TabsState {
   /** Update tab icon. */
   setTabIcon: (tabId: string, icon?: string | null) => void;
   setTabSessionTitles: (tabId: string, titles: Record<string, string>) => void;
+  /** Set project id for a specific session. Syncs chatParams.projectId if session is active. */
+  setSessionProjectId: (tabId: string, sessionId: string, projectId: string) => void;
   addTabSession: (tabId: string, sessionId: string) => void;
   removeTabSession: (tabId: string, sessionId: string) => void;
   /** Move a tab session within its list. */
@@ -160,6 +162,15 @@ export const useTabs = create<TabsState>()(
         const createdChatSessionId = requestedChatSessionId ?? createChatSessionId();
         const createdChatLoadHistory = chatLoadHistory ?? Boolean(requestedChatSessionId);
 
+        // 初始化 session → projectId 映射
+        const initialProjectId =
+          typeof (chatParams as Record<string, unknown> | undefined)?.projectId === "string"
+            ? ((chatParams as Record<string, unknown>).projectId as string)
+            : "";
+        const chatSessionProjectIds = initialProjectId
+          ? { [createdChatSessionId]: initialProjectId }
+          : undefined;
+
         const nextTab: TabMeta = {
           id: tabId,
           workspaceId,
@@ -170,6 +181,7 @@ export const useTabs = create<TabsState>()(
           chatSessionIds: [createdChatSessionId],
           activeSessionIndex: 0,
           chatParams,
+          chatSessionProjectIds,
           chatLoadHistory: createdChatLoadHistory,
           createdAt: now,
           lastActiveAt: now,
@@ -358,17 +370,48 @@ export const useTabs = create<TabsState>()(
         }));
       },
 
+      setSessionProjectId: (tabId, sessionId, projectId) => {
+        set((state) => ({
+          tabs: updateTabById(state.tabs, tabId, (tab) => {
+            const nextMap = { ...(tab.chatSessionProjectIds ?? {}), [sessionId]: projectId };
+            const { activeSessionId } = normalizeTabSessionState(tab);
+            // 如果修改的是当前活跃会话 → 同步 chatParams.projectId
+            if (sessionId === activeSessionId) {
+              const currentParams =
+                typeof tab.chatParams === "object" && tab.chatParams
+                  ? (tab.chatParams as Record<string, unknown>)
+                  : {};
+              return {
+                ...tab,
+                chatSessionProjectIds: nextMap,
+                chatParams: { ...currentParams, projectId },
+              };
+            }
+            return { ...tab, chatSessionProjectIds: nextMap };
+          }),
+        }));
+      },
+
       addTabSession: (tabId, sessionId) => {
         set((state) => ({
           tabs: updateTabById(state.tabs, tabId, (tab) => {
-            const { ids } = normalizeTabSessionState(tab);
+            const { ids, activeSessionId } = normalizeTabSessionState(tab);
             const existingIndex = ids.indexOf(sessionId);
+            // 新会话继承当前活跃会话的 projectId
+            const currentProjectId =
+              (tab.chatSessionProjectIds ?? {})[activeSessionId ?? ""] ??
+              ((tab.chatParams as Record<string, unknown> | undefined)?.projectId as string | undefined) ??
+              "";
+            const nextProjectMap = currentProjectId
+              ? { ...(tab.chatSessionProjectIds ?? {}), [sessionId]: currentProjectId }
+              : tab.chatSessionProjectIds;
             if (existingIndex >= 0) {
               return {
                 ...tab,
                 chatSessionIds: ids,
                 activeSessionIndex: existingIndex,
                 chatSessionId: sessionId,
+                chatSessionProjectIds: nextProjectMap,
                 chatLoadHistory: false,
               };
             }
@@ -378,6 +421,7 @@ export const useTabs = create<TabsState>()(
               chatSessionIds: nextIds,
               activeSessionIndex: nextIds.length - 1,
               chatSessionId: sessionId,
+              chatSessionProjectIds: nextProjectMap,
               chatLoadHistory: false,
             };
           }),
@@ -393,6 +437,9 @@ export const useTabs = create<TabsState>()(
             const nextIds = ids.filter((id) => id !== sessionId);
             const nextTitles = { ...(tab.chatSessionTitles ?? {}) };
             if (nextTitles[sessionId]) delete nextTitles[sessionId];
+            // 清理被删除会话的 projectId 映射
+            const nextProjectMap = { ...(tab.chatSessionProjectIds ?? {}) };
+            delete nextProjectMap[sessionId];
             if (nextIds.length === 0) {
               const fallbackSessionId = createChatSessionId();
               return {
@@ -401,6 +448,7 @@ export const useTabs = create<TabsState>()(
                 activeSessionIndex: 0,
                 chatSessionId: fallbackSessionId,
                 chatSessionTitles: nextTitles,
+                chatSessionProjectIds: nextProjectMap,
                 chatLoadHistory: false,
               };
             }
@@ -410,13 +458,27 @@ export const useTabs = create<TabsState>()(
               nextActiveIndex = Math.min(targetIndex, nextIds.length - 1);
             }
             const nextActiveSessionId = nextIds[nextActiveIndex] ?? nextIds[0]!;
+            // 如果删除的是活跃会话，同步新活跃会话的 projectId 到 chatParams
+            const isActiveDeleted = targetIndex === activeIndex;
+            const nextChatParams = isActiveDeleted
+              ? (() => {
+                  const currentParams =
+                    typeof tab.chatParams === "object" && tab.chatParams
+                      ? (tab.chatParams as Record<string, unknown>)
+                      : {};
+                  const newProjectId = nextProjectMap[nextActiveSessionId] ?? "";
+                  return { ...currentParams, projectId: newProjectId };
+                })()
+              : tab.chatParams;
             return {
               ...tab,
               chatSessionIds: nextIds,
               activeSessionIndex: nextActiveIndex,
               chatSessionId: nextActiveSessionId,
               chatSessionTitles: nextTitles,
-              chatLoadHistory: targetIndex === activeIndex ? true : tab.chatLoadHistory,
+              chatSessionProjectIds: nextProjectMap,
+              chatParams: nextChatParams,
+              chatLoadHistory: isActiveDeleted ? true : tab.chatLoadHistory,
             };
           }),
         }));
@@ -465,11 +527,19 @@ export const useTabs = create<TabsState>()(
               nextIds = [...ids, sessionId];
               nextActiveIndex = nextIds.length - 1;
             }
+            // 切换活跃会话时，从映射中读取 projectId 并同步到 chatParams
+            const sessionProjectId = (tab.chatSessionProjectIds ?? {})[sessionId] ?? "";
+            const currentParams =
+              typeof tab.chatParams === "object" && tab.chatParams
+                ? (tab.chatParams as Record<string, unknown>)
+                : {};
+            const nextChatParams = { ...currentParams, projectId: sessionProjectId };
             return {
               ...tab,
               chatSessionIds: nextIds,
               activeSessionIndex: nextActiveIndex,
               chatSessionId: sessionId,
+              chatParams: nextChatParams,
               chatLoadHistory: options?.loadHistory,
             };
           }),
@@ -548,7 +618,7 @@ export const useTabs = create<TabsState>()(
     {
       name: TABS_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
-      version: 7,
+      version: 8,
       migrate: (persisted: any) => {
         const now = Date.now();
         const tabs = Array.isArray(persisted?.tabs) ? persisted.tabs : [];
@@ -582,6 +652,10 @@ export const useTabs = create<TabsState>()(
               typeof tab?.chatSessionTitles === "object" && tab.chatSessionTitles
                 ? (tab.chatSessionTitles as Record<string, string>)
                 : undefined,
+            chatSessionProjectIds:
+              typeof tab?.chatSessionProjectIds === "object" && tab.chatSessionProjectIds
+                ? (tab.chatSessionProjectIds as Record<string, string>)
+                : undefined,
             chatParams:
               typeof tab?.chatParams === "object" && tab.chatParams ? tab.chatParams : undefined,
             chatLoadHistory:
@@ -590,11 +664,23 @@ export const useTabs = create<TabsState>()(
             lastActiveAt: Number.isFinite(tab?.lastActiveAt) ? tab.lastActiveAt : now,
           })).map((tab: TabMeta) => {
             const { ids, activeIndex, activeSessionId } = normalizeTabSessionState(tab);
+            // v7→v8 迁移：为缺少 chatSessionProjectIds 的 Tab 补填活跃会话映射
+            let projectIds = tab.chatSessionProjectIds;
+            if (!projectIds && activeSessionId) {
+              const pid =
+                typeof (tab.chatParams as Record<string, unknown> | undefined)?.projectId === "string"
+                  ? ((tab.chatParams as Record<string, unknown>).projectId as string)
+                  : "";
+              if (pid) {
+                projectIds = { [activeSessionId]: pid };
+              }
+            }
             return {
               ...tab,
               chatSessionIds: ids,
               activeSessionIndex: activeIndex,
               chatSessionId: activeSessionId,
+              chatSessionProjectIds: projectIds,
             };
           }),
         };

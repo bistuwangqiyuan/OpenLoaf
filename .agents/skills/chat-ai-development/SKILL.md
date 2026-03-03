@@ -135,6 +135,9 @@ packages/api/src/types/tools/    ← 前后端共享工具类型定义 (ToolDef)
 | `context/*.tsx` Context 类型变更 | chat-frontend.md |
 | `ChatCoreProvider.tsx` 核心逻辑变更 | chat-frontend.md |
 | `components/layout/TabLayout.tsx` 多会话栏变更 | chat-frontend.md |
+| `hooks/tab-types.ts` / `hooks/use-tabs.ts` Tab/Session 数据模型变更 | chat-frontend.md |
+| `hooks/use-tab-runtime.ts` Dock snapshot 机制变更 | chat-frontend.md |
+| `components/layout/sidebar/ProjectTree.tsx` 项目匹配逻辑变更 | chat-frontend.md |
 | `message/tools/` 新增或修改工具卡片 | chat-frontend.md |
 | `hooks/` 新增或修改 hooks | chat-frontend.md |
 | `tools/toolRegistry.ts` 工具注册变更 | ai-backend.md, fullstack-patterns.md |

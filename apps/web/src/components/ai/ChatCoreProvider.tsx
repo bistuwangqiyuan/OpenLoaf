@@ -27,6 +27,7 @@ import { useSaasAuth } from "@/hooks/use-saas-auth";
 import type { PendingCloudMessage } from "./context/ChatStateContext";
 import type { ImageGenerateOptions } from "@openloaf/api/types/image";
 import type { CodexOptions } from "@/lib/chat/codex-options";
+import type { ClaudeCodeOptions } from "@/lib/chat/claude-code-options";
 import type { ChatMessageKind } from "@openloaf/api";
 import { SUMMARY_HISTORY_COMMAND, SUMMARY_TITLE_COMMAND } from "@openloaf/api/common";
 import { invalidateChatSessions } from "@/hooks/use-chat-sessions";
@@ -942,6 +943,8 @@ export default function ChatCoreProvider({
   const [imageOptions, setImageOptions] = React.useState<ImageGenerateOptions | undefined>(undefined);
   /** Codex options for this chat session. */
   const [codexOptions, setCodexOptions] = React.useState<CodexOptions | undefined>(undefined);
+  /** Claude Code options for this chat session. */
+  const [claudeCodeOptions, setClaudeCodeOptions] = React.useState<ClaudeCodeOptions | undefined>(undefined);
 
   React.useEffect(() => {
     // 关键：空消息列表时不应存在 leafMessageId（否则会把"脏 leaf"带进首条消息的 parentMessageId）
@@ -1505,6 +1508,8 @@ export default function ChatCoreProvider({
       setImageOptions,
       codexOptions,
       setCodexOptions,
+      claudeCodeOptions,
+      setClaudeCodeOptions,
       addAttachments,
       addMaskedAttachment,
     }),
@@ -1512,6 +1517,7 @@ export default function ChatCoreProvider({
       input,
       imageOptions,
       codexOptions,
+      claudeCodeOptions,
       addAttachments,
       addMaskedAttachment,
     ]

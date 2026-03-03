@@ -17,13 +17,40 @@
 多会话 UI 不在 Chat 组件内部，而是统一由 `TabLayout.tsx` 的 `RightChatPanel` 渲染，保证会话栏与会话内容在同一层级管理：
 
 - 会话列表来源：`tab.chatSessionIds` + `tab.activeSessionIndex`（见 `use-tabs.ts`）
-- 右侧栏结构：顶部固定“新建会话”，中间为会话列表，底部为会话内容堆叠
+- 右侧栏结构：顶部固定”新建会话”，中间为会话列表，底部为会话内容堆叠
 - 会话内容：每个 session 都渲染一个 `Chat`，使用绝对定位叠在一起，非活跃会话保持挂载但 `opacity-0 pointer-events-none`
 - 右键菜单（SessionBar）：重命名 / 上移 / 下移 / 关闭（仅移除本地 bar）
 - 指示状态：
   - streaming：来自 `useChatRuntime().chatStatusBySessionId`
   - 未读：`updatedAt > lastSeenAt` + streaming 结束后补标
 - `Chat` 根节点挂 `data-chat-active`，`SelectMode` 只遮罩活跃会话，避免其它会话被模糊
+
+### 会话级项目关联
+
+项目绑定从 Tab 级别下沉到 Session 级别，同一 Tab 内不同会话可关联不同项目：
+
+- **存储**：`TabMeta.chatSessionProjectIds: Record<sessionId, projectId>`
+- **同步**：`chatParams.projectId` 始终自动反映活跃会话的项目，下游消费者（Chat/ChatCoreProvider/use-chat-sessions）无需修改
+- **项目选择器**（ChatInput `handleProjectChange`）：调用 `setSessionProjectId(tabId, sessionId, projectId)` 而非 `setTabChatParams`
+- **历史会话加载**（ChatHeader `onSelect`）：选择历史会话时，将其 `projectId` 写入映射后再 `selectSession`
+- **新建会话**：自动继承当前活跃会话的 projectId
+- **会话列表过滤**：`useChatSessions` 从 `chatParams.projectId` 读取，同步机制保证反映活跃会话
+
+### 会话级 LeftDock 状态
+
+切换会话时，整个 LeftDock 状态（base + stack + 布局参数）按会话保存/恢复：
+
+- **快照存储**：`TabRuntime.dockSnapshotBySessionId: Record<sessionId, DockSnapshot>`
+- **切换流程**：`saveDockSnapshot(old)` → `restoreDockSnapshot(new)` → 无快照时 fallback 到 `applyPlantPageForProject`
+- **projectTab 保留**：切项目时 plant-page 的子页签（files/canvas/tasks 等）保持不变
+- **Workspace → 项目**：自动创建 plant-page base 并设置默认宽度
+
+### 侧边栏智能匹配（ProjectTree `openProjectTab`）
+
+点击侧边栏项目时的查找优先级：
+1. 当前 Tab 的 `chatSessionProjectIds` 中查找匹配 sessionId → 切换到该会话
+2. 其他 Tab 的 `chatSessionProjectIds` 中查找 → 切换到该 Tab + 会话
+3. 都没有 → 创建新 Tab
 
 ## 消息渲染管线
 
@@ -181,6 +208,8 @@ mediaGenerate?: {
 | MessageParts 中新增 part 忘记处理 `renderText`/`renderTools` 开关 | 检查 `options.renderText !== false` |
 | `status === "ready"` 时残留 streaming 状态 | `MessageTool` 已处理：ready 时强制终止 streaming |
 | `isApprovalPending()` 只检查 `approval-requested` 状态 | 应包含 `input-available` 状态（历史数据中模型流不完整导致的"准待审批"状态） |
+| 用 `setTabChatParams({ projectId })` 修改项目 | 必须用 `setSessionProjectId(tabId, sessionId, projectId)` 保持映射同步 |
+| 删除会话时忘记清理 dock snapshot | `handleRemoveSession` 须同时调用 `clearDockSnapshot(tabId, id)` |
 
 ## Tool Part 状态说明
 

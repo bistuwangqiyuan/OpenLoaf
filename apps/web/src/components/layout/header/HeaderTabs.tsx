@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, LayoutDashboard, Mail, Plus, Sparkles, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Layers, LayoutDashboard, Mail, Plus, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AnimatedTabs } from "@openloaf/ui/animated-tabs";
 import { useTabs } from "@/hooks/use-tabs";
@@ -16,6 +16,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { AI_ASSISTANT_TAB_INPUT, DEFAULT_TAB_INFO, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import type { TabMeta } from "@/hooks/tab-types";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useProjects } from "@/hooks/use-projects";
 import { Button } from "@openloaf/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import {
@@ -444,6 +445,21 @@ export const HeaderTabs = () => {
     setTabPinned(tabId, pin);
   };
 
+  // 项目名称缓存，用于多项目标题渲染
+  const { data: projectsList } = useProjects({ staleTime: 30 * 60 * 1000 });
+  const projectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!Array.isArray(projectsList)) return map;
+    const walk = (nodes: typeof projectsList) => {
+      for (const node of nodes) {
+        if (node.projectId && node.title) map.set(node.projectId, node.title);
+        if (Array.isArray(node.children)) walk(node.children);
+      }
+    };
+    walk(projectsList);
+    return map;
+  }, [projectsList]);
+
   /** Render tab content for the animated tabs. */
   const renderTab = useCallback(
     (tab: TabMeta, isActive: boolean) => {
@@ -453,9 +469,23 @@ export const HeaderTabs = () => {
         runtimeStack.some((s) => s.component === "electron-browser-window");
       const isPinned = Boolean(tab.isPin);
 
+      // 多项目标题：从 chatSessionProjectIds 提取不重复的 projectId
+      const projectMap = tab.chatSessionProjectIds ?? {};
+      const uniqueProjectIds = [
+        ...new Set(Object.values(projectMap).filter((pid) => pid && pid.trim())),
+      ];
+      const isMultiProject = uniqueProjectIds.length >= 2;
+      const multiProjectTitle = isMultiProject
+        ? uniqueProjectIds.length <= 2
+          ? uniqueProjectIds.map((pid) => projectNameById.get(pid) || pid).join(" · ")
+          : `${projectNameById.get(uniqueProjectIds[0]!) || uniqueProjectIds[0]} · ${projectNameById.get(uniqueProjectIds[1]!) || uniqueProjectIds[1]} +${uniqueProjectIds.length - 2}`
+        : null;
+
       return (
         <>
-          {tab.icon === "bot" ? (
+          {isMultiProject ? (
+            <Layers className="h-3.5 w-3.5 mr-1.5 shrink-0 text-indigo-700/70 dark:text-indigo-300/70" />
+          ) : tab.icon === "bot" ? (
             <LayoutDashboard className="h-3.5 w-3.5 mr-1.5 shrink-0 text-amber-700/70 dark:text-amber-300/70" />
           ) : tab.icon === "sparkles" ? (
             <Sparkles className="h-3.5 w-3.5 mr-1.5 shrink-0 text-violet-700/70 dark:text-violet-300/70" />
@@ -469,7 +499,7 @@ export const HeaderTabs = () => {
             tab.icon && <span className="mr-1.5 shrink-0">{tab.icon}</span>
           )}
           <span className="min-w-0 flex-1 truncate">
-            {tab.title || "Untitled"}
+            {multiProjectTitle || tab.title || "Untitled"}
           </span>
           {hasBrowserWindow ? (
             <Globe className="ml-1 size-3 shrink-0 text-muted-foreground/80" />
@@ -503,7 +533,7 @@ export const HeaderTabs = () => {
         </>
       );
     },
-    [closeTab, runtimeByTabId, workspaceTabs]
+    [closeTab, projectNameById, runtimeByTabId, workspaceTabs]
   );
 
   useEffect(() => {

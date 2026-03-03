@@ -113,11 +113,51 @@ RootLayout (app/layout.tsx)
 - `useTabRuntime`：运行时数据（leftWidthPercent、rightChatCollapsed、runtimeByTabId）
 - `panel-runtime`：左右面板的 mount/unmount 与 keep-alive 管理
 
+### 项目关联模型（Session 级别）
+
+项目关联是 **Session 级别**而非 Tab 级别，同一 Tab 下不同会话可以绑定不同项目。
+
+```
+TabMeta
+├── chatSessionIds: string[]                       ← 会话 ID 列表
+├── chatSessionProjectIds: Record<sessionId, projectId>  ← 每个会话的项目绑定
+├── chatParams.projectId                           ← 当前活跃会话的项目（自动同步）
+└── chatSessionTitles: Record<sessionId, title>
+```
+
+**核心机制**：`chatParams.projectId` 始终与活跃会话的 projectId 同步，所有下游消费者（Chat、ChatCoreProvider、use-chat-sessions、frontend-tool-executor 等）无需修改。
+
+**自动同步触发点**：
+- `setActiveTabSession(tabId, sessionId)` — 切换会话时从 `chatSessionProjectIds[sessionId]` 读取并写入 `chatParams.projectId`
+- `setSessionProjectId(tabId, sessionId, projectId)` — 修改会话项目时，若是活跃会话则同步 chatParams
+- `addTabSession` — 新建会话时继承当前活跃会话的 projectId
+- `removeTabSession` — 删除活跃会话时，新活跃会话的 projectId 也同步
+
+**Tab 标题多项目**（HeaderTabs）：从 `chatSessionProjectIds` 提取不重复 projectId，2+ 个项目时显示 `Layers` 图标 + 项目名拼接。
+
+### LeftDock 按会话保存/恢复
+
+`TabRuntime.dockSnapshotBySessionId: Record<sessionId, DockSnapshot>` 保存每个会话的完整 LeftDock 状态。
+
+**`DockSnapshot`** 包含：`base`、`stack`、`leftWidthPercent`、`minLeftWidth`、`rightChatCollapsed`、`rightChatCollapsedSnapshot`、`stackHidden`、`activeStackItemId`
+
+**切换会话流程**（`RightChatPanel` effect）：
+1. `saveDockSnapshot(tabId, oldSessionId)` — 保存旧会话 dock
+2. `restoreDockSnapshot(tabId, newSessionId)` — 恢复新会话 dock
+3. 无快照 fallback：根据新会话 projectId 创建/更新 plant-page
+
+**同会话内切项目**（ChatInput 项目选择器）：
+- 已有 plant-page → 更新项目，**保留 `projectTab` 子页签**（files/canvas/tasks 等）
+- 无 base（Workspace 模式）→ 自动创建 plant-page + 设置默认宽度
+- 其他类型 base → 不动
+
 ## Common Pitfalls
 - 忘记 `bindPanelHost` 或 `syncPanelTabs`，导致面板挂载错位
 - 直接改 DOM 结构，绕开 `panel-runtime`（会破坏 keep-alive）
 - 修改 `TabLayout` 时忽略 `minLeftWidth` 动画保护，导致宽度抖动
-- `stackHidden` 与 `stack` 状态不同步，导致面板“看不见但仍拦截点击”
+- `stackHidden` 与 `stack` 状态不同步，导致面板”看不见但仍拦截点击”
+- 修改项目关联时直接写 `setTabChatParams({ projectId })` 而不用 `setSessionProjectId` — 会导致映射不同步
+- 删除会话时忘记调用 `clearDockSnapshot` — 会导致 dock snapshot 残留膨胀
 
 ## Quick File Map
 - `apps/web/src/app/layout.tsx`

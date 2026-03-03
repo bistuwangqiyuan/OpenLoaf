@@ -12,6 +12,7 @@
 import React, { createContext, useContext, type ReactNode } from "react";
 import type { ImageGenerateOptions } from "@openloaf/api/types/image";
 import type { CodexOptions } from "@/lib/chat/codex-options";
+import type { ClaudeCodeOptions } from "@/lib/chat/claude-code-options";
 import type { ChatAttachmentInput, MaskedAttachmentInput } from "../input/chat-attachments";
 
 export type ChatOptionsContextValue = {
@@ -21,6 +22,8 @@ export type ChatOptionsContextValue = {
   setImageOptions: React.Dispatch<React.SetStateAction<ImageGenerateOptions | undefined>>;
   codexOptions?: CodexOptions;
   setCodexOptions: React.Dispatch<React.SetStateAction<CodexOptions | undefined>>;
+  claudeCodeOptions?: ClaudeCodeOptions;
+  setClaudeCodeOptions: React.Dispatch<React.SetStateAction<ClaudeCodeOptions | undefined>>;
   addAttachments?: (files: FileList | ChatAttachmentInput[]) => void;
   addMaskedAttachment?: (input: MaskedAttachmentInput) => void;
 };

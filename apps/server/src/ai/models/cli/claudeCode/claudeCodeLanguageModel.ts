@@ -20,6 +20,7 @@ import type {
 import { convertAsyncIteratorToReadableStream } from "@ai-sdk/provider-utils";
 import { logger } from "@/common/logger";
 import {
+  getClaudeCodeOptions,
   getProjectId,
   getSessionId,
   getUiWriter,
@@ -222,6 +223,7 @@ async function* createClaudeCodeStream(
   const cwd = resolveWorkingDirectory();
   const uiWriter = getUiWriter();
   const sdkEnv = buildSdkEnv(input);
+  const effort = getClaudeCodeOptions()?.effort;
   const claudePath = await execa("which", ["claude"], { reject: false })
     .then((r) => r.stdout?.trim() || undefined)
     .catch(() => undefined);
@@ -329,6 +331,7 @@ async function* createClaudeCodeStream(
         env: sdkEnv,
         abortController,
         persistSession: false,
+        ...(effort ? { effort } : {}),
         mcpServers: {
           openloaf: openloafServerConfig,
         },

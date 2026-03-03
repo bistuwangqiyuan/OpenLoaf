@@ -12,8 +12,10 @@
 import * as React from "react";
 import { normalizeImageOptions } from "@/lib/chat/image-options";
 import { normalizeCodexOptions } from "@/lib/chat/codex-options";
+import { normalizeClaudeCodeOptions } from "@/lib/chat/claude-code-options";
 import type { ImageGenerateOptions } from "@openloaf/api/types/image";
 import type { CodexOptions } from "@/lib/chat/codex-options";
+import type { ClaudeCodeOptions } from "@/lib/chat/claude-code-options";
 
 export function useChatMessageComposer(input: {
   canImageGeneration: boolean;
@@ -25,6 +27,7 @@ export function useChatMessageComposer(input: {
       imageParts: Array<any>;
       imageOptions?: ImageGenerateOptions;
       codexOptions?: CodexOptions;
+      claudeCodeOptions?: ClaudeCodeOptions;
       onlineSearchEnabled?: boolean;
       reasoningMode?: "fast" | "deep";
       autoApproveTools?: boolean;
@@ -37,9 +40,13 @@ export function useChatMessageComposer(input: {
       const normalizedCodexOptions = input.isCodexProvider
         ? normalizeCodexOptions(params.codexOptions)
         : undefined;
+      const normalizedCcOptions = params.directCli
+        ? normalizeClaudeCodeOptions(params.claudeCodeOptions)
+        : undefined;
       const metadataPayload = {
         ...(safeImageOptions ? { imageOptions: safeImageOptions } : {}),
         ...(normalizedCodexOptions ? { codexOptions: normalizedCodexOptions } : {}),
+        ...(normalizedCcOptions ? { claudeCodeOptions: normalizedCcOptions } : {}),
         ...(params.reasoningMode
           ? { reasoning: { mode: params.reasoningMode } }
           : {}),
