@@ -8,6 +8,7 @@
  * 2. 在 R2 写 desktop/{stableVersion}/manifest.json（redirect 文件，指向 beta 目录）
  * 3. 复制 beta 渠道的 latest-*.yml 到 stable 渠道目录
  * 4. 更新 stable/manifest.json 中的 desktop.version 字段
+ * 5. 删除 R2 中的 beta 版本目录（desktop/{betaVersion}/）
  *
  * 用法：
  *   STABLE_VERSION=0.1.1 BETA_VERSION=0.1.1-beta.1 node scripts/promote-desktop.mjs
@@ -22,7 +23,7 @@ import {
   downloadJson,
   uploadJson,
 } from './shared/publishUtils.mjs'
-import { S3Client, CopyObjectCommand, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, CopyObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -147,11 +148,6 @@ async function main() {
     const stableChannelKey = `desktop/stable/${ymlName}`
     await copyObject(bucket, srcKey, stableChannelKey)
     console.log(`   [R2] Copied: ${srcKey} → ${stableChannelKey}`)
-
-    // 同时复制到 desktop/ 根目录（向后兼容 electron-updater）
-    const rootKey = `desktop/${ymlName}`
-    await copyObject(bucket, srcKey, rootKey)
-    console.log(`   [R2] Copied: ${srcKey} → ${rootKey}`)
   }
 
   // 4. 更新 stable/manifest.json 的 desktop.version 字段
@@ -170,7 +166,19 @@ async function main() {
   await uploadJson(s3, bucket, 'stable/manifest.json', stableManifest)
   console.log(`   Updated stable/manifest.json: desktop.version = "${stableVersion}"`)
 
-  // 5. 输出摘要
+  // 5. 删除 beta 目录（promote 后不再需要）
+  console.log()
+  console.log(`🗑️  Deleting beta directory: desktop/${betaVersion}/`)
+  for (let i = 0; i < betaKeys.length; i += 1000) {
+    const batch = betaKeys.slice(i, i + 1000)
+    await s3.send(new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: { Objects: batch.map((Key) => ({ Key })) },
+    }))
+  }
+  console.log(`   Deleted ${betaKeys.length} files from desktop/${betaVersion}/`)
+
+  // 6. 输出摘要
   console.log()
   console.log(`🎉 Promote 完成！`)
   console.log(`   Stable version: ${stableVersion}`)
