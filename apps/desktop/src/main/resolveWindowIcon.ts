@@ -39,15 +39,9 @@ export function resolveWindowIconInfo():
   // 中文注释：优先返回可用的非空图标，避免加载失败导致回退到默认图标。
   for (const candidate of candidates) {
     if (!fs.existsSync(candidate)) {
-      if (isDebug) {
-        console.log(`[icon] missing: ${candidate}`);
-      }
       continue;
     }
     const image = nativeImage.createFromPath(candidate);
-    if (isDebug) {
-      console.log(`[icon] candidate: ${candidate} empty=${image.isEmpty()}`);
-    }
     if (!image.isEmpty()) {
       return { path: candidate, image };
     }

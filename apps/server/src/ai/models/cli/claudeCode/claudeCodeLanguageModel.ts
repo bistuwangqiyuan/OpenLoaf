@@ -267,6 +267,7 @@ function isSessionNotFoundError(error: unknown): boolean {
 async function* executeCLITurn(
   input: ClaudeCodeLanguageModelInput,
   promptText: string,
+  systemPrompt: string | undefined,
   cwd: string,
   cliSessionId: string | undefined,
   isResume: boolean,
@@ -286,6 +287,12 @@ async function* executeCLITurn(
     args.push("--session-id", cliSessionId);
   }
 
+  // 新会话首次调用时，通过 --append-system-prompt 传递 preface（参考 OpenClaw）
+  if (!isResume && systemPrompt) {
+    args.push("--append-system-prompt", systemPrompt);
+  }
+
+  // prompt 作为最后一个位置参数传入（OpenClaw input: "arg" 模式）
   args.push(promptText);
 
   logger.info(
@@ -295,7 +302,8 @@ async function* executeCLITurn(
       cwd,
       cliSessionId,
       isResume,
-      args: args.map((a, i) => (i === args.length - 1 ? a.slice(0, 80) : a)),
+      hasSystemPrompt: !!systemPrompt,
+      promptPreview: promptText.slice(0, 80),
     },
     "[cli] spawn: claude",
   );
@@ -394,10 +402,7 @@ async function* createClaudeCodeStream(
   const cliPreface = getCliSessionPreface();
   const isResume = !!cliSessionId && !cliPreface;
 
-  // prompt：首条消息带 preface，后续只发用户文本
-  const finalPrompt = cliPreface
-    ? `${cliPreface}\n\n${promptText}`
-    : promptText;
+  // preface 通过 --append-system-prompt 传递（仅新会话首次），prompt 只含用户文本
 
   const hasCustomKey = !!(input.forceCustomApiKey && input.apiKey.trim());
   const hasCustomUrl = !!(input.forceCustomApiKey && input.apiUrl.trim());
@@ -410,7 +415,8 @@ async function* createClaudeCodeStream(
       isResume,
       hasCustomKey,
       hasCustomUrl,
-      promptPreview: finalPrompt.slice(0, 100),
+      hasPreface: !!cliPreface,
+      promptPreview: promptText.slice(0, 100),
     },
     "[cli] claude-code stream start",
   );
@@ -419,7 +425,7 @@ async function* createClaudeCodeStream(
     yield { type: "stream-start", warnings: EMPTY_WARNINGS };
 
     try {
-      yield* executeCLITurn(input, finalPrompt, cwd, cliSessionId, isResume, sessionId);
+      yield* executeCLITurn(input, promptText, cliPreface || undefined, cwd, cliSessionId, isResume, sessionId);
     } catch (error) {
       // ── resume 失败降级：新建会话重试 ──
       if (isResume && isSessionNotFoundError(error)) {
@@ -429,7 +435,6 @@ async function* createClaudeCodeStream(
         );
         const newId = crypto.randomUUID();
         const preface = sessionId ? await resolveSessionPrefaceText(sessionId) : "";
-        const fallbackPrompt = preface ? `${preface}\n\n${promptText}` : promptText;
 
         // 更新 DB + 缓存
         if (sessionId) {
@@ -446,7 +451,7 @@ async function* createClaudeCodeStream(
           setCliSession(newId, preface || undefined);
         }
 
-        yield* executeCLITurn(input, fallbackPrompt, cwd, newId, false, sessionId);
+        yield* executeCLITurn(input, promptText, preface || undefined, cwd, newId, false, sessionId);
       } else {
         throw error;
       }

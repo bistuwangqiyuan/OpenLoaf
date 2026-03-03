@@ -9,13 +9,14 @@
  *    - 构建（可跳过） → 上传所有平台文件 → 写 manifest → 更新渠道指针
  *
  * 2. 上传模式（per-build CI）：node publish-update.mjs --skip-build --upload-only --platform=<p>
- *    - 仅上传指定平台的文件到 R2
- *    - 保存平台元数据到 dist/platform-meta-{platform}.json（供 --manifest-only 读取）
- *    - 跳过 manifest 写入
+ *    - 上传指定平台的文件到 R2
+ *    - 保存平台元数据到 dist/platform-meta-{platform}.json（供 --manifest-only 兜底读取）
+ *    - 从 R2 读取已有 manifest，合并当前平台信息后写回（每平台独立完成，先完成先可测）
+ *    - 更新渠道指针 {channel}/manifest.json
  *
- * 3. manifest 模式（CI 汇总步骤）：node publish-update.mjs --manifest-only
- *    - 读取 dist/platform-meta-*.json（各平台上传后保存的元数据）
- *    - 写 desktop/{version}/manifest.json
+ * 3. manifest 模式（CI 收尾步骤）：node publish-update.mjs --manifest-only
+ *    - 从 R2 读取各平台已写入的 manifest，合并本地 platform-meta-*.json 作为兜底
+ *    - 写 desktop/{version}/manifest.json（确保所有平台数据完整）
  *    - 更新渠道指针 {channel}/manifest.json
  *    - 上传 changelogs + 清理旧版本
  *
@@ -232,33 +233,49 @@ async function main() {
   // Manifest-only 模式：读取元数据 → 写 manifest → 更新渠道指针
   // -------------------------------------------------------------------------
   if (manifestOnly) {
-    console.log('\n📝 Manifest-only mode: reading platform metadata...')
+    console.log('\n📝 Manifest-only mode: merging platform metadata as fallback...')
 
-    const platforms = {}
+    // 从本地 platform-meta 文件读取（CI artifact 下载）
+    const localPlatforms = {}
     if (existsSync(distDir)) {
       for (const f of readdirSync(distDir)) {
         if (f.startsWith('platform-meta-') && f.endsWith('.json')) {
           const meta = JSON.parse(readFileSync(path.join(distDir, f), 'utf-8'))
-          Object.assign(platforms, meta)
+          Object.assign(localPlatforms, meta)
           console.log(`   Read: ${f} → ${Object.keys(meta).join(', ')}`)
         }
       }
     }
 
-    if (Object.keys(platforms).length === 0) {
-      console.warn('⚠️  No platform metadata found in dist/. Version manifest will have empty platforms.')
+    // 从 R2 读取已有 manifest（各平台 --upload-only 已各自写入）
+    const versionManifestKey = `desktop/${version}/manifest.json`
+    let existingManifest = null
+    try {
+      existingManifest = await downloadJson(s3, r2Config.bucket, versionManifestKey)
+      console.log(`   R2 manifest: ${Object.keys(existingManifest.platforms || {}).join(', ') || '(empty)'}`)
+    } catch {
+      console.log('   No existing R2 manifest found')
     }
 
-    // 写 desktop/{version}/manifest.json
+    // 合并：R2 已有 + 本地 meta（本地覆盖，确保兜底完整性）
+    const mergedPlatforms = {
+      ...(existingManifest?.platforms || {}),
+      ...localPlatforms,
+    }
+
+    if (Object.keys(mergedPlatforms).length === 0) {
+      console.warn('⚠️  No platform data found (neither R2 nor local). Version manifest will have empty platforms.')
+    }
+
+    // 写 desktop/{version}/manifest.json（合并后的最终版本）
     const versionManifest = {
       version,
       publishedAt: new Date().toISOString(),
       channel,
-      platforms,
+      platforms: mergedPlatforms,
     }
-    const versionManifestKey = `desktop/${version}/manifest.json`
     await uploadJsonToAll(versionManifestKey, versionManifest)
-    console.log(`\n✅ Written version manifest: ${versionManifestKey}`)
+    console.log(`\n✅ Written version manifest: ${versionManifestKey} (platforms: ${Object.keys(mergedPlatforms).join(', ')})`)
 
     // 更新渠道指针 {channel}/manifest.json（只写 desktop.version，保留其他字段）
     const channelManifestKey = `${channel}/manifest.json`
@@ -300,7 +317,7 @@ async function main() {
       await cleanupOldVersions({ s3: cos, bucket: cosConfig.bucket, prefix: 'desktop/', keep: 3 })
     }
 
-    console.log(`\n🎉 Manifest written for v${version} (${channel} channel)`)
+    console.log(`\n🎉 Finalized v${version} (${channel} channel)`)
     return
   }
 
@@ -392,9 +409,10 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // upload-only 模式：保存元数据，不写 manifest
+  // upload-only 模式：保存元数据 + 合并写入 manifest（每平台独立完成）
   // -------------------------------------------------------------------------
   if (uploadOnly) {
+    // 保存 localMeta（向后兼容，publish-manifest 仍可用作兜底）
     const metaFilename = platformArg
       ? `platform-meta-${platformArg}.json`
       : `platform-meta-${Object.keys(platforms)[0] || 'unknown'}.json`
@@ -402,6 +420,44 @@ async function main() {
     writeFileSync(metaPath, JSON.stringify(platforms, null, 2))
     console.log(`\n✅ Saved platform metadata: dist/${metaFilename}`)
     console.log(JSON.stringify(platforms, null, 2))
+
+    // 从 R2 读取已有 manifest，合并当前平台信息，写回
+    const versionManifestKey = `desktop/${version}/manifest.json`
+    let existingManifest = null
+    try {
+      existingManifest = await downloadJson(s3, r2Config.bucket, versionManifestKey)
+      console.log(`\n📖 Read existing manifest: ${Object.keys(existingManifest.platforms || {}).join(', ') || '(empty)'}`)
+    } catch {
+      // 首个平台写入时 manifest 不存在
+      console.log('\n📖 No existing manifest found, creating new one')
+    }
+
+    const mergedPlatforms = {
+      ...(existingManifest?.platforms || {}),
+      ...platforms,
+    }
+
+    const versionManifest = {
+      version,
+      publishedAt: new Date().toISOString(),
+      channel,
+      platforms: mergedPlatforms,
+    }
+    await uploadJsonToAll(versionManifestKey, versionManifest)
+    console.log(`✅ Written version manifest: ${versionManifestKey} (platforms: ${Object.keys(mergedPlatforms).join(', ')})`)
+
+    // 更新渠道指针 {channel}/manifest.json
+    const channelManifestKey = `${channel}/manifest.json`
+    let channelManifest = {}
+    try {
+      channelManifest = await downloadJson(s3, r2Config.bucket, channelManifestKey)
+    } catch {
+      // 首次创建
+    }
+    channelManifest.desktop = { version }
+    await uploadJsonToAll(channelManifestKey, channelManifest)
+    console.log(`✅ Updated ${channelManifestKey}: desktop.version = "${version}"`)
+
     return
   }
 

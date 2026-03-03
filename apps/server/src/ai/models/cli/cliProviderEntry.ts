@@ -32,8 +32,9 @@ const CLI_PROVIDER_FALLBACKS: Record<string, ProviderDefinition> = {
     label: "Claude Code",
     adapterId: "cli",
     models: [
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", tags: ["code"] },
-      { id: "claude-opus-4-20250514", name: "Claude Opus 4", tags: ["code"] },
+      { id: "claude-sonnet-4-6", name: "Sonnet 4.6", tags: ["code"] },
+      { id: "claude-opus-4-6", name: "Opus 4.6", tags: ["code"] },
+      { id: "claude-haiku-4-5", name: "Haiku 4.5", tags: ["code"] },
     ],
   } as ProviderDefinition,
   "codex-cli": {
@@ -97,7 +98,7 @@ export async function buildCliProviderEntries(): Promise<ProviderSettingEntry[]>
 
 /**
  * 将 CLI 工具配置键映射为可用的 chatModelId。
- * 例如 "claudeCode" → "claude-code-cli:claude-sonnet-4-20250514"
+ * 例如 "claudeCode" → "claude-code-cli:sonnet"
  */
 export async function resolveCliChatModelId(
   configKey: string,

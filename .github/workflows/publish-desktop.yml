@@ -466,14 +466,13 @@ jobs:
           path: apps/desktop/dist/platform-meta-linux-x64.json
 
   # ---------------------------------------------------------------------------
-  # 写版本 manifest + 更新渠道指针（仅 beta/build 模式，等所有平台完成后执行）
+  # 收尾步骤：上传 changelogs + 清理旧版本（各平台已各自写 manifest）
   # ---------------------------------------------------------------------------
-  publish-manifest:
+  publish-finalize:
     needs: [determine-mode, build-mac-arm64, build-windows, build-linux]
     if: >-
       always() &&
       needs.determine-mode.outputs.mode != 'promote' &&
-      !contains(needs.*.result, 'failure') &&
       contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     steps:
@@ -497,18 +496,19 @@ jobs:
           cd apps/desktop
           npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
 
-      # 下载各平台的轻量元数据 JSON（而非大体积安装包）
+      # 下载各平台元数据作为兜底（R2 manifest 已由各平台各自写入，这里合并确保完整性）
       - name: Download platform metadata artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: openloaf-platform-meta-*
           path: apps/desktop/dist
           merge-multiple: true
+        continue-on-error: true
 
       - name: List downloaded metadata
-        run: ls -la apps/desktop/dist/platform-meta-*.json 2>/dev/null || echo "(no metadata files found)"
+        run: ls -la apps/desktop/dist/platform-meta-*.json 2>/dev/null || echo "(no local metadata files, relying on R2 manifest)"
 
-      - name: Write version manifest and update channel pointer
+      - name: Finalize manifest, upload changelogs and cleanup old versions
         env:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
@@ -550,12 +550,12 @@ jobs:
         run: node scripts/promote-desktop.mjs
 
   create-release:
-    needs: [determine-mode, publish-manifest, promote-to-stable]
+    needs: [determine-mode, publish-finalize, promote-to-stable]
     if: >-
       always() &&
       startsWith(github.ref, 'refs/tags/') &&
       needs.determine-mode.outputs.mode != 'beta' &&
-      (needs.publish-manifest.result == 'success' || needs.promote-to-stable.result == 'success')
+      (needs.publish-finalize.result == 'success' || needs.promote-to-stable.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
