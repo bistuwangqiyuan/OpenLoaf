@@ -475,10 +475,7 @@ jobs:
 
   create-release:
     needs: [determine-mode, publish-finalize]
-    if: >-
-      always() &&
-      startsWith(github.ref, 'refs/tags/') &&
-      needs.publish-finalize.result == 'success'
+    if: always() && needs.publish-finalize.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -488,9 +485,9 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION="${GITHUB_REF#refs/tags/desktop@}"
+          VERSION="${{ needs.determine-mode.outputs.version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          if [[ "$VERSION" == *"-beta"* ]]; then
+          if [[ "${{ needs.determine-mode.outputs.channel }}" == "beta" ]]; then
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "prerelease=false" >> $GITHUB_OUTPUT
@@ -533,7 +530,10 @@ jobs:
           if [[ "$PRERELEASE" == "true" ]]; then
             PRERELEASE_FLAG="--prerelease"
           fi
+          # 如果 release 已存在（tag 触发后重试），先删除再重建
+          gh release delete "desktop@${VERSION}" --yes 2>/dev/null || true
           gh release create "desktop@${VERSION}" \
+            --target "${{ github.sha }}" \
             --title "OpenLoaf Desktop v${VERSION}" \
             --notes-file /tmp/release-notes.md \
             $PRERELEASE_FLAG \
@@ -541,7 +541,7 @@ jobs:
 
   version-bump:
     needs: [determine-mode, create-release]
-    # 只在 stable 发布后 bump 版本（beta 跳过）
+    # 只在 tag 触发的 stable 发布后 bump 版本（beta 和 workflow_dispatch 跳过）
     if: >-
       always() &&
       startsWith(github.ref, 'refs/tags/') &&

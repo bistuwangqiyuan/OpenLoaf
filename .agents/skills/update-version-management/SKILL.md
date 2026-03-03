@@ -297,12 +297,14 @@ Step 7: 测试通过 → 发布 stable 版本（重新构建）
 
 #### CI 两种模式
 
-| mode | 触发条件 | 构建 | version-bump |
-|------|---------|------|-------------|
-| `beta` | tag 含 `-beta` | ✅ | ❌ |
-| `stable` | tag 不含 `-beta` | ✅（完整重新构建） | ✅ |
+| mode | 触发条件 | 构建 | create-release | version-bump |
+|------|---------|------|----------------|-------------|
+| `beta` | tag 含 `-beta` | ✅ | ✅（prerelease） | ❌ |
+| `stable` | tag 不含 `-beta` | ✅（完整重新构建） | ✅ | ✅ |
+| `workflow_dispatch` | 手动触发 | ✅ | ✅ | ❌ |
 
 > Stable 版本会完整重新构建，确保 app 内显示的版本号是正式版（不含 `-beta.N`）。
+> `create-release` 对所有触发方式开放，会自动创建 tag（如尚未存在）和 GitHub Release。
 
 #### CI 产物命名规范
 
@@ -363,7 +365,7 @@ git push origin desktop@{version}
 - `build_windows`：是否构建 Windows
 - `build_linux`：是否构建 Linux
 
-手动触发不会创建 GitHub Release 和 version-bump（这两步仅在 tag 推送时执行）。
+手动触发也会创建 GitHub Release（`create-release` 对所有触发方式开放）。version-bump 仅在 tag 触发的 stable 发布后执行。
 
 ---
 
