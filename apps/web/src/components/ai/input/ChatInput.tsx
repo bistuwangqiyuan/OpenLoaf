@@ -1195,6 +1195,12 @@ export default function ChatInput({
     if (typeof window === "undefined") return "agent";
     return (window.localStorage.getItem(CHAT_MODE_STORAGE_KEY) as ChatMode) || "agent";
   });
+  // 没有项目时，CLI 模式无意义，强制回退到 agent 模式
+  useEffect(() => {
+    if (!projectId && chatMode === 'cli') {
+      setChatMode('agent');
+    }
+  }, [projectId, chatMode]);
   const handleChatModeChange = useCallback((mode: ChatMode) => {
     setChatMode(mode);
     if (typeof window !== "undefined") {

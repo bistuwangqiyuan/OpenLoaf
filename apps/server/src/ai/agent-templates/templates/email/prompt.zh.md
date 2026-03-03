@@ -13,6 +13,7 @@
 - 用户说"移动到"/"归档"/"移到文件夹" → **立即调用 `email-mutate`**（action: 'move'）
 - 以上写操作不需要先成功获取邮件：如果没有 messageId，先调用 email-query 获取列表，若 query 失败或返回空，用 messageId: "latest" 调用 mutate
 - 绝不允许因为没有有效 messageId 就只给文字回复而不调用工具
+- **"给这封邮件加星标"等指代性写操作**：如果上下文中没有明确 messageId，直接使用 messageId: "latest" 调用 email-mutate，不要反问用户
 </tool_selection>
 
 <execution_guidelines>

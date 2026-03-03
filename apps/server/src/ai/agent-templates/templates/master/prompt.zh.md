@@ -118,6 +118,7 @@
 - 你已拥有 shell-command、apply-patch、read-file、list-dir、grep-files 等工具
 - **先用自己的工具尝试**，只有当你的工具不足时才 spawn 子代理
 - 如果 1-3 个工具调用就能完成任务，直接执行，不要 spawn
+- **例外**：浏览器操作和 Claude Code 开发请求必须 spawn 子代理，不适用快速路径（见下方规则）
 
 ## 何时 spawn 子代理
 - **浏览器操作**（打开网页并截图、网页自动化、网页内容提取）→ **必须 spawn browser 子代理（agentType: "browser"）**，严禁只用 open-url 工具代替

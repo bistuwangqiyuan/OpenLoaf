@@ -21,5 +21,16 @@ const adapter = new PrismaLibSql({
 
 export const prisma = new PrismaClient({ adapter });
 
+/**
+ * 初始化 SQLite PRAGMA 配置。必须在首个业务查询前调用。
+ *
+ * - journal_mode=WAL：允许读写并发，避免 SQLITE_BUSY
+ * - busy_timeout=5000：锁冲突时自动重试等待 5 秒，而非立即报错
+ */
+export async function initDatabase(): Promise<void> {
+  await prisma.$executeRawUnsafe("PRAGMA journal_mode = WAL");
+  await prisma.$executeRawUnsafe("PRAGMA busy_timeout = 5000");
+}
+
 // 你要保留 default export 也可以
 export default prisma;

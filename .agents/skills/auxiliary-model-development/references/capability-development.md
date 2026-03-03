@@ -218,6 +218,67 @@ export async function translateText(
 
 ---
 
+## Step 6: Add tRPC Mutation (如需前端触发)
+
+如果新能力由用户手动触发（非自动），需要添加 tRPC mutation。
+
+### 6.1 在 `packages/api/src/routers/absSetting.ts` 添加 base schema
+
+```typescript
+// BaseSettingRouter.createRouter() 内
+myNewCapability: {
+  input: z.object({ projectId: z.string() }),
+  output: z.object({ result: z.string() }),
+},
+```
+
+### 6.2 在 `apps/server/src/routers/settings.ts` 实现 mutation
+
+```typescript
+myNewCapability: baseProcedures.myNewCapability.mutation(async ({ input }) => {
+  const { auxiliaryInfer } = await import('@/ai/services/auxiliaryInferenceService')
+  const { CAPABILITY_SCHEMAS } = await import('@/ai/services/auxiliaryCapabilities')
+
+  // 构建 context
+  const context = `...`
+
+  const result = await auxiliaryInfer({
+    capabilityKey: 'domain.capabilityName',
+    context,
+    schema: CAPABILITY_SCHEMAS['domain.capabilityName'],
+    fallback: { result: '' },
+  })
+  return result
+}),
+```
+
+> **注意**：`auxiliaryInfer` 位于 `apps/server/` 中，只能从 `apps/server/src/routers/` 调用，不能从 `packages/api/` 调用。
+
+### 6.3 前端调用 mutation
+
+```typescript
+import { useMutation } from '@tanstack/react-query'
+import { trpc } from '@/utils/trpc'
+
+const mutation = useMutation(
+  trpc.settings.myNewCapability.mutationOptions({
+    onSuccess: (data) => {
+      // 处理结果
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  }),
+)
+
+// 触发
+mutation.mutate({ projectId })
+```
+
+> **重要**：本项目使用 `useMutation(trpc.xxx.mutationOptions())` 模式（来自 `@tanstack/react-query`），而非 `trpc.xxx.useMutation()`。
+
+---
+
 ## Checklist
 
 新增一个辅助模型能力后，按以下清单验证：
@@ -243,12 +304,25 @@ export async function translateText(
 - [ ] fallback 值有意义（非空、非 null）
 - [ ] 断网 / 模型不可用时，功能不崩溃，静默使用 fallback
 
-### tRPC（通常无需修改）
+### 日志验证
 
-`getAuxiliaryCapabilities` 路由直接遍历 `AUXILIARY_CAPABILITIES` 对象并返回，新增能力后无需修改 tRPC 层。仅当以下情况需要改动：
+- [ ] 触发能力后，服务端终端输出 `[AuxiliaryInfer] [domain.capabilityName] 调用开始` 日志
+- [ ] 推理成功后，终端输出 `推理完成 | 输出: { ... }` 日志
+- [ ] 推理失败时（断网/超时），终端输出 `推理失败，返回 fallback | 错误: ...` warn 日志
+- [ ] 重复调用同一 context 时，终端输出 `命中缓存` 日志（noCache=true 时除外）
 
-- 新增了独立的 tRPC mutation/query 来触发推理（如 `inferProjectType`）
-- 需要修改 `absSetting.ts` 中 `getAuxiliaryCapabilities.output` 的字段（如新增 `outputMode` 类型）
+### tRPC（手动触发的能力需要）
+
+如果能力由用户手动触发（如按钮点击），需要：
+
+- [ ] `absSetting.ts` 中添加 base schema（input + output）
+- [ ] `settings.ts` 中实现 mutation（调用 `auxiliaryInfer`）
+- [ ] 前端使用 `useMutation(trpc.settings.xxx.mutationOptions())` 模式调用
+- [ ] **不要**在 `packages/api/` 中直接 import `auxiliaryInfer`（它在 `apps/server/` 中）
+
+自动触发的能力（如 `chat.title`、`project.classify`）无需新增 tRPC mutation，直接在现有路由中调用即可。
+
+`getAuxiliaryCapabilities` 路由直接遍历 `AUXILIARY_CAPABILITIES` 对象并返回，新增能力后无需修改该路由。
 
 ---
 

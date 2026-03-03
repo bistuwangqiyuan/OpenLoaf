@@ -26,48 +26,73 @@ description: >
     ▼
 业务代码调用 auxiliaryInfer() / auxiliaryInferText()
     │
+    ├─ 0. 日志：记录 capabilityKey + context（截断 200 字符）
+    │
     ├─ 1. 检查内存缓存（SHA-256 hash key）
-    │     └─ 命中 → 直接返回
+    │     └─ 命中 → 日志 + 直接返回
     │
     ├─ 2. 读取 auxiliary-model.json 配置
-    │     └─ modelSource (local/cloud) → modelIds
+    │     └─ modelSource (saas/cloud/local) → 分支
     │
-    ├─ 3. resolveChatModel() 解析模型实例
+    ├─ 3a. SaaS 分支 → saasClient.auxiliary.infer() 委托云端
+    ├─ 3b. Local/Cloud 分支 → resolveChatModel() 解析模型实例
     │
-    ├─ 4. 构建 prompt（customPrompt > defaultPrompt）
+    ├─ 4. 构建 prompt（promptOverride > customPrompt > defaultPrompt）
     │
-    ├─ 5. 调用 Vercel AI SDK
+    ├─ 5. 调用 Vercel AI SDK（3s 超时）
     │     ├─ structured → generateObject(schema)
     │     └─ text → generateText()
     │
-    ├─ 6. 写入缓存（TTL 5min）
+    ├─ 6. 写入缓存（TTL 5min）+ 日志：记录输出结果
     │
-    └─ 7. 返回结果（或 fallback）
+    └─ 7. 返回结果（或 fallback + warn 日志）
 ```
 
 ## Key Files Map
 
+### 核心层
+
 | 文件 | 职责 |
 |------|------|
 | `apps/server/src/ai/services/auxiliaryCapabilities.ts` | 能力注册表：Zod schema + 能力定义 + 默认 prompt |
-| `apps/server/src/ai/services/auxiliaryInferenceService.ts` | 推理引擎：`auxiliaryInfer()` + `auxiliaryInferText()` + 缓存 |
+| `apps/server/src/ai/services/auxiliaryInferenceService.ts` | 推理引擎：`auxiliaryInfer()` + `auxiliaryInferText()` + 缓存 + 日志 |
 | `apps/server/src/modules/settings/auxiliaryModelConfStore.ts` | 配置读写：`~/.openloaf/auxiliary-model.json` |
-| `packages/api/src/routers/absSetting.ts` | tRPC schema：`getAuxiliaryCapabilities` / `getAuxiliaryModelConfig` |
-| `apps/server/src/routers/settings.ts` | tRPC 路由实现：能力列表 + 配置读写 + 项目类型推断 |
-| `apps/web/src/components/setting/menus/AuxiliaryModelSettings.tsx` | 前端设置 UI：模型选择 + 能力配置 + prompt 编辑器 |
+
+### tRPC 层
+
+| 文件 | 职责 |
+|------|------|
+| `packages/api/src/routers/absSetting.ts` | tRPC base schema：辅助能力相关 mutation/query 定义 |
+| `apps/server/src/routers/settings.ts` | tRPC 实现：`inferProjectName` / `generateChatSuggestions` / `generateCommitMessage` |
+| `apps/server/src/routers/chat.ts` | `generateTitleFromHistory()` — `chat.title` 调用入口 |
+| `packages/api/src/routers/project.ts` | Git 操作路由：`getGitStatus` / `getGitDiff` / `gitCommit` |
+| `packages/api/src/services/projectGitService.ts` | Git 服务层：status / diff / commit 实现 |
+
+### 前端层
+
+| 文件 | 职责 |
+|------|------|
+| `apps/web/src/components/setting/menus/AuxiliaryModelSettings.tsx` | 辅助模型设置 UI：模型选择 + 能力配置 + prompt 编辑器 |
+| `apps/web/src/components/project/ProjectTitle.tsx` | 项目标题旁 ✨ AI 重命名按钮（`project.ephemeralName`） |
+| `apps/web/src/components/ai/message/MessageHelper.tsx` | 动态输入建议（`chat.suggestions`） |
+| `apps/web/src/components/project/settings/menus/GitCommitDialog.tsx` | Git 提交模态框 + AI 生成 commit message（`git.commitMessage`） |
+| `apps/web/src/components/project/settings/menus/ProjectGitSettings.tsx` | Git 面板提交按钮入口 |
+| `packages/ui/src/ai-menu.tsx` | 编辑器 AI 菜单 Translate 项（`text.translate` — 走主模型） |
 
 ## Capability Registry
 
-当前 6 个内置能力：
+当前 6 个内置能力（全部已落地）：
 
-| Key | Label | Output Mode | 用途 |
-|-----|-------|-------------|------|
-| `project.classify` | 项目分类 | `structured` | 扫描文件结构，判断项目类型 + 推荐图标 |
-| `chat.suggestions` | 输入推荐 | `structured` | 打开聊天窗口或输入停顿时生成智能补全建议 |
-| `chat.title` | 摘要标题 | `structured` | 对话结束后自动生成标题 |
-| `project.ephemeralName` | 项目重命名 | `structured` | 用户手动触发，为项目生成名称 |
-| `git.commitMessage` | Commit 信息 | `structured` | 根据 diff 生成规范 commit message |
-| `text.translate` | 文本翻译 | `text` | 选中文本翻译为目标语言 |
+| Key | Label | Output Mode | 触发方式 | 调用入口 |
+|-----|-------|-------------|----------|----------|
+| `project.classify` | 项目分类 | `structured` | 自动 — 创建项目时 | `settings.ts` → `inferProjectType` |
+| `chat.title` | 摘要标题 | `structured` | 自动 — 每 5 次 assistant 回复 | `chat.ts` → `generateTitleFromHistory()` |
+| `text.translate` | 文本翻译 | `text` | 手动 — 编辑器选中文本 → AI 菜单 | `ai-menu.tsx`（走主模型 AIChatPlugin，不走辅助模型） |
+| `project.ephemeralName` | 项目重命名 | `structured` | 手动 — 项目标题旁 ✨ 按钮 | `settings.ts` → `inferProjectName` |
+| `chat.suggestions` | 输入推荐 | `structured` | 自动 — 空会话时 mount 触发 | `settings.ts` → `generateChatSuggestions` |
+| `git.commitMessage` | Commit 信息 | `structured` | 手动 — Git 面板 → 提交 → AI 生成 | `settings.ts` → `generateCommitMessage` |
+
+> **注意**：`text.translate` 在编辑器场景走 Plate.js AIChatPlugin（主模型），保持 AI 菜单行为一致。辅助模型的 `text.translate` 能力保留定义，供未来非编辑器场景使用。
 
 ## Output Mode Guide
 
@@ -122,6 +147,42 @@ const result = await auxiliaryInferText({
 | `fallback` | `T \| string` | 推理失败时的兜底值 |
 | `noCache` | `boolean?` | 跳过缓存（默认 false） |
 
+## Logging
+
+所有辅助推理调用自动输出日志（`console.log` / `console.warn`），前缀 `[AuxiliaryInfer]`：
+
+| 时机 | 级别 | 格式 |
+|------|------|------|
+| 调用开始 | `log` | `[AuxiliaryInfer] [chat.title] 调用开始 \| 输入: <context 截断 200 字>` |
+| 模型来源 | `log` | `[AuxiliaryInfer] [chat.title] 模型来源: saas` |
+| 命中缓存 | `log` | `[AuxiliaryInfer] [chat.title] 命中缓存 \| 输出: { ... }` |
+| 推理完成 | `log` | `[AuxiliaryInfer] [chat.title] SaaS/本地/云端推理完成 \| 输出: { ... }` |
+| 推理失败 | `warn` | `[AuxiliaryInfer] [chat.title] 推理失败，返回 fallback \| 错误: <message>` |
+
+text 模式日志格式相同，在 capabilityKey 后追加 `(text)` 标记。
+
+开发调试时可在服务端终端搜索 `[AuxiliaryInfer]` 查看所有辅助推理调用。
+
+## Frontend Mutation Pattern
+
+前端调用辅助能力的 tRPC mutation 统一使用 `@tanstack/react-query` 的 `useMutation` + `trpc.xxx.mutationOptions()` 模式：
+
+```typescript
+import { useMutation } from '@tanstack/react-query'
+import { trpc } from '@/utils/trpc'
+
+// ✅ 正确
+const mutation = useMutation(
+  trpc.settings.inferProjectName.mutationOptions({
+    onSuccess: (data) => { /* 处理结果 */ },
+    onError: (err) => { toast.error(err.message) },
+  }),
+)
+
+// ❌ 错误 — 本项目不使用此模式
+const mutation = trpc.settings.inferProjectName.useMutation()
+```
+
 ## Adding a New Capability (Quick)
 
 > 完整代码模板和示例见 [references/capability-development.md](references/capability-development.md)
@@ -152,6 +213,8 @@ const result = await auxiliaryInferText({
 当以下源文件发生变更时，应同步更新此 Skill 文档：
 
 - `auxiliaryCapabilities.ts` — 新增/修改能力 → 更新 Capability Registry 表
-- `auxiliaryInferenceService.ts` — 推理逻辑变更 → 更新 Architecture 和 Calling Convention
+- `auxiliaryInferenceService.ts` — 推理逻辑变更 → 更新 Architecture、Calling Convention、Logging
 - `AuxiliaryModelSettings.tsx` — UI 变更 → 更新 Key Files Map 和前端图标步骤
 - `absSetting.ts` — tRPC schema 变更 → 更新 references 中的 tRPC 步骤
+- `settings.ts` — 新增 mutation（如 `inferProjectName`）→ 更新 Key Files Map 和 Capability Registry 调用入口
+- `chat.ts` — `generateTitleFromHistory()` 变更 → 更新 Capability Registry 调用入口

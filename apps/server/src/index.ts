@@ -21,6 +21,7 @@ import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
 import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
 import { migrateLegacyServerData } from "@openloaf/config";
 import { ensureActiveWorkspaceDefaultAgent } from "@/ai/shared/workspaceAgentInit";
+import { initDatabase } from "@openloaf/db";
 
 // 修复 PATH：当 server 作为 Electron 子进程运行时，继承的 PATH 可能不完整。
 // 从用户 shell（macOS/Linux）或注册表（Windows）读取完整 PATH。
@@ -35,6 +36,10 @@ getWorkspaces();
 
 // 启动时确保活跃 workspace 有默认 agent 文件。
 ensureActiveWorkspaceDefaultAgent();
+
+// 初始化 SQLite WAL 模式和 busy_timeout，必须在 startServer 之前完成，
+// 避免并发请求时触发 SQLITE_BUSY。
+await initDatabase();
 
 const { app } = startServer();
 // 暂停启动时自动总结调度，避免无 workspace/project 上下文触发总结流程。

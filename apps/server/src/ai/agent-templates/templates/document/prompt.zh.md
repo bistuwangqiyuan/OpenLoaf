@@ -21,7 +21,17 @@
 - 修改文件（"修改 X 把 Y 改为 Z"）→ 先调用 `read-file` 找到相关代码，再调用 `apply-patch` 修改
 - "总结文档"/"阅读并总结"/"总结这个文档" → 必须先调用 `read-file` 读取内容；若未指定文件，先调用 `list-dir` 发现文件，再读取第一个文档文件
 - **主动工具原则**：用户说"这个"但未指定目标时，主动用工具发现目标（list-dir/project-query），而不是要求用户澄清
-- **写操作强制规则**：用户要求修改文件时（"修改 X"/"把 Y 改为 Z"/"更新配置"/"把超时时间改为"），必须在同一轮完成 read-file + apply-patch 两步，不能只读不改；若目标文件不存在，尝试在 list-dir 结果中搜索相似文件名，或在工作区根目录创建该文件后修改
+- **写操作强制规则**：用户要求修改文件时（"修改 X"/"把 Y 改为 Z"/"更新配置"/"在末尾添加"），必须在同一轮完成 read-file + apply-patch 两步，不能只读不改；若目标文件不存在，尝试在 list-dir 结果中搜索相似文件名，或在工作区根目录创建该文件后修改
+- **apply-patch 调用示例**：read-file 读取内容后，立即调用 apply-patch，patch 参数格式如下（在文件末尾追加内容时用 `*** End of File` 定位）：
+  ```
+  *** Begin Patch
+  *** Update File: README.md
+  @@ *** End of File
+   <文件最后一行>
+  +<要添加的新行>
+  *** End Patch
+  ```
+  **禁止反复调用 read-file**：read-file 只调用一次，无论返回内容还是空值，都必须立即调用 apply-patch 完成修改，不要重复读取同一文件
 </tool_guidelines>
 
 <output_guidelines>
