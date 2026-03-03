@@ -127,6 +127,9 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   // 获取增量更新状态快照。
   getIncrementalUpdateStatus: (): Promise<IncrementalUpdateStatus> =>
     ipcRenderer.invoke('openloaf:incremental-update:get-status'),
+  // 获取 desktop 整包更新状态快照。
+  getAutoUpdateStatus: (): Promise<unknown> =>
+    ipcRenderer.invoke('openloaf:auto-update:get-status'),
   // 重置增量更新到打包版本。
   resetIncrementalUpdate: (): Promise<{ ok: true } | { ok: false; reason: string }> =>
     ipcRenderer.invoke('openloaf:incremental-update:reset'),
@@ -302,6 +305,16 @@ ipcRenderer.on('openloaf:incremental-update:status', (_event, detail) => {
   try {
     window.dispatchEvent(
       new CustomEvent('openloaf:incremental-update:status', { detail })
+    );
+  } catch {
+    // ignore
+  }
+});
+
+ipcRenderer.on('openloaf:auto-update:status', (_event, detail) => {
+  try {
+    window.dispatchEvent(
+      new CustomEvent('openloaf:auto-update:status', { detail })
     );
   } catch {
     // ignore

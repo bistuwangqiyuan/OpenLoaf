@@ -218,7 +218,7 @@ const YML_PLATFORM_MAP = {
   'linux-x64':  { yml: 'latest-linux.yml', ext: '.AppImage' },
 }
 
-async function generateAndUploadYmls(version, channel, installerFiles, distDir) {
+async function generateAndUploadYmls(version, channel, installerFiles, distDir, publicUrl = r2Config.publicUrl) {
   // 按 yml 文件名分组（mac-arm64 和 mac-x64 共享 latest-mac.yml）
   /** @type {Map<string, Array<{file: string, platform: string}>>} */
   const ymlGroups = new Map()
@@ -246,7 +246,7 @@ async function generateAndUploadYmls(version, channel, installerFiles, distDir) 
       const fileSize = statSync(filePath).size
       const sha512 = await computeSha512Base64(filePath)
 
-      files.push({ url: `${version}/${file}`, sha512, size: fileSize })
+      files.push({ url: `${publicUrl}/desktop/${version}/${file}`, sha512, size: fileSize })
 
       // blockmap 大小（如果存在）
       const blockmapPath = `${filePath}.blockmap`
@@ -271,7 +271,7 @@ async function generateAndUploadYmls(version, channel, installerFiles, distDir) 
         yml += `    blockMapSize: ${f.blockMapSize}\n`
       }
     }
-    yml += `path: ${version}/${primaryFile}\n`
+    yml += `path: ${publicUrl}/desktop/${version}/${primaryFile}\n`
     yml += `sha512: ${primarySha512}\n`
     yml += `releaseDate: '${new Date().toISOString()}'\n`
 

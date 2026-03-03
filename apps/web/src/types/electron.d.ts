@@ -29,6 +29,29 @@ declare global {
     /** Changelog URL (markdown file). */
     changelogUrl?: string;
   };
+  type OpenLoafAutoUpdateState =
+    | "idle"
+    | "checking"
+    | "available"
+    | "not-available"
+    | "downloading"
+    | "downloaded"
+    | "error";
+  type OpenLoafAutoUpdateStatus = {
+    state: OpenLoafAutoUpdateState;
+    currentVersion: string;
+    nextVersion?: string;
+    releaseNotes?: string;
+    lastCheckedAt?: number;
+    progress?: {
+      percent: number;
+      transferred: number;
+      total: number;
+      bytesPerSecond: number;
+    };
+    error?: string;
+    ts: number;
+  };
   type OpenLoafIncrementalUpdateStatus = {
     /** Current incremental update state. */
     state: OpenLoafIncrementalUpdateState;
@@ -181,6 +204,8 @@ declare global {
       checkIncrementalUpdate?: () => Promise<{ ok: true } | { ok: false; reason: string }>;
       /** Get incremental update status snapshot. */
       getIncrementalUpdateStatus?: () => Promise<OpenLoafIncrementalUpdateStatus>;
+      /** Get desktop auto-update status snapshot. */
+      getAutoUpdateStatus?: () => Promise<OpenLoafAutoUpdateStatus>;
       /** Reset incremental updates to bundled version. */
       resetIncrementalUpdate?: () => Promise<{ ok: true } | { ok: false; reason: string }>;
       /** Get current update channel (stable / beta). */

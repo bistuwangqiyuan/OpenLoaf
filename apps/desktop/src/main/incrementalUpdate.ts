@@ -234,7 +234,7 @@ function writeLocalManifest(manifest: LocalManifest): void {
 }
 
 
-function getComponentInfo(component: 'server' | 'web'): ComponentInfo {
+export function getComponentInfo(component: 'server' | 'web'): ComponentInfo {
   const local = readLocalManifest()
   const state = local[component]
   if (state) {

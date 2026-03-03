@@ -115,6 +115,7 @@ export function AboutOpenLoaf() {
   const isElectron = React.useMemo(() => isElectronEnv(), []);
   // 开发模式下禁用更新功能（pnpm desktop）。
   const isDevDesktop = isElectron && process.env.NODE_ENV !== "production";
+  const [autoUpdateStatus, setAutoUpdateStatus] = React.useState<OpenLoafAutoUpdateStatus | null>(null);
   const [updateChannel, setUpdateChannel] = React.useState<"stable" | "beta">("stable");
   const [channelSwitching, setChannelSwitching] = React.useState(false);
 
@@ -157,6 +158,18 @@ export function AboutOpenLoaf() {
     try {
       const status = await api.getIncrementalUpdateStatus();
       if (status) setUpdateStatus(status);
+    } catch {
+      // ignore
+    }
+  }, [isElectron]);
+
+  /** Fetch desktop auto-update status from Electron main process. */
+  const fetchAutoUpdateStatus = React.useCallback(async () => {
+    const api = window.openloafElectron;
+    if (!isElectron || !api?.getAutoUpdateStatus) return;
+    try {
+      const status = await api.getAutoUpdateStatus();
+      if (status) setAutoUpdateStatus(status);
     } catch {
       // ignore
     }
@@ -276,7 +289,8 @@ export function AboutOpenLoaf() {
     void fetchAppVersion();
     void fetchUpdateStatus();
     void fetchUpdateChannel();
-  }, [isElectron, fetchAppVersion, fetchUpdateStatus, fetchUpdateChannel]);
+    void fetchAutoUpdateStatus();
+  }, [isElectron, fetchAppVersion, fetchUpdateStatus, fetchUpdateChannel, fetchAutoUpdateStatus]);
 
   React.useEffect(() => {
     if (!isElectron) return;
@@ -287,9 +301,18 @@ export function AboutOpenLoaf() {
       setUpdateStatus(detail);
     };
 
+    const onAutoUpdateStatus = (event: Event) => {
+      const detail = (event as CustomEvent<OpenLoafAutoUpdateStatus>).detail;
+      if (!detail) return;
+      setAutoUpdateStatus(detail);
+    };
+
     window.addEventListener("openloaf:incremental-update:status", onUpdateStatus);
-    return () =>
+    window.addEventListener("openloaf:auto-update:status", onAutoUpdateStatus);
+    return () => {
       window.removeEventListener("openloaf:incremental-update:status", onUpdateStatus);
+      window.removeEventListener("openloaf:auto-update:status", onAutoUpdateStatus);
+    };
   }, [isElectron]);
 
   /** Reload the current page. */
@@ -322,10 +345,45 @@ export function AboutOpenLoaf() {
     return `v${v}`;
   };
 
+  // Desktop 整包更新是否活跃（正在下载或已下载）
+  const isDesktopUpdating = autoUpdateStatus != null &&
+    (autoUpdateStatus.state === "available" || autoUpdateStatus.state === "downloading" || autoUpdateStatus.state === "downloaded");
+
+  /** Format bytes into human-readable MB string. */
+  const fmtMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
+  const fmtSpeed = (bps: number) => (bps / 1024 / 1024).toFixed(2);
+
+  // Desktop 整包更新状态文案
+  const desktopUpdateLabel = React.useMemo(() => {
+    if (!autoUpdateStatus) return null;
+    const p = autoUpdateStatus.progress;
+    switch (autoUpdateStatus.state) {
+      case "checking":
+        return t('aboutAdditions.checking');
+      case "available":
+        return `${t('aboutAdditions.desktop')} v${autoUpdateStatus.nextVersion ?? "?"} ${t('aboutAdditions.hasUpdate')}`;
+      case "downloading":
+        if (p) {
+          return `${t('aboutAdditions.downloading')}${t('aboutAdditions.desktop')} v${autoUpdateStatus.nextVersion ?? "?"} — ${Math.round(p.percent)}% (${fmtMB(p.transferred)}/${fmtMB(p.total)} MB, ${fmtSpeed(p.bytesPerSecond)} MB/s)`;
+        }
+        return t('aboutAdditions.downloadingUpdate');
+      case "downloaded":
+        return `${t('aboutAdditions.desktop')} v${autoUpdateStatus.nextVersion ?? "?"} ${t('aboutAdditions.readyRestart')}`;
+      case "error":
+        return autoUpdateStatus.error
+          ? `${t('aboutAdditions.desktop')} ${t('aboutAdditions.checkFailed')}：${autoUpdateStatus.error}`
+          : null;
+      default:
+        return null;
+    }
+  }, [autoUpdateStatus, t]);
+
   const downloadPercent = updateStatus?.progress?.percent;
   const updateLabel = React.useMemo(() => {
     if (!isElectron) return t('aboutAdditions.webNoIncrement');
     if (isDevDesktop) return t('aboutAdditions.devModeClosed');
+    // Desktop 整包更新优先级更高，增量更新会被跳过
+    if (isDesktopUpdating) return t('aboutAdditions.waitingCheck');
     if (!updateStatus) return t('aboutAdditions.waitingCheck');
     const componentLabel =
       updateStatus.progress?.component === "server" ? t('aboutAdditions.server') : "Web";
@@ -350,7 +408,7 @@ export function AboutOpenLoaf() {
       default:
         return updateStatus.lastCheckedAt ? t('aboutAdditions.isLatest') : t('aboutAdditions.waitingCheck');
     }
-  }, [isElectron, isDevDesktop, updateStatus, downloadPercent, t]);
+  }, [isElectron, isDevDesktop, isDesktopUpdating, updateStatus, downloadPercent, t]);
 
   const updateActionLabel = isDevDesktop
     ? t('aboutAdditions.devModeUnavailable')
@@ -360,6 +418,7 @@ export function AboutOpenLoaf() {
   const updateActionDisabled =
     !isElectron ||
     isDevDesktop ||
+    isDesktopUpdating ||
     updateStatus?.state === "checking" ||
     updateStatus?.state === "downloading" ||
     updateStatus?.state === "ready";
@@ -373,11 +432,55 @@ export function AboutOpenLoaf() {
       <OpenLoafSettingsGroup title={t('aboutAdditions.versionInfo')}>
         <div className="divide-y divide-border">
           {/* Electron 版本 */}
-          <div className="flex items-center justify-between px-3 py-3">
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
-              <div className="text-xs text-muted-foreground">{fmtVersion(currentVersion)}</div>
+          <div className="px-3 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
+                  {autoUpdateStatus?.state === "downloaded" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                      <Download className="h-3 w-3" />
+                      {t('aboutAdditions.readyRestart')}
+                    </span>
+                  )}
+                  {autoUpdateStatus?.state === "downloading" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {t('aboutAdditions.downloading')}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {fmtVersion(currentVersion)}
+                  {autoUpdateStatus?.nextVersion && ` → v${autoUpdateStatus.nextVersion}`}
+                </div>
+              </div>
+              {autoUpdateStatus?.state === "downloaded" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void window.openloafElectron?.relaunchApp?.()}
+                >
+                  {t('aboutAdditions.updateReady')}
+                </Button>
+              )}
             </div>
+            {/* 下载进度条 */}
+            {autoUpdateStatus?.state === "downloading" && autoUpdateStatus.progress && (
+              <div className="mt-2 space-y-1">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                    style={{ width: `${Math.min(autoUpdateStatus.progress.percent, 100)}%` }}
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {fmtMB(autoUpdateStatus.progress.transferred)}/{fmtMB(autoUpdateStatus.progress.total)} MB
+                  {" · "}{fmtSpeed(autoUpdateStatus.progress.bytesPerSecond)} MB/s
+                  {" · "}{Math.round(autoUpdateStatus.progress.percent)}%
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Server 版本 */}
@@ -445,7 +548,11 @@ export function AboutOpenLoaf() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium mb-1">{t('aboutAdditions.incrementalUpdate')}</div>
-                <div className="text-xs text-muted-foreground">{updateLabel}</div>
+                <div className="text-xs text-muted-foreground">
+                  {isDesktopUpdating
+                    ? t('aboutAdditions.desktopUpdatingSkipIncremental', { defaultValue: 'Desktop 正在更新，增量更新已暂停' })
+                    : updateLabel}
+                </div>
               </div>
               <Button
                 variant="outline"

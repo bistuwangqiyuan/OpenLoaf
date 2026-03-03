@@ -13,7 +13,7 @@ import Module from 'node:module';
 import path from 'path';
 import { fixPath } from './fixPath';
 import { installAutoUpdate } from './autoUpdate';
-import { installIncrementalUpdate } from './incrementalUpdate';
+import { getComponentInfo, installIncrementalUpdate } from './incrementalUpdate';
 
 // 中文注释：在最早期修复 PATH，确保后续 spawn 的进程能找到用户级命令（npm global、homebrew 等）。
 // 必须在 app.isPackaged 检查之前执行，因为 fixPath 内部会根据打包状态选择策略。
@@ -88,7 +88,10 @@ if (app.isPackaged) {
   }]);
 }
 
-log(`App starting. UserData: ${app.getPath('userData')}`);
+const serverInfo = getComponentInfo('server');
+const webInfo = getComponentInfo('web');
+log(`App starting. Desktop: v${app.getVersion()}, Server: v${serverInfo.version} (${serverInfo.source}), Web: v${webInfo.version} (${webInfo.source})`);
+log(`UserData: ${app.getPath('userData')}`);
 log(`Executable: ${process.execPath}`);
 log(`Resources Path: ${process.resourcesPath}`);
 // 中文注释：记录 PATH 修复结果，方便排查 CLI 工具检测问题。

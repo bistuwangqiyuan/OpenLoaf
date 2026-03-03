@@ -263,7 +263,10 @@ export function installAutoUpdate(options: AutoUpdateOptions): void {
     emitStatus({ state: 'error', error: message, progress: undefined })
   })
   autoUpdater.on('download-progress', (progress) => {
-    log(`Update download progress: ${Math.round(progress.percent)}%`)
+    const totalMB = (progress.total / 1024 / 1024).toFixed(1)
+    const transferredMB = (progress.transferred / 1024 / 1024).toFixed(1)
+    const speedMB = (progress.bytesPerSecond / 1024 / 1024).toFixed(2)
+    log(`Update download progress: ${Math.round(progress.percent)}% (${transferredMB}/${totalMB} MB, ${speedMB} MB/s)`)
     emitStatus(toProgressStatus(progress))
   })
   autoUpdater.on('update-downloaded', (info) => {
