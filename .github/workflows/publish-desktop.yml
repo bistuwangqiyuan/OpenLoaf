@@ -42,8 +42,8 @@ defaults:
     shell: bash -euo pipefail {0}
 
 env:
-  ELECTRON_CACHE: .cache/electron
-  ELECTRON_BUILDER_CACHE: .cache/electron-builder
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -197,9 +197,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .cache/electron
-            .cache/electron-builder
-          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+            ${{ github.workspace }}/.cache/electron
+            ${{ github.workspace }}/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/desktop/package.json') }}
           restore-keys: |
             electron-${{ runner.os }}-${{ runner.arch }}-
 
@@ -304,9 +304,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .cache/electron
-            .cache/electron-builder
-          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+            ${{ github.workspace }}/.cache/electron
+            ${{ github.workspace }}/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/desktop/package.json') }}
           restore-keys: |
             electron-${{ runner.os }}-${{ runner.arch }}-
 
@@ -402,9 +402,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .cache/electron
-            .cache/electron-builder
-          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+            ${{ github.workspace }}/.cache/electron
+            ${{ github.workspace }}/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/desktop/package.json') }}
           restore-keys: |
             electron-${{ runner.os }}-${{ runner.arch }}-
 
