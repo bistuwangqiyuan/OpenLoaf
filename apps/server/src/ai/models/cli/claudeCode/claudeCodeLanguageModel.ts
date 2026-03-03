@@ -26,6 +26,13 @@ import {
   getWorkspaceId,
 } from "@/ai/shared/context/requestContext";
 import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { execa } from "execa";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+// 逻辑：MCP SDK 的 ZodRawShapeCompat 兼容 zod/v3 类型签名，须从该路径导入。
+import { z } from "zod/v3";
+import {
+  registerPendingCliQuestion,
+} from "./pendingCliQuestions";
 
 /** Default empty warnings payload. */
 const EMPTY_WARNINGS: SharedV3Warning[] = [];
@@ -180,11 +187,14 @@ async function runClaudeCodeTurn(
 
 /** Build env overrides for the Claude Code SDK process. */
 function buildSdkEnv(input: ClaudeCodeLanguageModelInput): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = {
-    CLAUDE_AGENT_SDK_CLIENT_APP: "openloaf/1.0.0",
-  };
+  const env: Record<string, string | undefined> = { ...process.env };
+  // 不设置 CLAUDE_AGENT_SDK_CLIENT_APP，避免 Anthropic 封禁第三方 app 标识
+  delete env.CLAUDE_AGENT_SDK_CLIENT_APP;
   if (input.forceCustomApiKey && input.apiKey.trim()) {
     env.ANTHROPIC_API_KEY = input.apiKey.trim();
+  } else {
+    delete env.ANTHROPIC_API_KEY;
+    delete env.ANTHROPIC_API_KEY_OLD;
   }
   if (input.forceCustomApiKey && input.apiUrl.trim()) {
     env.ANTHROPIC_BASE_URL = input.apiUrl.trim();
@@ -214,6 +224,9 @@ async function* createClaudeCodeStream(
   const cwd = resolveWorkingDirectory();
   const uiWriter = getUiWriter();
   const sdkEnv = buildSdkEnv(input);
+  const claudePath = await execa("which", ["claude"], { reject: false })
+    .then((r) => r.stdout?.trim() || undefined)
+    .catch(() => undefined);
 
   const abortController = new AbortController();
   const abortSignal = options.abortSignal;
@@ -225,6 +238,68 @@ async function* createClaudeCodeStream(
   logger.debug(
     { sessionId, modelId: input.modelId, cwd },
     "[cli] claude-code stream start",
+  );
+
+  // 构建进程内 MCP server，提供 AskUserQuestion 工具，使 AI 能暂停等待用户交互。
+  const openloafMcpServer = new McpServer({ name: "openloaf", version: "1.0" });
+  // biome-ignore lint/suspicious/noExplicitAny: 绕过 MCP SDK 深层 Zod 泛型推断，TS2589 类型递归超限
+  ;(openloafMcpServer as any).tool(
+    "AskUserQuestion",
+    "Ask the user questions and wait for their response before continuing. Use this to gather user input, preferences, or clarifications.",
+    {
+      // 逻辑：使用简单类型避免深层嵌套 Zod schema 导致 TS 推断超限。
+      questions: z.string().describe("JSON array of question objects with question, header, options[], multiSelect"),
+    },
+    async (args: { questions: string }) => {
+      // 解析 questions（可能是 JSON 字符串或直接对象）
+      let parsedQuestions: unknown[];
+      try {
+        const raw = typeof args.questions === "string" ? JSON.parse(args.questions) : args.questions;
+        parsedQuestions = Array.isArray(raw) ? raw : [];
+      } catch {
+        parsedQuestions = [];
+      }
+      const toolUseId = `cc-ask-${Date.now()}`;
+      const currentSessionId = sessionId ?? "unknown";
+      // 推送问题到前端 SSE，让前端渲染交互 UI。
+      if (uiWriter) {
+        uiWriter.write({
+          type: "data-cc-user-question",
+          data: {
+            sessionId: currentSessionId,
+            toolUseId,
+            questions: parsedQuestions,
+            answered: false,
+          },
+        } as any);
+      }
+      logger.debug(
+        { sessionId: currentSessionId, toolUseId },
+        "[cli] AskUserQuestion: waiting for user answer",
+      );
+      // 阻塞等待前端提交答案（超时自动返回空答案）。
+      const answers = await registerPendingCliQuestion(currentSessionId, toolUseId);
+      logger.debug(
+        { sessionId: currentSessionId, toolUseId, answers },
+        "[cli] AskUserQuestion: answer received",
+      );
+      // 通知前端问题已回答。
+      if (uiWriter) {
+        uiWriter.write({
+          type: "data-cc-user-question",
+          data: {
+            sessionId: currentSessionId,
+            toolUseId,
+            questions: parsedQuestions,
+            answered: true,
+            answers,
+          },
+        } as any);
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(answers) }],
+      };
+    },
   );
 
   let usage = buildEmptyUsage();
@@ -245,8 +320,12 @@ async function* createClaudeCodeStream(
         env: sdkEnv,
         abortController,
         persistSession: false,
+        mcpServers: {
+          openloaf: { type: "sdk", name: "openloaf", instance: openloafMcpServer },
+        },
+        ...(claudePath ? { pathToClaudeCodeExecutable: claudePath } : {}),
       },
-    });
+    } as any);
 
     for await (const message of queryStream) {
       // --- 流式文本 delta ---

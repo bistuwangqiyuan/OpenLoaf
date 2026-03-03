@@ -319,6 +319,7 @@ function handleToolChunk({
         state: "output-error",
         input: dataPart.input,
         errorText: dataPart.errorText,
+        providerExecuted: (dataPart as any).providerExecuted === true ? true : undefined,
         streaming: false,
       });
       break;

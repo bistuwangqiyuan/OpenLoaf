@@ -26,6 +26,13 @@ import SpawnAgentTool from "./SpawnAgentTool";
 import WaitAgentTool from "./WaitAgentTool";
 import ChartTool from "./ChartTool";
 import TaskTool from "./TaskTool";
+import ClaudeCodeBashTool from "./ClaudeCodeBashTool";
+import ClaudeCodeReadTool from "./ClaudeCodeReadTool";
+import ClaudeCodeWriteTool from "./ClaudeCodeWriteTool";
+import ClaudeCodeEditTool from "./ClaudeCodeEditTool";
+import ClaudeCodeSearchTool from "./ClaudeCodeSearchTool";
+import ClaudeCodeWebTool from "./ClaudeCodeWebTool";
+import ClaudeCodeTaskTool from "./ClaudeCodeTaskTool";
 import { useChatState, useChatTools } from "../../context";
 import { getApprovalId, isApprovalPending, type AnyToolPart, type ToolVariant } from "./shared/tool-utils";
 import ToolApprovalActions from "./shared/ToolApprovalActions";
@@ -93,6 +100,40 @@ export default function MessageTool({
     return <CliThinkingTool part={resolvedPart} />;
   }
   const toolKind = getToolKind(resolvedPart).toLowerCase();
+
+  // Claude Code CLI 直接执行的工具（providerExecuted: true）
+  if (resolvedPart.providerExecuted) {
+    if (toolKind === "bash") {
+      return <ClaudeCodeBashTool part={resolvedPart} className={className} />;
+    }
+    if (toolKind === "read") {
+      return <ClaudeCodeReadTool part={resolvedPart} className={className} />;
+    }
+    if (toolKind === "write") {
+      return <ClaudeCodeWriteTool part={resolvedPart} className={className} />;
+    }
+    if (toolKind === "edit" || toolKind === "multiedit") {
+      return <ClaudeCodeEditTool part={resolvedPart} className={className} />;
+    }
+    if (toolKind === "glob") {
+      return <ClaudeCodeSearchTool part={resolvedPart} kind="glob" className={className} />;
+    }
+    if (toolKind === "grep") {
+      return <ClaudeCodeSearchTool part={resolvedPart} kind="grep" className={className} />;
+    }
+    if (toolKind === "ls") {
+      return <ClaudeCodeSearchTool part={resolvedPart} kind="ls" className={className} />;
+    }
+    if (toolKind === "webfetch") {
+      return <ClaudeCodeWebTool part={resolvedPart} kind="webfetch" className={className} />;
+    }
+    if (toolKind === "websearch") {
+      return <ClaudeCodeWebTool part={resolvedPart} kind="websearch" className={className} />;
+    }
+    if (toolKind === "task") {
+      return <ClaudeCodeTaskTool part={resolvedPart} className={className} />;
+    }
+  }
 
   if (toolKind === "update-plan") {
     return <PlanTool part={resolvedPart} className={className} />;

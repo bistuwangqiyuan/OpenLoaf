@@ -535,8 +535,9 @@ if (!gotTheLock) {
   // 退出前：清理子进程/本地服务。
   app.on('before-quit', () => {
     log('Before quit.');
-    // 尽力清理：关闭我们启动的子进程/本地服务，避免退出卡住。
-    stopServices('before-quit');
+    // 注意：不在 before-quit 中 stopServices，因为退出可能被用户取消（确认弹窗选择"取消"），
+    // 此时 server 已被杀掉但 app 仍在运行，导致 ERR_CONNECTION_REFUSED。
+    // 真正的清理交给 will-quit（不可取消）。
   });
 
   app.on('will-quit', () => stopServices('will-quit'));

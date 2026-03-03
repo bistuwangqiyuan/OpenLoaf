@@ -9,6 +9,7 @@
  */
 import { BaseAiRouter, aiSchemas, t, shieldedProcedure } from "@openloaf/api";
 import { storeSecret } from "@/ai/tools/secretStore";
+import { resolvePendingCliQuestion } from "@/ai/models/cli/claudeCode/pendingCliQuestions";
 
 /** Deprecated message for local AI media routes. */
 const DEPRECATED_MESSAGE = "已迁移到 SaaS 媒体接口，请使用 /ai/image /ai/vedio";
@@ -26,9 +27,9 @@ export class AiRouterImpl extends BaseAiRouter {
       answerClaudeCodeQuestion: shieldedProcedure
         .input(aiSchemas.answerClaudeCodeQuestion.input)
         .output(aiSchemas.answerClaudeCodeQuestion.output)
-        .mutation(async () => {
-          // CLI subprocess mode does not support interactive AskUserQuestion answers.
-          return { ok: false };
+        .mutation(async ({ input }) => {
+          const ok = resolvePendingCliQuestion(input.sessionId, input.toolUseId, input.answers);
+          return { ok };
         }),
       /** Store a secret value and return a placeholder token. */
       storeSecret: shieldedProcedure

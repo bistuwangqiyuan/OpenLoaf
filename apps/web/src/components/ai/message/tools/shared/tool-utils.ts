@@ -36,6 +36,8 @@ export type AnyToolPart = {
   approval?: { id?: string; approved?: boolean; reason?: string };
   /** Rendering variant for specialized tool UI. */
   variant?: string;
+  /** Whether the tool was executed by the CLI provider (e.g. Claude Code). */
+  providerExecuted?: boolean;
   /** Media generation state for image-generate / video-generate tools. */
   mediaGenerate?: {
     status: "generating" | "done" | "error";

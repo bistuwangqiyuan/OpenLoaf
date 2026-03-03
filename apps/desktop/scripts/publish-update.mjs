@@ -43,7 +43,8 @@
  * 配置来自 apps/desktop/.env.prod（自动加载，命令行环境变量优先）
  */
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, createReadStream } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
@@ -180,6 +181,108 @@ function patchYmlUrls(ymlPath, version) {
     }
   )
   writeFileSync(ymlPath, patchedPath, 'utf-8')
+}
+
+// ---------------------------------------------------------------------------
+// 生成 electron-updater yml
+// ---------------------------------------------------------------------------
+
+/**
+ * electron-builder 在 --publish=never 时不生成 latest-*.yml，
+ * 所以我们在上传产物后自行生成，供 electron-updater 读取。
+ */
+
+/** 计算文件 SHA-512（base64 编码，electron-updater yml 格式要求）。 */
+function computeSha512Base64(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash('sha512')
+    const stream = createReadStream(filePath)
+    stream.on('data', (chunk) => hash.update(chunk))
+    stream.on('end', () => resolve(hash.digest('base64')))
+    stream.on('error', reject)
+  })
+}
+
+/**
+ * 从上传的安装包列表中，按平台生成 electron-updater 格式的 yml 文件。
+ *
+ * 平台 → yml 文件名映射：
+ * - mac-arm64 / mac-x64 → latest-mac.yml（使用 .zip 作为更新源）
+ * - win-x64             → latest.yml（使用 .exe）
+ * - linux-x64           → latest-linux.yml（使用 .AppImage）
+ */
+const YML_PLATFORM_MAP = {
+  'mac-arm64':  { yml: 'latest-mac.yml',   ext: '.zip' },
+  'mac-x64':    { yml: 'latest-mac.yml',   ext: '.zip' },
+  'win-x64':    { yml: 'latest.yml',       ext: '.exe' },
+  'linux-x64':  { yml: 'latest-linux.yml', ext: '.AppImage' },
+}
+
+async function generateAndUploadYmls(version, channel, installerFiles, distDir) {
+  // 按 yml 文件名分组（mac-arm64 和 mac-x64 共享 latest-mac.yml）
+  /** @type {Map<string, Array<{file: string, platform: string}>>} */
+  const ymlGroups = new Map()
+
+  for (const file of installerFiles) {
+    if (file.endsWith('.blockmap')) continue
+    const platform = inferPlatform(file)
+    if (!platform) continue
+    const mapping = YML_PLATFORM_MAP[platform]
+    if (!mapping) continue
+    // 只取对应扩展名的文件作为更新源
+    if (!file.endsWith(mapping.ext)) continue
+
+    if (!ymlGroups.has(mapping.yml)) ymlGroups.set(mapping.yml, [])
+    ymlGroups.get(mapping.yml).push({ file, platform })
+  }
+
+  for (const [ymlName, entries] of ymlGroups) {
+    const files = []
+    let primaryFile = null
+    let primarySha512 = null
+
+    for (const { file } of entries) {
+      const filePath = path.join(distDir, file)
+      const fileSize = statSync(filePath).size
+      const sha512 = await computeSha512Base64(filePath)
+
+      files.push({ url: `${version}/${file}`, sha512, size: fileSize })
+
+      // blockmap 大小（如果存在）
+      const blockmapPath = `${filePath}.blockmap`
+      if (existsSync(blockmapPath)) {
+        files[files.length - 1].blockMapSize = statSync(blockmapPath).size
+      }
+
+      if (!primaryFile) {
+        primaryFile = file
+        primarySha512 = sha512
+      }
+    }
+
+    // 生成 yml 内容
+    let yml = `version: ${version}\n`
+    yml += 'files:\n'
+    for (const f of files) {
+      yml += `  - url: ${f.url}\n`
+      yml += `    sha512: ${f.sha512}\n`
+      yml += `    size: ${f.size}\n`
+      if (f.blockMapSize) {
+        yml += `    blockMapSize: ${f.blockMapSize}\n`
+      }
+    }
+    yml += `path: ${version}/${primaryFile}\n`
+    yml += `sha512: ${primarySha512}\n`
+    yml += `releaseDate: '${new Date().toISOString()}'\n`
+
+    // 上传到版本目录 + 渠道目录
+    const ymlPath = path.join(distDir, ymlName)
+    writeFileSync(ymlPath, yml, 'utf-8')
+
+    await uploadToAll(`desktop/${version}/${ymlName}`, ymlPath)
+    await uploadToAll(`desktop/${channel}/${ymlName}`, ymlPath)
+    console.log(`   ✅ Generated & uploaded ${ymlName}`)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -458,6 +561,10 @@ async function main() {
     await uploadJsonToAll(channelManifestKey, channelManifest)
     console.log(`✅ Updated ${channelManifestKey}: desktop.version = "${version}"`)
 
+    // 生成 electron-updater yml 并上传到渠道目录
+    console.log('\n📝 Generating electron-updater yml files...')
+    await generateAndUploadYmls(version, channel, installerFiles, distDir)
+
     return
   }
 
@@ -487,6 +594,10 @@ async function main() {
   channelManifest.desktop = { version }
   await uploadJsonToAll(channelManifestKey, channelManifest)
   console.log(`✅ Updated ${channelManifestKey}: desktop.version = "${version}"`)
+
+  // 生成 electron-updater yml（兜底，确保渠道目录有 yml）
+  console.log('\n📝 Generating electron-updater yml files...')
+  await generateAndUploadYmls(version, channel, installerFiles, distDir)
 
   // 上传 changelogs
   console.log('\n📝 Uploading changelogs...')

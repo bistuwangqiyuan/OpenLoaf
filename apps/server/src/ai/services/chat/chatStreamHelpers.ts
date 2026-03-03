@@ -286,15 +286,17 @@ export function buildModelChain(
 
   const sanitized = stripTransientParts(stripPendingToolParts(trimmed));
 
-  if (!sessionPrefaceText) return sanitized;
-  return [
-    {
-      id: "__session_preface__",
-      role: "user",
-      parts: [{ type: "text", text: sessionPrefaceText }],
-    } as UIMessage,
-    ...sanitized,
-  ];
+  // [DISABLED] chat preface injection — commented out, not deleted
+  // if (!sessionPrefaceText) return sanitized;
+  // return [
+  //   {
+  //     id: "__session_preface__",
+  //     role: "user",
+  //     parts: [{ type: "text", text: sessionPrefaceText }],
+  //   } as UIMessage,
+  //   ...sanitized,
+  // ];
+  return sanitized;
 }
 
 /** Remove tool parts without results from the model chain. */

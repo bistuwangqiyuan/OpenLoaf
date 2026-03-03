@@ -9,8 +9,11 @@
  */
 "use client"
 
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Bug, BrushCleaning, History, X } from "lucide-react";
+import { Bug, BrushCleaning, History, PanelLeft, X } from "lucide-react";
+import { QUICK_LAUNCH_ITEMS, PROJECT_QUICK_LAUNCH_ITEMS } from "./quick-launch-items";
+import { useProject } from "@/hooks/use-project";
 import SessionList from "@/components/ai/session/SessionList";
 import * as React from "react";
 import { useChatActions, useChatSession, useChatState } from "./context";
@@ -35,6 +38,8 @@ interface ChatHeaderProps {
 
 const CHAT_HEADER_EMAIL_ICON_CLASS = {
   debug: "text-[#9334e6] dark:text-violet-300",
+  openDock: "text-[#188038] dark:text-emerald-300",
+  closeDock: "text-[#f9ab00] dark:text-amber-300",
   clear: "text-[#d93025] dark:text-rose-300",
   history: "text-[#1a73e8] dark:text-sky-300",
   close: "text-[#5f6368] dark:text-slate-300",
@@ -46,10 +51,13 @@ export default function ChatHeader({
   onCloseSession,
   iconPalette = "default",
 }: ChatHeaderProps) {
+  const { t: tAi } = useTranslation('ai');
+  const { t: tWorkspace } = useTranslation('workspace');
   const { sessionId: activeSessionId, tabId, leafMessageId: activeLeafMessageId } = useChatSession();
   const { newSession, selectSession } = useChatActions();
   const { messages } = useChatState();
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [quickLaunchOpen, setQuickLaunchOpen] = React.useState(false);
   /** Preface button loading state. */
   const [prefaceLoading, setPrefaceLoading] = React.useState(false);
   const menuLockRef = React.useRef(false);
@@ -58,6 +66,16 @@ export default function ChatHeader({
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const { basic } = useBasicConfig();
   const tabView = useTabView(tabId);
+
+  // Quick launch: derive project context from tab chatParams.
+  const quickLaunchProjectId = React.useMemo(() => {
+    const params = tabView?.chatParams as Record<string, unknown> | undefined;
+    const pid = params?.projectId;
+    return typeof pid === "string" ? pid.trim() : "";
+  }, [tabView?.chatParams]);
+  const { data: quickLaunchProjectData } = useProject(quickLaunchProjectId || undefined);
+  const hasBase = Boolean(tabView?.base);
+  const showDockButton = messages.length > 0;
   /** Resolve icon tone classes for header actions. */
   const resolveActionIconClass = React.useCallback(
     (action: keyof typeof CHAT_HEADER_EMAIL_ICON_CLASS) =>
@@ -112,6 +130,49 @@ export default function ChatHeader({
     menuLockRef.current = open;
     if (open) setHistoryOpen(true);
   };
+
+  /** Close the left dock by removing the base panel. */
+  const handleCloseDock = React.useCallback(() => {
+    if (!tabId) return;
+    useTabRuntime.getState().setTabBase(tabId, undefined);
+  }, [tabId]);
+
+  /** Handle quick launch item click: set left dock base for the current tab. */
+  const handleQuickLaunch = React.useCallback(
+    (item: (typeof QUICK_LAUNCH_ITEMS)[number] | (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]) => {
+      if (!tabId) return;
+      setQuickLaunchOpen(false);
+      const tabState = useTabs.getState();
+      const runtime = useTabRuntime.getState();
+
+      if (quickLaunchProjectId && "value" in item) {
+        const projItem = item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number];
+        runtime.setTabBase(tabId, {
+          id: `project:${quickLaunchProjectId}`,
+          component: "plant-page",
+          params: {
+            projectId: quickLaunchProjectId,
+            rootUri: quickLaunchProjectData?.project?.rootUri,
+            projectTab: projItem.value,
+          },
+        });
+        runtime.setTabLeftWidthPercent(tabId, 90);
+        if (quickLaunchProjectData?.project?.title) {
+          tabState.setTabTitle(tabId, quickLaunchProjectData.project.title);
+        }
+        if (quickLaunchProjectData?.project?.icon) {
+          tabState.setTabIcon(tabId, quickLaunchProjectData.project.icon);
+        }
+      } else if ("baseId" in item) {
+        const wsItem = item as (typeof QUICK_LAUNCH_ITEMS)[number];
+        runtime.setTabBase(tabId, { id: wsItem.baseId, component: wsItem.component });
+        runtime.setTabLeftWidthPercent(tabId, 100);
+        tabState.setTabTitle(tabId, tAi(wsItem.titleKey));
+        tabState.setTabIcon(tabId, wsItem.tabIcon);
+      }
+    },
+    [tabId, quickLaunchProjectId, quickLaunchProjectData, tAi],
+  );
 
   /**
    * Open the current session preface in a markdown stack panel.
@@ -172,10 +233,65 @@ export default function ChatHeader({
   return (
     <div
       className={cn(
-        "grid w-full min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center p-1 pl-2",
+        "grid w-full min-w-0 shrink-0 items-center p-1 pl-2",
+        showDockButton
+          ? "grid-cols-[auto_minmax(0,1fr)_auto]"
+          : "grid-cols-[minmax(0,1fr)_auto]",
         className
       )}
     >
+      {showDockButton && (
+        hasBase ? (
+          <MessageAction
+            aria-label="关闭面板"
+            className={cn("mr-0.5", resolveActionIconClass(hasBase ? "closeDock" : "openDock"))}
+            tooltip="关闭面板"
+            label="关闭面板"
+            onClick={handleCloseDock}
+          >
+            <PanelLeft size={20} className="rotate-180 transition-transform duration-200" />
+          </MessageAction>
+        ) : (
+          <Popover open={quickLaunchOpen} onOpenChange={setQuickLaunchOpen}>
+            <PopoverTrigger asChild>
+              <MessageAction
+                aria-label="打开面板"
+                className={cn("mr-0.5", resolveActionIconClass(hasBase ? "closeDock" : "openDock"))}
+                tooltip="打开面板"
+                label="打开面板"
+              >
+                <PanelLeft size={20} />
+              </MessageAction>
+            </PopoverTrigger>
+            <PopoverContent
+              side="bottom"
+              align="start"
+              className="w-40 p-1"
+            >
+              {(quickLaunchProjectId
+                ? PROJECT_QUICK_LAUNCH_ITEMS
+                : QUICK_LAUNCH_ITEMS
+              ).map((item) => {
+                const Icon = item.icon;
+                const label = quickLaunchProjectId
+                  ? tWorkspace((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
+                  : tAi((item as (typeof QUICK_LAUNCH_ITEMS)[number]).labelKey);
+                return (
+                  <button
+                    key={"value" in item ? item.value : (item as (typeof QUICK_LAUNCH_ITEMS)[number]).baseId}
+                    type="button"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/60"
+                    onClick={() => handleQuickLaunch(item)}
+                  >
+                    <Icon className={cn("size-4 shrink-0", item.iconColor)} />
+                    <span className="truncate">{label}</span>
+                  </button>
+                );
+              })}
+            </PopoverContent>
+          </Popover>
+        )
+      )}
       <div className="min-w-0 w-full truncate pr-2 text-left text-sm font-medium">
         {showSessionIndex && sessionIndex ? (
           <span className="mr-1 text-[11px] text-muted-foreground/70 tabular-nums">
