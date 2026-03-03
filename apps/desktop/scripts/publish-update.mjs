@@ -26,7 +26,7 @@
  *       latest-mac.yml              ← beta 渠道更新清单
  *       latest.yml
  *       latest-linux.yml
- *     latest-mac.yml                ← 根目录（向后兼容）
+ *     beta/latest-mac.yml           ← beta 渠道更新清单
  *     latest.yml
  *     latest-linux.yml
  *     0.1.1-beta.1/
@@ -379,7 +379,7 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // 上传 yml 到：版本目录 + 渠道目录 + 根目录（向后兼容）
+  // 上传 yml 到：版本目录 + 渠道目录
   // -------------------------------------------------------------------------
   for (const file of ymlFiles) {
     const filePath = path.join(distDir, file)
@@ -389,14 +389,6 @@ async function main() {
 
     // 渠道目录
     await uploadToAll(`desktop/${channel}/${file}`, filePath)
-
-    // 根目录（向后兼容旧版客户端）
-    await uploadFile(s3, r2Config.bucket, `desktop/${file}`, filePath)
-    console.log(`   [R2]  desktop/${file} (compat)`)
-    if (cos && cosConfig) {
-      await uploadFile(cos, cosConfig.bucket, `desktop/${file}`, filePath)
-      console.log(`   [COS] desktop/${file} (compat)`)
-    }
   }
 
   // -------------------------------------------------------------------------
