@@ -533,7 +533,7 @@ export default function ChatHeader({
             <MessageSquarePlus size={20} />
           </MessageAction>
         ) : null}
-        {messages.length > 0 && (
+        {messages.length > 0 && quickLaunchProjectId && (
           <MessageAction
             aria-label="清理会话"
             className={resolveActionIconClass("clear")}
