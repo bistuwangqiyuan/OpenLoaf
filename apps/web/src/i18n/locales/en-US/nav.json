@@ -201,5 +201,6 @@
   "convertSuccess": "Successfully converted to project",
   "convertFailed": "Conversion failed: {{error}}",
   "project": "Project",
-  "chat": "Chat"
+  "chat": "Chat",
+  "newChat": "New Chat"
 }

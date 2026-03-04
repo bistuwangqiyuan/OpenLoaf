@@ -201,5 +201,6 @@
   "convertSuccess": "已成功轉為專案",
   "convertFailed": "轉換失敗：{{error}}",
   "project": "專案",
-  "chat": "對話"
+  "chat": "對話",
+  "newChat": "新對話"
 }

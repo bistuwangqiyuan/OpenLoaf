@@ -83,6 +83,7 @@ export const AppSidebar = ({
   const setActiveView = useNavigation((s) => s.setActiveView);
   const setViewRuntime = useNavigation((s) => s.setViewRuntime);
   const getViewRuntime = useNavigation((s) => s.getViewRuntime);
+  const addWorkspaceChat = useNavigation((s) => s.addWorkspaceChat);
 
   // 旧 Tab 系统（保留）
   const addTab = useTabs((s) => s.addTab);
@@ -174,11 +175,21 @@ export const AppSidebar = ({
     if (!activeWorkspace) return;
 
     const newSessionId = createChatSessionId();
+
+    // 添加到 Workspace Chat 列表
+    addWorkspaceChat(activeWorkspace.id, {
+      chatSessionId: newSessionId,
+      title: t('newChat'),
+      projectId: null,
+      chatParams: {},
+    });
+
+    // 切换到新对话
     setActiveView({
       type: 'workspace-chat',
       chatSessionId: newSessionId,
     });
-  }, [activeWorkspace, setActiveView]);
+  }, [activeWorkspace, setActiveView, addWorkspaceChat, t]);
 
 
   const openSingletonTab = useCallback(
@@ -355,7 +366,11 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('aiAssistant')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.aiAssistant}
-              isActive={USE_NEW_NAVIGATION ? isMenuActiveNew('workspace-chat') : isMenuActive(AI_ASSISTANT_TAB_INPUT)}
+              isActive={
+                USE_NEW_NAVIGATION
+                  ? activeView?.type === 'workspace-chat'
+                  : isMenuActive(AI_ASSISTANT_TAB_INPUT)
+              }
               onClick={() => USE_NEW_NAVIGATION ? openAIAssistant() : openSingletonTab(AI_ASSISTANT_TAB_INPUT)}
               type="button"
             >
