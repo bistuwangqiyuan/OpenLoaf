@@ -530,6 +530,16 @@ export abstract class BaseSettingRouter {
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),
+      getCodexModels: shieldedProcedure
+        .output(settingSchemas.getCodexModels.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      getClaudeCodeModels: shieldedProcedure
+        .output(settingSchemas.getClaudeCodeModels.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
       getSkills: shieldedProcedure
         .input(settingSchemas.getSkills.input)
         .output(settingSchemas.getSkills.output)
