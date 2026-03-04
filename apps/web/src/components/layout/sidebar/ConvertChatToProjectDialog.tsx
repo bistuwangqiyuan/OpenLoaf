@@ -11,7 +11,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useNavigation } from "@/hooks/use-navigation";
@@ -54,37 +54,18 @@ export function ConvertChatToProjectDialog({
 
   const removeWorkspaceChat = useNavigation((s) => s.removeWorkspaceChat);
   const setActiveView = useNavigation((s) => s.setActiveView);
+  const workspaceChats = useNavigation((s) => s.workspaceChats);
 
   // 查询项目列表
   const projectsQuery = useQuery(trpc.project.list.queryOptions());
   const projects = projectsQuery.data ?? [];
 
-  // 查询对话信息
-  const chatQuery = useQuery(
-    trpc.chat.getSession.queryOptions(
-      { sessionId: chatSessionId },
-      { enabled: open }
-    )
-  );
-  const chatTitle = chatQuery.data?.title || "";
+  // 从本地状态获取对话标题
+  const chats = workspace ? workspaceChats[workspace.id] ?? [] : [];
+  const chat = chats.find((c) => c.chatSessionId === chatSessionId);
+  const chatTitle = chat?.title || "";
 
-  const convertMutation = trpc.project.convertChatToProject.useMutation({
-    onSuccess: (result) => {
-      toast.success(t("convertSuccess"));
-      if (workspace) {
-        removeWorkspaceChat(workspace.id, chatSessionId);
-      }
-      // 切换到新创建的项目
-      setActiveView({ type: "project", projectId: result.project.projectId });
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast.error(t("convertFailed", { error: error.message }));
-    },
-    onSettled: () => {
-      setIsConverting(false);
-    },
-  });
+  const convertMutation = useMutation(trpc.project.convertChatToProject.mutationOptions());
 
   const handleConvert = () => {
     if (!projectTitle.trim()) {
@@ -93,11 +74,30 @@ export function ConvertChatToProjectDialog({
     }
 
     setIsConverting(true);
-    convertMutation.mutate({
-      chatSessionId,
-      projectTitle: projectTitle.trim(),
-      projectParentId: parentProjectId,
-    });
+    convertMutation.mutate(
+      {
+        chatSessionId,
+        projectTitle: projectTitle.trim(),
+        projectParentId: parentProjectId,
+      },
+      {
+        onSuccess: (result) => {
+          toast.success(t("convertSuccess"));
+          if (workspace) {
+            removeWorkspaceChat(workspace.id, chatSessionId);
+          }
+          // 切换到新创建的项目
+          setActiveView({ type: "project", projectId: result.project.projectId });
+          onOpenChange(false);
+        },
+        onError: (error) => {
+          toast.error(t("convertFailed", { error: error.message }));
+        },
+        onSettled: () => {
+          setIsConverting(false);
+        },
+      }
+    );
   };
 
   const handleOpenChange = (newOpen: boolean) => {

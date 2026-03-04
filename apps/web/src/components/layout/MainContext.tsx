@@ -7,17 +7,17 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-“use client”;
+"use client";
 
-import * as React from “react”;
-import { useTabs } from “@/hooks/use-tabs”;
-import { useNavigation } from “@/hooks/use-navigation”;
-import { cn } from “@/lib/utils”;
-import { TabLayout } from “./TabLayout”;
-import { PageLayout } from “./PageLayout”;
+import * as React from "react";
+import { useTabs } from "@/hooks/use-tabs";
+import { useNavigation } from "@/hooks/use-navigation";
+import { cn } from "@/lib/utils";
+import { TabLayout } from "./TabLayout";
+import { PageLayout } from "./PageLayout";
 
 // 功能开关：启用新的导航系统
-const USE_NEW_NAVIGATION = process.env.NEXT_PUBLIC_USE_NEW_NAVIGATION === “true”;
+const USE_NEW_NAVIGATION = process.env.NEXT_PUBLIC_USE_NEW_NAVIGATION === "true";
 
 export const MainContent: React.FC<{ className?: string }> = ({ className }) => {
   // 新导航系统
@@ -63,7 +63,7 @@ export const MainContent: React.FC<{ className?: string }> = ({ className }) => 
       return (
         <div
           className={cn(
-            “flex h-full w-full items-center justify-center text-muted-foreground”,
+            "flex h-full w-full items-center justify-center text-muted-foreground",
             className,
           )}
         >
@@ -73,7 +73,7 @@ export const MainContent: React.FC<{ className?: string }> = ({ className }) => 
     }
 
     return (
-      <div className={cn(“relative h-full w-full”, className)}>
+      <div className={cn("relative h-full w-full", className)}>
         <PageLayout />
       </div>
     );
@@ -84,7 +84,7 @@ export const MainContent: React.FC<{ className?: string }> = ({ className }) => 
     return (
       <div
         className={cn(
-          “flex h-full w-full items-center justify-center text-muted-foreground”,
+          "flex h-full w-full items-center justify-center text-muted-foreground",
           className,
         )}
       >
@@ -94,7 +94,7 @@ export const MainContent: React.FC<{ className?: string }> = ({ className }) => 
   }
 
   return (
-    <div className={cn(“relative h-full w-full”, className)}>
+    <div className={cn("relative h-full w-full", className)}>
       <TabLayout
         tabs={tabs.filter((tab) => mounted[tab.id] || tab.id === activeTabId)}
         activeTabId={activeTabId}

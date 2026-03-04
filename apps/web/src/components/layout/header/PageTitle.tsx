@@ -17,21 +17,16 @@ import { useNavigation } from "@/hooks/use-navigation";
 export function PageTitle() {
   const { t } = useTranslation("nav");
   const activeView = useNavigation((s) => s.activeView);
+  const workspaceChats = useNavigation((s) => s.workspaceChats);
+  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
 
   // 根据不同的视图类型查询数据
-  const projectQuery = useQuery(
-    trpc.project.get.queryOptions(
-      activeView?.type === "project" ? { projectId: activeView.projectId } : { projectId: "" },
-      { enabled: activeView?.type === "project" }
-    )
-  );
-
-  const chatQuery = useQuery(
-    trpc.chat.getSession.queryOptions(
-      activeView?.type === "workspace-chat" ? { sessionId: activeView.chatSessionId } : { sessionId: "" },
-      { enabled: activeView?.type === "workspace-chat" }
-    )
-  );
+  const projectQuery = useQuery({
+    ...trpc.project.get.queryOptions({
+      projectId: activeView?.type === "project" ? activeView.projectId : "",
+    }),
+    enabled: activeView?.type === "project",
+  });
 
   if (!activeView) {
     return <span className="text-sm font-medium">{t("workbench")}</span>;
@@ -52,12 +47,16 @@ export function PageTitle() {
           {projectQuery.data?.project.icon} {projectQuery.data?.project.title || t("project")}
         </span>
       );
-    case "workspace-chat":
+    case "workspace-chat": {
+      // 从本地状态获取对话标题
+      const chats = activeWorkspaceId ? workspaceChats[activeWorkspaceId] ?? [] : [];
+      const chat = chats.find((c) => c.chatSessionId === activeView.chatSessionId);
       return (
         <span className="text-sm font-medium">
-          {chatQuery.data?.title || t("chat")}
+          {chat?.title || t("chat")}
         </span>
       );
+    }
     default:
       return <span className="text-sm font-medium">{t("workbench")}</span>;
   }

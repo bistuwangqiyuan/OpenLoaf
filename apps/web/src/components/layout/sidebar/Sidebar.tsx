@@ -30,7 +30,7 @@ import {
 import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, Search, Sparkles } from "lucide-react";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useNavigation } from "@/hooks/use-navigation";
+import { useNavigation, getViewKey } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { createChatSessionId } from "@/lib/chat-session-id";
 import { Search as SearchDialog } from "@/components/search/Search";
@@ -82,7 +82,7 @@ export const AppSidebar = ({
   const activeView = useNavigation((s) => s.activeView);
   const setActiveView = useNavigation((s) => s.setActiveView);
   const setViewRuntime = useNavigation((s) => s.setViewRuntime);
-  const getViewKey = useNavigation((s) => s.getViewKey);
+  const getViewRuntime = useNavigation((s) => s.getViewRuntime);
 
   // 旧 Tab 系统（保留）
   const addTab = useTabs((s) => s.addTab);
@@ -476,20 +476,6 @@ export const AppSidebar = ({
                   {reviewTaskCount}
                 </Badge>
               ) : null}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-              isActive={isMenuActive(WORKBENCH_TAB_INPUT)}
-              onClick={() => openWorkspacePageTab(WORKBENCH_TAB_INPUT)}
-              type="button"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="flex-1 truncate">{t('workbench')}</span>
-              <span className="ml-auto opacity-0 transition-opacity delay-0 group-hover/menu-item:opacity-100 group-hover/menu-item:delay-200 group-focus-visible/menu-item:opacity-100 group-focus-visible/menu-item:delay-200 group-data-[collapsible=icon]:hidden">
-                <KbdGroup className="gap-1">
-                  <Kbd className="bg-transparent px-0 h-auto rounded-none">⌘</Kbd>
-                  <Kbd className="bg-transparent px-0 h-auto rounded-none">T</Kbd>
-                </KbdGroup>
-              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
