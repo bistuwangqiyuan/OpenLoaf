@@ -836,27 +836,24 @@ const ProjectBasicSettings = memo(function ProjectBasicSettings({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("project.rename")}</DialogTitle>
-            <DialogDescription>{t("project.enterName")}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="project-title" className="text-right">
-                {t("project.nameLabel")}
-              </Label>
-              <Input
-                id="project-title"
-                value={renameDraft}
-                onChange={(event) => setRenameDraft(event.target.value)}
-                className="col-span-3"
-                autoFocus
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void handleRename();
-                  }
-                }}
-              />
-            </div>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="project-title">
+              {t("project.nameLabel")}
+            </Label>
+            <Input
+              id="project-title"
+              value={renameDraft}
+              onChange={(event) => setRenameDraft(event.target.value)}
+              className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
+              autoFocus
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleRename();
+                }
+              }}
+            />
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -864,7 +861,11 @@ const ProjectBasicSettings = memo(function ProjectBasicSettings({
                 {t("common.cancel")}
               </Button>
             </DialogClose>
-            <Button onClick={() => void handleRename()} disabled={renameBusy}>
+            <Button
+              className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
+              onClick={() => void handleRename()}
+              disabled={renameBusy}
+            >
               {renameBusy ? t("common.saving") : t("common.save")}
             </Button>
           </DialogFooter>

@@ -258,6 +258,19 @@ declare global {
         body: string;
         taskId?: string;
       }) => Promise<{ ok: true } | { ok: false; reason?: string }>;
+      /** Update system tray badge count (0 to clear). */
+      setTrayBadge?: (payload: { count: number }) => Promise<{ ok: true }>;
+      /** Sync UI language to Electron main process (tray menu, dialogs). */
+      setLanguage?: (language: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+      /** Respond to close confirmation dialog (web → main). */
+      respondCloseConfirm?: (payload: {
+        action: 'cancel' | 'minimize' | 'quit';
+        minimizeToTray?: boolean;
+      }) => void;
+      /** Get "minimize to tray on close" preference. */
+      getMinimizeToTray?: () => Promise<{ ok: true; value: boolean }>;
+      /** Set "minimize to tray on close" preference. */
+      setMinimizeToTray?: (value: boolean) => Promise<{ ok: true }>;
       /** Calendar API (system calendars). */
       calendar?: {
         /** Request calendar permission from OS. */

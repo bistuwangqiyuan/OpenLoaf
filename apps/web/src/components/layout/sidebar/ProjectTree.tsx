@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -44,8 +44,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@openloaf/ui/dialog";
+import { EmojiPicker } from "@openloaf/ui/emoji-picker";
 import { Input } from "@openloaf/ui/input";
 import { Label } from "@openloaf/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
 import { Collapsible as CollapsiblePrimitive } from "radix-ui";
 import {
   ArrowUpRight,
@@ -56,6 +58,7 @@ import {
   FolderOpen,
   FolderPlus,
   PencilLine,
+  SmilePlus,
   Star,
   StarOff,
   Trash2,
@@ -151,6 +154,7 @@ function getNodeKey(node: FileNode): string {
 type RenameTarget = {
   node: FileNode;
   nextName: string;
+  nextIcon?: string | null;
 };
 
 type ChildProjectTarget = {
@@ -218,6 +222,8 @@ interface FileTreeNodeProps {
     node: FileNode,
     event: React.PointerEvent<HTMLElement>
   ) => void;
+  /** Callback fired on native contextmenu event to record timestamp early. */
+  onNativeContextMenu?: () => void;
 }
 
 function buildNextUri(uri: string, nextName: string) {
@@ -330,6 +336,7 @@ function FileTreeNode({
   onProjectDrop,
   onProjectDragEnd,
   onProjectPointerDown,
+  onNativeContextMenu,
 }: FileTreeNodeProps) {
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
@@ -383,6 +390,7 @@ function FileTreeNode({
               isActive={isActive}
               className="text-sidebar-foreground/80 [&>svg]:text-muted-foreground"
               onClick={() => onPrimaryClick(node)}
+              onContextMenu={onNativeContextMenu}
             >
               <FileText className="h-4 w-4" />
               <span>{displayName}</span>
@@ -429,6 +437,7 @@ function FileTreeNode({
                 tabIndex={0}
                 data-project-id={node.projectId ?? undefined}
                 onClick={() => onPrimaryClick(node)}
+                onContextMenu={onNativeContextMenu}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -507,6 +516,7 @@ function FileTreeNode({
                   onProjectDrop={onProjectDrop}
                   onProjectDragEnd={onProjectDragEnd}
                   onProjectPointerDown={onProjectPointerDown}
+                  onNativeContextMenu={onNativeContextMenu}
                 />
               ))}
             </SidebarMenuSub>
@@ -599,6 +609,15 @@ export const PageTreeMenu = ({
   );
   /** Track whether next click should be ignored after pointer drag. */
   const suppressNextClickRef = useRef(false);
+  /** Record last context menu open timestamp to block trackpad ghost clicks. */
+  const lastContextMenuAtRef = useRef(0);
+
+  /** Block pointer events shortly after a context menu trigger (trackpad workaround). */
+  const shouldBlockClick = useCallback(() => {
+    const elapsed = Date.now() - lastContextMenuAtRef.current;
+    if (elapsed > 500) return false;
+    return true;
+  }, []);
 
   /** Check whether the error indicates a missing project. */
   const isProjectMissingError = (err: unknown) => {
@@ -836,6 +855,7 @@ export const PageTreeMenu = ({
       suppressNextClickRef.current = false;
       return;
     }
+    if (shouldBlockClick()) return;
     if (node.kind === "project") {
       const projectId = node.projectId ?? node.uri;
       const projectInfo =
@@ -863,7 +883,7 @@ export const PageTreeMenu = ({
     const displayName = isBoardFolderName(node.name)
       ? getBoardDisplayName(node.name)
       : getDisplayFileName(node.name, node.ext);
-    setRenameTarget({ node, nextName: displayName });
+    setRenameTarget({ node, nextName: displayName, nextIcon: node.projectIcon ?? null });
   };
 
   const openDeleteDialog = (node: FileNode) => {
@@ -981,6 +1001,9 @@ export const PageTreeMenu = ({
         await renameProject.mutateAsync({
           projectId: renameTarget.node.projectId,
           title: nextName,
+          ...(renameTarget.node.kind === "project" && renameTarget.nextIcon !== undefined
+            ? { icon: renameTarget.nextIcon }
+            : {}),
         });
         // 逻辑：同步已打开的项目 Tab 标题，避免缓存导致 UI 不更新。
         const baseId = `project:${projectId}`;
@@ -1675,6 +1698,10 @@ export const PageTreeMenu = ({
 
   const handleContextMenuOpenChange = (node: FileNode, open: boolean) => {
     setContextSelectedUri(open ? getNodeKey(node) : null);
+    if (open) {
+      lastContextMenuAtRef.current = Date.now();
+      suppressNextClickRef.current = true;
+    }
   };
 
   const isPermanentRemoveConfirmed =
@@ -1694,6 +1721,11 @@ export const PageTreeMenu = ({
     () => projects.filter((p) => !p.isFavorite),
     [projects],
   );
+
+  /** Record timestamp on native contextmenu event (fires before Radix onOpenChange). */
+  const handleNativeContextMenu = useCallback(() => {
+    lastContextMenuAtRef.current = Date.now();
+  }, []);
 
   const renderProjectNode = (project: ProjectInfo) => (
     <FileTreeNode
@@ -1718,6 +1750,7 @@ export const PageTreeMenu = ({
       onProjectDrop={handleProjectDrop}
       onProjectDragEnd={handleProjectDragEnd}
       onProjectPointerDown={handleProjectPointerDown}
+      onNativeContextMenu={handleNativeContextMenu}
     />
   );
 
@@ -1818,12 +1851,55 @@ export const PageTreeMenu = ({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("common:rename")}</DialogTitle>
-            <DialogDescription>{t("nav:projectTree.renameDesc")}</DialogDescription>
+            <DialogTitle>{t(renameTarget?.node.kind === "project" ? "common:renameProject" : "common:rename")}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="node-title" className="text-right">
+          {renameTarget?.node.kind === "project" ? (
+            <div className="flex items-center gap-3 py-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="size-10 shrink-0 rounded-lg text-lg"
+                    aria-label={t("common:rename")}
+                  >
+                    {renameTarget.nextIcon ?? <SmilePlus className="size-5 text-muted-foreground" />}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[352px] max-w-[calc(100vw-24px)] p-0 min-h-[420px] bg-popover overflow-hidden"
+                  align="start"
+                >
+                  <EmojiPicker
+                    width="100%"
+                    onSelect={(emoji) =>
+                      setRenameTarget((prev) =>
+                        prev ? { ...prev, nextIcon: emoji } : prev
+                      )
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+              <Input
+                id="node-title"
+                value={renameTarget?.nextName ?? ""}
+                onChange={(event) =>
+                  setRenameTarget((prev) =>
+                    prev ? { ...prev, nextName: event.target.value } : prev
+                  )
+                }
+                className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleRename();
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2 py-2">
+              <Label htmlFor="node-title">
                 {t("nav:projectTree.nameLabel")}
               </Label>
               <Input
@@ -1834,7 +1910,7 @@ export const PageTreeMenu = ({
                     prev ? { ...prev, nextName: event.target.value } : prev
                   )
                 }
-                className="col-span-3"
+                className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
                 autoFocus
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
@@ -1843,14 +1919,18 @@ export const PageTreeMenu = ({
                 }}
               />
             </div>
-          </div>
+          )}
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" type="button">
                 {t("common:cancel")}
               </Button>
             </DialogClose>
-            <Button onClick={handleRename} disabled={isBusy}>
+            <Button
+              className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
+              onClick={handleRename}
+              disabled={isBusy}
+            >
               {t("common:save")}
             </Button>
           </DialogFooter>

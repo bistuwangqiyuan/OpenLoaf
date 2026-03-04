@@ -10,7 +10,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Switch } from "@openloaf/ui/animate-ui/components/radix/switch";
 import { Tabs, TabsList, TabsTrigger } from "@openloaf/ui/tabs";
@@ -31,6 +31,7 @@ import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
 import { SUPPORTED_UI_LANGUAGES } from "@/i18n/types";
 import type { LanguageId } from "@/i18n/types";
 import { detectSystemLanguage } from "@/i18n/detectLanguage";
+import { isElectronEnv } from "@/utils/is-electron-env";
 import LocalAccess from "./LocalAccess";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
@@ -40,6 +41,16 @@ export function BasicSettings() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { basic, setBasic, isLoading: basicLoading } = useBasicConfig();
   const { t } = useTranslation('settings');
+  const isElectron = isElectronEnv();
+
+  // Electron 专属：读取/写入"关闭时最小化到托盘"偏好（存储在 .settings.json）。
+  const [minimizeToTray, setMinimizeToTrayState] = useState(false);
+  useEffect(() => {
+    if (!isElectron) return;
+    window.openloafElectron?.getMinimizeToTray?.()
+      .then((res) => { if (res?.ok) setMinimizeToTrayState(res.value) })
+      .catch(() => {});
+  }, [isElectron]);
 
   const lastManualThemeRef = useRef<"dark" | "light">(
     resolvedTheme === "dark" ? "dark" : "light",
@@ -298,6 +309,30 @@ export function BasicSettings() {
                     </div>
                   </OpenLoafSettingsField>
                 </div>
+
+                {isElectron && (
+                  <div className="flex flex-wrap items-start gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium">{t('basicSettings.minimizeToTray')}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {t('basicSettings.minimizeToTrayDesc')}
+                      </div>
+                    </div>
+
+                    <OpenLoafSettingsField className="w-full sm:w-64 shrink-0 justify-end">
+                      <div className="origin-right scale-125">
+                        <Switch
+                          checked={minimizeToTray}
+                          onCheckedChange={(checked) => {
+                            setMinimizeToTrayState(checked);
+                            window.openloafElectron?.setMinimizeToTray?.(checked)?.catch(() => {});
+                          }}
+                          aria-label="Minimize to tray"
+                        />
+                      </div>
+                    </OpenLoafSettingsField>
+                  </div>
+                )}
 
               </div>
             </OpenLoafSettingsGroup>

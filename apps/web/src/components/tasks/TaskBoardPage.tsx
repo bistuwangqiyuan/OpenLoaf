@@ -683,57 +683,8 @@ export default function TaskBoardPage({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-col gap-1.5 border-b px-4 py-2">
-        {/* Row 1: Title + Actions */}
-        <div className="flex items-center justify-between">
-          <h2 className="shrink-0 text-sm font-semibold">{t('task.board')}</h2>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 rounded-full bg-[#f1f3f4] p-0.5 dark:bg-[hsl(var(--muted)/0.38)]">
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full p-1.5 transition-colors duration-150',
-                  viewMode === 'kanban'
-                    ? 'bg-white text-[#1a73e8] shadow-sm dark:bg-[hsl(var(--background)/0.9)] dark:text-sky-300'
-                    : 'text-[#5f6368] hover:text-[#202124] dark:text-slate-400 dark:hover:text-slate-200',
-                )}
-                onClick={() => setViewMode('kanban')}
-              >
-                <KanbanSquare className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full p-1.5 transition-colors duration-150',
-                  viewMode === 'list'
-                    ? 'bg-white text-[#1a73e8] shadow-sm dark:bg-[hsl(var(--background)/0.9)] dark:text-sky-300'
-                    : 'text-[#5f6368] hover:text-[#202124] dark:text-slate-400 dark:hover:text-slate-200',
-                )}
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <Button
-              size="sm"
-              className="h-7 rounded-full border-transparent bg-[#e8f0fe] px-3 text-xs font-medium text-[#1a73e8] shadow-none transition-colors duration-150 hover:bg-[#d2e3fc] dark:bg-sky-900/50 dark:text-sky-200 dark:hover:bg-sky-900/70"
-              onClick={() => setDialogOpen(true)}
-            >
-              <Plus className="mr-1 h-3.5 w-3.5" />
-              {t('task.new')}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 rounded-full bg-[#fef7e0] px-3 text-xs font-medium text-[#e37400] shadow-none transition-colors duration-150 hover:bg-[#fcefc8] dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
-              onClick={activateAiChat}
-            >
-              <Sparkles className="mr-1 h-3.5 w-3.5" />
-              {t('messages.createWithAi')}
-            </Button>
-          </div>
-        </div>
-        {/* Row 2: Filters */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-2">
+        <h2 className="shrink-0 text-sm font-semibold">{t('task.board')}</h2>
         <FilterBar
           search={search}
           onSearchChange={setSearch}
@@ -742,6 +693,51 @@ export default function TaskBoardPage({
           triggerFilter={triggerFilter}
           onTriggerFilterChange={setTriggerFilter}
         />
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex gap-0.5 rounded-full bg-[#f1f3f4] p-0.5 dark:bg-[hsl(var(--muted)/0.38)]">
+            <button
+              type="button"
+              className={cn(
+                'rounded-full p-1.5 transition-colors duration-150',
+                viewMode === 'kanban'
+                  ? 'bg-white text-[#1a73e8] shadow-sm dark:bg-[hsl(var(--background)/0.9)] dark:text-sky-300'
+                  : 'text-[#5f6368] hover:text-[#202124] dark:text-slate-400 dark:hover:text-slate-200',
+              )}
+              onClick={() => setViewMode('kanban')}
+            >
+              <KanbanSquare className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'rounded-full p-1.5 transition-colors duration-150',
+                viewMode === 'list'
+                  ? 'bg-white text-[#1a73e8] shadow-sm dark:bg-[hsl(var(--background)/0.9)] dark:text-sky-300'
+                  : 'text-[#5f6368] hover:text-[#202124] dark:text-slate-400 dark:hover:text-slate-200',
+              )}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <Button
+            size="sm"
+            className="h-7 rounded-full border-transparent bg-[#e8f0fe] px-3 text-xs font-medium text-[#1a73e8] shadow-none transition-colors duration-150 hover:bg-[#d2e3fc] dark:bg-sky-900/50 dark:text-sky-200 dark:hover:bg-sky-900/70"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            {t('task.new')}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 rounded-full bg-[#fef7e0] px-3 text-xs font-medium text-[#e37400] shadow-none transition-colors duration-150 hover:bg-[#fcefc8] dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+            onClick={activateAiChat}
+          >
+            <Sparkles className="mr-1 h-3.5 w-3.5" />
+            {t('messages.createWithAi')}
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
