@@ -49,6 +49,8 @@ interface ChatHeaderProps {
   onCloseSession?: () => void;
   /** Icon color palette for header action buttons. */
   iconPalette?: "default" | "email";
+  /** Enable multi-session mode (show new session button). Default: auto-detect from projectId. */
+  enableMultiSession?: boolean;
 }
 
 const CHAT_HEADER_EMAIL_ICON_CLASS = {
@@ -66,6 +68,7 @@ export default function ChatHeader({
   onNewSession,
   onCloseSession,
   iconPalette = "default",
+  enableMultiSession,
 }: ChatHeaderProps) {
   const { t: tAi } = useTranslation('ai');
   const { t: tWorkspace } = useTranslation('workspace');
@@ -533,7 +536,7 @@ export default function ChatHeader({
             <MessageSquarePlus size={20} />
           </MessageAction>
         ) : null}
-        {messages.length > 0 && quickLaunchProjectId && (
+        {messages.length > 0 && (enableMultiSession ?? Boolean(quickLaunchProjectId)) && (
           <MessageAction
             aria-label="清理会话"
             className={resolveActionIconClass("clear")}

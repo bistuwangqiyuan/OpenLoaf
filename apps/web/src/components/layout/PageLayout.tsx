@@ -128,13 +128,14 @@ export function PageLayout() {
 
     switch (activeView.type) {
       case "workspace-chat": {
-        // Workspace Chat 直接显示 Chat 组件
+        // Workspace Chat 直接显示 Chat 组件（单会话模式）
         return (
           <div className="flex h-full w-full">
             <Chat
               chatSessionId={activeView.chatSessionId}
               chatParams={{}}
               chatLoadHistory={true}
+              enableMultiSession={false}
             />
           </div>
         );

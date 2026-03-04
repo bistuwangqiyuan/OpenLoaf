@@ -83,6 +83,8 @@ type ChatProps = {
     sessionId: string,
     options?: { loadHistory?: boolean; replaceCurrent?: boolean }
   ) => void;
+  /** Enable multi-session mode (show new session button). */
+  enableMultiSession?: boolean;
 } & Record<string, unknown>;
 
 /** 最近会话列表，紧贴 ChatInput 上方，仅空会话时显示 */
@@ -362,6 +364,7 @@ function ChatFullPageLayout({
   handleDragOver,
   handleDragLeave,
   handleDrop,
+  enableMultiSession,
 }: {
   onNewSession?: () => void
   onCloseSession?: () => void
@@ -384,6 +387,7 @@ function ChatFullPageLayout({
   handleDragOver: (e: React.DragEvent) => void
   handleDragLeave: (e: React.DragEvent) => void
   handleDrop: (e: React.DragEvent) => void
+  enableMultiSession?: boolean
 }) {
   const { t } = useTranslation('ai')
   const { messages, pendingCloudMessage } = useChatState()
@@ -402,6 +406,7 @@ function ChatFullPageLayout({
         onNewSession={onNewSession}
         onCloseSession={onCloseSession}
         iconPalette="email"
+        enableMultiSession={enableMultiSession}
       />
       {isEmpty ? (
         <div className="flex flex-1 flex-col min-h-0">
@@ -534,6 +539,7 @@ export function Chat({
   onNewSession,
   onCloseSession,
   onSessionChange,
+  enableMultiSession,
   ...params
 }: ChatProps) {
   const { t } = useTranslation('ai');
@@ -1173,6 +1179,7 @@ export function Chat({
           handleDragOver={handleDragOver}
           handleDragLeave={handleDragLeave}
           handleDrop={handleDrop}
+          enableMultiSession={enableMultiSession}
         />
       ) : (
         <div
@@ -1186,6 +1193,7 @@ export function Chat({
             onNewSession={onNewSession}
             onCloseSession={onCloseSession}
             iconPalette="email"
+            enableMultiSession={enableMultiSession}
           />
           <MessageList className="flex-1 min-h-0" projectId={projectId} workspaceId={workspaceId || undefined} />
           <RecentSessionsBar />
