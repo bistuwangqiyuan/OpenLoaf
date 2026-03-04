@@ -147,14 +147,8 @@ export default function ChatHeader({
   // 逻辑：仅在存在历史消息时显示 Preface 查看按钮。
   const showPrefaceButton = Boolean(basic.chatPrefaceEnabled) && messages.length > 0;
 
-  // Debug: 检查新建会话按钮的显示条件
+  // 新建会话按钮显示条件：有历史消息 + 启用多会话模式
   const shouldShowNewSessionButton = messages.length > 0 && (enableMultiSession ?? Boolean(quickLaunchProjectId));
-  console.log('[ChatHeader] New Session Button Debug:', {
-    messagesLength: messages.length,
-    enableMultiSession,
-    quickLaunchProjectId,
-    shouldShow: shouldShowNewSessionButton,
-  });
 
   React.useEffect(() => {
     if (saasLoggedIn) return;
