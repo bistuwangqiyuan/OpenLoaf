@@ -179,5 +179,27 @@
     "sub-agent-chat": "Sub-agent",
     "task-detail": "Task Detail",
     "openInSettings": "Open in Settings"
-  }
+  },
+  "workspaceChats": "Workspace Chats",
+  "untitledChat": "Untitled Chat",
+  "convertToProject": "Convert to Project",
+  "delete": "Delete",
+  "confirmDeleteChat": "Are you sure you want to delete this chat?",
+  "showMore": "Show More ({{count}})",
+  "showLess": "Show Less",
+  "convertChatToProject": "Convert Chat to Project",
+  "convertChatToProjectDescription": "Convert this chat and its files into a formal project for long-term management",
+  "projectTitle": "Project Title",
+  "projectTitlePlaceholder": "Enter project title",
+  "parentProject": "Parent Project",
+  "selectParentProject": "Select parent project (optional)",
+  "noParent": "No Parent",
+  "cancel": "Cancel",
+  "convert": "Convert",
+  "converting": "Converting...",
+  "projectTitleRequired": "Please enter a project title",
+  "convertSuccess": "Successfully converted to project",
+  "convertFailed": "Conversion failed: {{error}}",
+  "project": "Project",
+  "chat": "Chat"
 }

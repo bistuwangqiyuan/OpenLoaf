@@ -24,7 +24,7 @@ import { openSettingsTab } from "@/lib/globalShortcuts";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
 import { HeaderChatHistory } from "./HeaderChatHistory";
-import { HeaderTabs } from "./HeaderTabs";
+import { PageTitle } from "./PageTitle";
 import { ModeToggle } from "./ModeToggle";
 
 /** Format a shortcut string for tooltip display. */
@@ -144,8 +144,8 @@ export const Header = () => {
         </Tooltip>
       </div>
       <div className="flex min-w-0 items-center gap-2 overflow-hidden pl-1">
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <HeaderTabs />
+        <div className="min-w-0 flex-1 overflow-hidden px-4">
+          <PageTitle />
         </div>
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">

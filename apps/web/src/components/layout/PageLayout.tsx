@@ -1,0 +1,257 @@
+/**
+ * Copyright (c) OpenLoaf. All rights reserved.
+ *
+ * This source code is licensed under the AGPLv3 license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Project: OpenLoaf
+ * Repository: https://github.com/OpenLoaf/OpenLoaf
+ */
+"use client";
+
+import * as React from "react";
+import { useNavigation, getViewKey } from "@/hooks/use-navigation";
+import { Chat } from "@/components/ai/Chat";
+import { LeftDock } from "./LeftDock";
+import { cn } from "@/lib/utils";
+import { createChatSessionId } from "@/lib/chat-session-id";
+
+const RIGHT_CHAT_MIN_PX = 360;
+const LEFT_DOCK_MIN_PX = 300;
+const DIVIDER_WIDTH_PX = 4;
+
+/**
+ * PageLayout - 新的页面布局组件，替代 TabLayout
+ *
+ * 核心改动：
+ * - 移除 Tab 概念，直接管理视图（View）
+ * - 每个视图有独立的运行时状态（ViewRuntime）
+ * - Workspace Chat 直接显示，不需要 Tab 包装
+ */
+export function PageLayout() {
+  const activeView = useNavigation((s) => s.activeView);
+  const getViewRuntime = useNavigation((s) => s.getViewRuntime);
+  const setViewRuntime = useNavigation((s) => s.setViewRuntime);
+
+  const viewKey = activeView ? getViewKey(activeView) : null;
+  const viewRuntime = viewKey ? getViewRuntime(viewKey) : null;
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  // 监听容器宽度变化
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 计算布局尺寸
+  const leftWidthPercent = viewRuntime?.leftWidthPercent ?? 0;
+  const rightChatCollapsed = viewRuntime?.rightChatCollapsed ?? true;
+  const minLeftWidth = viewRuntime?.minLeftWidth ?? LEFT_DOCK_MIN_PX;
+
+  const leftWidthPx = Math.max((containerWidth * leftWidthPercent) / 100, minLeftWidth);
+  const rightChatWidthPx = rightChatCollapsed ? 0 : RIGHT_CHAT_MIN_PX;
+
+  // 拖拽调整宽度
+  const handleDividerMouseDown = React.useCallback(
+    (e: React.MouseEvent) => {
+      if (!viewKey) return;
+      e.preventDefault();
+      setIsDragging(true);
+
+      const startX = e.clientX;
+      const startWidth = leftWidthPx;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const newWidth = Math.max(minLeftWidth, startWidth + deltaX);
+        const maxWidth = containerWidth - rightChatWidthPx - DIVIDER_WIDTH_PX;
+        const clampedWidth = Math.min(newWidth, maxWidth);
+        const newPercent = (clampedWidth / containerWidth) * 100;
+
+        setViewRuntime(viewKey, {
+          leftWidthPercent: Math.min(100, Math.max(0, newPercent)),
+        });
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [viewKey, leftWidthPx, containerWidth, minLeftWidth, rightChatWidthPx, setViewRuntime]
+  );
+
+  // 获取或创建 Chat Session ID
+  const getChatSessionId = React.useCallback(() => {
+    if (!activeView || !viewKey) return "";
+
+    switch (activeView.type) {
+      case "workspace-chat":
+        return activeView.chatSessionId;
+      case "project": {
+        // 项目视图：从 viewRuntime 获取或创建新的 session
+        const runtime = getViewRuntime(viewKey);
+        const existingSessionId = (runtime as any).chatSessionId;
+        if (existingSessionId) return existingSessionId;
+
+        const newSessionId = createChatSessionId();
+        setViewRuntime(viewKey, { chatSessionId: newSessionId } as any);
+        return newSessionId;
+      }
+      default:
+        return "";
+    }
+  }, [activeView, viewKey, getViewRuntime, setViewRuntime]);
+
+  // 渲染不同类型的视图
+  const renderView = () => {
+    if (!activeView) {
+      return (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          请选择一个视图
+        </div>
+      );
+    }
+
+    switch (activeView.type) {
+      case "workspace-chat": {
+        // Workspace Chat 直接显示 Chat 组件
+        return (
+          <div className="flex h-full w-full">
+            <Chat
+              chatSessionId={activeView.chatSessionId}
+              chatParams={{}}
+              chatLoadHistory={true}
+            />
+          </div>
+        );
+      }
+
+      case "project": {
+        // 项目视图：左侧 LeftDock + 右侧 Chat
+        const hasLeftDock = Boolean(viewRuntime?.leftDock);
+        const chatSessionId = getChatSessionId();
+
+        return (
+          <div className="flex h-full w-full">
+            {hasLeftDock && (
+              <>
+                <div style={{ width: `${leftWidthPx}px` }} className="relative overflow-hidden">
+                  <LeftDock
+                    viewKey={viewKey!}
+                    base={viewRuntime!.leftDock!}
+                    stack={viewRuntime?.stack ?? []}
+                  />
+                </div>
+                {!rightChatCollapsed && (
+                  <div
+                    className={cn(
+                      "cursor-col-resize hover:bg-primary/20 transition-colors flex-shrink-0",
+                      isDragging && "bg-primary/30"
+                    )}
+                    style={{ width: `${DIVIDER_WIDTH_PX}px` }}
+                    onMouseDown={handleDividerMouseDown}
+                  />
+                )}
+              </>
+            )}
+            {!rightChatCollapsed && (
+              <div
+                style={{ width: `${rightChatWidthPx}px` }}
+                className="border-l flex-shrink-0 overflow-hidden"
+              >
+                <Chat
+                  chatSessionId={chatSessionId}
+                  chatParams={{ projectId: activeView.projectId }}
+                  chatLoadHistory={true}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case "workbench":
+      case "calendar":
+      case "email":
+      case "scheduled-tasks": {
+        // 功能页面：左侧内容 + 右侧可选 Chat
+        const hasLeftDock = Boolean(viewRuntime?.leftDock);
+        const showDivider = hasLeftDock && !rightChatCollapsed && leftWidthPercent > 0;
+
+        return (
+          <div className="flex h-full w-full">
+            {hasLeftDock && (
+              <>
+                <div
+                  style={{
+                    width: leftWidthPercent > 0 ? `${leftWidthPx}px` : "100%",
+                  }}
+                  className="relative overflow-hidden"
+                >
+                  <LeftDock
+                    viewKey={viewKey!}
+                    base={viewRuntime!.leftDock!}
+                    stack={viewRuntime?.stack ?? []}
+                  />
+                </div>
+                {showDivider && (
+                  <div
+                    className={cn(
+                      "cursor-col-resize hover:bg-primary/20 transition-colors flex-shrink-0",
+                      isDragging && "bg-primary/30"
+                    )}
+                    style={{ width: `${DIVIDER_WIDTH_PX}px` }}
+                    onMouseDown={handleDividerMouseDown}
+                  />
+                )}
+              </>
+            )}
+            {!rightChatCollapsed && (
+              <div
+                style={{ width: `${rightChatWidthPx}px` }}
+                className="border-l flex-shrink-0 overflow-hidden"
+              >
+                <Chat
+                  chatSessionId=""
+                  chatParams={{}}
+                  chatLoadHistory={false}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative flex h-full w-full overflow-hidden",
+        "bg-background",
+        isDragging && "select-none"
+      )}
+    >
+      {renderView()}
+    </div>
+  );
+}

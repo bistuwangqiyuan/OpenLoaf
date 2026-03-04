@@ -179,5 +179,27 @@
     "sub-agent-chat": "子代理",
     "task-detail": "任務詳情",
     "openInSettings": "在設定中開啟"
-  }
+  },
+  "workspaceChats": "工作空間對話",
+  "untitledChat": "未命名對話",
+  "convertToProject": "轉為專案",
+  "delete": "刪除",
+  "confirmDeleteChat": "確定要刪除這個對話嗎？",
+  "showMore": "顯示更多 ({{count}})",
+  "showLess": "收起",
+  "convertChatToProject": "將對話轉為專案",
+  "convertChatToProjectDescription": "將對話及其檔案轉換為正式專案，方便長期管理",
+  "projectTitle": "專案名稱",
+  "projectTitlePlaceholder": "輸入專案名稱",
+  "parentProject": "父專案",
+  "selectParentProject": "選擇父專案（可選）",
+  "noParent": "無父專案",
+  "cancel": "取消",
+  "convert": "轉換",
+  "converting": "轉換中...",
+  "projectTitleRequired": "請輸入專案名稱",
+  "convertSuccess": "已成功轉為專案",
+  "convertFailed": "轉換失敗：{{error}}",
+  "project": "專案",
+  "chat": "對話"
 }

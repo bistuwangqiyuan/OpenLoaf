@@ -179,5 +179,27 @@
     "sub-agent-chat": "子代理",
     "task-detail": "任务详情",
     "openInSettings": "在设置中打开"
-  }
+  },
+  "workspaceChats": "工作空间对话",
+  "untitledChat": "未命名对话",
+  "convertToProject": "转为项目",
+  "delete": "删除",
+  "confirmDeleteChat": "确定要删除这个对话吗？",
+  "showMore": "显示更多 ({{count}})",
+  "showLess": "收起",
+  "convertChatToProject": "将对话转为项目",
+  "convertChatToProjectDescription": "将对话及其文件转换为正式项目，方便长期管理",
+  "projectTitle": "项目名称",
+  "projectTitlePlaceholder": "输入项目名称",
+  "parentProject": "父项目",
+  "selectParentProject": "选择父项目（可选）",
+  "noParent": "无父项目",
+  "cancel": "取消",
+  "convert": "转换",
+  "converting": "转换中...",
+  "projectTitleRequired": "请输入项目名称",
+  "convertSuccess": "已成功转为项目",
+  "convertFailed": "转换失败：{{error}}",
+  "project": "项目",
+  "chat": "对话"
 }
