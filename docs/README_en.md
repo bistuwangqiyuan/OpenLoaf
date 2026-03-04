@@ -4,6 +4,10 @@
   <p><strong>🍞 Open-Source AI Knowledge Base & Smart Workspace</strong></p>
   <p>Local-first, privacy-focused AI workspace — structured docs + multi-model chat + cross-platform desktop. Your data never leaves your device.</p>
 
+  <p>📝 Docs &nbsp;|&nbsp; 🤖 AI Chat &nbsp;|&nbsp; 🎨 Canvas &nbsp;|&nbsp; 📧 Email &nbsp;|&nbsp; 📅 Calendar &nbsp;|&nbsp; 🖥️ Terminal &nbsp;|&nbsp; 📋 Task Board &nbsp;|&nbsp; 📂 File Manager</p>
+
+  <blockquote><strong>One app to replace Notion + ChatGPT + Trello + Whiteboard — with 100% local data</strong></blockquote>
+
   <a href="https://github.com/OpenLoaf/OpenLoaf/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License" /></a>
   <a href="https://github.com/OpenLoaf/OpenLoaf/releases"><img src="https://img.shields.io/github/v/release/OpenLoaf/OpenLoaf?label=latest" alt="Release" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen" alt="Platform" />
@@ -17,36 +21,6 @@
 ---
 
 > **⚠️ Note: This project is still in early development. Features and APIs may change at any time — please use with caution in production environments.** If you encounter any bugs or have suggestions, feel free to submit feedback via the "Feedback & Suggestions" button in the bottom-left corner of the app. We take every piece of feedback seriously.
-
----
-
-## 💡 Why OpenLoaf
-
-The AI era is here, but collaborating with AI in our daily work is still full of friction and fragmentation.
-
-### 😤 Pain Points with Existing Tools
-
-**🔒 Closed Source + No Data Control** — Mainstream knowledge bases like Notion are closed-source. Your documents, notes, and data all live on their servers. You can't choose your own AI model, and you have no control over where your data goes. If the service shuts down or policies change, your intellectual assets are at risk.
-
-**⚙️ Open-Source Alternatives Are Too Complex** — Open-source alternatives like Outline exist, but require setting up databases, object storage, OAuth providers, and more. They're extremely unfriendly to non-technical users — many people give up before they even get through installation.
-
-**🔀 Fragmented AI Workflows** — A typical AI workflow looks like this: write copy in ChatGPT → copy it to an image generation tool → switch to a video platform → go back to your document to organize everything. One task, four or five windows, constant copy-pasting. AI is powerful, but the workflow is shattered across tools.
-
-**🔄 Re-feeding Context Every Single Conversation** — With tools like ChatGPT or DeepSeek, every new conversation starts from scratch. You have to re-explain your project background every time. But real work is **project-based** — you don't wake up each morning having forgotten what you were working on yesterday. AI shouldn't either.
-
-### 🎯 How OpenLoaf Solves This
-
-We believe AI productivity tools should work like this:
-
-- **📦 Zero-Config, Ready to Go** — Download the installer, double-click, done. No servers, databases, or Docker to configure. Even non-technical users can get started in 3 minutes.
-- **🧠 Project-Centric, AI Understands Context Natively** — Each project is a self-contained space with documents, files, conversations, and tasks all in one place. AI is always aware of your full project context — no need to re-organize and re-feed information. Built-in memory lets AI truly "remember" your previous work.
-- **🔗 Unified Multi-Modal Workflow** — Text, images, video, code, terminal, email, calendar — all capabilities live in one app, orchestrated by one AI. Write your copy, generate an image, drag it onto the canvas — no more copy-pasting across tools.
-- **🔓 Open Source + Local First** — Fully open-source code, 100% local data storage on your own device. Use any AI model you want (OpenAI, Claude, Gemini, DeepSeek, local Ollama…), control your own API keys, zero middlemen.
-- **🧩 Customizable Widget Workspace** — Different projects can have different widget components (stock tickers, sales dashboards, daily reports…). In the future, you won't even need separate management software — just build your own tools right inside OpenLoaf with AI.
-
-### 🛋️ Loaf = Bread + Slacking Off
-
-The OpenLoaf logo is a bread-shaped sofa. **Loaf** means both "a loaf of bread" and "to loaf around." Our goal is to help you **slack off efficiently** — let AI handle the tedious, repetitive work while you sit back and focus on the decisions that actually matter. 🍞
 
 ---
 
@@ -124,6 +98,34 @@ No more switching between apps — everything you need is built in:
 
 ---
 
+## 💡 Why OpenLoaf
+
+The AI era is here, but collaborating with AI in our daily work is still full of friction and fragmentation.
+
+### 😤 Pain Points with Existing Tools
+
+**🔒 Closed Source + No Data Control** — Mainstream knowledge bases like Notion are closed-source. Your documents, notes, and data all live on their servers. You can't choose your own AI model, and you have no control over where your data goes.
+
+**⚙️ Open-Source Alternatives Are Too Complex** — Open-source alternatives like OpenClaw exist, but they're complex to configure and have unfriendly interfaces, creating a high barrier for non-technical users.
+
+**🔀 Fragmented AI Workflows** — One task, four or five windows, constant copy-pasting. AI is powerful, but the workflow is shattered across tools.
+
+**🔄 Re-feeding Context Every Single Conversation** — Real work is **project-based**. AI should always understand the full context of your current project.
+
+### 🎯 How OpenLoaf Solves This
+
+- **📦 Zero-Config, Ready to Go** — Download the installer, double-click, done. No servers, databases, or Docker to configure.
+- **🧠 Project-Centric, AI Understands Context Natively** — Each project is a self-contained space. AI is always aware of your full project context, with built-in memory.
+- **🔗 Unified Multi-Modal Workflow** — Text, images, video, code, terminal, email, calendar — all capabilities live in one app, orchestrated by one AI.
+- **🔓 Open Source + Local First** — Fully open-source code, 100% local data storage, use any AI model you want.
+- **🧩 Customizable Widget Workspace** — Different projects can have different widgets. In the future, build your own tools right inside OpenLoaf with AI.
+
+### 🛋️ Loaf = Bread + Slacking Off
+
+The OpenLoaf logo is a bread-shaped sofa. **Loaf** means both "a loaf of bread" and "to loaf around." Our goal is to help you **slack off efficiently** — let AI handle the tedious, repetitive work while you sit back and focus on the decisions that actually matter. 🍞
+
+---
+
 ## 🔒 Privacy & Security
 
 OpenLoaf is built with a **local-first, privacy-by-design** philosophy. Your data stays on your device — always.
@@ -198,6 +200,8 @@ packages/
 ## 🗺️ Roadmap
 
 - [ ] 🌐 **Full Web Browser Access** — Use OpenLoaf directly from any browser without installing the desktop app (partially available, under active development)
+- [ ] 📦 **Project Template Marketplace** — Expert-crafted templates, import with one click. Examples: stock analysis template (swap the sector and go), ad video template (just provide product photos — copy, storyboard, and video are fully auto-generated)
+- [ ] 📄 **WPS / Microsoft Office Integration** — Call WPS, Word, Excel, and PowerPoint to handle non-standard documents, spreadsheets, and presentations
 - [ ] 🔮 More to come...
 
 ---
