@@ -14,6 +14,8 @@ import { useNavigation, getViewKey } from "@/hooks/use-navigation";
 import { Chat } from "@/components/ai/Chat";
 import { cn } from "@/lib/utils";
 import { createChatSessionId } from "@/lib/chat-session-id";
+import { LeftDockNew } from "./LeftDockNew";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 const RIGHT_CHAT_MIN_PX = 360;
 const LEFT_DOCK_MIN_PX = 300;
@@ -29,6 +31,7 @@ const DIVIDER_WIDTH_PX = 4;
  */
 export function PageLayout() {
   const activeView = useNavigation((s) => s.activeView);
+  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
   const getViewRuntime = useNavigation((s) => s.getViewRuntime);
   const setViewRuntime = useNavigation((s) => s.setViewRuntime);
 
@@ -158,25 +161,74 @@ export function PageLayout() {
       case "calendar":
       case "email":
       case "scheduled-tasks": {
-        // 功能页面：暂时显示占位内容
-        // 这些页面依赖旧的 Tab 系统（useTabRuntime、useTabView 等）
-        // 需要适配层让它们在新导航系统中工作
-        // TODO: Phase 5.1 - 创建 LeftDock 适配层
-        const viewNames = {
-          workbench: "工作台",
-          calendar: "日历",
-          email: "邮箱",
-          "scheduled-tasks": "定时任务",
+        // 功能页面：LeftDockNew + RightChat 布局
+        if (!viewRuntime || !viewKey) return null;
+
+        // 映射视图类型到组件名称
+        const componentMap: Record<string, string> = {
+          workbench: "workspace-desktop",
+          calendar: "calendar-page",
+          email: "email-page",
+          "scheduled-tasks": "scheduled-tasks-page",
         };
 
+        const component = componentMap[activeView.type];
+        if (!component) return null;
+
+        // 确保 leftDock 已初始化
+        const leftDock = viewRuntime.leftDock || {
+          id: `base:${activeView.type}`,
+          component,
+        };
+
+        // 获取或创建 Chat Session ID（用于 Right Chat）
+        const chatSessionId = viewRuntime.chatSessionId || (() => {
+          const newSessionId = createChatSessionId();
+          setViewRuntime(viewKey, { chatSessionId: newSessionId });
+          return newSessionId;
+        })();
+
+        const showRightChat = !rightChatCollapsed;
+        const showDivider = showRightChat && leftWidthPercent > 0;
+
         return (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            {viewNames[activeView.type]}视图开发中...
-            <div className="text-xs mt-2 max-w-md text-center">
-              需要适配 LeftDock 组件到新导航系统
-              <br />
-              （已创建 useViewAsTabView 适配器 hook）
-            </div>
+          <div className="flex h-full w-full">
+            {/* Left Dock */}
+            {leftWidthPercent > 0 && (
+              <div
+                className="relative flex-shrink-0 overflow-hidden"
+                style={{ width: `${leftWidthPx}px` }}
+              >
+                <LeftDockNew
+                  workspaceId={activeWorkspaceId || ""}
+                  base={leftDock}
+                  stack={viewRuntime.stack || []}
+                  stackHidden={viewRuntime.stackHidden ?? false}
+                  activeStackItemId={viewRuntime.activeStackItemId}
+                />
+              </div>
+            )}
+
+            {/* Divider */}
+            {showDivider && (
+              <div
+                className="relative flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/20 transition-colors"
+                style={{ width: `${DIVIDER_WIDTH_PX}px` }}
+                onMouseDown={handleDividerMouseDown}
+              />
+            )}
+
+            {/* Right Chat */}
+            {showRightChat && (
+              <div className="relative flex-1 overflow-hidden">
+                <Chat
+                  chatSessionId={chatSessionId}
+                  chatParams={{ viewType: activeView.type }}
+                  chatLoadHistory={true}
+                  enableMultiSession={false}
+                />
+              </div>
+            )}
           </div>
         );
       }
