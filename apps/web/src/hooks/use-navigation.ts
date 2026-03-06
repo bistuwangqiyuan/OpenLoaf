@@ -102,6 +102,12 @@ export interface NavigationState {
     workspaceChatSessionId: string | null;
   };
 
+  /** Sidebar 当前显示的 tab（project 或 chat） */
+  sidebarTab: "project" | "chat";
+
+  /** 设置 Sidebar tab */
+  setSidebarTab: (tab: "project" | "chat") => void;
+
   /** 获取视图运行时状态 */
   getViewRuntime: (viewKey: string) => ViewRuntime | null;
 
@@ -142,6 +148,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
   activeWorkspaceId: null,
   activeView: null,
   viewRuntimes: {},
+  sidebarTab: "project",
 
   setActiveView: (viewType) => {
     const state = get();
@@ -185,6 +192,8 @@ export const useNavigation = create<NavigationState>((set, get) => ({
       workspaceChatSessionId: state.activeWorkspaceChatSessionId,
     };
   },
+
+  setSidebarTab: (tab) => set({ sidebarTab: tab }),
 
   getViewRuntime: (viewKey) => {
     return get().viewRuntimes[viewKey] ?? null;

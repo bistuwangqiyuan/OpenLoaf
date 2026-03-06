@@ -759,7 +759,7 @@ export default function ElectrronBrowserWindow({
     state.pushStackItem(
       safeTabId,
       { ...item, params: { ...(item.params ?? {}), __refreshKey: current + 1 } } as any,
-      100,
+      70,
     );
   };
 

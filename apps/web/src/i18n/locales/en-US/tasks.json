@@ -68,6 +68,10 @@
     "high": "High",
     "urgent": "Urgent"
   },
+  "filter": {
+    "priority": "Priority",
+    "triggerMode": "Trigger"
+  },
   "triggerMode": {
     "manual": "Manual",
     "scheduled": "Scheduled",

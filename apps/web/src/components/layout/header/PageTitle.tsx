@@ -12,7 +12,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, Clock, LayoutDashboard, Mail, Sparkles } from "lucide-react";
+import { CalendarDays, Clock, LayoutDashboard, Mail, PenTool, Sparkles } from "lucide-react";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabView } from "@/hooks/use-tab-view";

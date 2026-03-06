@@ -29,6 +29,7 @@ import {
   normalizeToolInput,
   type AnyToolPart,
 } from "./shared/tool-utils";
+import { normalizeUrl } from "@/components/browser/browser-utils";
 
 type OpenUrlParams = {
   actionName?: string;
@@ -52,7 +53,7 @@ export default function OpenUrlTool({
     typeof input.actionName === "string" && input.actionName.trim()
       ? input.actionName
       : getToolName(part);
-  const url = typeof input.url === "string" ? input.url : "";
+  const url = typeof input.url === "string" ? normalizeUrl(input.url) : "";
   const title = typeof input.title === "string" ? input.title : undefined;
 
   const { tabId: contextTabId } = useChatSession();
@@ -81,7 +82,7 @@ export default function OpenUrlTool({
         component: BROWSER_WINDOW_COMPONENT,
         params: { __customHeader: true, __open: { url, title, viewKey } },
       } as any,
-      100,
+      70,
     );
   }, [isDisabled, tabId, title, url]);
 

@@ -331,7 +331,7 @@ export default function DesktopTileGridstack({
         component: BROWSER_WINDOW_COMPONENT,
         params: { __customHeader: true, __open: { url: normalizedUrl, title: item.title, viewKey } },
       } as any,
-      100
+      70
     );
     onUpdateItem(item.id, (current) => {
       if (current.kind !== "widget" || current.widgetKey !== "web-stack") return current;

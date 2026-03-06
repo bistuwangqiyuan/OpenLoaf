@@ -14,7 +14,7 @@ export const jsxCreateToolDef = {
   id: 'jsx-create',
   name: '组件渲染',
   description:
-    '用途：渲染 JSX 字符串并展示内容，同时把内容写入会话目录的 jsx 文件。\n'
+    '用途：渲染 JSX 组件并直接在聊天界面中展示给用户查看（自动渲染，无需用户操作），同时把内容写入会话目录的 jsx 文件。\n'
     + '使用方法：传入 content 字段，值为 JSX 字符串，不要附加 actionName。\n'
     + '示例：{ "content": "<div className=\\"p-4 text-sm\\">...</div>" }。\n'
     + '注意事项：\n'

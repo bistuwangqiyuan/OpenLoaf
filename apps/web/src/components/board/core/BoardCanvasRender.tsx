@@ -10,6 +10,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { cn } from "@udecode/cn";
 import type { CanvasEngine } from "../engine/CanvasEngine";
 import type { CanvasElement, CanvasSnapshot } from "../engine/types";
 import { MINIMAP_HIDE_DELAY } from "../engine/constants";
@@ -30,6 +31,7 @@ import {
   SingleSelectionOutline,
   SingleSelectionToolbar,
 } from "./SelectionOverlay";
+import { PendingInsertPreview, PENDING_INSERT_DOM_TYPES } from "./PendingInsertPreview";
 import { useBoardViewState } from "./useBoardViewState";
 
 export type BoardCanvasRenderProps = {
@@ -71,6 +73,12 @@ export function BoardCanvasRender({
   });
   /** Node inspector target id. */
   const [inspectorNodeId, setInspectorNodeId] = useState<string | null>(null);
+  /** Delayed toolbar entrance animation flag. */
+  const [toolbarsReady, setToolbarsReady] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setToolbarsReady(true), 500);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // 逻辑：主题切换时强制刷新画布渲染，确保连线颜色同步更新。
@@ -111,7 +119,7 @@ export function BoardCanvasRender({
 
   return (
     <>
-      {showUi ? <MiniMapLayer engine={engine} snapshot={snapshot} /> : null}
+      {showUi && snapshot.elements.length > 0 ? <MiniMapLayer engine={engine} snapshot={snapshot} /> : null}
       <CanvasSurface
         snapshot={snapshot}
         onStats={showPerfOverlay ? setGpuStats : undefined}
@@ -124,6 +132,13 @@ export function BoardCanvasRender({
           onCullingStatsChange={showPerfOverlay ? setCullingStats : undefined}
         />
       ) : null}
+      {showUi && snapshot.pendingInsert && snapshot.pendingInsertPoint && PENDING_INSERT_DOM_TYPES.has(snapshot.pendingInsert.type) ? (
+        <PendingInsertPreview
+          engine={engine}
+          pendingInsert={snapshot.pendingInsert}
+          pendingInsertPoint={snapshot.pendingInsertPoint}
+        />
+      ) : null}
       {showPerfOverlay ? (
         <BoardPerfOverlay
           stats={cullingStats}
@@ -133,12 +148,22 @@ export function BoardCanvasRender({
       ) : null}
       {showUi ? <AnchorOverlay snapshot={snapshot} /> : null}
       {showUi ? (
-        <BoardControls engine={engine} snapshot={snapshot} onAutoLayout={onAutoLayout} />
+        <div className={cn("pointer-events-none absolute inset-0 z-20 transition-all duration-500 ease-out", toolbarsReady ? "opacity-100 -translate-x-0" : "opacity-0 -translate-x-4")}>
+          <BoardControls engine={engine} snapshot={snapshot} onAutoLayout={onAutoLayout} />
+        </div>
       ) : null}
-      {showUi ? <BoardToolbar engine={engine} snapshot={snapshot} /> : null}
-      {showUi ? <AIGenerateToolbar engine={engine} snapshot={snapshot} /> : null}
       {showUi ? (
-        <BoardEmptyGuide engine={engine} visible={snapshot.elements.length === 0 && !snapshot.pendingInsert} />
+        <div className={cn("pointer-events-none absolute inset-0 z-20 transition-all duration-500 ease-out", toolbarsReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}>
+          <BoardToolbar engine={engine} snapshot={snapshot} />
+        </div>
+      ) : null}
+      {showUi ? (
+        <div className={cn("pointer-events-none absolute inset-0 z-20 transition-all duration-500 ease-out", toolbarsReady ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4")}>
+          <AIGenerateToolbar engine={engine} snapshot={snapshot} />
+        </div>
+      ) : null}
+      {showUi ? (
+        <BoardEmptyGuide engine={engine} visible={snapshot.docRevision > 0 && snapshot.elements.length === 0 && !snapshot.pendingInsert && toolbarsReady} />
       ) : null}
       {showUi && selectedConnector ? (
         <ConnectorActionPanel

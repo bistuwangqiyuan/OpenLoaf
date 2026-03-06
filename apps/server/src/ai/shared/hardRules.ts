@@ -28,20 +28,27 @@ function buildSystemTagsMetaRule(): string {
 /** Build output format hard rules (migrated from prompt-v3). */
 function buildOutputFormatRules(): string {
   return [
-    '# 输出格式（强制）',
+    '# 输出格式',
     '- 使用 Markdown，结论优先 → 细节仅在必要时',
     '- 不粘贴大段文件内容，用 `path:line` 引用',
     '- 路径与代码标识用反引号',
     '- 默认不输出命令行、工具名、参数',
     '- 禁止：ANSI 转义码、渲染控制字符、破损引用、嵌套多层列表',
     '- 用户与助手在同一台机器，不提示"保存文件/复制代码"',
+    '',
+    '# 禁止重复输出',
+    '- 工具已产生可见结果（渲染组件、图片、文件、表格等）时，禁止用文字重复描述相同内容。用户已直接看到结果。',
+    '- 工具调用后最多 1 句结果点评；结果已清晰可见时，直接不说。',
+    '- 不复述用户的请求，不以"好的，我来为你..."开头。',
+    '- 操作完成后不回顾之前的操作，不总结已完成步骤，除非用户要求汇总。',
+    '- 每句必须携带新信息；如果移除一句后语义不变，则删除该句。',
   ].join('\n')
 }
 
 /** Build file reference rules (migrated from prompt-v3). */
 function buildFileReferenceRules(): string {
   return [
-    '# 输入中的文件引用（强制）',
+    '# 输入中的文件引用',
     '- 用户输入里的 `@[...]` 代表文件引用，方括号内为项目相对路径。',
     '- 标准格式：`@[path/to/file]`（默认当前项目根目录）。',
     '- 跨项目格式：`@[[projectId]/path]`。',
@@ -53,7 +60,7 @@ function buildFileReferenceRules(): string {
 /** Build AGENTS.md dynamic loading rules. */
 function buildAgentsDynamicLoadingRules(): string {
   return [
-    '# AGENTS.md 动态加载（强制）',
+    '# AGENTS.md 动态加载',
     '- 当你搜索文件或目录时，若结果所在目录存在 AGENTS.md，必须立即读取并遵守。',
     '- 多层规则冲突时，优先级：更深层目录 > 上层目录 > 根目录。',
   ].join('\n')
@@ -77,7 +84,7 @@ function buildCompletionCriteria(): string {
 /** Build auto memory rules for AI-managed persistent memory. */
 function buildAutoMemoryRules(): string {
   return [
-    '# Auto Memory（强制）',
+    '# Auto Memory',
     '',
     '你拥有持久化的 auto memory 目录 `.openloaf/memory/`。其内容跨会话持久化。',
     '',

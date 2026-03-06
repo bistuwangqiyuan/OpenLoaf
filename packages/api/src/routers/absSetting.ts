@@ -487,6 +487,16 @@ export const settingSchemas = {
       body: z.string(),
     }),
   },
+  /** Infer board name via auxiliary model. */
+  inferBoardName: {
+    input: z.object({
+      workspaceId: z.string(),
+      boardFolderUri: z.string(),
+    }),
+    output: z.object({
+      title: z.string(),
+    }),
+  },
 };
 
 export abstract class BaseSettingRouter {
@@ -701,6 +711,12 @@ export abstract class BaseSettingRouter {
       generateCommitMessage: shieldedProcedure
         .input(settingSchemas.generateCommitMessage.input)
         .output(settingSchemas.generateCommitMessage.output)
+        .mutation(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      inferBoardName: shieldedProcedure
+        .input(settingSchemas.inferBoardName.input)
+        .output(settingSchemas.inferBoardName.output)
         .mutation(async () => {
           throw new Error("Not implemented in base class");
         }),

@@ -161,11 +161,12 @@ const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
     const query = slashState?.query ?? "";
     const [menuLevel, setMenuLevel] = useState<MenuLevel>("root");
     const [activeIndex, setActiveIndex] = useState(0);
-    const skillsQuery = useQuery(
-      projectId
+    const skillsQuery = useQuery({
+      ...(projectId
         ? trpc.settings.getSkills.queryOptions({ projectId })
-        : trpc.settings.getSkills.queryOptions()
-    );
+        : trpc.settings.getSkills.queryOptions()),
+      staleTime: 5 * 60 * 1000,
+    });
     const skills = (skillsQuery.data ?? []) as SkillSummary[];
 
     const commandItems = useMemo(

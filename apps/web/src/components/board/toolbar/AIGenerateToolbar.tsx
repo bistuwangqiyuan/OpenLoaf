@@ -124,14 +124,14 @@ const AIGenerateToolbar = memo(function AIGenerateToolbar({
               });
             }}
             className={cn(
-              "flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-150 select-none",
+              "flex w-18 flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-150 select-none",
               isActive
                 ? cn(item.colorClass, "border", item.activeClass)
                 : cn(item.colorClass, "border border-transparent"),
             )}
           >
             <Icon size={20} weight={isActive ? "fill" : "duotone"} />
-            <span className="text-[10px] leading-none whitespace-nowrap font-medium">
+            <span className="text-[10px] leading-tight text-center font-medium">
               {item.label}
             </span>
           </button>

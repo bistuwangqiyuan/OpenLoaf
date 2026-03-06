@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import type { DockItem } from "@openloaf/api/common";
 import { useNavigation, getViewKey } from "@/hooks/use-navigation";
 import { Chat } from "@/components/ai/Chat";
 import { cn } from "@/lib/utils";
@@ -179,7 +180,7 @@ export function PageLayout() {
                 <LeftDockNew
                   workspaceId={activeWorkspaceId || ""}
                   base={leftDock}
-                  stack={viewRuntime.stack || []}
+                  stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}
                   activeStackItemId={viewRuntime.activeStackItemId}
                 />
@@ -255,7 +256,7 @@ export function PageLayout() {
                 <LeftDockNew
                   workspaceId={activeWorkspaceId || ""}
                   base={leftDock}
-                  stack={viewRuntime.stack || []}
+                  stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}
                   activeStackItemId={viewRuntime.activeStackItemId}
                 />

@@ -22,6 +22,7 @@ import {
 } from "react";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateId } from "ai";
+import i18next from "i18next";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 import {
@@ -1346,7 +1347,9 @@ export function useProjectFileSystemModel({
   /** Create a new board folder in the current directory. */
   const handleCreateBoard = async () => {
     if (activeUri === null || !workspaceId) return;
-    const baseName = ensureBoardFolderName("新建画布");
+    const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const canvasLabel = i18next.t("nav:canvasList.defaultName");
+    const baseName = ensureBoardFolderName(`${canvasLabel}_${randomSuffix}`);
     const targetName = getUniqueName(baseName, new Set(existingNames));
     const boardFolderUri = buildChildUri(activeUri, targetName);
     const boardFileUri = buildChildUri(boardFolderUri, BOARD_INDEX_FILE_NAME);

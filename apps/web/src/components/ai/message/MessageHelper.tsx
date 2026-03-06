@@ -61,7 +61,11 @@ export default function MessageHelper({
     trpc.settings.generateChatSuggestions.mutationOptions(),
   );
 
+  const lastRequestedKeyRef = React.useRef<string>("");
   React.useEffect(() => {
+    const key = `${projectId || ""}:${workspaceId || ""}`;
+    if (lastRequestedKeyRef.current === key) return;
+    lastRequestedKeyRef.current = key;
     dynamicMutation.mutate({ projectId: projectId || undefined, workspaceId: workspaceId || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, workspaceId]);

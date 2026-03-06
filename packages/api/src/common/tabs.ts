@@ -65,6 +65,16 @@ export const WORKBENCH_TAB_INPUT = {
   icon: "bot",
 } as const;
 
+export const TEMP_CHAT_TAB_INPUT = {
+  titleKey: "nav:temporaryChat",
+  icon: "sparkles",
+} as const;
+
+export const TEMP_CANVAS_TAB_INPUT = {
+  titleKey: "nav:temporaryCanvas",
+  icon: "🎨",
+} as const;
+
 export const AI_ASSISTANT_TAB_INPUT = {
   baseId: "base:ai-assistant",
   component: "ai-chat",

@@ -395,8 +395,7 @@ function ChatFullPageLayout({
   enableMultiSession?: boolean
 }) {
   const { t } = useTranslation('ai')
-  const { messages, pendingCloudMessage } = useChatState()
-  // 逻辑：不依赖 isHistoryLoading，避免加载期间先显示底部布局再跳到居中布局的闪烁。
+  const { messages, pendingCloudMessage, isHistoryLoading } = useChatState()
   const isEmpty = messages.length === 0 && !pendingCloudMessage
 
   return (
@@ -413,7 +412,9 @@ function ChatFullPageLayout({
         iconPalette="email"
         enableMultiSession={enableMultiSession}
       />
-      {isEmpty ? (
+      {isHistoryLoading ? (
+        <div className="flex-1" />
+      ) : isEmpty ? (
         <div className="flex flex-1 flex-col min-h-0">
           <div className="flex flex-1 flex-col items-center justify-center min-h-0">
             <div className="flex w-full max-w-2xl flex-col items-center gap-4 px-4 -mt-20">

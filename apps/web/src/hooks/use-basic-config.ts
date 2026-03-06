@@ -21,7 +21,6 @@ const DEFAULT_BASIC_CONFIG: BasicConfig = {
   activeS3Id: undefined,
   s3AutoUpload: true,
   s3AutoDeleteHours: 2,
-  modelResponseLanguage: null,
   modelQuality: "medium",
   chatOnlineSearchMemoryScope: "tab",
   modelSoundEnabled: true,

@@ -22,6 +22,8 @@ import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
 import { migrateLegacyServerData } from "@openloaf/config";
 import { ensureActiveWorkspaceDefaultAgent } from "@/ai/shared/workspaceAgentInit";
 import { initDatabase } from "@openloaf/db";
+import { runPendingMigrations } from "@openloaf/db/migrationRunner";
+import { embeddedMigrations } from "@openloaf/db/migrations.generated";
 
 // 修复 PATH：当 server 作为 Electron 子进程运行时，继承的 PATH 可能不完整。
 // 从用户 shell（macOS/Linux）或注册表（Windows）读取完整 PATH。
@@ -36,6 +38,16 @@ getWorkspaces();
 
 // 启动时确保活跃 workspace 有默认 agent 文件。
 ensureActiveWorkspaceDefaultAgent();
+
+// 数据库迁移：检查并应用所有待执行的 schema 迁移。
+// 必须在 initDatabase() 之前完成，确保表结构就绪。
+const { applied } = await runPendingMigrations(
+  (await import("@openloaf/db")).default,
+  embeddedMigrations,
+);
+if (applied.length > 0) {
+  console.log(`[db] Applied ${applied.length} migration(s): ${applied.join(", ")}`);
+}
 
 // 初始化 SQLite WAL 模式和 busy_timeout，必须在 startServer 之前完成，
 // 避免并发请求时触发 SQLITE_BUSY。

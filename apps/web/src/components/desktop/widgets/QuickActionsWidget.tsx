@@ -13,6 +13,7 @@ import * as React from "react";
 import { Sparkles, Terminal, Search, LayoutDashboard } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { useMutation } from "@tanstack/react-query";
+import i18next from "i18next";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/utils/trpc";
@@ -87,11 +88,9 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
 
     setCreating(true);
     try {
-      // 逻辑：使用 yyyyMMdd-hhmmss 格式命名，兼顾可读性与唯一性。
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      const folderName = ensureBoardFolderName(`${ts}-画布`);
+      const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const canvasLabel = i18next.t("nav:canvasList.defaultName");
+      const folderName = ensureBoardFolderName(`${canvasLabel}_${randomSuffix}`);
       const boardFolderUri = buildChildUri("", folderName);
       const boardFileUri = buildChildUri(boardFolderUri, BOARD_INDEX_FILE_NAME);
       const assetsUri = buildChildUri(boardFolderUri, BOARD_ASSETS_DIR_NAME);

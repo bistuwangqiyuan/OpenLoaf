@@ -16,14 +16,20 @@ type SettingItem = {
   id?: string;
   key: string;
   value: unknown;
-  secret?: boolean;
+  secret: boolean;
   category?: string;
-  isReadonly?: boolean;
+  isReadonly: boolean;
   syncToCloud?: boolean;
 };
 
-const providersQueryOptions = () => trpc.settings.getProviders.queryOptions();
-const s3ProvidersQueryOptions = () => trpc.settings.getS3Providers.queryOptions();
+const providersQueryOptions = () => ({
+  ...trpc.settings.getProviders.queryOptions(),
+  staleTime: 5 * 60 * 1000,
+});
+const s3ProvidersQueryOptions = () => ({
+  ...trpc.settings.getS3Providers.queryOptions(),
+  staleTime: 5 * 60 * 1000,
+});
 
 function resolveQueryKeyForCategory(category: string | undefined) {
   const resolved = category ?? "general";
@@ -73,6 +79,8 @@ export function useSettingsValues() {
             (item.category ?? "general") === resolvedCategory,
         );
         const nextItem: SettingItem = {
+          secret: false,
+          isReadonly: false,
           ...(existing ?? {}),
           key: vars.key,
           value: vars.value,

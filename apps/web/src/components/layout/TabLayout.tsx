@@ -771,7 +771,8 @@ export function TabLayout({
       const minLeft = effectiveMinLeft;
       const maxLeft = Math.max(minLeft, containerWidth - RIGHT_CHAT_MIN_PX - targetDividerWidth);
 
-      const storedLeftPx = (storedLeftWidthPercent / 100) * maxLeft;
+      // leftWidthPercent 直接表示容器宽度的百分比
+      const storedLeftPx = (storedLeftWidthPercent / 100) * containerWidth;
       const targetPx = Math.max(minLeft, Math.min(storedLeftPx, maxLeft));
       targetSplitPercent = (targetPx / containerWidth) * 100;
     } else {
@@ -892,11 +893,10 @@ export function TabLayout({
     if (!container || !activeTabId) return;
 
     const rect = container.getBoundingClientRect();
-    const minLeft = effectiveMinLeft;
-    const maxLeft = Math.max(minLeft, rect.width - RIGHT_CHAT_MIN_PX - targetDividerWidth);
     const currentLeftPx = (splitPercent.get() / 100) * rect.width;
-    const nextPercentOfMax = (currentLeftPx / maxLeft) * 100;
-    setTabLeftWidthPercent(activeTabId, Math.round(nextPercentOfMax * 10) / 10);
+    // 直接保存容器百分比，语义清晰：70 = 左侧占 70%
+    const nextPercent = (currentLeftPx / rect.width) * 100;
+    setTabLeftWidthPercent(activeTabId, Math.round(nextPercent * 10) / 10);
   };
 
   const isDividerHidden = targetDividerWidth === 0;

@@ -36,6 +36,7 @@ import ClaudeCodeTaskTool from "./ClaudeCodeTaskTool";
 import { useChatState, useChatTools } from "../../context";
 import { getApprovalId, isApprovalPending, type AnyToolPart, type ToolVariant } from "./shared/tool-utils";
 import ToolApprovalActions from "./shared/ToolApprovalActions";
+import i18next from "i18next";
 
 /** Resolve tool key for routing. */
 function getToolKind(part: AnyToolPart): string {
@@ -232,7 +233,7 @@ function ToolWithApproval({
     <div className="space-y-2">
       {children}
       <div className="ml-2 flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">需要审批：</span>
+        <span className="text-xs text-muted-foreground">{i18next.t("tool.needsApproval", { ns: "ai", defaultValue: "需要审批：" })}</span>
         <ToolApprovalActions approvalId={approvalId} />
       </div>
     </div>

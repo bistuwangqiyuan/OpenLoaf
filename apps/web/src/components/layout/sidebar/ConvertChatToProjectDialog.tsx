@@ -73,8 +73,8 @@ export function ConvertChatToProjectDialog({
 
   // 初始化项目标题
   useEffect(() => {
-    if (open && chatData?.session) {
-      setProjectTitle(chatData.session.title || "");
+    if (open && chatData) {
+      setProjectTitle(chatData.title || "");
     }
   }, [open, chatData]);
 

@@ -28,6 +28,7 @@ import {
 } from "@/components/ai-elements/sources";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { preprocessChatText } from "./text-tokenizer";
+import i18next from "i18next";
 
 type AnyMessagePart = {
   type?: string;
@@ -98,7 +99,7 @@ function renderTransientStatusBar(
         <div className="h-1 w-8 overflow-hidden rounded-full bg-muted">
           <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/20" />
         </div>
-        <Shimmer className="text-xs">处理中...</Shimmer>
+        <Shimmer className="text-xs">{i18next.t("tool.processing", { ns: "ai", defaultValue: "处理中..." })}</Shimmer>
       </div>
     </motion.div>
   );
@@ -214,32 +215,37 @@ export function renderMessageParts(
 
     if (part?.type === "reasoning") {
       if (!renderText) continue;
-      // 中文注释：按 ai-elements 建议将连续 reasoning 合并为单个可折叠区域。
+      // 合并连续 reasoning 片段
       let nextIndex = index;
-      const reasoningChunks: string[] = [];
       while (nextIndex < visibleList.length && visibleList[nextIndex]?.type === "reasoning") {
-        const chunk = String((visibleList[nextIndex] as AnyMessagePart)?.text ?? "").trim();
-        if (chunk) reasoningChunks.push(chunk);
         nextIndex += 1;
       }
-      const reasoningText = preprocessChatText(reasoningChunks.join("\n\n"));
-      if (reasoningText) {
-        nodes.push(
-          <motion.div key={`reasoning:${index}:${nextIndex}`} className="px-1" {...motionProps}>
-            <Reasoning isStreaming={isAnimating} defaultOpen={isAnimating}>
-              <ReasoningTrigger
-                getThinkingMessage={(isStreaming, duration) => {
-                  if (isStreaming) return "深度思考中...";
-                  if (typeof duration === "number") return `深度思考耗时 ${duration}s`;
-                  return "深度思考";
-                }}
-              />
-              <ReasoningContent className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-xs text-muted-foreground">
-                {reasoningText}
-              </ReasoningContent>
-            </Reasoning>
-          </motion.div>,
-        );
+      // 仅显示当前正在流式输出的 thinking 块：
+      // - isAnimating 为 true（消息正在流式输出）
+      // - 该 reasoning 块必须是消息末尾的最后一组（说明还在思考中，后面没有文本/工具产出）
+      // 已结束的 thinking 块（后面已有文本或工具）直接隐藏。
+      const isLastGroup = nextIndex >= visibleList.length;
+      if (isAnimating && isLastGroup) {
+        const reasoningChunks: string[] = [];
+        for (let ri = index; ri < nextIndex; ri++) {
+          const chunk = String((visibleList[ri] as AnyMessagePart)?.text ?? "").trim();
+          if (chunk) reasoningChunks.push(chunk);
+        }
+        const reasoningText = preprocessChatText(reasoningChunks.join("\n\n"));
+        if (reasoningText) {
+          nodes.push(
+            <motion.div key={`reasoning:${index}:${nextIndex}`} className="px-1" {...motionProps}>
+              <Reasoning isStreaming defaultOpen>
+                <ReasoningTrigger
+                  getThinkingMessage={() => i18next.t("tool.thinkingStreaming", { ns: "ai", defaultValue: "深度思考中..." })}
+                />
+                <ReasoningContent className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-xs text-muted-foreground">
+                  {reasoningText}
+                </ReasoningContent>
+              </Reasoning>
+            </motion.div>,
+          );
+        }
       }
       index = nextIndex - 1;
       continue;
@@ -259,7 +265,7 @@ export function renderMessageParts(
           <motion.div key={`source:${index}:${nextIndex}`} {...motionProps}>
             <Sources>
               <SourcesTrigger count={sources.length}>
-                <span className="font-medium">引用来源 {sources.length}</span>
+                <span className="font-medium">{i18next.t("tool.sourcesTitle", { ns: "ai", defaultValue: "引用来源" })} {sources.length}</span>
               </SourcesTrigger>
               <SourcesContent>
                 {sources.map((sourceItem, sourceIndex) => (
@@ -288,7 +294,7 @@ export function renderMessageParts(
           className={cn(MESSAGE_REVISED_PROMPT_CLASSNAME, options?.textClassName)}
           {...motionProps}
         >
-          <div className="text-[11px] font-medium text-muted-foreground/80">改写提示词</div>
+          <div className="text-[11px] font-medium text-muted-foreground/80">{i18next.t("tool.revisedPrompt", { ns: "ai", defaultValue: "改写提示词" })}</div>
           <MessageResponse
             components={markdownComponents}
             parseIncompleteMarkdown

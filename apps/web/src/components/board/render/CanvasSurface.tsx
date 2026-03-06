@@ -18,6 +18,7 @@ import type {
   GpuWorkerEvent,
 } from "./webgpu/gpu-protocol";
 import { useBoardEngine } from "../core/BoardProvider";
+import { PENDING_INSERT_DOM_TYPES } from "../core/PendingInsertPreview";
 
 const PALETTE_LIGHT: GpuPalette = {
   nodeFill: [255, 255, 255, 1],
@@ -71,11 +72,14 @@ function buildWorker(): Worker {
 
 /** Build the GPU state payload from the latest snapshot. */
 function buildState(snapshot: CanvasSnapshot): GpuStateSnapshot {
+  const hasDomPreview =
+    snapshot.pendingInsert != null &&
+    PENDING_INSERT_DOM_TYPES.has(snapshot.pendingInsert.type);
   return {
     selectedIds: snapshot.selectedIds,
     editingNodeId: snapshot.editingNodeId,
-    pendingInsert: snapshot.pendingInsert,
-    pendingInsertPoint: snapshot.pendingInsertPoint,
+    pendingInsert: hasDomPreview ? null : snapshot.pendingInsert,
+    pendingInsertPoint: hasDomPreview ? null : snapshot.pendingInsertPoint,
     selectionBox: snapshot.selectionBox,
     alignmentGuides: snapshot.alignmentGuides,
   };

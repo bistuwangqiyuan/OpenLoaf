@@ -1,6 +1,8 @@
 {
   "search": "搜尋",
   "aiAssistant": "AI 助手",
+  "smartCanvas": "智能畫布",
+  "save": "儲存",
   "workbench": "工作台",
   "calendar": "行事曆",
   "email": "信箱",
@@ -229,5 +231,19 @@
   "convertFailed": "轉換失敗：{{error}}",
   "project": "專案",
   "chat": "對話",
-  "newChat": "新對話"
+  "newChat": "新對話",
+  "temporaryChat": "臨時對話",
+  "canvas": "畫布",
+  "temporaryCanvas": "臨時畫布",
+  "canvasList": {
+    "empty": "暫無畫布",
+    "untitled": "未命名畫布",
+    "defaultName": "智能畫布",
+    "renameTitle": "重新命名畫布",
+    "renameDesc": "輸入畫布的新名稱，或點擊 AI 按鈕自動產生。",
+    "confirmDelete": "確認刪除此畫布？",
+    "aiName": "AI 命名",
+    "aiNameEmpty": "畫布內容為空，無法產生名稱",
+    "aiNameFailed": "AI 命名失敗，請稍後重試"
+  }
 }

@@ -478,7 +478,7 @@ export const SidebarWorkspace = () => {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="default"
-                className=" h-12 rounded-lg px-1.5 py-3 [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                className="h-12 rounded-lg border-none px-1.5 py-3 [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="size-8 rounded-md">
                   <AvatarImage src={displayAvatar || undefined} alt={avatarAlt} />
@@ -547,42 +547,13 @@ export const SidebarWorkspace = () => {
               )}
 
               <div className="space-y-1">
-                {authLoggedIn ? (
-                  <>
-                    <DropdownMenuItem
-                      onSelect={() => setFeedbackOpen(true)}
-                      className="rounded-lg"
-                    >
-                      <Lightbulb className="size-4" />
-                      {tNav('sidebar.feedback.title')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => void handleLogout()}
-                      className="rounded-lg"
-                    >
-                      <LogOut className="size-4" />
-                      {t('logout')}
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem
-                      onSelect={() => handleOpenLogin()}
-                      className="rounded-lg bg-sky-500/8 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 focus:bg-sky-500/15 focus:text-sky-600 dark:focus:bg-sky-500/15 dark:focus:text-sky-400"
-                    >
-                      <LogIn className="size-4 text-sky-600 dark:text-sky-400" />
-                      {t('loginAccount')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => setFeedbackOpen(true)}
-                      className="rounded-lg"
-                    >
-                      <Lightbulb className="size-4" />
-                      {tNav('sidebar.feedback.title')}
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuItem
+                  onSelect={() => setFeedbackOpen(true)}
+                  className="rounded-lg"
+                >
+                  <Lightbulb className="size-4" />
+                  {tNav('sidebar.feedback.title')}
+                </DropdownMenuItem>
                 {isElectron && (
                   <DropdownMenuItem
                     onSelect={() => void handleCheckUpdate()}
@@ -605,6 +576,24 @@ export const SidebarWorkspace = () => {
                     {updateStatus?.state === "ready" && (
                       <span className="ml-1 size-2 rounded-full bg-blue-500" />
                     )}
+                  </DropdownMenuItem>
+                )}
+                {authLoggedIn ? (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => void handleLogout()}
+                    className="rounded-lg"
+                  >
+                    <LogOut className="size-4" />
+                    {t('logout')}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onSelect={() => handleOpenLogin()}
+                    className="rounded-lg bg-sky-500/8 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 focus:bg-sky-500/15 focus:text-sky-600 dark:focus:bg-sky-500/15 dark:focus:text-sky-400"
+                  >
+                    <LogIn className="size-4 text-sky-600 dark:text-sky-400" />
+                    {t('loginAccount')}
                   </DropdownMenuItem>
                 )}
               </div>
@@ -650,9 +639,11 @@ export const SidebarWorkspace = () => {
 
               <DropdownMenuItem
                 onSelect={() => setCreateOpen(true)}
-                className="mt-1 rounded-lg bg-emerald-500/8 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 focus:bg-emerald-500/15 focus:text-emerald-600 dark:focus:bg-emerald-500/15 dark:focus:text-emerald-400"
+                className="mt-1 rounded-lg"
               >
-                <Plus className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <div className="bg-muted text-muted-foreground flex size-5 items-center justify-center rounded-md">
+                  <Plus className="size-3" />
+                </div>
                 {t('addWorkspace')}
               </DropdownMenuItem>
             </DropdownMenuContent>

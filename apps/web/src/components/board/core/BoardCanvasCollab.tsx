@@ -315,6 +315,25 @@ export function BoardCanvasCollab({
     mkdirRef.current = mkdirMutation.mutateAsync;
   }, [mkdirMutation.mutateAsync]);
 
+  /** Whether the meta file has been persisted. */
+  const metaPersistedRef = useRef(false);
+
+  /** Persist meta file on first content change. */
+  const persistMetaIfNeeded = useCallback(async (docId: string) => {
+    if (metaPersistedRef.current || !metaFileUri) return;
+    metaPersistedRef.current = true;
+    try {
+      await writeMetaRef.current({
+        workspaceId,
+        projectId,
+        uri: metaFileUri,
+        content: JSON.stringify({ [BOARD_META_DOC_ID_KEY]: docId }, null, 2),
+      });
+    } catch {
+      // 逻辑：写入失败时仍使用内存 docId，避免阻断协作。
+    }
+  }, [metaFileUri, projectId, workspaceId]);
+
   /** Load or create the board doc id persisted in meta file. */
   const readOrCreateDocId = useCallback(async (): Promise<string> => {
     if (!metaFileUri) return createBoardDocId();
@@ -327,22 +346,14 @@ export function BoardCanvasCollab({
         })
       );
       const parsed = parseBoardMeta(result.content ?? "");
-      if (parsed?.docId) return parsed.docId;
+      if (parsed?.docId) {
+        metaPersistedRef.current = true;
+        return parsed.docId;
+      }
     } catch {
-      // 逻辑：缺少 meta 文件时直接生成新的 docId。
+      // 逻辑：缺少 meta 文件时生成内存 docId，延迟到首次修改时写入。
     }
-    const docId = createBoardDocId();
-    try {
-      await writeMetaRef.current({
-        workspaceId,
-        projectId,
-        uri: metaFileUri,
-        content: JSON.stringify({ [BOARD_META_DOC_ID_KEY]: docId }, null, 2),
-      });
-    } catch {
-      // 逻辑：写入失败时仍使用内存 docId，避免阻断协作。
-    }
-    return docId;
+    return createBoardDocId();
   }, [metaFileUri, projectId, queryClient, workspaceId]);
 
   /** Resolve a unique asset file name inside the board folder. */
@@ -628,6 +639,8 @@ export function BoardCanvasCollab({
       applyingRemoteRef.current = false;
     };
 
+    let resolvedDocId = "";
+
     /** Schedule a doc write for the latest engine state. */
     const scheduleDocSync = () => {
       if (applyingRemoteRef.current) return;
@@ -635,6 +648,10 @@ export function BoardCanvasCollab({
       const revision = engine.doc.getRevision();
       if (revision === lastRevisionRef.current) return;
       lastRevisionRef.current = revision;
+      // 逻辑：首次内容变更时才持久化 meta 文件，避免空画布创建文件。
+      if (resolvedDocId) {
+        void persistMetaIfNeeded(resolvedDocId);
+      }
       if (syncRafRef.current !== null) return;
       syncRafRef.current = window.requestAnimationFrame(() => {
         syncRafRef.current = null;
@@ -650,6 +667,7 @@ export function BoardCanvasCollab({
 
     const start = async () => {
       const docId = await readOrCreateDocId();
+      resolvedDocId = docId;
       if (disposed) return;
       doc = new Y.Doc();
       awareness = new Awareness(doc);

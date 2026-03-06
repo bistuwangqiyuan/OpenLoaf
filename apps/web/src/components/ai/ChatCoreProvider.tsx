@@ -31,7 +31,9 @@ import type { ImageGenerateOptions } from "@openloaf/api/types/image";
 import type { CodexOptions } from "@/lib/chat/codex-options";
 import type { ClaudeCodeOptions } from "@/lib/chat/claude-code-options";
 import type { ChatMessageKind } from "@openloaf/api";
-import { SUMMARY_HISTORY_COMMAND, SUMMARY_TITLE_COMMAND } from "@openloaf/api/common";
+import i18next from "i18next";
+import { SUMMARY_HISTORY_COMMAND, SUMMARY_TITLE_COMMAND, TEMP_CHAT_TAB_INPUT } from "@openloaf/api/common";
+import { useNavigation } from "@/hooks/use-navigation";
 import { invalidateChatSessions } from "@/hooks/use-chat-sessions";
 import { incrementChatPerf } from "@/lib/chat/chat-perf";
 import { handleSubAgentToolParts } from "@/lib/chat/sub-agent-tool-parts";
@@ -1083,6 +1085,30 @@ export default function ChatCoreProvider({
       ) {
         // 中文注释：首条用户消息完成后刷新会话列表，展示标题。
         pendingInitialTitleRefreshRef.current = true;
+
+        // sidebar 联动：根据是否有项目上下文切换 sidebar tab
+        const nav = useNavigation.getState();
+        const currentProjectId = paramsRef.current?.projectId;
+
+        if (typeof currentProjectId === "string" && currentProjectId.trim()) {
+          nav.setSidebarTab("project");
+          nav.setActiveProject(currentProjectId.trim());
+        } else {
+          nav.setSidebarTab("chat");
+          nav.setActiveWorkspaceChat(sessionIdRef.current);
+        }
+
+        // 修改 tab 标题（打破"临时对话"单例匹配，使下次点击 AI 助手创建新 tab）
+        const currentTabId = tabIdRef.current;
+        if (currentTabId) {
+          const tempTitle = i18next.t(TEMP_CHAT_TAB_INPUT.titleKey);
+          const tab = useTabs.getState().getTabById(currentTabId);
+          if (tab && tab.title === tempTitle) {
+            const userText = getMessagePlainText(nextMessage);
+            const truncated = userText.slice(0, 30).trim() || "新对话";
+            useTabs.getState().setTabTitle(currentTabId, truncated);
+          }
+        }
       }
 
       pendingUserMessageIdRef.current = String(nextMessage.id);

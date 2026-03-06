@@ -1039,12 +1039,20 @@ function hasUniformSpacing(
 }
 
 /** Build mindmap layout controls for root nodes. */
+/** Node types that should never show mindmap layout controls. */
+const MINDMAP_LAYOUT_EXCLUDED_TYPES = new Set([
+  "image_generate",
+  "video_generate",
+  "image_prompt_generate",
+]);
+
 function buildMindmapLayoutItems(
   t: TFunction,
   engine: CanvasEngine,
   element: CanvasNodeElement,
   snapshot: CanvasSnapshot
 ): CanvasToolbarItem[] {
+  if (MINDMAP_LAYOUT_EXCLUDED_TYPES.has(element.type)) return [];
   const meta = element.meta as Record<string, unknown> | undefined;
   if (Boolean(meta?.[MINDMAP_META.ghost])) return [];
   const inbound = snapshot.elements.filter(item => {

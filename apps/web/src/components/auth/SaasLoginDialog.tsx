@@ -92,6 +92,8 @@ export function SaasLoginDialog({ open, onOpenChange }: SaasLoginDialogProps) {
       cancelLogin();
       setSelectedProvider(null);
     } else if (wasOpen) {
+      // 关闭时停止轮询，避免后台持续请求 login-code。
+      cancelLogin();
       // 关闭动画期间保持当前 UI 不变，仅延迟清除 isClosing 标记。
       setIsClosing(true);
       clearCloseTimer();

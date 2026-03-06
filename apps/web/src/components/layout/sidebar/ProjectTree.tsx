@@ -1830,7 +1830,7 @@ export const PageTreeMenu = ({
       ) : null}
       {/* 逻辑：项目列表末尾追加操作条入口，复用外层弹窗逻辑。 */}
       <SidebarMenuItem>
-        <div className="w-full px-2 pt-2">
+        <div className="w-full px-1 pt-1">
           <Button
             type="button"
             variant="ghost"

@@ -318,7 +318,7 @@ export function registerDefaultFrontendToolHandlers(executor: FrontendToolExecut
         sourceKey: BROWSER_WINDOW_PANEL_ID,
         params: { __customHeader: true, __open: { url: normalizedUrl, title, viewKey } },
       } as any,
-      100,
+      70,
     );
 
     const recent = resolveFileEntryFromUrl({ url: normalizedUrl, tabId });

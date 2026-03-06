@@ -11,10 +11,11 @@
 
 import { startTransition, useCallback } from "react";
 import { useQuery, skipToken } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { SidebarProject } from "@/components/layout/sidebar/SidebarProject";
-import { WorkspaceChatList } from "@/components/layout/sidebar/WorkspaceChatList";
+import { WorkspaceMixedList } from "@/components/layout/sidebar/WorkspaceMixedList";
 import { SidebarWorkspace } from "../../workspace/SidebarWorkspace";
 import {
   Sidebar,
@@ -25,13 +26,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@openloaf/ui/sidebar";
-import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, PenTool, Sparkles } from "lucide-react";
+import { Tab } from "@openloaf/ui/pricing-tab";
+import { CalendarDays, Clock, FolderOpen, Inbox, LayoutDashboard, LayoutTemplate, Mail, MessageSquare, PenTool, Sparkles } from "lucide-react";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
-import { AI_ASSISTANT_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
+import { AI_ASSISTANT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT, TEMP_CHAT_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { trpc } from "@/utils/trpc";
@@ -87,6 +89,9 @@ export const AppSidebar = ({
   const setTabBase = useTabRuntime((s) => s.setTabBase);
   const clearStack = useTabRuntime((s) => s.clearStack);
   const setActiveView = useNavigation((s) => s.setActiveView);
+  const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat);
+  const sidebarTab = useNavigation((s) => s.sidebarTab);
+  const setSidebarTab = useNavigation((s) => s.setSidebarTab);
   const isNarrow = useIsNarrowScreen(900);
   // 未读邮件数量查询。
   const unreadCountQuery = useQuery(
@@ -109,9 +114,6 @@ export const AppSidebar = ({
   // 逻辑：任务状态变更 toast 通知。
   useTaskNotifications();
 
-  // 逻辑：窄屏直接隐藏侧边栏，避免占用可用空间。
-  if (isNarrow) return null;
-
   const activeTab =
     activeWorkspace && activeTabId
       ? tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id)
@@ -124,7 +126,6 @@ export const AppSidebar = ({
     if (input.component === "ai-chat" && !activeBaseId && activeTab.title === input.title) return true;
     return false;
   };
-
 
   const openSingletonTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
@@ -244,30 +245,66 @@ export const AppSidebar = ({
     ],
   );
 
-  /** Open a new canvas board (files created lazily on first edit). */
-  const handleCreateCanvas = useCallback(() => {
+  const openTempChat = useCallback(() => {
+    if (!activeWorkspace) return;
+    const tabTitle = i18next.t(TEMP_CHAT_TAB_INPUT.titleKey);
+
+    const state = useTabs.getState();
+    const rtById = useTabRuntime.getState().runtimeByTabId;
+    const existing = state.tabs.find((tab) => {
+      if (tab.workspaceId !== activeWorkspace.id) return false;
+      if (rtById[tab.id]?.base) return false;
+      return tab.title === tabTitle;
+    });
+
+    if (existing) {
+      startTransition(() => setActiveTab(existing.id));
+    } else {
+      addTab({
+        workspaceId: activeWorkspace.id,
+        createNew: true,
+        title: tabTitle,
+        icon: TEMP_CHAT_TAB_INPUT.icon,
+        leftWidthPercent: 0,
+        rightChatCollapsed: false,
+      });
+    }
+
+    setActiveWorkspaceChat(null);
+    setActiveView('ai-assistant');
+  }, [activeWorkspace, addTab, setActiveTab, setActiveView, setActiveWorkspaceChat]);
+
+  const openTempCanvas = useCallback(() => {
     if (!activeWorkspace) return;
     const rootUri = activeWorkspace.rootUri;
     if (!rootUri) return;
-    const boardName = `board_${Date.now()}`;
+    const tabTitle = i18next.t(TEMP_CANVAS_TAB_INPUT.titleKey);
+
+    const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const canvasLabel = i18next.t("nav:canvasList.defaultName");
+    const boardName = `tnboard_${canvasLabel}_${randomSuffix}`;
     const boardFolderUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}`);
     const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_META_FILE_NAME}`);
     addTab({
       workspaceId: activeWorkspace.id,
       createNew: true,
-      title: "智能画布",
-      icon: "🎨",
+      title: tabTitle,
+      icon: TEMP_CANVAS_TAB_INPUT.icon,
       leftWidthPercent: 100,
       base: {
         id: `board:${boardFolderUri}`,
         component: "board-viewer",
-        params: {
-          boardFolderUri,
-          boardFileUri,
-        },
+        params: { boardFolderUri, boardFileUri },
       },
     });
-  }, [activeWorkspace, addTab]);
+
+    setActiveWorkspaceChat(null);
+    setActiveView('canvas' as any);
+    setSidebarTab('chat');
+  }, [activeWorkspace, addTab, setActiveView, setActiveWorkspaceChat, setSidebarTab]);
+
+  // 逻辑：窄屏直接隐藏侧边栏，避免占用可用空间。
+  if (isNarrow) return null;
 
   return (
     <Sidebar
@@ -313,12 +350,13 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('aiAssistant')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.aiAssistant}
-              isActive={isMenuActive(AI_ASSISTANT_TAB_INPUT)}
-              onClick={() => {
-                if (!activeWorkspace) return;
-                setActiveView('ai-assistant');
-                openSingletonTab(AI_ASSISTANT_TAB_INPUT);
-              }}
+              isActive={(() => {
+                if (!activeTab) return false;
+                const tempTitle = i18next.t(TEMP_CHAT_TAB_INPUT.titleKey);
+                if (!runtimeByTabId[activeTab.id]?.base && activeTab.title === tempTitle) return true;
+                return isMenuActive(AI_ASSISTANT_TAB_INPUT);
+              })()}
+              onClick={openTempChat}
               type="button"
             >
               <Sparkles className="h-4 w-4" />
@@ -327,13 +365,22 @@ export const AppSidebar = ({
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip="智能画布"
+              tooltip={t('smartCanvas')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.canvas}
-              onClick={handleCreateCanvas}
+              isActive={(() => {
+                if (!activeTab) return false;
+                const base = runtimeByTabId[activeTab.id]?.base;
+                if (base?.component === "board-viewer") {
+                  const tempTitle = i18next.t(TEMP_CANVAS_TAB_INPUT.titleKey);
+                  if (activeTab.title === tempTitle) return true;
+                }
+                return false;
+              })()}
+              onClick={openTempCanvas}
               type="button"
             >
               <PenTool className="h-4 w-4" />
-              <span className="flex-1 truncate">智能画布</span>
+              <span className="flex-1 truncate">{t('smartCanvas')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -484,17 +531,48 @@ export const AppSidebar = ({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="flex flex-col overflow-hidden">
-        <div
-          className="flex-1 min-h-0 flex flex-col overflow-hidden"
-          style={{ "--sidebar-accent": "var(--sidebar-project-accent)", "--sidebar-accent-foreground": "var(--sidebar-project-accent-fg)" } as React.CSSProperties}
-        >
-          <SidebarProject />
-        </div>
-        {activeWorkspace && (
-          <div className="flex-1 min-h-0 flex flex-col border-t overflow-hidden">
-            <WorkspaceChatList workspaceId={activeWorkspace.id} />
+        <div className="shrink-0 mt-2 border-t border-sidebar-border px-2 pt-3 pb-1">
+          <div className="flex w-full rounded-full bg-sidebar-accent p-0.5">
+            <Tab text="project" selected={sidebarTab === "project"} setSelected={setSidebarTab as (text: string) => void} color="sky" layoutId="sidebar-tab">
+              <FolderOpen className="h-3.5 w-3.5" />
+              {t('project')}
+            </Tab>
+            <Tab text="chat" selected={sidebarTab === "chat"} setSelected={setSidebarTab as (text: string) => void} color="sky" layoutId="sidebar-tab">
+              <MessageSquare className="h-3.5 w-3.5" />
+              {t('chat')}
+            </Tab>
           </div>
-        )}
+        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {sidebarTab === "project" ? (
+            <motion.div
+              key="project"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
+              style={{ "--sidebar-accent": "var(--sidebar-project-accent)", "--sidebar-accent-foreground": "var(--sidebar-project-accent-fg)" } as React.CSSProperties}
+            >
+              <SidebarProject />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
+            >
+              {activeWorkspace && (
+                <div className="flex flex-col h-full overflow-y-auto">
+                  <WorkspaceMixedList workspaceId={activeWorkspace.id} />
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </SidebarContent>
       <SidebarFooter />
 

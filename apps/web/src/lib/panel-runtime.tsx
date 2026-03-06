@@ -19,6 +19,7 @@ import { TabActiveProvider } from "@/components/layout/TabActiveContext";
 import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
+import { createStore, useStore } from "zustand";
 
 type PanelSide = "left" | "right";
 type ThemeSelection = "light" | "dark" | "system";
@@ -31,6 +32,13 @@ function normalizeThemeSelection(value: unknown): ThemeSelection | null {
   return null;
 }
 
+type PanelActiveState = { active: boolean };
+type PanelActiveStore = ReturnType<typeof createPanelActiveStore>;
+
+function createPanelActiveStore(initial: boolean) {
+  return createStore<PanelActiveState>(() => ({ active: initial }));
+}
+
 type PanelEntry = {
   tabId: string;
   side: PanelSide;
@@ -38,6 +46,7 @@ type PanelEntry = {
   root: Root;
   element: React.ReactElement | null;
   active: boolean;
+  activeStore: PanelActiveStore;
 };
 
 type PanelHost = {
@@ -152,7 +161,14 @@ class PanelErrorBoundary extends React.Component<
 }
 
 // Provide shared providers for panel roots.
-function PanelProviders({ children }: { children: React.ReactNode }) {
+function PanelProviders({
+  children,
+  activeStore,
+}: {
+  children: React.ReactNode;
+  activeStore: PanelActiveStore;
+}) {
+  const active = useStore(activeStore, (s) => s.active);
   return (
     <ThemeProvider
       attribute="class"
@@ -163,7 +179,9 @@ function PanelProviders({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ThemeSettingsBootstrap />
         <WorkspaceProvider>
-          <PanelErrorBoundary>{children}</PanelErrorBoundary>
+          <PanelErrorBoundary>
+            <TabActiveProvider active={active}>{children}</TabActiveProvider>
+          </PanelErrorBoundary>
         </WorkspaceProvider>
       </QueryClientProvider>
     </ThemeProvider>
@@ -197,6 +215,7 @@ function ensurePanelEntry(side: PanelSide, tabId: string) {
     root,
     element: null,
     active: false,
+    activeStore: createPanelActiveStore(false),
   };
   host.panels.set(tabId, entry);
   return entry;
@@ -247,9 +266,10 @@ export function renderPanel(
   if (!entry) return;
   entry.element = element;
   entry.active = active;
+  entry.activeStore.setState({ active });
   entry.root.render(
-    <PanelProviders>
-      <TabActiveProvider active={active}>{element}</TabActiveProvider>
+    <PanelProviders activeStore={entry.activeStore}>
+      {element}
     </PanelProviders>,
   );
   applyPanelVisibility(entry);
@@ -266,13 +286,7 @@ export function setPanelActive(side: PanelSide, tabId: string, active: boolean) 
     return;
   }
   entry.active = active;
-  if (entry.element) {
-    entry.root.render(
-      <PanelProviders>
-        <TabActiveProvider active={active}>{entry.element}</TabActiveProvider>
-      </PanelProviders>,
-    );
-  }
+  entry.activeStore.setState({ active });
   applyPanelVisibility(entry);
 }
 

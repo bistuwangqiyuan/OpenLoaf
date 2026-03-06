@@ -26,7 +26,7 @@ export function handleUiEvent(event: UiEvent | undefined) {
     [UiEventKind.PushStackItem]: (
       e: Extract<UiEvent, { kind: UiEventKind.PushStackItem }>,
     ) => {
-      useTabRuntime.getState().pushStackItem(e.tabId, e.item, 100);
+      useTabRuntime.getState().pushStackItem(e.tabId, e.item, 70);
     },
     [UiEventKind.CloseStack]: (
       e: Extract<UiEvent, { kind: UiEventKind.CloseStack }>,

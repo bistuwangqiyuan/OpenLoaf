@@ -126,7 +126,7 @@ export function registerChatAttachmentRoutes(app: Hono) {
     const zipped = await buildZipFromEntries(files);
     const exportMode = compactMode ? "compact" : "full";
     const filename = `${sessionId}-${exportMode}.zip`;
-    return c.body(zipped, 200, {
+    return c.body(new Uint8Array(zipped) as Uint8Array<ArrayBuffer>, 200, {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "X-OpenLoaf-Export-Mode": exportMode,

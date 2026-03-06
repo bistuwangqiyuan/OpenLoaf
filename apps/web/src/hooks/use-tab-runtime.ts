@@ -358,6 +358,8 @@ export const useTabRuntime = create<TabRuntimeState>()(
                 ]
               : nextStack;
 
+          // 中文注释：stack 打开时默认左侧 70%、右侧 chat 30%。
+          const STACK_DEFAULT_PERCENT = 70;
           const nextRuntime = normalizeRuntime({
             ...current,
             stack: normalizedStack,
@@ -368,7 +370,7 @@ export const useTabRuntime = create<TabRuntimeState>()(
                 ? percent!
                 : current.leftWidthPercent > 0
                   ? current.leftWidthPercent
-                  : LEFT_DOCK_DEFAULT_PERCENT,
+                  : STACK_DEFAULT_PERCENT,
             ),
             // 中文注释：打开画布时记录右侧栏原状态，并强制收起右侧栏。
             rightChatCollapsed: shouldRestoreFull

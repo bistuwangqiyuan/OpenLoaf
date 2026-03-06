@@ -22,7 +22,7 @@ import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { SettingsDialog } from "@/components/setting/SettingsDialog";
 import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { motion } from "motion/react";
-import { useCallback, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
@@ -66,10 +66,24 @@ export const Header = () => {
   const { toggleSidebar, open: leftOpen } = useSidebar();
   const setHeaderActionsTarget = useHeaderSlot((s) => s.setHeaderActionsTarget);
   const setHeaderTitleExtraTarget = useHeaderSlot((s) => s.setHeaderTitleExtraTarget);
+  const [actionsNode, setActionsNode] = useState<HTMLDivElement | null>(null);
   const headerActionsRef = useCallback(
-    (node: HTMLDivElement | null) => setHeaderActionsTarget(node),
+    (node: HTMLDivElement | null) => {
+      setHeaderActionsTarget(node);
+      setActionsNode(node);
+    },
     [setHeaderActionsTarget],
   );
+  const [hasActions, setHasActions] = useState(false);
+  useEffect(() => {
+    if (!actionsNode) { setHasActions(false); return; }
+    const observer = new MutationObserver(() => {
+      setHasActions(actionsNode.childElementCount > 0);
+    });
+    observer.observe(actionsNode, { childList: true });
+    setHasActions(actionsNode.childElementCount > 0);
+    return () => observer.disconnect();
+  }, [actionsNode]);
   const headerTitleExtraRef = useCallback(
     (node: HTMLDivElement | null) => setHeaderTitleExtraTarget(node),
     [setHeaderTitleExtraTarget],
@@ -191,7 +205,7 @@ export const Header = () => {
         />
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">
-        <div className="mx-1 h-5 w-px bg-foreground/20" />
+        {hasActions && <div className="mx-1 h-5 w-px bg-foreground/20" />}
         <div data-no-drag="true">
           <ModeToggle />
         </div>

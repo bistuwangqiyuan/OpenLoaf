@@ -17,7 +17,6 @@ import { useProjects } from "@/hooks/use-projects";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuSkeleton,
   SidebarMenuSub,
@@ -42,7 +41,7 @@ import { Label } from "@openloaf/ui/label";
 import { PageTreeMenu } from "./ProjectTree";
 import { toast } from "sonner";
 import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
-import { CheckCircle2, ClipboardCopy, FolderOpen, FolderPlus, GitBranch, Plus, RotateCw, Square } from "lucide-react";
+import { CheckCircle2, ClipboardCopy, FolderOpen, FolderPlus, GitBranch, RotateCw, Square } from "lucide-react";
 
 /** Project tree loading skeleton. */
 const ProjectTreeSkeleton = () => (
@@ -283,18 +282,7 @@ export const SidebarProject = () => {
         <ContextMenuTrigger asChild>
           <div className="flex h-full flex-col">
               <SidebarGroup className="group pt-0 flex flex-col flex-1 min-h-0">
-                  <SidebarGroupLabel className="shrink-0 flex items-center justify-between">
-                    <span className="text-muted-foreground">{t('sidebar.projectFolder')}</span>
-                    <button
-                      type="button"
-                      onClick={() => openAddDialog()}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
-                      title={t('sidebar.addProject')}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </SidebarGroupLabel>
-                  <div className="flex-1 overflow-y-auto min-h-0">
+                      <div className="flex-1 overflow-y-auto min-h-0">
                     <SidebarMenu>
                       {projectListQuery.isLoading || isManualRefresh ? (
                         <ProjectTreeSkeleton />

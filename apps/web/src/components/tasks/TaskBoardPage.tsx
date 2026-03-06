@@ -24,8 +24,11 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@openloaf/ui/context-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@openloaf/ui/popover'
+import { Checkbox } from '@openloaf/ui/checkbox'
 import { cn } from '@/lib/utils'
 import {
+  ArrowLeftRight,
   CheckCircle2,
   Circle,
   Clock,
@@ -310,7 +313,7 @@ const TaskCard = memo(function TaskCard({
       ref={setNodeRef}
       {...(isDraggable ? { ...listeners, ...attributes } : {})}
       className={cn(
-        'group cursor-pointer rounded-lg border bg-card p-3 shadow-sm transition-colors hover:bg-accent/50',
+        'group cursor-pointer rounded-lg border bg-card p-3 shadow-none transition-colors hover:bg-accent/50',
         isDragging && 'opacity-50',
         isDraggable && 'touch-none',
       )}
@@ -459,6 +462,7 @@ function KanbanColumn({
   onResolveReview,
   onCancel,
   onOpenDetail,
+  headerExtra,
 }: {
   status: TaskStatus
   label: string
@@ -467,6 +471,7 @@ function KanbanColumn({
   onResolveReview: (id: string, action: 'approve' | 'reject' | 'rework') => void
   onCancel: (id: string) => void
   onOpenDetail: (id: string) => void
+  headerExtra?: React.ReactNode
 }) {
   const { t } = useTranslation('tasks')
   const colors = STATUS_FLAT_COLORS[status]
@@ -480,6 +485,7 @@ function KanbanColumn({
       <div className="mb-3 flex items-center gap-2 px-1">
         <Icon className={cn('h-4 w-4', colors.icon)} />
         <span className="text-sm font-medium">{label}</span>
+        {headerExtra}
         <Badge variant="secondary" className={cn('ml-auto border-0 text-[10px]', colors.badge)}>
           {tasks.length}
         </Badge>
@@ -547,8 +553,11 @@ function FilterBar({
     }
   }
 
+  const priorityCount = priorityFilter.length
+  const triggerCount = triggerFilter.length
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-2">
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5f6368] dark:text-slate-400" />
         <Input
@@ -558,48 +567,106 @@ function FilterBar({
           className="h-7 w-44 rounded-full border-transparent bg-[#edf2fa] pl-8 text-xs text-[#1f1f1f] placeholder:text-[#5f6368] focus-visible:border-[#d2e3fc] focus-visible:ring-[rgba(26,115,232,0.22)] dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-100 dark:placeholder:text-slate-400"
         />
       </div>
-      <div className="flex items-center gap-1">
-        <Filter className="h-3.5 w-3.5 text-[#5f6368] dark:text-slate-400" />
-        {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((p) => {
-          const isActive = priorityFilter.includes(p)
-          const colors = PRIORITY_FILTER_COLORS[p]
-          return (
-            <button
-              key={p}
-              type="button"
-              className={cn(
-                'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors duration-150',
-                'border border-transparent',
-                isActive ? colors.active : colors.inactive,
-              )}
-              onClick={() => togglePriority(p)}
-            >
-              {PRIORITY_LABELS[p]}
-            </button>
-          )
-        })}
-      </div>
-      <div className="h-3.5 w-px bg-[#e3e8ef] dark:bg-slate-700" />
-      <div className="flex items-center gap-1">
-        {(['manual', 'scheduled', 'condition'] as TriggerMode[]).map((t) => {
-          const isActive = triggerFilter.includes(t)
-          const colors = TRIGGER_FILTER_COLORS[t]
-          return (
-            <button
-              key={t}
-              type="button"
-              className={cn(
-                'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors duration-150',
-                'border border-transparent',
-                isActive ? colors.active : colors.inactive,
-              )}
-              onClick={() => toggleTrigger(t)}
-            >
-              {TRIGGER_LABELS[t]}
-            </button>
-          )
-        })}
-      </div>
+
+      {/* Priority filter dropdown */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
+              'border border-transparent',
+              priorityCount > 0
+                ? 'bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc] dark:bg-sky-900/40 dark:text-sky-300 dark:hover:bg-sky-900/60'
+                : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e3e5e8] dark:bg-slate-800/30 dark:text-slate-400 dark:hover:bg-slate-800/50',
+            )}
+          >
+            <Filter className="h-3 w-3" />
+            {tl('filter.priority')}
+            {priorityCount > 0 && (
+              <span className="ml-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-white/25 px-1 text-[10px]">
+                {priorityCount}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-40 p-1.5">
+          {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((p) => {
+            const isActive = priorityFilter.includes(p)
+            const colors = PRIORITY_FILTER_COLORS[p]
+            return (
+              <label
+                key={p}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent"
+              >
+                <Checkbox
+                  checked={isActive}
+                  onCheckedChange={() => togglePriority(p)}
+                  className="h-3.5 w-3.5"
+                />
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                    isActive ? colors.active : colors.inactive,
+                  )}
+                >
+                  {PRIORITY_LABELS[p]}
+                </span>
+              </label>
+            )
+          })}
+        </PopoverContent>
+      </Popover>
+
+      {/* Trigger mode filter dropdown */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
+              'border border-transparent',
+              triggerCount > 0
+                ? 'bg-[#f3e8fd] text-[#9334e6] hover:bg-[#e9d5fb] dark:bg-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-900/60'
+                : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e3e5e8] dark:bg-slate-800/30 dark:text-slate-400 dark:hover:bg-slate-800/50',
+            )}
+          >
+            <Filter className="h-3 w-3" />
+            {tl('filter.triggerMode')}
+            {triggerCount > 0 && (
+              <span className="ml-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-white/25 px-1 text-[10px]">
+                {triggerCount}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-40 p-1.5">
+          {(['manual', 'scheduled', 'condition'] as TriggerMode[]).map((t) => {
+            const isActive = triggerFilter.includes(t)
+            const colors = TRIGGER_FILTER_COLORS[t]
+            return (
+              <label
+                key={t}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent"
+              >
+                <Checkbox
+                  checked={isActive}
+                  onCheckedChange={() => toggleTrigger(t)}
+                  className="h-3.5 w-3.5"
+                />
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                    isActive ? colors.active : colors.inactive,
+                  )}
+                >
+                  {TRIGGER_LABELS[t]}
+                </span>
+              </label>
+            )
+          })}
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }
@@ -624,6 +691,7 @@ export default function TaskBoardPage({
   const [triggerFilter, setTriggerFilter] = useState<TriggerMode[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showCancelled, setShowCancelled] = useState(false)
 
   const priorityLabels = useMemo(() => getPriorityLabels(t), [t])
   const triggerLabels = useMemo(() => getTriggerLabels(t), [t])
@@ -780,7 +848,7 @@ export default function TaskBoardPage({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-2">
+      <div className="flex items-center gap-3 border-b px-4 py-2">
         <h2 className="shrink-0 text-sm font-semibold">{t('task.board')}</h2>
         <FilterBar
           search={search}
@@ -860,18 +928,48 @@ export default function TaskBoardPage({
             onDragEnd={handleDragEnd}
           >
             <div className="flex h-full gap-4">
-              {statusColumns.map(({ status, label, icon }) => (
-                <KanbanColumn
-                  key={status}
-                  status={status}
-                  label={label}
-                  icon={icon}
-                  tasks={groupedTasks[status] ?? []}
-                  onResolveReview={onResolveReview}
-                  onCancel={onCancel}
-                  onOpenDetail={onOpenDetail}
-                />
-              ))}
+              {statusColumns.map(({ status, label, icon }) => {
+                // 最后一列（done）支持切换为 cancelled
+                if (status === 'done') {
+                  const finalStatus = showCancelled ? 'cancelled' : 'done'
+                  const finalLabel = showCancelled ? t('status.cancelled') : label
+                  const FinalIcon = showCancelled ? XCircle : icon
+                  return (
+                    <KanbanColumn
+                      key="done-cancelled"
+                      status={finalStatus}
+                      label={finalLabel}
+                      icon={FinalIcon}
+                      tasks={groupedTasks[finalStatus] ?? []}
+                      onResolveReview={onResolveReview}
+                      onCancel={onCancel}
+                      onOpenDetail={onOpenDetail}
+                      headerExtra={
+                        <button
+                          type="button"
+                          className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          onClick={() => setShowCancelled((v) => !v)}
+                          title={showCancelled ? t('status.done') : t('status.cancelled')}
+                        >
+                          <ArrowLeftRight className="h-3 w-3" />
+                        </button>
+                      }
+                    />
+                  )
+                }
+                return (
+                  <KanbanColumn
+                    key={status}
+                    status={status}
+                    label={label}
+                    icon={icon}
+                    tasks={groupedTasks[status] ?? []}
+                    onResolveReview={onResolveReview}
+                    onCancel={onCancel}
+                    onOpenDetail={onOpenDetail}
+                  />
+                )
+              })}
             </div>
             <DragOverlay>
               {activeTask ? (

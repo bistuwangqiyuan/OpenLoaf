@@ -15,6 +15,7 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { promisify } from 'node:util'
 import zlib from 'node:zlib'
+import { resolveOpenLoafDbPath } from '@openloaf/config'
 
 const execFileAsync = promisify(execFile)
 import type { Logger } from './logging/startupLogger'
@@ -732,6 +733,12 @@ export async function checkForIncrementalUpdates(
     const preUpdateLocal = { ...local }
     const preUpdateServerVersion = resolveCurrentVersion('server', preUpdateLocal)
     const preUpdateWebVersion = resolveCurrentVersion('web', preUpdateLocal)
+
+    // server 更新前备份数据库（新 server 可能包含 schema 迁移）
+    if (remote.server && isRemoteNewer(currentServerVersion, remote.server.version)) {
+      backupDatabase(log)
+    }
+
     // 下载并应用更新
     if (remote.server) {
       if (isRemoteNewer(currentServerVersion, remote.server.version)) {
@@ -814,12 +821,81 @@ export function resetToBuiltinVersion(): IncrementalUpdateResult {
 }
 
 // ---------------------------------------------------------------------------
+// 数据库备份与恢复
+// ---------------------------------------------------------------------------
+
+const DB_BACKUP_SUFFIX = '.pre-update.bak'
+
+/**
+ * 在 server 增量更新前备份数据库。
+ * 如果新 server 包含 schema 迁移且迁移失败，可通过 restoreDatabase 恢复。
+ */
+function backupDatabase(log: Logger): void {
+  try {
+    const dbPath = resolveOpenLoafDbPath()
+    if (!dbPath || !fs.existsSync(dbPath)) return
+
+    const backupPath = dbPath + DB_BACKUP_SUFFIX
+    fs.copyFileSync(dbPath, backupPath)
+    // WAL 模式下可能存在 -wal 和 -shm 文件
+    for (const ext of ['-wal', '-shm']) {
+      const walPath = dbPath + ext
+      if (fs.existsSync(walPath)) {
+        fs.copyFileSync(walPath, backupPath + ext)
+      }
+    }
+    log(`[incremental-update] Database backed up to ${backupPath}`)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    log(`[incremental-update] Warning: database backup failed: ${msg}`)
+  }
+}
+
+/**
+ * server 崩溃回滚时恢复数据库备份。
+ */
+function restoreDatabase(log: Logger): void {
+  try {
+    const dbPath = resolveOpenLoafDbPath()
+    if (!dbPath) return
+
+    const backupPath = dbPath + DB_BACKUP_SUFFIX
+    if (!fs.existsSync(backupPath)) {
+      log('[incremental-update] No database backup found to restore.')
+      return
+    }
+
+    fs.copyFileSync(backupPath, dbPath)
+    for (const ext of ['-wal', '-shm']) {
+      const backupWal = backupPath + ext
+      const walPath = dbPath + ext
+      if (fs.existsSync(backupWal)) {
+        fs.copyFileSync(backupWal, walPath)
+      } else if (fs.existsSync(walPath)) {
+        fs.rmSync(walPath, { force: true })
+      }
+    }
+    log(`[incremental-update] Database restored from backup.`)
+
+    // 清理备份文件
+    fs.rmSync(backupPath, { force: true })
+    for (const ext of ['-wal', '-shm']) {
+      fs.rmSync(backupPath + ext, { force: true })
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    log(`[incremental-update] Warning: database restore failed: ${msg}`)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Server 崩溃回滚
 // ---------------------------------------------------------------------------
 
 /**
  * 当 server 子进程崩溃时调用此函数。
  * 立即删除增量更新的 server，回退到打包版本，并将崩溃版本加入黑名单。
+ * 同时恢复更新前的数据库备份。
  */
 export function recordServerCrash(): ServerCrashResult {
   const serverCurrentDir = path.join(updatesRoot(), 'server', 'current')
@@ -833,7 +909,11 @@ export function recordServerCrash(): ServerCrashResult {
     } catch (rmErr) {
       const msg = rmErr instanceof Error ? rmErr.message : String(rmErr)
       cachedLog?.(`[incremental-update] Warning: failed to remove crashed server dir: ${msg}`)
-      // 即使删除失败也继续更新 local manifest，下次启动会回退到 bundled
+    }
+
+    // 恢复更新前的数据库备份（新 server 的迁移可能已修改了 schema）
+    if (cachedLog) {
+      restoreDatabase(cachedLog)
     }
 
     // 将崩溃版本加入黑名单，防止再次自动升级到同一版本

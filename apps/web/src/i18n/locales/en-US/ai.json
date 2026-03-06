@@ -308,7 +308,15 @@
     "approvalRejected": "Rejected",
     "rejected": "Rejected",
     "outputLoading": "Loading output…",
-    "confirmExec": "Confirm executing this command?"
+    "confirmExec": "Confirm executing this command?",
+    "processing": "Processing...",
+    "thinkingStreaming": "Thinking...",
+    "thinkingDone": "Thought",
+    "thinkingDuration": "Thought for {{duration}}s",
+    "thinkingAnalyzing": "Analyzing context and generating plan, please wait...",
+    "sourcesTitle": "Sources",
+    "revisedPrompt": "Revised prompt",
+    "needsApproval": "Approval required:"
   },
   "error": {
     "title": "An error occurred",

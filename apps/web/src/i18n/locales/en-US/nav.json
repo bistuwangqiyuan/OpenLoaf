@@ -1,6 +1,8 @@
 {
   "search": "Search",
   "aiAssistant": "AI Assistant",
+  "smartCanvas": "Smart Canvas",
+  "save": "Save",
   "workbench": "Workbench",
   "calendar": "Calendar",
   "email": "Mail",
@@ -229,5 +231,19 @@
   "convertFailed": "Conversion failed: {{error}}",
   "project": "Project",
   "chat": "Chat",
-  "newChat": "New Chat"
+  "newChat": "New Chat",
+  "temporaryChat": "Temporary Chat",
+  "canvas": "Canvas",
+  "temporaryCanvas": "Temporary Canvas",
+  "canvasList": {
+    "empty": "No canvases yet",
+    "untitled": "Untitled Canvas",
+    "defaultName": "SmartCanvas",
+    "renameTitle": "Rename Canvas",
+    "renameDesc": "Enter a new name for the canvas, or click the AI button to auto-generate.",
+    "confirmDelete": "Delete this canvas?",
+    "aiName": "AI Name",
+    "aiNameEmpty": "Canvas is empty, cannot generate a name",
+    "aiNameFailed": "AI naming failed, please try again later"
+  }
 }

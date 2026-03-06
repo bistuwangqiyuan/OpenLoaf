@@ -167,6 +167,7 @@
     "remark-mdx": "^3.1.1",
     "rxjs": "^7.8.2",
     "shiki": "^3.23.0",
+    "simplex-noise": "^4.0.3",
     "slate": "^0.123.0",
     "sonner": "^2.0.7",
     "streamdown": "^1.6.11",

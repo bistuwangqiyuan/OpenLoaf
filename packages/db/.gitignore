@@ -6,6 +6,7 @@ out
 dist
 *.tgz
 /prisma/generated
+/src/migrations.generated.ts
 
 # code coverage
 coverage

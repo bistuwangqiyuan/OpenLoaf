@@ -16,17 +16,19 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Message, MessageContent } from "@/components/ai-elements/message";
+import { useTranslation } from "react-i18next";
 
 export default function MessageThinking() {
+  const { t } = useTranslation("ai");
   return (
     <Message from="assistant" className="max-w-[80%] mt-2">
       <MessageContent className="gap-0">
         <Reasoning isStreaming defaultOpen={false} className="mb-0">
           <ReasoningTrigger
-            getThinkingMessage={() => <Shimmer>深度思考中...</Shimmer>}
+            getThinkingMessage={() => <Shimmer>{t("tool.thinkingStreaming")}</Shimmer>}
           />
           <ReasoningContent className="mt-0.5 text-xs text-muted-foreground">
-            {"正在分析上下文并生成计划，请稍候..."}
+            {t("tool.thinkingAnalyzing")}
           </ReasoningContent>
         </Reasoning>
       </MessageContent>

@@ -15,12 +15,18 @@ import {
   httpSubscriptionLink,
 } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import type { ServerAppRouter } from "../../server/src/types/appRouter";
+import type { AppRouter } from "@openloaf/api";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { resolveServerUrl } from "@/utils/server-url";
 
 export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
+  },
   queryCache: new QueryCache({
     onError: (error, query) => {
       toast.error(error.message, {
@@ -37,7 +43,7 @@ export const queryClient = new QueryClient({
 
 const baseUrl = `${resolveServerUrl()}/trpc`;
 
-export const trpcClient = createTRPCClient<ServerAppRouter>({
+export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     splitLink({
       condition: (op) => op.type === "subscription",
@@ -59,7 +65,7 @@ export const trpcClient = createTRPCClient<ServerAppRouter>({
   ],
 });
 
-export const trpc = createTRPCOptionsProxy<ServerAppRouter>({
+export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: trpcClient,
   queryClient,
 });

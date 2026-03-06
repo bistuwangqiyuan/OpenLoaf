@@ -209,7 +209,7 @@ export default function JsxCreateTool({
           }}
         >
           <div className="min-w-0">
-            <JSXPreviewContent />
+            <JSXPreviewContent className="[&>*]:mx-auto" />
           </div>
           <JSXPreviewError className="mt-2 text-xs" />
         </JSXPreview>

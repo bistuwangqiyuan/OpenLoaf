@@ -66,6 +66,6 @@ export function openLinkInStack({ url, title, activeTabId }: OpenLinkInput) {
       sourceKey: BROWSER_WINDOW_PANEL_ID,
       params: { __customHeader: true, __open: { url: trimmedUrl, title: resolvedTitle, viewKey } },
     } as any,
-    100
+    70
   );
 }

@@ -68,6 +68,10 @@
     "high": "高",
     "urgent": "紧急"
   },
+  "filter": {
+    "priority": "优先级",
+    "triggerMode": "触发方式"
+  },
   "triggerMode": {
     "manual": "手动",
     "scheduled": "定时",

@@ -1,6 +1,8 @@
 {
   "search": "搜索",
   "aiAssistant": "AI 助手",
+  "smartCanvas": "智能画布",
+  "save": "保存",
   "workbench": "工作台",
   "calendar": "日历",
   "email": "邮箱",
@@ -229,5 +231,19 @@
   "convertFailed": "转换失败：{{error}}",
   "project": "项目",
   "chat": "对话",
-  "newChat": "新对话"
+  "newChat": "新对话",
+  "temporaryChat": "临时对话",
+  "canvas": "画布",
+  "temporaryCanvas": "临时画布",
+  "canvasList": {
+    "empty": "暂无画布",
+    "untitled": "未命名画布",
+    "defaultName": "智能画布",
+    "renameTitle": "重命名画布",
+    "renameDesc": "输入画布的新名称，或点击 AI 按钮自动生成。",
+    "confirmDelete": "确认删除此画布？",
+    "aiName": "AI 命名",
+    "aiNameEmpty": "画布内容为空，无法生成名称",
+    "aiNameFailed": "AI 命名失败，请稍后重试"
+  }
 }

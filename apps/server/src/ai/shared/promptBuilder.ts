@@ -110,7 +110,7 @@ export function buildProjectRulesSection(context: PromptContext): string {
 /** Build execution rules section. */
 export function buildExecutionRulesSection(): string {
   return [
-    '执行规则（强制）',
+    '执行规则',
     '- 工具优先：先用工具获取事实，再输出结论。',
     '- 工具结果必须先简要总结后再继续下一步。',
     '- 文件与命令工具仅允许访问 projectRootPath 内的路径。',
@@ -123,7 +123,7 @@ export function buildExecutionRulesSection(): string {
 /** Build file reference rules section. */
 export function buildFileReferenceRulesSection(): string {
   return [
-    '# 输入中的文件引用（强制）',
+    '# 输入中的文件引用',
     '- 用户输入里的 `@[...]` 代表文件引用，方括号内为项目相对路径。',
     '- 标准格式：`@[path/to/file]`（默认当前项目根目录）。',
     '- 文件引用必须用 @[...] 方括号包裹，方括号内为项目相对路径。',
@@ -137,7 +137,7 @@ export function buildFileReferenceRulesSection(): string {
 /** Build task delegation rules section. */
 export function buildTaskDelegationRulesSection(): string {
   return [
-    '任务分工（强制）',
+    '任务分工',
     '- 轻量任务由你直接完成。',
     '- 复杂任务必须调用 subAgent 工具。',
     '- 复杂任务判定标准（满足任一条即视为复杂）：',
@@ -152,7 +152,7 @@ export function buildTaskDelegationRulesSection(): string {
 /** Build AGENTS dynamic loading rules section. */
 export function buildAgentsDynamicLoadingSection(): string {
   return [
-    '# AGENTS 动态加载（强制）',
+    '# AGENTS 动态加载',
     '- 当你搜索文件或目录时，若结果所在目录存在 AGENTS.md，必须立即读取并遵守。',
     '- 多层规则冲突时，优先级：更深层目录 > 上层目录 > 根目录。',
   ].join('\n')

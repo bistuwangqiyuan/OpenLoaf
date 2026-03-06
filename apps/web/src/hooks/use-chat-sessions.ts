@@ -130,4 +130,5 @@ export function useWorkspaceChatSessions(input?: { workspaceId?: string }) {
 /** Invalidate session list cache. */
 export function invalidateChatSessions(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: trpc.chat.listSessions.pathKey() });
+  queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.pathKey() });
 }

@@ -826,7 +826,7 @@ export function VideoGenerateNodeView({
                     onUpdate({ promptText: next });
                   }}
                   data-board-scroll
-                  className="h-full min-h-[96px] flex-1 overflow-y-auto border-transparent bg-[#edf2fa] px-3 py-2 text-[13px] leading-5 text-[#202124] shadow-none placeholder:text-[#5f6368] focus-visible:border-[#d2e3fc] focus-visible:ring-1 focus-visible:ring-[rgba(26,115,232,0.22)] dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-100 dark:placeholder:text-slate-400 md:text-[13px]"
+                  className="h-full min-h-[96px] flex-1 overflow-y-auto border-[#d2e3fc]/60 bg-[#edf2fa] px-3 py-2 text-[13px] leading-5 text-[#202124] shadow-none placeholder:text-[#5f6368] focus-visible:border-[#d2e3fc] focus-visible:ring-1 focus-visible:ring-[rgba(26,115,232,0.22)] dark:border-slate-600 dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-100 dark:placeholder:text-slate-400 md:text-[13px]"
                   disabled={isLocked}
                 />
               </div>

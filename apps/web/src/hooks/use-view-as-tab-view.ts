@@ -10,6 +10,7 @@
 "use client";
 
 import * as React from "react";
+import type { DockItem } from "@openloaf/api/common";
 import { useNavigation, getViewKey } from "./use-navigation";
 import type { TabView } from "./tab-types";
 
@@ -45,7 +46,7 @@ export function useViewAsTabView(): TabView | undefined {
 
     // Runtime 字段（LeftDock 主要使用这些）
     base: viewRuntime.leftDock || undefined,
-    stack: viewRuntime.stack || [],
+    stack: (viewRuntime.stack || []) as DockItem[],
     leftWidthPercent: viewRuntime.leftWidthPercent ?? 0,
     minLeftWidth: viewRuntime.minLeftWidth,
     rightChatCollapsed: viewRuntime.rightChatCollapsed ?? false,
@@ -54,14 +55,14 @@ export function useViewAsTabView(): TabView | undefined {
 
     // 其他字段（LeftDock 可能不使用，但需要提供以匹配类型）
     rightChatCollapsedSnapshot: undefined,
-    chatSessionId: undefined,
+    chatSessionId: "",
     chatSessionIds: undefined,
     activeSessionIndex: undefined,
     chatSessionTitles: undefined,
     chatParams: undefined,
     chatLoadHistory: undefined,
     isPin: false,
-    createdAt: undefined,
-    lastActiveAt: undefined,
+    createdAt: 0,
+    lastActiveAt: 0,
   };
 }

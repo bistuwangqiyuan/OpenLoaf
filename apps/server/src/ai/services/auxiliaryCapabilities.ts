@@ -60,6 +60,10 @@ export const CAPABILITY_SCHEMAS = {
     body: z.string().optional().describe('可选的详细说明'),
   }),
 
+  'file.title': z.object({
+    title: z.string().describe('文件或文件夹名称，不超过 15 字'),
+  }),
+
 } as const
 
 /** Inferred TypeScript types for each capability output. */
@@ -177,6 +181,22 @@ export const AUXILIARY_CAPABILITIES: Record<string, AuxiliaryCapability> = {
 - body 仅在变更复杂时提供，解释 why 而非 what`,
     outputSchema: CAPABILITY_SCHEMAS['git.commitMessage'].toJSONSchema(),
   },
+  'file.title': {
+    key: 'file.title',
+    label: '文件命名',
+    description: '根据提供的内容摘要，自动生成一个简短、直观的文件或文件夹名称。',
+    outputMode: 'structured',
+    triggers: ['用户手动触发文件/文件夹重命名'],
+    defaultPrompt: `你是一个命名专家。根据提供的内容摘要，为这个文件或文件夹生成一个简短、准确的名称。
+
+规则：
+- 名称不超过 15 个字
+- 使用内容的主要语言
+- 抓住内容的核心主题或用途
+- 避免使用"未命名"、"新建"等无信息量词汇`,
+    outputSchema: CAPABILITY_SCHEMAS['file.title'].toJSONSchema(),
+  },
+
   'text.translate': {
     key: 'text.translate',
     label: '文本翻译',
@@ -201,6 +221,7 @@ export const CAPABILITY_KEYS = [
   'chat.title',
   'project.ephemeralName',
   'git.commitMessage',
+  'file.title',
   'text.translate',
 ] as const
 

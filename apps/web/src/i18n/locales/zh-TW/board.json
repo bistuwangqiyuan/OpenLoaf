@@ -6,6 +6,10 @@
     "edit": "編輯",
     "delete": "刪除",
     "save": "儲存",
+    "renameCanvas": "重新命名畫布",
+    "renameCanvasPlaceholder": "輸入畫布名稱",
+    "saveToProject": "儲存至專案",
+    "deleteCanvas": "刪除畫布",
     "cancel": "取消",
     "download": "下載",
     "share": "分享",
@@ -233,7 +237,7 @@
       "tooManyImages": "最多支援 {{max}} 張圖片輸入"
     },
     "hints": {
-      "needsPrompt": "需要輸入或連接提示詞後才能生成圖片。",
+      "needsPrompt": "需要連接圖片或者輸入提示詞後才能生成圖片。",
       "tooManyImages": "最多支援 {{max}} 張圖片輸入，已連接 {{connected}} 張。",
       "invalidImage": "存在無法存取的圖片位址，請檢查輸入。",
       "needsModel": "未找到支援「圖片生成」的模型，請先在設定中配置。",
@@ -292,7 +296,7 @@
       "loginHint": "登入OpenLoaf帳號，使用雲端模型後選擇模型"
     },
     "hints": {
-      "needsPrompt": "需要輸入提示詞或連接圖片後才能生成影片。",
+      "needsPrompt": "需要連接圖片或者輸入提示詞後才能生成影片。",
       "missingParameters": "請先填寫必填參數：{{required}}",
       "tooManyImages": "最多支援 {{max}} 張圖片輸入，已連接 {{connected}} 張。",
       "invalidImage": "存在無法存取的圖片位址，請檢查輸入。",

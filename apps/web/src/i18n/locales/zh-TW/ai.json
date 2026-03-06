@@ -308,7 +308,15 @@
     "approvalRejected": "已拒絕執行",
     "rejected": "已拒絕",
     "outputLoading": "輸出載入中…",
-    "confirmExec": "確認執行此命令？"
+    "confirmExec": "確認執行此命令？",
+    "processing": "處理中...",
+    "thinkingStreaming": "深度思考中...",
+    "thinkingDone": "深度思考",
+    "thinkingDuration": "深度思考耗時 {{duration}}s",
+    "thinkingAnalyzing": "正在分析上下文並生成計劃，請稍候...",
+    "sourcesTitle": "引用來源",
+    "revisedPrompt": "改寫提示詞",
+    "needsApproval": "需要審批："
   },
   "error": {
     "title": "發生錯誤",

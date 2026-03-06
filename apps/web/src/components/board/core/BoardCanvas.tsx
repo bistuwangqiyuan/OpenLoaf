@@ -10,7 +10,16 @@
 "use client";
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState, useId, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { FolderDown, Loader2, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@openloaf/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
+import { Input } from "@openloaf/ui/input";
+import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
+import { useTabs } from "@/hooks/use-tabs";
 import { BoardProvider, type ImagePreviewPayload } from "./BoardProvider";
 import { CanvasEngine } from "../engine/CanvasEngine";
 import type { CanvasElement, CanvasNodeDefinition } from "../engine/types";
@@ -39,6 +48,7 @@ import {
   parseScopedProjectPath,
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { trpc } from "@/utils/trpc";
+import { useHeaderSlot } from "@/hooks/use-header-slot";
 import i18next from "i18next";
 
 export type BoardCanvasProps = {
@@ -236,6 +246,72 @@ export function BoardCanvas({
     canSyncLog: boolean;
     onSyncLog?: () => void;
   }>({ canSyncLog: false });
+  /** Header action buttons state. */
+  const { t: tBoard } = useTranslation('board');
+  const headerActionsTarget = useHeaderSlot((s) => s.headerActionsTarget);
+  const globalActiveTabId = useTabs((s) => s.activeTabId);
+  const setTabTitle = useTabs((s) => s.setTabTitle);
+  const currentTabTitle = useTabs((s) => {
+    if (!tabId) return '';
+    return s.tabs.find((t) => t.id === tabId)?.title ?? '';
+  });
+  const isActiveTab = !tabId || globalActiveTabId === tabId;
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [aiNaming, setAiNaming] = useState(false);
+  const [saveToProjectOpen, setSaveToProjectOpen] = useState(false);
+  const closeTab = useTabs((s) => s.closeTab);
+  const inferBoardNameMutation = useMutation(trpc.settings.inferBoardName.mutationOptions());
+  const deleteBoardMutation = useMutation(trpc.fs.delete.mutationOptions());
+  const handleRenameOpen = useCallback((open: boolean) => {
+    if (open) setRenameValue(currentTabTitle);
+    setRenameOpen(open);
+  }, [currentTabTitle]);
+  const handleRenameConfirm = useCallback(() => {
+    const trimmed = renameValue.trim();
+    if (trimmed && tabId) {
+      setTabTitle(tabId, trimmed);
+    }
+    setRenameOpen(false);
+  }, [renameValue, tabId, setTabTitle]);
+  const handleAiName = useCallback(async () => {
+    if (!boardFolderUri || !resolvedWorkspaceId) return;
+    setAiNaming(true);
+    try {
+      const result = await inferBoardNameMutation.mutateAsync({
+        workspaceId: resolvedWorkspaceId,
+        boardFolderUri,
+      });
+      if (result.title) {
+        setRenameValue(result.title);
+      } else {
+        toast.error(i18next.t('nav:canvasList.aiNameEmpty'));
+      }
+    } catch {
+      toast.error(i18next.t('nav:canvasList.aiNameFailed'));
+    } finally {
+      setAiNaming(false);
+    }
+  }, [boardFolderUri, resolvedWorkspaceId, inferBoardNameMutation]);
+  const handleDeleteBoard = useCallback(() => {
+    if (!boardFolderUri || !resolvedWorkspaceId || !tabId) return;
+    if (!confirm(i18next.t('nav:canvasList.confirmDelete'))) return;
+    // Derive relative URI from boardFolderUri
+    const rootUriBase = workspace?.rootUri ?? '';
+    const relativeUri = rootUriBase && boardFolderUri.startsWith(rootUriBase)
+      ? boardFolderUri.slice(rootUriBase.length).replace(/^\//, '')
+      : boardFolderUri;
+    deleteBoardMutation.mutate(
+      { workspaceId: resolvedWorkspaceId, uri: relativeUri },
+      {
+        onSuccess: () => {
+          // Close current tab and open a fresh canvas
+          closeTab(tabId);
+        },
+      },
+    );
+  }, [boardFolderUri, resolvedWorkspaceId, tabId, workspace?.rootUri, deleteBoardMutation, closeTab]);
+  const effectiveTarget = isActiveTab ? headerActionsTarget : null;
   /** Board thumbnail writer mutation. */
   const writeThumbnailMutation = useMutation(trpc.fs.writeBinary.mutationOptions());
   /** Latest thumbnail writer callback reference. */
@@ -367,6 +443,98 @@ export function BoardCanvas({
 
   // 逻辑：预览优先使用原图地址，缺失时回退到压缩预览。
   return (
+    <>
+      {effectiveTarget && snapshot.elements.length > 0 && createPortal(
+        <div className="flex items-center justify-end gap-2">
+          <Popover open={renameOpen} onOpenChange={handleRenameOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 rounded-full px-3 text-xs bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc] hover:text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200 dark:hover:bg-sky-900/70 transition-colors duration-150"
+              >
+                <PencilLine className="size-3.5" />
+                {tBoard('board.renameCanvas')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-3" align="end">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    placeholder={tBoard('board.renameCanvasPlaceholder')}
+                    className="h-8 text-sm flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRenameConfirm();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    title={i18next.t('nav:canvasList.aiName')}
+                    disabled={aiNaming}
+                    onClick={handleAiName}
+                  >
+                    {aiNaming ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-3.5" />
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 w-full text-xs bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc] hover:text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200 dark:hover:bg-sky-900/70 transition-colors duration-150"
+                  disabled={!renameValue.trim()}
+                  onClick={handleRenameConfirm}
+                >
+                  {tBoard('board.renameCanvas')}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 rounded-full px-3 text-xs text-[#5f6368] hover:bg-[#f1f3f4] dark:text-slate-400 dark:hover:bg-[hsl(var(--muted)/0.42)] transition-colors duration-150"
+            onClick={() => setSaveToProjectOpen(true)}
+          >
+            <FolderDown className="size-3.5" />
+            {tBoard('board.saveToProject')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 rounded-full px-3 text-xs text-destructive hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors duration-150"
+            onClick={handleDeleteBoard}
+          >
+            <Trash2 className="size-3.5" />
+            {tBoard('board.deleteCanvas')}
+          </Button>
+        </div>,
+        effectiveTarget
+      )}
+      <ProjectFileSystemTransferDialog
+        open={saveToProjectOpen}
+        onOpenChange={setSaveToProjectOpen}
+        mode="select"
+        selectTarget="folder"
+        defaultRootUri={rootUri}
+        onSelectTarget={(targetUri: string) => {
+          setSaveToProjectOpen(false);
+        }}
+      />
     <BoardErrorBoundary>
       <BoardProvider
         engine={engine}
@@ -418,5 +586,6 @@ export function BoardCanvas({
         </BoardCanvasInteraction>
       </BoardProvider>
     </BoardErrorBoundary>
+    </>
   );
 }

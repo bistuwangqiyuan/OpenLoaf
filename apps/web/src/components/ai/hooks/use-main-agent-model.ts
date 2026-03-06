@@ -43,7 +43,10 @@ type AgentDetail = {
 export function useMainAgentModel(projectId?: string) {
   const { basic } = useBasicConfig();
   const agentsQueryInput = projectId ? { projectId } : undefined;
-  const agentsQuery = useQuery(trpc.settings.getAgents.queryOptions(agentsQueryInput));
+  const agentsQuery = useQuery({
+    ...trpc.settings.getAgents.queryOptions(agentsQueryInput),
+    staleTime: 5 * 60 * 1000,
+  });
   const masterAgent = useMemo(() => {
     const list = (agentsQuery.data ?? []) as Array<{
       folderName: string;
@@ -78,6 +81,7 @@ export function useMainAgentModel(projectId?: string) {
         ? { agentPath: masterAgent.path, scope: masterAgent.scope }
         : { agentPath: "", scope: "workspace" },
     ),
+    staleTime: 5 * 60 * 1000,
     enabled: Boolean(masterAgent?.path),
   });
 

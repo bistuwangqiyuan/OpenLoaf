@@ -6,6 +6,10 @@
     "edit": "Edit",
     "delete": "Delete",
     "save": "Save",
+    "renameCanvas": "Rename Canvas",
+    "renameCanvasPlaceholder": "Enter canvas name",
+    "saveToProject": "Save to Project",
+    "deleteCanvas": "Delete Canvas",
     "cancel": "Cancel",
     "download": "Download",
     "share": "Share",
@@ -233,7 +237,7 @@
       "tooManyImages": "Maximum {{max}} images supported"
     },
     "hints": {
-      "needsPrompt": "Please enter or connect a prompt to generate images.",
+      "needsPrompt": "Connect an image or enter a prompt to generate images.",
       "tooManyImages": "Maximum {{max}} images supported, {{connected}} connected.",
       "invalidImage": "Some image URLs are inaccessible, please check inputs.",
       "needsModel": "No image generation model found, please configure one in settings.",
@@ -292,7 +296,7 @@
       "loginHint": "Sign in to your OpenLoaf account to use cloud models"
     },
     "hints": {
-      "needsPrompt": "Please enter a prompt or connect an image to generate video.",
+      "needsPrompt": "Connect an image or enter a prompt to generate video.",
       "missingParameters": "Required fields missing: {{required}}",
       "tooManyImages": "Maximum {{max}} images supported, {{connected}} connected.",
       "invalidImage": "Some image URLs are inaccessible, please check inputs.",

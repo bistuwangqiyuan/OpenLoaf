@@ -6,6 +6,10 @@
     "edit": "编辑",
     "delete": "删除",
     "save": "保存",
+    "renameCanvas": "重命名画布",
+    "renameCanvasPlaceholder": "输入画布名称",
+    "saveToProject": "保存到项目",
+    "deleteCanvas": "删除画布",
     "cancel": "取消",
     "download": "下载",
     "share": "分享",
@@ -233,7 +237,7 @@
       "tooManyImages": "最多支持 {{max}} 张图片输入"
     },
     "hints": {
-      "needsPrompt": "需要输入或连接提示词后才能生成图片。",
+      "needsPrompt": "需要连接图片或者输入提示词后才能生成图片。",
       "tooManyImages": "最多支持 {{max}} 张图片输入，已连接 {{connected}} 张。",
       "invalidImage": "存在无法访问的图片地址，请检查输入。",
       "needsModel": "未找到支持「图片生成」的模型，请先在设置中配置。",
@@ -292,7 +296,7 @@
       "loginHint": "登录OpenLoaf账户，使用云端模型后选择模型"
     },
     "hints": {
-      "needsPrompt": "需要输入提示词或连接图片后才能生成视频。",
+      "needsPrompt": "需要连接图片或者输入提示词后才能生成视频。",
       "missingParameters": "请先填写必填参数：{{required}}",
       "tooManyImages": "最多支持 {{max}} 张图片输入，已连接 {{connected}} 张。",
       "invalidImage": "存在无法访问的图片地址，请检查输入。",

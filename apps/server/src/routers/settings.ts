@@ -350,13 +350,13 @@ export class SettingRouterImpl extends BaseSettingRouter {
       getCodexModels: shieldedProcedure
         .output(settingSchemas.getCodexModels.output)
         .query(() => {
-          return getCodexCliModels();
+          return getCodexCliModels().map((m) => ({ id: m.id, name: m.name ?? m.id, tags: m.tags }));
         }),
       /** Get Claude Code CLI available models. */
       getClaudeCodeModels: shieldedProcedure
         .output(settingSchemas.getClaudeCodeModels.output)
         .query(() => {
-          return getClaudeCodeCliModels();
+          return getClaudeCodeCliModels().map((m) => ({ id: m.id, name: m.name ?? m.id, tags: m.tags }));
         }),
       /** List skills for settings UI. */
       getSkills: shieldedProcedure
@@ -1657,8 +1657,118 @@ export class SettingRouterImpl extends BaseSettingRouter {
 
           return { subject: result.subject, body: result.body ?? "" };
         }),
+
+      inferBoardName: shieldedProcedure
+        .input(settingSchemas.inferBoardName.input)
+        .output(settingSchemas.inferBoardName.output)
+        .mutation(async ({ input }) => {
+          const { getWorkspaceRootPathById } = await import(
+            "@openloaf/api/services/vfsService"
+          );
+          const rootPath = getWorkspaceRootPathById(input.workspaceId);
+          if (!rootPath) return { title: "" };
+
+          const boardPath = path.join(
+            rootPath,
+            ".openloaf",
+            "boards",
+            path.basename(input.boardFolderUri),
+            "index.tnboard.json",
+          );
+
+          let snapshot: any;
+          try {
+            const raw = await fs.readFile(boardPath, "utf-8");
+            snapshot = JSON.parse(raw);
+          } catch {
+            return { title: "" };
+          }
+
+          const markdown = boardSnapshotToMarkdown(snapshot, 200);
+          if (!markdown.trim()) return { title: "" };
+
+          const { auxiliaryInfer } = await import(
+            "@/ai/services/auxiliaryInferenceService"
+          );
+          const { CAPABILITY_SCHEMAS } = await import(
+            "@/ai/services/auxiliaryCapabilities"
+          );
+
+          const result = await auxiliaryInfer({
+            capabilityKey: "file.title",
+            context: markdown,
+            schema: CAPABILITY_SCHEMAS["file.title"],
+            fallback: { title: "" },
+            noCache: true,
+          });
+
+          return { title: result.title };
+        }),
     });
   }
+}
+
+/** Convert a board snapshot JSON to a markdown summary for AI naming. */
+function boardSnapshotToMarkdown(snapshot: any, maxLines: number): string {
+  const nodes: any[] = snapshot?.nodes ?? [];
+  if (nodes.length === 0) return "";
+
+  const lines: string[] = [];
+
+  // Node type distribution overview
+  const typeCounts: Record<string, number> = {};
+  for (const node of nodes) {
+    const t = node.type || "unknown";
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  }
+  lines.push(
+    `## Overview: ${Object.entries(typeCounts).map(([k, v]) => `${k}(${v})`).join(", ")}`,
+  );
+  lines.push("");
+
+  for (const node of nodes) {
+    if (lines.length >= maxLines) break;
+    const type = node.type || "unknown";
+    const props = node.data?.props ?? node.data ?? {};
+
+    switch (type) {
+      case "text": {
+        const value = typeof props.value === "string" ? props.value : "";
+        if (value) lines.push(`- [Text] ${value.slice(0, 200)}`);
+        break;
+      }
+      case "link": {
+        const parts = [props.title, props.url, props.description].filter(Boolean);
+        if (parts.length) lines.push(`- [Link] ${parts.join(" | ")}`);
+        break;
+      }
+      case "image": {
+        if (props.fileName) lines.push(`- [Image] ${props.fileName}`);
+        break;
+      }
+      case "image-generate": {
+        if (props.promptText) lines.push(`- [ImageGen] ${props.promptText}`);
+        break;
+      }
+      case "video-generate": {
+        if (props.promptText) lines.push(`- [VideoGen] ${props.promptText}`);
+        break;
+      }
+      case "group": {
+        const children = Array.isArray(node.data?.children) ? node.data.children.length : 0;
+        lines.push(`- [Group] ${children} children`);
+        break;
+      }
+      case "stroke":
+        // Skip strokes — not helpful for naming
+        break;
+      default:
+        lines.push(`- [${type}]`);
+        break;
+    }
+  }
+
+  return lines.slice(0, maxLines).join("\n");
 }
 
 /** Scan project files (first N levels, max entries) for classification context. */

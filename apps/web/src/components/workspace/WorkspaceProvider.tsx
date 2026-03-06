@@ -22,9 +22,10 @@ interface WorkspaceProviderProps {
 
 export const WorkspaceProvider = ({ children }: WorkspaceProviderProps) => {
   // 使用 TRPC 获取活跃工作区，使用 TanStack React Query 方式
-  const { data: workspace = {} as Workspace, isLoading } = useQuery(
-    trpc.workspace.getActive.queryOptions()
-  );
+  const { data: workspace = {} as Workspace, isLoading } = useQuery({
+    ...trpc.workspace.getActive.queryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
   const addTab = useTabs((s) => s.addTab);
   const tabs = useTabs((s) => s.tabs);
   const activeTabId = useTabs((s) => s.activeTabId);

@@ -50,6 +50,8 @@ type TemplateItem = {
   bgClass: string;
   /** Border tint on hover. */
   hoverBorderClass: string;
+  /** Icon color class. */
+  iconClass: string;
   /** Node type to insert, or null for special actions. */
   nodeType: string;
   /** Default node size [w, h]. */
@@ -77,6 +79,7 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
       dotClass: BOARD_GENERATE_DOT_IMAGE,
       bgClass: 'bg-[#e8f0fe]/60 dark:bg-sky-950/30',
       hoverBorderClass: 'hover:border-[#1a73e8]/40 dark:hover:border-sky-400/30',
+      iconClass: 'text-[#1a73e8] dark:text-sky-400',
       nodeType: IMAGE_GENERATE_NODE_TYPE,
       size: [320, 260],
     },
@@ -88,6 +91,7 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
       dotClass: BOARD_GENERATE_DOT_PROMPT,
       bgClass: 'bg-[#fef7e0]/60 dark:bg-amber-950/25',
       hoverBorderClass: 'hover:border-[#f9ab00]/40 dark:hover:border-amber-400/30',
+      iconClass: 'text-[#f9ab00] dark:text-amber-400',
       nodeType: IMAGE_PROMPT_GENERATE_NODE_TYPE,
       size: [320, 220],
     },
@@ -99,6 +103,7 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
       dotClass: BOARD_GENERATE_DOT_VIDEO,
       bgClass: 'bg-[#f3e8fd]/50 dark:bg-violet-950/25',
       hoverBorderClass: 'hover:border-[#9334e6]/40 dark:hover:border-violet-400/30',
+      iconClass: 'text-[#9334e6] dark:text-violet-400',
       nodeType: VIDEO_GENERATE_NODE_TYPE,
       size: [360, 280],
     },
@@ -110,6 +115,7 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
       dotClass: 'bg-[#202124] dark:bg-slate-300',
       bgClass: 'bg-[#f1f3f4]/60 dark:bg-slate-800/30',
       hoverBorderClass: 'hover:border-[#5f6368]/40 dark:hover:border-slate-400/30',
+      iconClass: 'text-[#5f6368] dark:text-slate-300',
       nodeType: 'text',
       size: [280, TEXT_NODE_DEFAULT_HEIGHT],
     },
@@ -138,9 +144,14 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
       )}
     >
       {/* ── Center: template selector ── */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center -mt-16">
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center -mt-28">
         {/* Heading */}
         <div className="flex flex-col items-center gap-1.5 select-none mb-6">
+          <img
+            src="/logo_nobody.png"
+            alt="OpenLoaf"
+            className="mb-2 h-24 w-24"
+          />
           <p className={cn(BOARD_TEXT_PRIMARY, "text-2xl font-medium")}>
             {t('emptyGuide.heading')}
           </p>
@@ -175,7 +186,7 @@ const BoardEmptyGuide = memo(function BoardEmptyGuide({
                       size={40}
                       weight="duotone"
                       className={cn(
-                        BOARD_TEXT_PRIMARY,
+                        tpl.iconClass,
                         "transition-transform duration-150 group-hover:scale-110",
                       )}
                     />

@@ -26,6 +26,20 @@ const __dirname = path.dirname(__filename);
 const serverRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(serverRoot, "..", "..");
 
+// 1. 生成迁移索引（在 esbuild 之前，这样 server.mjs 能内联迁移 SQL）
+const genMigrations = spawnSync(
+  process.platform === "win32" ? "cmd.exe" : "pnpm",
+  process.platform === "win32"
+    ? ["/d", "/s", "/c", "pnpm", "--filter", "@openloaf/db", "db:generate-migrations-index"]
+    : ["--filter", "@openloaf/db", "db:generate-migrations-index"],
+  { cwd: repoRoot, stdio: "inherit" },
+);
+if (genMigrations.error || (genMigrations.status !== 0)) {
+  logger.error("[build-prod] Failed to generate migrations index");
+  process.exit(genMigrations.status ?? 1);
+}
+
+// 2. esbuild 打包
 await build({
   entryPoints: ["src/index.ts"],
   bundle: true,
@@ -44,8 +58,9 @@ await build({
   },
 });
 
+// 3. 生成 seed.db（使用 prisma migrate deploy 代替 db:push）
 const seedDbPath = path.join(serverRoot, "dist", "seed.db");
-const pnpmArgs = ["--filter", "@openloaf/db", "db:push"];
+const pnpmArgs = ["--filter", "@openloaf/db", "db:migrate-deploy"];
 const pnpmEnv = {
   ...process.env,
   OPENLOAF_DATABASE_URL: `file:${seedDbPath}`,
@@ -53,11 +68,10 @@ const pnpmEnv = {
 
 try {
   fs.mkdirSync(path.dirname(seedDbPath), { recursive: true });
-  // 中文注释：打包时自动生成空库并写入 schema，避免依赖本地 local.db。
   if (fs.existsSync(seedDbPath)) {
     fs.rmSync(seedDbPath);
   }
-  const push =
+  const migrate =
     process.platform === "win32"
       ? spawnSync("cmd.exe", ["/d", "/s", "/c", "pnpm", ...pnpmArgs], {
           cwd: repoRoot,
@@ -69,12 +83,12 @@ try {
           stdio: "inherit",
           env: pnpmEnv,
         });
-  if (push.error) {
-    logger.error({ err: push.error }, "[build-prod] Failed to spawn pnpm");
+  if (migrate.error) {
+    logger.error({ err: migrate.error }, "[build-prod] Failed to run prisma migrate deploy");
     process.exit(1);
   }
-  if (push.status !== 0) {
-    process.exit(push.status ?? 1);
+  if (migrate.status !== 0) {
+    process.exit(migrate.status ?? 1);
   }
 } catch (err) {
   logger.error(
@@ -84,9 +98,8 @@ try {
   process.exit(1);
 }
 
-// Wipe any dev data so production starts with schema-only DB.
-// (If you want to ship demo data, remove this.)
-// 逻辑：动态读取现有表并清空，避免表不存在导致发布失败。
+// Wipe business data so production starts with schema-only DB.
+// 保留 _prisma_migrations 表记录（新用户需要知道哪些迁移已应用）。
 const listTables = spawnSync(
   "sqlite3",
   [seedDbPath, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"],
@@ -98,7 +111,7 @@ if (listTables.status !== 0) {
 const tables = String(listTables.stdout ?? "")
   .split("\n")
   .map((name) => name.trim())
-  .filter(Boolean);
+  .filter((name) => name && name !== "_prisma_migrations");
 if (tables.length > 0) {
   const wipeSql = [
     "PRAGMA foreign_keys=OFF;",
