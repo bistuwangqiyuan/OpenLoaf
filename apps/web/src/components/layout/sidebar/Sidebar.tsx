@@ -25,7 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@openloaf/ui/sidebar";
-import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, Sparkles } from "lucide-react";
+import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, PenTool, Sparkles } from "lucide-react";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
@@ -37,18 +37,22 @@ import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { trpc } from "@/utils/trpc";
 import { Badge } from "@openloaf/ui/calendar/components/ui/badge";
 import { useTaskNotifications } from "@/hooks/use-task-notifications";
+import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
+import { BOARD_META_FILE_NAME } from "@/lib/file-name";
 
 const SIDEBAR_WORKSPACE_COLOR_CLASS = {
   calendar:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 data-[active=true]:!bg-sky-500/15 dark:data-[active=true]:!bg-sky-400/20 data-[active=true]:[&>svg]:!text-sky-700 dark:data-[active=true]:[&>svg]:!text-sky-200",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 data-[active=true]:!bg-sky-100 dark:data-[active=true]:!bg-sky-500/25 data-[active=true]:!text-sky-700 dark:data-[active=true]:!text-sky-200 data-[active=true]:[&>svg]:!text-sky-600 dark:data-[active=true]:[&>svg]:!text-sky-300",
   scheduledTasks:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-rose-700/70 dark:[&>svg]:text-rose-300/70 hover:[&>svg]:text-rose-700 dark:hover:[&>svg]:text-rose-200 data-[active=true]:!bg-rose-500/15 dark:data-[active=true]:!bg-rose-400/20 data-[active=true]:[&>svg]:!text-rose-700 dark:data-[active=true]:[&>svg]:!text-rose-200",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-rose-700/70 dark:[&>svg]:text-rose-300/70 hover:[&>svg]:text-rose-700 dark:hover:[&>svg]:text-rose-200 data-[active=true]:!bg-rose-100 dark:data-[active=true]:!bg-rose-500/25 data-[active=true]:!text-rose-700 dark:data-[active=true]:!text-rose-200 data-[active=true]:[&>svg]:!text-rose-600 dark:data-[active=true]:[&>svg]:!text-rose-300",
   email:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 data-[active=true]:!bg-emerald-500/15 dark:data-[active=true]:!bg-emerald-400/20 data-[active=true]:[&>svg]:!text-emerald-700 dark:data-[active=true]:[&>svg]:!text-emerald-200",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 data-[active=true]:!bg-emerald-100 dark:data-[active=true]:!bg-emerald-500/25 data-[active=true]:!text-emerald-700 dark:data-[active=true]:!text-emerald-200 data-[active=true]:[&>svg]:!text-emerald-600 dark:data-[active=true]:[&>svg]:!text-emerald-300",
   workbench:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 data-[active=true]:!bg-amber-500/15 dark:data-[active=true]:!bg-amber-400/20 data-[active=true]:[&>svg]:!text-amber-700 dark:data-[active=true]:[&>svg]:!text-amber-200",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 data-[active=true]:!bg-amber-100 dark:data-[active=true]:!bg-amber-500/25 data-[active=true]:!text-amber-700 dark:data-[active=true]:!text-amber-200 data-[active=true]:[&>svg]:!text-amber-600 dark:data-[active=true]:[&>svg]:!text-amber-300",
   aiAssistant:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 data-[active=true]:!bg-violet-500/15 dark:data-[active=true]:!bg-violet-400/20 data-[active=true]:[&>svg]:!text-violet-700 dark:data-[active=true]:[&>svg]:!text-violet-200",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 data-[active=true]:!bg-violet-100 dark:data-[active=true]:!bg-violet-500/25 data-[active=true]:!text-violet-700 dark:data-[active=true]:!text-violet-200 data-[active=true]:[&>svg]:!text-violet-600 dark:data-[active=true]:[&>svg]:!text-violet-300",
+  canvas:
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-teal-700/70 dark:[&>svg]:text-teal-300/70 hover:[&>svg]:text-teal-700 dark:hover:[&>svg]:text-teal-200 data-[active=true]:!bg-teal-100 dark:data-[active=true]:!bg-teal-500/25 data-[active=true]:!text-teal-700 dark:data-[active=true]:!text-teal-200 data-[active=true]:[&>svg]:!text-teal-600 dark:data-[active=true]:[&>svg]:!text-teal-300",
 } as const;
 
 const SIDEBAR_SEARCH_ICON_CLASS =
@@ -240,6 +244,30 @@ export const AppSidebar = ({
     ],
   );
 
+  /** Open a new canvas board (files created lazily on first edit). */
+  const handleCreateCanvas = useCallback(() => {
+    if (!activeWorkspace) return;
+    const rootUri = activeWorkspace.rootUri;
+    if (!rootUri) return;
+    const boardName = `board_${Date.now()}`;
+    const boardFolderUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}`);
+    const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_META_FILE_NAME}`);
+    addTab({
+      workspaceId: activeWorkspace.id,
+      createNew: true,
+      title: "智能画布",
+      icon: "🎨",
+      leftWidthPercent: 100,
+      base: {
+        id: `board:${boardFolderUri}`,
+        component: "board-viewer",
+        params: {
+          boardFolderUri,
+          boardFileUri,
+        },
+      },
+    });
+  }, [activeWorkspace, addTab]);
 
   return (
     <Sidebar
@@ -247,6 +275,7 @@ export const AppSidebar = ({
       {...props}
     >
       <SidebarHeader>
+        <SidebarWorkspace />
         <SidebarMenu>
           {/* 先隐藏模版入口，后续再开放。 */}
           {false ? (
@@ -294,6 +323,17 @@ export const AppSidebar = ({
             >
               <Sparkles className="h-4 w-4" />
               <span className="flex-1 truncate">{t('aiAssistant')}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="智能画布"
+              className={SIDEBAR_WORKSPACE_COLOR_CLASS.canvas}
+              onClick={handleCreateCanvas}
+              type="button"
+            >
+              <PenTool className="h-4 w-4" />
+              <span className="flex-1 truncate">智能画布</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -444,7 +484,10 @@ export const AppSidebar = ({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="flex flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div
+          className="flex-1 min-h-0 flex flex-col overflow-hidden"
+          style={{ "--sidebar-accent": "var(--sidebar-project-accent)", "--sidebar-accent-foreground": "var(--sidebar-project-accent-fg)" } as React.CSSProperties}
+        >
           <SidebarProject />
         </div>
         {activeWorkspace && (
@@ -453,9 +496,8 @@ export const AppSidebar = ({
           </div>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarWorkspace />
-      </SidebarFooter>
+      <SidebarFooter />
+
     </Sidebar>
   );
 };

@@ -48,16 +48,39 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
   },
 ];
 
+type ProjectSettingsDialogState = {
+  projectSettingsOpen: boolean;
+  projectSettingsProjectId: string | undefined;
+  projectSettingsRootUri: string | undefined;
+  setProjectSettingsOpen: (open: boolean, projectId?: string, rootUri?: string) => void;
+};
+
 type GlobalOverlayState = {
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
   toggleSearchOpen: () => void;
-};
+  settingsOpen: boolean;
+  settingsMenu: string | undefined;
+  setSettingsOpen: (open: boolean, menu?: string) => void;
+} & ProjectSettingsDialogState;
 
 export const useGlobalOverlay = create<GlobalOverlayState>((set) => ({
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
   toggleSearchOpen: () => set((state) => ({ searchOpen: !state.searchOpen })),
+  settingsOpen: false,
+  settingsMenu: undefined,
+  setSettingsOpen: (open, menu) =>
+    set({ settingsOpen: open, settingsMenu: open ? menu : undefined }),
+  projectSettingsOpen: false,
+  projectSettingsProjectId: undefined,
+  projectSettingsRootUri: undefined,
+  setProjectSettingsOpen: (open, projectId, rootUri) =>
+    set({
+      projectSettingsOpen: open,
+      projectSettingsProjectId: open ? projectId : undefined,
+      projectSettingsRootUri: open ? rootUri : undefined,
+    }),
 }));
 
 /** 判断当前事件目标是否为可编辑输入区域，避免快捷键打断输入。 */
@@ -116,41 +139,9 @@ function openSingletonTab(
   if (options?.closeSearch) useGlobalOverlay.getState().setSearchOpen(false);
 }
 
-/** 打开设置页（单例 Tab）。 */
-export function openSettingsTab(workspaceId: string, settingsMenu?: string) {
-  const { tabs, addTab, setActiveTab } = useTabs.getState();
-  const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
-  const { setTabBaseParams } = useTabRuntime.getState();
-
-  const baseId = "base:settings";
-  const existing = tabs.find(
-    (tab) =>
-      tab.workspaceId === workspaceId && runtimeByTabId[tab.id]?.base?.id === baseId,
-  );
-  if (existing) {
-    startTransition(() => {
-      setActiveTab(existing.id);
-      if (settingsMenu) {
-        setTabBaseParams(existing.id, { settingsMenu });
-      }
-    });
-    return;
-  }
-
-  const viewportWidth =
-    typeof document !== "undefined"
-      ? document.documentElement.clientWidth || window.innerWidth
-      : 0;
-
-  addTab({
-    workspaceId,
-    createNew: true,
-    title: i18next.t('nav:settings'),
-    icon: "⚙️",
-    leftWidthPercent: viewportWidth > 0 ? 70 : undefined,
-    rightChatCollapsed: true,
-    base: { id: baseId, component: "settings-page", params: settingsMenu ? { settingsMenu } : undefined },
-  });
+/** 打开设置 Dialog。 */
+export function openSettingsTab(_workspaceId: string, settingsMenu?: string) {
+  useGlobalOverlay.getState().setSettingsOpen(true, settingsMenu);
 }
 
 export type GlobalShortcutContext = {

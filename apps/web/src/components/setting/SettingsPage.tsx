@@ -200,8 +200,8 @@ function isVisibleSettingsMenuKey(value: unknown): value is SettingsMenuKey {
 }
 
 type SettingsPageProps = {
-  panelKey: string;
-  tabId: string;
+  panelKey?: string;
+  tabId?: string;
   settingsMenu?: SettingsMenuKey;
 };
 
@@ -230,14 +230,15 @@ export default function SettingsPage({
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
   const setTabTitle = useTabs((s) => s.setTabTitle);
   const activeTabId = useTabs((s) => s.activeTabId);
-  const isActiveTab = activeTabId === tabId;
+  const isActiveTab = !tabId || activeTabId === tabId;
 
   // Keep tab title in sync with current language.
   useEffect(() => {
-    setTabTitle(tabId, t('nav:settings'));
+    if (tabId) setTabTitle(tabId, t('nav:settings'));
   }, [tabId, t, setTabTitle]);
 
   useEffect(() => {
+    if (!tabId) return;
     setTabMinLeftWidth(tabId, 500);
     return () => setTabMinLeftWidth(tabId, undefined);
   }, [tabId, setTabMinLeftWidth]);
@@ -319,11 +320,10 @@ export default function SettingsPage({
     return [group1, group2].filter((group) => group.length > 0) as OpenLoafSettingsMenuItem[][];
   }, [MENU]);
 
-  /** Persist the active menu into the dock base params. */
+  /** Persist the active menu into the dock base params (only when used inside a tab). */
   const handleMenuChange = (nextKey: SettingsMenuKey) => {
     setActiveKey(nextKey);
     if (!tabId) return;
-    // 切换菜单时同步写入 base.params，确保刷新后可恢复。
     setTabBaseParams(tabId, { settingsMenu: nextKey });
   };
 
