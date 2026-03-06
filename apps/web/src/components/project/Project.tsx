@@ -25,14 +25,17 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useProject } from "@/hooks/use-project";
 import { useProjects } from "@/hooks/use-projects";
-import ProjectIndex, { ProjectIndexHeader } from "./index/ProjectIndex";
+import { createPortal } from "react-dom";
+import { LayoutDashboard } from "lucide-react";
+import { useHeaderSlot } from "@/hooks/use-header-slot";
+import ProjectIndex from "./index/ProjectIndex";
 import ProjectHistory from "./history/ProjectHistoryPage";
 import ProjectTabs, { PROJECT_TABS, type ProjectTabValue } from "./ProjectTabs";
 import ProjectFileSystem, {
   type ProjectBreadcrumbInfo,
 } from "./filesystem/components/ProjectFileSystem";
-import ProjectSettingsPage from "./settings/ProjectSettingsPage";
 import ProjectScheduledTasksPage from "./tasks/ProjectScheduledTasksPage";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
 
 interface ProjectPageProps {
   tabId?: string;
@@ -202,8 +205,7 @@ export default function ProjectPage({
   const [indexEditMode, setIndexEditMode] = useState(false);
   /** Homepage dirty state. */
   const [indexDirty, setIndexDirty] = useState(false);
-  /** Puck header controls mount target. */
-  const indexControlsRef = useRef<HTMLDivElement | null>(null);
+  const headerTitleExtraTarget = useHeaderSlot((s) => s.headerTitleExtraTarget);
   const [fileUri, setFileUri] = useState<string | null>(rootUri ?? null);
 
   const pageTitle = localTitle ?? projectData?.project?.title ?? "Untitled Project";
@@ -215,7 +217,7 @@ export default function ProjectPage({
   const shouldRenderFiles = activeTab === "files" || mountedTabs.has("files");
   const shouldRenderTasks = activeTab === "tasks" || mountedTabs.has("tasks");
   const shouldRenderScheduled = activeTab === "scheduled" || mountedTabs.has("scheduled");
-  const shouldRenderSettings = activeTab === "settings" || mountedTabs.has("settings");
+  // settings 已改为 dialog 模式，不再需要 tab panel 渲染。
 
   const updateProject = useMutation(
     trpc.project.update.mutationOptions({
@@ -376,12 +378,9 @@ export default function ProjectPage({
     appliedWidthRef.current = true;
   }, [tabActive, tabId, setTabLeftWidthPercent]);
 
-  // 面板按需挂载，header 常驻渲染并用 CSS 过渡控制显示与交互。
-  const headerBaseClass =
-    "flex min-h-[36px] items-center pl-2 transition-opacity duration-240 ease-out min-w-0";
   const panelBaseClass =
     "absolute inset-0 box-border pt-0 transform-gpu transition-[opacity,transform] duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]";
-  const shouldShowTopHeader = activeTab === "index";
+  const showIndexTitleExtra = tabActive && activeTab === "index";
 
   /** Toggle read-only mode for the homepage editor. */
   const handleSetIndexReadOnly = useCallback(
@@ -405,14 +404,17 @@ export default function ProjectPage({
   /** Persist the active project tab into the dock base params. */
   const handleProjectTabChange = useCallback(
     (nextTab: ProjectTabValue) => {
+      if (nextTab === "settings") {
+        useGlobalOverlay.getState().setProjectSettingsOpen(true, projectId, rootUri);
+        return;
+      }
       startTransition(() => {
         setActiveTab(nextTab);
       });
       if (!tabId) return;
-      // 同步写入 base.params，刷新后保持位置。
       setTabBaseParams(tabId, { projectTab: nextTab });
     },
-    [setTabBaseParams, tabId]
+    [setTabBaseParams, tabId, projectId, rootUri]
   );
 
   // 项目快捷键流程：只有当前 tab 处于激活态才拦截按键；
@@ -445,36 +447,16 @@ export default function ProjectPage({
 
   return (
     <div className="project-shell flex h-full w-full flex-col min-h-0">
-      {shouldShowTopHeader ? (
-        <div className="project-header w-full min-w-0">
-          <div className="project-header-main relative min-w-0 min-h-[36px]">
-            <div
-              className={`${headerBaseClass} ${
-                activeTab === "index"
-                  ? "relative opacity-100 pointer-events-auto w-full"
-                  : "absolute inset-0 opacity-0 pointer-events-none"
-              }`}
-              aria-hidden={activeTab !== "index"}
-            >
-              <ProjectIndexHeader
-                isLoading={isLoading}
-                projectId={projectId}
-                projectTitle={pageTitle}
-                titleIcon={titleIcon}
-                currentTitle={projectData?.project?.title ?? undefined}
-                isUpdating={updateProject.isPending}
-                onUpdateTitle={handleUpdateTitle}
-                onUpdateIcon={handleUpdateIcon}
-                isReadOnly={indexReadOnly}
-                onSetReadOnly={handleSetIndexReadOnly}
-                controlsSlotRef={indexControlsRef}
-                showControls={!indexReadOnly}
-                editMode={indexEditMode}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {showIndexTitleExtra && headerTitleExtraTarget
+        ? createPortal(
+            <div className="flex items-center gap-1.5 text-sm text-foreground/50">
+              <span className="mx-1">|</span>
+              <LayoutDashboard className="h-3.5 w-3.5 text-amber-700/70 dark:text-amber-300/70" />
+              <span className="font-medium text-foreground/80">首页</span>
+            </div>,
+            headerTitleExtraTarget,
+          )
+        : null}
 
       <div className="relative flex-1 min-h-0 w-full">
         <ProjectTabs
@@ -514,7 +496,6 @@ export default function ProjectPage({
                       readOnly={indexReadOnly}
                       onDirtyChange={setIndexDirty}
                       onPublishSuccess={handleIndexPublish}
-                      controlsSlotRef={indexControlsRef}
                       onEditModeChange={setIndexEditMode}
                     />
                   ) : null}
@@ -571,21 +552,6 @@ export default function ProjectPage({
                 >
                   {shouldRenderScheduled ? (
                     <ProjectScheduledTasksPage projectId={projectId} />
-                  ) : null}
-                </div>
-                <div
-                  id="project-panel-settings"
-                  role="tabpanel"
-                  aria-labelledby="project-tab-settings"
-                  className={`${panelBaseClass} ${
-                    activeTab === "settings"
-                      ? "opacity-100 pointer-events-auto translate-y-0 scale-100"
-                      : "opacity-0 pointer-events-none translate-y-0.5 scale-[0.995]"
-                  }`}
-                  aria-hidden={activeTab !== "settings"}
-                >
-                  {shouldRenderSettings ? (
-                    <ProjectSettingsPage projectId={projectId} rootUri={rootUri} />
                   ) : null}
                 </div>
               </div>

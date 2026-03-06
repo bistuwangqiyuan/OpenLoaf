@@ -24,6 +24,7 @@ import * as React from "react";
 import { motion } from "motion/react";
 import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Settings } from "lucide-react";
 import { QUICK_LAUNCH_ITEMS, PROJECT_QUICK_LAUNCH_ITEMS } from "./quick-launch-items";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import {
   CHAT_ATTACHMENT_MAX_FILE_SIZE_BYTES,
   formatFileSize,
@@ -237,10 +238,14 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
   const handleProjectQuickLaunch = React.useCallback(
     (item: (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]) => {
       if (!tabId || !projectId) return
+      const rootUri = projectData?.project?.rootUri
+      // settings 改为 dialog 模式
+      if (item.value === "settings") {
+        useGlobalOverlay.getState().setProjectSettingsOpen(true, projectId, rootUri)
+        return
+      }
       const runtime = useTabRuntime.getState()
       const tabState = useTabs.getState()
-      const rootUri = projectData?.project?.rootUri
-      // 设置左侧面板为项目页面，并切换到对应的项目子标签。
       runtime.setTabBase(tabId, {
         id: `project:${projectId}`,
         component: "plant-page",

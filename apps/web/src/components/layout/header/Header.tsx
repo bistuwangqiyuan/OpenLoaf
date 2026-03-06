@@ -19,9 +19,11 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
+import { SettingsDialog } from "@/components/setting/SettingsDialog";
+import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { motion } from "motion/react";
-import type { CSSProperties } from "react";
-import { openSettingsTab } from "@/lib/globalShortcuts";
+import { useCallback, type CSSProperties } from "react";
+import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
 import { PageTitle } from "./PageTitle";
@@ -62,6 +64,16 @@ function formatShortcutLabel(shortcut: string, isMac: boolean): string {
 export const Header = () => {
   const { t } = useTranslation('nav');
   const { toggleSidebar, open: leftOpen } = useSidebar();
+  const setHeaderActionsTarget = useHeaderSlot((s) => s.setHeaderActionsTarget);
+  const setHeaderTitleExtraTarget = useHeaderSlot((s) => s.setHeaderTitleExtraTarget);
+  const headerActionsRef = useCallback(
+    (node: HTMLDivElement | null) => setHeaderActionsTarget(node),
+    [setHeaderActionsTarget],
+  );
+  const headerTitleExtraRef = useCallback(
+    (node: HTMLDivElement | null) => setHeaderTitleExtraTarget(node),
+    [setHeaderTitleExtraTarget],
+  );
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id;
   const activeTabId = useTabs((s) => s.activeTabId);
@@ -69,6 +81,7 @@ export const Header = () => {
   const setTabRightChatCollapsed = useTabRuntime((s) => s.setTabRightChatCollapsed);
   const searchOpen = useGlobalOverlay((s) => s.searchOpen);
   const setSearchOpen = useGlobalOverlay((s) => s.setSearchOpen);
+  const setSettingsOpen = useGlobalOverlay((s) => s.setSettingsOpen);
 
   const isElectron = isElectronEnv();
   const isMac =
@@ -151,10 +164,7 @@ export const Header = () => {
               className="h-8 w-8 shrink-0"
               variant="ghost"
               size="icon"
-              onClick={() => {
-                if (!workspaceId) return;
-                openSettingsTab(workspaceId);
-              }}
+              onClick={() => setSettingsOpen(true)}
             >
               <Settings className="h-4 w-4 text-orange-700/70 dark:text-orange-300/70" />
             </Button>
@@ -165,11 +175,24 @@ export const Header = () => {
         </Tooltip>
       </div>
       <div className="flex min-w-0 items-center gap-2 overflow-hidden pl-1">
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 shrink-0">
           <PageTitle />
         </div>
+        <div
+          ref={headerTitleExtraRef}
+          className="flex shrink-0 items-center"
+          data-slot="header-title-extra"
+          data-no-drag="true"
+        />
+        <div
+          ref={headerActionsRef}
+          className="flex min-w-0 flex-1 items-center justify-end"
+          data-slot="header-actions"
+          data-no-drag="true"
+        />
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">
+        <div className="mx-1 h-5 w-px bg-foreground/20" />
         <div data-no-drag="true">
           <ModeToggle />
         </div>
@@ -221,6 +244,8 @@ export const Header = () => {
         </Tooltip>
       </div>
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      <SettingsDialog />
+      <ProjectSettingsDialog />
     </header>
   );
 };
