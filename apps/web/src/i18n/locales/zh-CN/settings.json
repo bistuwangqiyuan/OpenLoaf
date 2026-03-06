@@ -1,6 +1,7 @@
 {
   "provider": {
     "title": "服务商",
+    "customProviderAddressOption": "自定义服务商地址",
     "addProvider": "添加服务商",
     "editProvider": "编辑服务商",
     "cancel": "取消",

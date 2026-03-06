@@ -90,6 +90,35 @@ function generateId(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+/**
+ * 判断 tab 是否应该被卸载
+ *
+ * 卸载条件（需同时满足）：
+ * 1. 只有一个会话
+ * 2. 该会话是空的（无消息）
+ * 3. LeftDock 未打开
+ * 4. 不是固定标签
+ */
+function shouldUnmountTab(tab: TabMeta, runtime: { base?: DockItem }): boolean {
+  // 0. 固定标签永不卸载
+  if (tab.isPin) return false;
+
+  // 1. 只有一个会话
+  const sessionCount = tab.chatSessionIds?.length ?? 1;
+  if (sessionCount !== 1) return false;
+
+  // 2. 该会话是空的（无消息）
+  // 简化实现：如果 chatLoadHistory === false，认为是新会话
+  const isEmpty = tab.chatLoadHistory === false;
+  if (!isEmpty) return false;
+
+  // 3. LeftDock 未打开
+  const hasLeftDock = runtime.base !== undefined;
+  if (hasLeftDock) return false;
+
+  return true;
+}
+
 function orderWorkspaceTabs(tabs: TabMeta[]) {
   // 固定标签始终排在前面；普通标签保持相对顺序。
   const pinned: TabMeta[] = [];
@@ -242,8 +271,26 @@ export const useTabs = create<TabsState>()(
       },
 
       setActiveTab: (tabId) => {
+        const oldTabId = get().activeTabId;
+
+        // 检查旧 tab 是否应该卸载
+        if (oldTabId && oldTabId !== tabId) {
+          const oldTab = get().tabs.find((t) => t.id === oldTabId);
+          const oldRuntime = useTabRuntime.getState().runtimeByTabId[oldTabId];
+
+          if (oldTab && oldRuntime && shouldUnmountTab(oldTab, oldRuntime)) {
+            // 延迟卸载，避免切换动画卡顿
+            setTimeout(() => {
+              const state = get();
+              if (state.tabs.find((t) => t.id === oldTabId)) {
+                state.closeTab(oldTabId);
+              }
+            }, 300);
+          }
+        }
+
         set((state) => {
-          // 激活标签：更新 lastActiveAt，供 closeTab 做“最近使用”回退。
+          // 激活标签：更新 lastActiveAt，供 closeTab 做”最近使用”回退。
           const existing = state.tabs.find((tab) => tab.id === tabId);
           if (!existing) return state;
           const now = Date.now();
@@ -617,7 +664,8 @@ export const useTabs = create<TabsState>()(
           createNew: true,
           title: i18next.t(DEFAULT_TAB_INFO.titleKey),
           icon: DEFAULT_TAB_INFO.icon,
-          leftWidthPercent: 100,
+          leftWidthPercent: 0,
+          rightChatCollapsed: false,
         });
       },
     }),

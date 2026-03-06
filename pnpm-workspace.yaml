@@ -4,8 +4,8 @@ packages:
 
 catalog:
   '@prisma/client': ^7.3.0
-  '@trpc/client': ^11.8.1
-  '@trpc/server': ^11.8.1
+  '@trpc/client': ^11.11.0
+  '@trpc/server': ^11.11.0
   dotenv: ^17.2.3
   hono: ^4.11.5
   typescript: ^5.9.3

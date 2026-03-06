@@ -11,7 +11,6 @@ import { z } from "zod";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { resolveOpenLoafPath } from "@openloaf/config";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import {
   getProjectRootUri,
@@ -1115,25 +1114,20 @@ export const projectRouter = t.router({
       });
     }),
 
-  /** Convert a workspace chat session to a formal project. */
+  /** Convert a workspace chat session to a project. */
   convertChatToProject: shieldedProcedure
     .input(
       z.object({
         chatSessionId: z.string(),
         projectTitle: z.string().optional(),
         projectParentId: z.string().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
-      // 1. 查询 ChatSession，验证 projectId IS NULL
+      // 1. 验证 ChatSession 存在且 projectId IS NULL
       const session = await ctx.prisma.chatSession.findUnique({
         where: { id: input.chatSessionId },
-        select: {
-          id: true,
-          title: true,
-          workspaceId: true,
-          projectId: true,
-        },
+        select: { id: true, title: true, projectId: true, workspaceId: true },
       });
 
       if (!session) {
@@ -1141,70 +1135,50 @@ export const projectRouter = t.router({
       }
 
       if (session.projectId) {
-        throw new Error("Chat session is already associated with a project.");
+        throw new Error("Chat session already belongs to a project.");
       }
 
       if (!session.workspaceId) {
         throw new Error("Chat session must belong to a workspace.");
       }
 
-      // 2. 生成项目 ID 和目录名
-      const projectId = `${PROJECT_ID_PREFIX}${randomUUID()}`;
+      // 2. 生成项目名称和目录
       const projectTitle = input.projectTitle?.trim() || session.title || "Untitled Project";
       const folderName = toSafeFolderName(projectTitle);
-
-      // 3. 在 Workspace 下创建项目目录
       const workspaceRootPath = getWorkspaceRootPathById(session.workspaceId);
+
       if (!workspaceRootPath) {
         throw new Error("Workspace not found.");
       }
 
       const projectRootPath = await ensureUniqueProjectRoot(workspaceRootPath, folderName);
       const projectRootUri = toFileUriWithoutEncoding(projectRootPath);
+      const projectId = `${PROJECT_ID_PREFIX}${randomUUID()}`;
 
-      // 4. 解析并复制 chat-history/{sessionId}/root/ 到项目目录
-      // 逻辑：根据 session 的 workspaceId/projectId 解析 chat-history 根目录
-      const chatHistoryRoot = session.projectId
-        ? path.join(getProjectRootPath(session.projectId, session.workspaceId) ?? "", ".openloaf", "chat-history")
-        : session.workspaceId
-        ? path.join(workspaceRootPath, ".openloaf", "chat-history")
-        : resolveOpenLoafPath("chat-history");
+      // 3. 复制 chat-history/{sessionId}/root/ → {projectRoot}/
+      const chatHistoryRoot = path.join(
+        workspaceRootPath,
+        ".openloaf",
+        "chat-history",
+        input.chatSessionId
+      );
+      const chatRootDir = path.join(chatHistoryRoot, "root");
+      const hasRootDir = await fileExists(chatRootDir);
 
-      const sessionDir = path.join(chatHistoryRoot, input.chatSessionId);
-      const sessionRootDir = path.join(sessionDir, "root");
-      const sessionFilesDir = path.join(sessionDir, "files"); // 向后兼容
-
-      try {
-        // 优先使用 root/ 目录
-        let sourceDirToUse = sessionRootDir;
-        try {
-          const rootStat = await fs.stat(sessionRootDir);
-          if (!rootStat.isDirectory()) {
-            sourceDirToUse = sessionFilesDir;
-          }
-        } catch {
-          // root/ 不存在，尝试 files/
-          sourceDirToUse = sessionFilesDir;
-        }
-
-        const sourceStat = await fs.stat(sourceDirToUse);
-        if (sourceStat.isDirectory()) {
-          // 复制所有文件到项目根目录
-          await fs.cp(sourceDirToUse, projectRootPath, { recursive: true });
-        }
-      } catch (err: any) {
-        if (err?.code !== "ENOENT") {
-          throw new Error(`Failed to copy chat files: ${err?.message ?? "Unknown error"}`);
-        }
-        // 源目录不存在时，创建空项目目录
+      if (hasRootDir) {
+        // 复制文件到项目根目录
+        await fs.cp(chatRootDir, projectRootPath, { recursive: true });
+      } else {
+        // 如果没有 root/ 目录，创建空项目目录
         await fs.mkdir(projectRootPath, { recursive: true });
       }
 
-      // 5. 创建 Project 配置文件
+      // 4. 创建 Project 记录
       const config = projectConfigSchema.parse({
         schema: 1,
         projectId,
         title: projectTitle,
+        icon: "💬", // 默认对话图标
         projects: {},
         initializedFeatures: [],
       });
@@ -1212,26 +1186,26 @@ export const projectRouter = t.router({
       const metaPath = getProjectMetaPath(projectRootPath);
       await writeJsonAtomic(metaPath, config);
 
-      // 6. 注册项目到 workspace 或父项目
+      // 5. 注册项目到 workspace 或父项目
       if (input.projectParentId) {
         await appendChildProjectEntry(input.projectParentId, projectId, projectRootUri);
       } else {
         upsertActiveWorkspaceProject(projectId, projectRootUri);
       }
 
-      // 7. 更新 ChatSession.projectId
+      // 6. 更新 ChatSession.projectId
       await ctx.prisma.chatSession.update({
         where: { id: input.chatSessionId },
         data: { projectId },
       });
 
+      // 7. 清理 sessionDirCache（需要导入 chatFileStore）
+      // 注意：这里需要在 server 端调用，暂时跳过，由前端刷新处理
+
       return {
-        ok: true,
-        project: {
-          projectId,
-          title: projectTitle,
-          rootUri: projectRootUri,
-        },
+        projectId,
+        projectTitle,
+        rootUri: projectRootUri,
       };
     }),
 

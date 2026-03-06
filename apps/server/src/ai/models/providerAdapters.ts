@@ -149,9 +149,10 @@ function buildBedrockAdapter(): ProviderAdapter {
   };
 }
 
-export const PROVIDER_ADAPTERS: Record<string, ProviderAdapter> = {
-  openai: {
-    id: "openai",
+/** Build OpenAI-compatible adapter (OpenAI + custom endpoints). */
+function buildOpenAiAdapter(id: string): ProviderAdapter {
+  return {
+    id,
     buildAiSdkModel: ({ provider, modelId, providerDefinition }) => {
       const apiKey = readApiKey(provider.authConfig);
       const resolvedApiUrl = provider.apiUrl.trim() || providerDefinition?.apiUrl?.trim() || "";
@@ -167,7 +168,12 @@ export const PROVIDER_ADAPTERS: Record<string, ProviderAdapter> = {
       // 自定义服务商默认走 chat completions，启用时才使用 /responses。
       return enableResponsesApi ? openaiProvider(modelId) : openaiProvider.chat(modelId);
     },
-  },
+  };
+}
+
+export const PROVIDER_ADAPTERS: Record<string, ProviderAdapter> = {
+  openai: buildOpenAiAdapter("openai"),
+  custom: buildOpenAiAdapter("custom"),
   anthropic: buildAiSdkAdapter("anthropic", ({ apiUrl, apiKey, fetch }) =>
     createAnthropic({ baseURL: apiUrl, apiKey, fetch }),
   ),

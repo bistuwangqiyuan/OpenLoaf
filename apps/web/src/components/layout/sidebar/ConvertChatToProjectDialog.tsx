@@ -9,12 +9,9 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { useNavigation } from "@/hooks/use-navigation";
 import {
   Dialog,
   DialogContent,
@@ -33,142 +30,127 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@openloaf/ui/select";
-import { toast } from "sonner";
 
 interface ConvertChatToProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chatSessionId: string;
+  workspaceId: string;
+  onSuccess?: () => void;
 }
 
 export function ConvertChatToProjectDialog({
   open,
   onOpenChange,
   chatSessionId,
+  workspaceId,
+  onSuccess,
 }: ConvertChatToProjectDialogProps) {
   const { t } = useTranslation("nav");
-  const { workspace } = useWorkspace();
   const [projectTitle, setProjectTitle] = useState("");
-  const [parentProjectId, setParentProjectId] = useState<string | undefined>();
-  const [isConverting, setIsConverting] = useState(false);
+  const [parentProjectId, setParentProjectId] = useState<string | undefined>(undefined);
 
-  const removeWorkspaceChat = useNavigation((s) => s.removeWorkspaceChat);
-  const setActiveView = useNavigation((s) => s.setActiveView);
-  const workspaceChats = useNavigation((s) => s.workspaceChats);
+  // 查询对话信息
+  const { data: chatData } = trpc.chat.getSession.useQuery(
+    { sessionId: chatSessionId },
+    { enabled: open }
+  );
 
   // 查询项目列表
-  const projectsQuery = useQuery(trpc.project.list.queryOptions());
-  const projects = projectsQuery.data ?? [];
+  const { data: projectsData } = trpc.project.list.useQuery(undefined, { enabled: open });
 
-  // 从本地状态获取对话标题
-  const chats = workspace ? workspaceChats[workspace.id] ?? [] : [];
-  const chat = chats.find((c) => c.chatSessionId === chatSessionId);
-  const chatTitle = chat?.title || "";
+  const convertMutation = trpc.project.convertChatToProject.useMutation({
+    onSuccess: () => {
+      onSuccess?.();
+    },
+  });
 
-  const convertMutation = useMutation(trpc.project.convertChatToProject.mutationOptions());
+  // 初始化项目标题
+  useEffect(() => {
+    if (chatData?.session) {
+      setProjectTitle(chatData.session.title || "");
+    }
+  }, [chatData]);
 
-  const handleConvert = () => {
+  const handleSubmit = () => {
     if (!projectTitle.trim()) {
-      toast.error(t("projectTitleRequired"));
       return;
     }
 
-    setIsConverting(true);
-    convertMutation.mutate(
-      {
-        chatSessionId,
-        projectTitle: projectTitle.trim(),
-        projectParentId: parentProjectId,
-      },
-      {
-        onSuccess: (result) => {
-          toast.success(t("convertSuccess"));
-          if (workspace) {
-            removeWorkspaceChat(workspace.id, chatSessionId);
-          }
-          // 切换到新创建的项目
-          setActiveView({ type: "project", projectId: result.project.projectId });
-          onOpenChange(false);
-        },
-        onError: (error) => {
-          toast.error(t("convertFailed", { error: error.message }));
-        },
-        onSettled: () => {
-          setIsConverting(false);
-        },
-      }
-    );
+    convertMutation.mutate({
+      chatSessionId,
+      projectTitle: projectTitle.trim(),
+      projectParentId: parentProjectId,
+    });
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!isConverting) {
-      onOpenChange(newOpen);
-      if (!newOpen) {
-        setProjectTitle("");
-        setParentProjectId(undefined);
+  // 扁平化项目树
+  const flattenProjects = (trees: any[]): Array<{ id: string; title: string; depth: number }> => {
+    const result: Array<{ id: string; title: string; depth: number }> = [];
+    const traverse = (nodes: any[], depth = 0) => {
+      for (const node of nodes) {
+        result.push({
+          id: node.projectId,
+          title: node.title || "Untitled",
+          depth,
+        });
+        if (node.children && node.children.length > 0) {
+          traverse(node.children, depth + 1);
+        }
       }
-    }
+    };
+    traverse(trees);
+    return result;
   };
 
-  // 当对话加载完成后，自动填充标题
-  if (open && chatTitle && !projectTitle) {
-    setProjectTitle(chatTitle);
-  }
+  const projects = projectsData ? flattenProjects(projectsData) : [];
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("convertChatToProject")}</DialogTitle>
+          <DialogTitle>{t("convertToProject.title")}</DialogTitle>
           <DialogDescription>
-            {t("convertChatToProjectDescription")}
+            {t("convertToProject.description")}
           </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="project-title">{t("projectTitle")}</Label>
+            <Label htmlFor="project-title">{t("convertToProject.projectName")}</Label>
             <Input
               id="project-title"
               value={projectTitle}
               onChange={(e) => setProjectTitle(e.target.value)}
-              placeholder={t("projectTitlePlaceholder")}
-              disabled={isConverting}
+              placeholder={t("convertToProject.projectNamePlaceholder")}
             />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="parent-project">{t("parentProject")}</Label>
-            <Select
-              value={parentProjectId}
-              onValueChange={setParentProjectId}
-              disabled={isConverting}
-            >
+            <Label htmlFor="parent-project">{t("convertToProject.parentProject")}</Label>
+            <Select value={parentProjectId} onValueChange={setParentProjectId}>
               <SelectTrigger id="parent-project">
-                <SelectValue placeholder={t("selectParentProject")} />
+                <SelectValue placeholder={t("convertToProject.parentProjectPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">{t("noParent")}</SelectItem>
+                <SelectItem value="__none__">{t("convertToProject.noParent")}</SelectItem>
                 {projects.map((project) => (
-                  <SelectItem key={project.projectId} value={project.projectId}>
-                    {project.icon} {project.title}
+                  <SelectItem key={project.id} value={project.id}>
+                    {"  ".repeat(project.depth)}
+                    {project.title}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
-
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isConverting}
-          >
-            {t("cancel")}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("convertToProject.cancel")}
           </Button>
-          <Button onClick={handleConvert} disabled={isConverting}>
-            {isConverting ? t("converting") : t("convert")}
+          <Button
+            onClick={handleSubmit}
+            disabled={!projectTitle.trim() || convertMutation.isPending}
+          >
+            {convertMutation.isPending ? t("convertToProject.converting") : t("convertToProject.confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

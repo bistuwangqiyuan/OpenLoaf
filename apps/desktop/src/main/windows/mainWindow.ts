@@ -265,10 +265,25 @@ export async function createMainWindow(args: {
 
     try {
       const result = await new Promise<'cancel' | 'minimize' | 'quit'>((resolve) => {
+        let responded = false;
+
+        // 超时保护：如果 Web 端 3 秒内没有响应（可能未启动或崩溃），直接退出
+        const timeout = setTimeout(() => {
+          if (!responded) {
+            args.log('[close] Web did not respond to close confirmation, forcing quit.');
+            responded = true;
+            resolve('quit');
+          }
+        }, 3000);
+
         ipcMain.once(CLOSE_RESPONSE_CHANNEL, (_event, payload: {
           action?: 'cancel' | 'minimize' | 'quit';
           minimizeToTray?: boolean;
         }) => {
+          if (responded) return;
+          responded = true;
+          clearTimeout(timeout);
+
           const action = payload?.action;
           if (action === 'minimize' || action === 'quit') {
             if (typeof payload?.minimizeToTray === 'boolean') {

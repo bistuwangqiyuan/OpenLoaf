@@ -249,8 +249,10 @@ export function ProviderDialog({
                         const provider = next;
                         const currentDefault = getDefaultApiUrl(draftProvider);
                         const nextDefault = getDefaultApiUrl(provider);
-                        const currentDefaultName = getDefaultProviderName(draftProvider);
-                        const nextDefaultName = getDefaultProviderName(provider);
+                        const currentDefaultName =
+                          providerLabelById[draftProvider] ?? getDefaultProviderName(draftProvider);
+                        const nextDefaultName =
+                          providerLabelById[provider] ?? getDefaultProviderName(provider);
                         const nextDefaultModels = getDefaultModelIds(provider);
                         onDraftProviderChange(provider);
                         if (!draftApiUrl.trim() || draftApiUrl.trim() === currentDefault) {

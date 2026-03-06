@@ -10,7 +10,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { PanelLeft, PanelRight, Settings, Sparkles } from "lucide-react";
+import { PanelLeft, PanelRight, Settings, Sparkles, Search } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { useSidebar } from "@openloaf/ui/sidebar";
@@ -18,14 +18,15 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 import { openSettingsTab } from "@/lib/globalShortcuts";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
-import { HeaderChatHistory } from "./HeaderChatHistory";
 import { PageTitle } from "./PageTitle";
 import { ModeToggle } from "./ModeToggle";
+import { Search as SearchDialog } from "@/components/search/Search";
 
 /** Format a shortcut string for tooltip display. */
 function formatShortcutLabel(shortcut: string, isMac: boolean): string {
@@ -66,6 +67,8 @@ export const Header = () => {
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
   const setTabRightChatCollapsed = useTabRuntime((s) => s.setTabRightChatCollapsed);
+  const searchOpen = useGlobalOverlay((s) => s.searchOpen);
+  const setSearchOpen = useGlobalOverlay((s) => s.setSearchOpen);
 
   const isElectron = isElectronEnv();
   const isMac =
@@ -122,7 +125,25 @@ export const Header = () => {
             {t('header.toggleSidebar', { shortcut: sidebarShortcut })}
           </TooltipContent>
         </Tooltip>
-        {workspaceId && <HeaderChatHistory workspaceId={workspaceId} />}
+        {workspaceId && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                data-no-drag="true"
+                className="h-8 w-8 shrink-0"
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchOpen(true)}
+                type="button"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={6}>
+              {t('search')} (⌘K)
+            </TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -144,7 +165,7 @@ export const Header = () => {
         </Tooltip>
       </div>
       <div className="flex min-w-0 items-center gap-2 overflow-hidden pl-1">
-        <div className="min-w-0 flex-1 overflow-hidden px-4">
+        <div className="min-w-0 flex-1 overflow-hidden">
           <PageTitle />
         </div>
       </div>
@@ -199,6 +220,7 @@ export const Header = () => {
           </TooltipContent>
         </Tooltip>
       </div>
+      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
   );
 };

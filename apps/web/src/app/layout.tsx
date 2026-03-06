@@ -23,6 +23,10 @@ import StepUpGate from "@/components/layout/StepUpGate";
 export const metadata: Metadata = {
   title: "openloaf",
   description: "openloaf",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

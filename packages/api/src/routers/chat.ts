@@ -347,6 +347,104 @@ export const chatRouter = t.router({
     .mutation(async () => {
       throw new Error('Not implemented: override in server chat router.')
     }),
+
+  /**
+   * List chat sessions by workspace (for WorkspaceChatList)
+   */
+  listByWorkspace: shieldedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().trim().min(1),
+        projectId: z.string().nullable(),
+        limit: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const sessions = await ctx.prisma.chatSession.findMany({
+        where: {
+          deletedAt: null,
+          workspaceId: input.workspaceId,
+          projectId: input.projectId,
+        },
+        orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
+        take: input.limit,
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          isPin: true,
+          isUserRename: true,
+          errorMessage: true,
+          projectId: true,
+          messageCount: true,
+        },
+      })
+
+      return sessions
+    }),
+
+  /**
+   * Get a single chat session
+   */
+  getSession: shieldedProcedure
+    .input(z.object({ sessionId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const session = await ctx.prisma.chatSession.findUnique({
+        where: { id: input.sessionId },
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          isPin: true,
+          isUserRename: true,
+          errorMessage: true,
+          projectId: true,
+          messageCount: true,
+          workspaceId: true,
+        },
+      })
+
+      return session
+    }),
+
+  /**
+   * Delete a chat session
+   */
+  deleteSession: shieldedProcedure
+    .input(z.object({ sessionId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.chatSession.update({
+        where: { id: input.sessionId },
+        data: { deletedAt: new Date() },
+      })
+
+      return { success: true }
+    }),
+
+  /**
+   * Update a chat session
+   */
+  updateSession: shieldedProcedure
+    .input(
+      z.object({
+        sessionId: z.string().min(1),
+        title: z.string().optional(),
+        isPin: z.boolean().optional(),
+        isUserRename: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { sessionId, ...data } = input
+
+      const session = await ctx.prisma.chatSession.update({
+        where: { id: sessionId },
+        data,
+      })
+
+      return session
+    }),
 })
 
 export type ChatRouter = typeof chatRouter

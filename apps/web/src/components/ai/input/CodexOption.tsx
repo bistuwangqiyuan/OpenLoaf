@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import {
@@ -237,7 +238,7 @@ export default function CodexOption({
   useInstalledCliProviderIds();
 
   // 逻辑：从 server 获取 Codex CLI 可用模型列表
-  const codexModelsQuery = trpc.settings.getCodexModels.useQuery();
+  const codexModelsQuery = useQuery(trpc.settings.getCodexModels.queryOptions());
   const codeModels = React.useMemo(() => {
     const models = codexModelsQuery.data ?? [];
     return models.map((model) => ({

@@ -9,55 +9,46 @@
  */
 "use client";
 
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { trpc } from "@/utils/trpc";
 import { useNavigation } from "@/hooks/use-navigation";
+import { useTabs } from "@/hooks/use-tabs";
+import { useTabView } from "@/hooks/use-tab-view";
 
-export function PageTitle() {
-  const { t } = useTranslation("nav");
-  const activeView = useNavigation((s) => s.activeView);
-  const workspaceChats = useNavigation((s) => s.workspaceChats);
-  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
+/**
+ * PageTitle 组件
+ *
+ * 在 Header 中显示当前页面的标题
+ * 根据导航状态和当前 Tab 信息动态显示标题
+ */
+export const PageTitle = () => {
+  const { t } = useTranslation('nav');
+  const viewType = useNavigation((s) => s.activeViewType);
+  const activeTabId = useTabs((s) => s.activeTabId);
+  const activeTab = useTabView(activeTabId ?? undefined);
 
-  // 根据不同的视图类型查询数据
-  const projectQuery = useQuery({
-    ...trpc.project.get.queryOptions({
-      projectId: activeView?.type === "project" ? activeView.projectId : "",
-    }),
-    enabled: activeView?.type === "project",
-  });
-
-  if (!activeView) {
-    return <span className="text-sm font-medium">{t("workbench")}</span>;
-  }
-
-  switch (activeView.type) {
-    case "workbench":
-      return <span className="text-sm font-medium">{t("workbench")}</span>;
-    case "calendar":
-      return <span className="text-sm font-medium">{t("calendar")}</span>;
-    case "email":
-      return <span className="text-sm font-medium">{t("email")}</span>;
-    case "scheduled-tasks":
-      return <span className="text-sm font-medium">{t("tasks")}</span>;
-    case "project":
-      return (
-        <span className="text-sm font-medium">
-          {projectQuery.data?.project.icon} {projectQuery.data?.project.title || t("project")}
-        </span>
-      );
-    case "workspace-chat": {
-      // 从本地状态获取对话标题
-      const chats = activeWorkspaceId ? workspaceChats[activeWorkspaceId] ?? [] : [];
-      const chat = chats.find((c) => c.chatSessionId === activeView.chatSessionId);
-      return (
-        <span className="text-sm font-medium">
-          {chat?.title || t("chat")}
-        </span>
-      );
+  const title = useMemo(() => {
+    if (viewType === 'project') {
+      return activeTab?.title ?? t('project');
     }
-    default:
-      return <span className="text-sm font-medium">{t("workbench")}</span>;
-  }
-}
+    if (viewType === 'workspace-chat') {
+      return activeTab?.title ?? t('aiAssistant');
+    }
+    if (viewType === 'workbench') return t('workbench');
+    if (viewType === 'calendar') return t('calendar');
+    if (viewType === 'email') return t('email');
+    if (viewType === 'scheduled-tasks') return t('scheduledTasks');
+    if (viewType === 'ai-assistant') return t('aiAssistant');
+    return '';
+  }, [viewType, activeTab, t]);
+
+  if (!title) return null;
+
+  return (
+    <div className="flex items-center min-w-0">
+      <h1 className="text-sm font-medium text-foreground/80 truncate">
+        {title}
+      </h1>
+    </div>
+  );
+};

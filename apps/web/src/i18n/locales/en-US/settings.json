@@ -1,6 +1,7 @@
 {
   "provider": {
     "title": "Provider",
+    "customProviderAddressOption": "Custom Provider Address",
     "addProvider": "Add Provider",
     "editProvider": "Edit Provider",
     "cancel": "Cancel",

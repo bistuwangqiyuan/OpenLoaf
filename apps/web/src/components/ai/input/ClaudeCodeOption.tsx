@@ -11,6 +11,7 @@
 
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import {
@@ -166,7 +167,7 @@ export default function ClaudeCodeOption({
   // 逻辑：触发 CLI 安装状态查询，避免与输入区其他逻辑时序不一致。
   useInstalledCliProviderIds();
   // 逻辑：从 server 获取 Claude Code CLI 可用模型列表
-  const claudeCodeModelsQuery = trpc.settings.getClaudeCodeModels.useQuery();
+  const claudeCodeModelsQuery = useQuery(trpc.settings.getClaudeCodeModels.queryOptions());
   const codeModels = React.useMemo(() => {
     const models = claudeCodeModelsQuery.data ?? [];
     return models.map((model) => ({

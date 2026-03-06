@@ -43,6 +43,7 @@ import { officeRouterImplementation } from "@/routers/office";
 import { calendarRouterImplementation } from "@/routers/calendar";
 import { dynamicWidgetRouterImplementation } from "@/routers/dynamicWidget";
 import { scheduledTaskRouterImplementation } from "@/routers/scheduledTask";
+import { serverAppRouter } from "@/types/appRouter";
 import { logger } from "@/common/logger";
 
 const defaultCorsOrigins = [
@@ -114,22 +115,7 @@ export function createApp() {
   app.use(
     "/trpc/*",
     trpcServer({
-      router: t.router({
-        ...appRouterDefine,
-        chat: chatRouterImplementation,
-        workspace: workspaceRouterImplementation,
-        tab: tabRouterImplementation,
-        settings: settingsRouterImplementation,
-        ai: aiRouterImplementation,
-        linkPreview: linkPreviewRouterImplementation,
-        webMeta: webMetaRouterImplementation,
-        terminal: terminalRouterImplementation,
-        email: emailRouterImplementation,
-        office: officeRouterImplementation,
-        calendar: calendarRouterImplementation,
-        dynamicWidget: dynamicWidgetRouterImplementation,
-        scheduledTask: scheduledTaskRouterImplementation,
-      }),
+      router: serverAppRouter,
       createContext: (_opts, context) => createContext({ context }),
       onError: ({ error, path, input, type }) => {
         logger.error(

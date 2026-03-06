@@ -13,6 +13,7 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useTranslation } from "react-i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { useNavigation } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -64,7 +65,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { trpc } from "@/utils/trpc";
+import { trpc as trpcContext } from "@/utils/trpc";
 import { getProjectsQueryKey } from "@/hooks/use-projects";
 import { toast } from "sonner";
 import { buildStackItemForEntry } from "@/components/file/lib/open-file";
@@ -338,6 +339,7 @@ function FileTreeNode({
   onProjectPointerDown,
   onNativeContextMenu,
 }: FileTreeNodeProps) {
+  const trpc = trpcContext;
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const nodeKey = getNodeKey(node);
@@ -534,12 +536,14 @@ export const PageTreeMenu = ({
   onCreateProject,
   onImportProject,
 }: PageTreeMenuProps) => {
+  const trpc = trpcContext;
   const { t } = useTranslation(["nav", "common"]);
   const addTab = useTabs((s) => s.addTab);
   const setActiveTab = useTabs((s) => s.setActiveTab);
   const setTabTitle = useTabs((s) => s.setTabTitle);
   const activeTabId = useTabs((s) => s.activeTabId);
   const tabs = useTabs((s) => s.tabs);
+  const setActiveProject = useNavigation((s) => s.setActiveProject);
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const isElectron = isElectronEnv();
@@ -725,6 +729,9 @@ export const PageTreeMenu = ({
     if (!workspace?.id) return;
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const targetProjectId = project.projectId;
+
+    // 更新导航状态
+    setActiveProject(targetProjectId);
 
     // 1. 当前 Tab：遍历 chatSessionProjectIds 查找匹配的 sessionId
     const currentTab = activeTabId ? tabs.find((t) => t.id === activeTabId) : undefined;

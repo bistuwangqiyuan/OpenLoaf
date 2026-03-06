@@ -183,43 +183,29 @@ export function registerSessionDir(
 }
 
 /**
- * 解析 session 的根工作目录：<sessionDir>/root/
- * 用于存储 AI 生成的文件、用户上传的附件等所有用户文件。
- *
- * 向后兼容：如果 root/ 不存在但 files/ 存在，返回 files/ 路径。
+ * 解析 session 的文件存储子目录：<sessionDir>/root/
+ * 用于存储用户拖拽上传的任意类型文件和 AI 生成的文件。
+ * 兼容旧数据：如果 root/ 不存在，回退到 files/。
  */
-export async function resolveSessionRootDir(sessionId: string): Promise<string> {
+export async function resolveSessionFilesDir(sessionId: string): Promise<string> {
   const sessionDir = await resolveSessionDir(sessionId)
   const rootDir = path.join(sessionDir, 'root')
   const filesDir = path.join(sessionDir, 'files')
 
-  // 检查 root/ 是否存在
+  // 优先使用 root/，不存在则回退到 files/（兼容旧数据）
   try {
-    const rootStat = await fs.stat(rootDir)
-    if (rootStat.isDirectory()) {
+    await fs.access(rootDir)
+    return rootDir
+  } catch {
+    try {
+      await fs.access(filesDir)
+      return filesDir
+    } catch {
+      // 都不存在，创建 root/
+      await fs.mkdir(rootDir, { recursive: true })
       return rootDir
     }
-  } catch {
-    // root/ 不存在，检查 files/ 是否存在（向后兼容）
-    try {
-      const filesStat = await fs.stat(filesDir)
-      if (filesStat.isDirectory()) {
-        return filesDir
-      }
-    } catch {
-      // 都不存在，返回 root/（新对话默认使用）
-    }
   }
-
-  return rootDir
-}
-
-/**
- * 解析 session 的文件存储子目录（已废弃，使用 resolveSessionRootDir 替代）
- * @deprecated 使用 resolveSessionRootDir 替代
- */
-export async function resolveSessionFilesDir(sessionId: string): Promise<string> {
-  return resolveSessionRootDir(sessionId)
 }
 
 /** 清除 session 目录缓存 */

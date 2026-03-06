@@ -14,7 +14,6 @@ import { useQuery, skipToken } from "@tanstack/react-query";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { SidebarProject } from "@/components/layout/sidebar/SidebarProject";
-import { SidebarFeedback } from "@/components/layout/sidebar/SidebarFeedback";
 import { WorkspaceChatList } from "@/components/layout/sidebar/WorkspaceChatList";
 import { SidebarWorkspace } from "../../workspace/SidebarWorkspace";
 import {
@@ -25,15 +24,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@openloaf/ui/sidebar";
-import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, Search, Sparkles } from "lucide-react";
+import { CalendarDays, Clock, Inbox, LayoutDashboard, LayoutTemplate, Mail, Sparkles } from "lucide-react";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useNavigation, getViewKey } from "@/hooks/use-navigation";
+import { useNavigation } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { createChatSessionId } from "@/lib/chat-session-id";
-import { Search as SearchDialog } from "@/components/search/Search";
 import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
 import { AI_ASSISTANT_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
@@ -77,15 +73,6 @@ export const AppSidebar = ({
 }: React.ComponentProps<typeof Sidebar>) => {
   const { t } = useTranslation('nav');
   const { workspace: activeWorkspace } = useWorkspace();
-
-  // 新导航系统
-  const activeView = useNavigation((s) => s.activeView);
-  const setActiveView = useNavigation((s) => s.setActiveView);
-  const setViewRuntime = useNavigation((s) => s.setViewRuntime);
-  const getViewRuntime = useNavigation((s) => s.getViewRuntime);
-  const addWorkspaceChat = useNavigation((s) => s.addWorkspaceChat);
-
-  // 旧 Tab 系统（保留）
   const addTab = useTabs((s) => s.addTab);
   const setActiveTab = useTabs((s) => s.setActiveTab);
   const setTabTitle = useTabs((s) => s.setTabTitle);
@@ -95,11 +82,8 @@ export const AppSidebar = ({
   const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId);
   const setTabBase = useTabRuntime((s) => s.setTabBase);
   const clearStack = useTabRuntime((s) => s.clearStack);
-
-  const searchOpen = useGlobalOverlay((s) => s.searchOpen);
-  const setSearchOpen = useGlobalOverlay((s) => s.setSearchOpen);
+  const setActiveView = useNavigation((s) => s.setActiveView);
   const isNarrow = useIsNarrowScreen(900);
-
   // 未读邮件数量查询。
   const unreadCountQuery = useQuery(
     trpc.email.listUnreadCount.queryOptions(
@@ -124,13 +108,6 @@ export const AppSidebar = ({
   // 逻辑：窄屏直接隐藏侧边栏，避免占用可用空间。
   if (isNarrow) return null;
 
-  // 新导航系统的激活状态检测
-  const isMenuActiveNew = (viewType: string) => {
-    if (!activeView) return false;
-    return activeView.type === viewType;
-  };
-
-  // 旧系统的激活状态检测
   const activeTab =
     activeWorkspace && activeTabId
       ? tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id)
@@ -143,60 +120,6 @@ export const AppSidebar = ({
     if (input.component === "ai-chat" && !activeBaseId && activeTab.title === input.title) return true;
     return false;
   };
-
-  // 新导航系统：直接设置视图
-  const openView = useCallback(
-    (viewType: 'workbench' | 'calendar' | 'email' | 'scheduled-tasks') => {
-      if (!activeWorkspace) return;
-
-      const view = { type: viewType } as any;
-      setActiveView(view);
-
-      // 映射视图类型到组件名称
-      const componentMap: Record<string, string> = {
-        workbench: "workspace-desktop",
-        calendar: "calendar-page",
-        email: "email-page",
-        "scheduled-tasks": "scheduled-tasks-page",
-      };
-
-      const component = componentMap[viewType];
-
-      // 初始化视图运行时状态
-      const viewKey = getViewKey(view);
-      setViewRuntime(viewKey, {
-        leftDock: {
-          id: `base:${viewType}`,
-          component,
-        },
-        stack: [],
-        leftWidthPercent: 100,
-        rightChatCollapsed: true,
-      });
-    },
-    [activeWorkspace, setActiveView, setViewRuntime, getViewKey],
-  );
-
-  // 新导航系统：创建新对话
-  const openAIAssistant = useCallback(() => {
-    if (!activeWorkspace) return;
-
-    const newSessionId = createChatSessionId();
-
-    // 添加到 Workspace Chat 列表
-    addWorkspaceChat(activeWorkspace.id, {
-      chatSessionId: newSessionId,
-      title: t('newChat'),
-      projectId: null,
-      chatParams: {},
-    });
-
-    // 切换到新对话
-    setActiveView({
-      type: 'workspace-chat',
-      chatSessionId: newSessionId,
-    });
-  }, [activeWorkspace, setActiveView, addWorkspaceChat, t]);
 
 
   const openSingletonTab = useCallback(
@@ -225,7 +148,8 @@ export const AppSidebar = ({
         createNew: true,
         title: tabTitle,
         icon: input.icon,
-        leftWidthPercent: 100,
+        leftWidthPercent: input.component === "ai-chat" ? 0 : 100,
+        rightChatCollapsed: input.component === "ai-chat" ? false : undefined,
         base:
           input.component === "ai-chat"
             ? undefined
@@ -236,9 +160,14 @@ export const AppSidebar = ({
   );
 
   const openWorkspacePageTab = useCallback(
-    (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
+    (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string; viewType?: string }) => {
       if (!activeWorkspace) return;
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
+
+      // 更新导航状态
+      if (input.viewType) {
+        setActiveView(input.viewType as any);
+      }
 
       const state = useTabs.getState();
       const runtimeState = useTabRuntime.getState().runtimeByTabId;
@@ -304,6 +233,7 @@ export const AppSidebar = ({
       addTab,
       clearStack,
       setActiveTab,
+      setActiveView,
       setTabBase,
       setTabIcon,
       setTabTitle,
@@ -317,26 +247,7 @@ export const AppSidebar = ({
       {...props}
     >
       <SidebarHeader>
-        <SidebarWorkspace />
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip={t('search')}
-              className={SIDEBAR_SEARCH_ICON_CLASS}
-              onClick={() => setSearchOpen(true)}
-              type="button"
-            >
-              <Search />
-              <span className="flex-1 truncate">{t('search')}</span>
-              {/* 快捷键提示默认隐藏，仅在 hover / focus 时显示，避免侧边栏视觉噪音。 */}
-              <span className="ml-auto opacity-0 transition-opacity delay-0 group-hover/menu-item:opacity-100 group-hover/menu-item:delay-200 group-focus-visible/menu-item:opacity-100 group-focus-visible/menu-item:delay-200 group-data-[collapsible=icon]:hidden">
-                <KbdGroup className="gap-1">
-                  <Kbd className="bg-transparent px-0 h-auto rounded-none">⌘</Kbd>
-                  <Kbd className="bg-transparent px-0 h-auto rounded-none">K</Kbd>
-                </KbdGroup>
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           {/* 先隐藏模版入口，后续再开放。 */}
           {false ? (
             <SidebarMenuItem>
@@ -373,8 +284,12 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('aiAssistant')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.aiAssistant}
-              isActive={activeView?.type === 'workspace-chat'}
-              onClick={() => openAIAssistant()}
+              isActive={isMenuActive(AI_ASSISTANT_TAB_INPUT)}
+              onClick={() => {
+                if (!activeWorkspace) return;
+                setActiveView('ai-assistant');
+                openSingletonTab(AI_ASSISTANT_TAB_INPUT);
+              }}
               type="button"
             >
               <Sparkles className="h-4 w-4" />
@@ -385,8 +300,8 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('workbench')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.workbench}
-              isActive={isMenuActiveNew('workbench')}
-              onClick={() => openView('workbench')}
+              isActive={isMenuActive(WORKBENCH_TAB_INPUT)}
+              onClick={() => openWorkspacePageTab({ ...WORKBENCH_TAB_INPUT, viewType: 'workbench' })}
               type="button"
             >
               <LayoutDashboard className="h-4 w-4" />
@@ -402,9 +317,22 @@ export const AppSidebar = ({
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip={t('calendar')}
+              // 逻辑：与底部 DockTabs 的色调保持一致，增强主入口识别度。
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.calendar}
-              isActive={isMenuActiveNew('calendar')}
-              onClick={() => openView('calendar')}
+              isActive={isMenuActive({
+                baseId: "base:calendar",
+                component: "calendar-page",
+                title: t('calendar'),
+              })}
+              onClick={() =>
+                openWorkspacePageTab({
+                  baseId: "base:calendar",
+                  component: "calendar-page",
+                  title: t('calendar'),
+                  icon: "🗓️",
+                  viewType: 'calendar',
+                })
+              }
               type="button"
             >
               <CalendarDays />
@@ -421,8 +349,20 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('email')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.email}
-              isActive={isMenuActiveNew('email')}
-              onClick={() => openView('email')}
+              isActive={isMenuActive({
+                baseId: "base:mailbox",
+                component: "email-page",
+                title: t('email'),
+              })}
+              onClick={() =>
+                openWorkspacePageTab({
+                  baseId: "base:mailbox",
+                  component: "email-page",
+                  title: t('email'),
+                  icon: "📧",
+                  viewType: 'email',
+                })
+              }
               type="button"
             >
               <Mail />
@@ -441,8 +381,20 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('tasks')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.scheduledTasks}
-              isActive={isMenuActiveNew('scheduled-tasks')}
-              onClick={() => openView('scheduled-tasks')}
+              isActive={isMenuActive({
+                baseId: "base:scheduled-tasks",
+                component: "scheduled-tasks-page",
+                title: t('tasks'),
+              })}
+              onClick={() =>
+                openWorkspacePageTab({
+                  baseId: "base:scheduled-tasks",
+                  component: "scheduled-tasks-page",
+                  title: t('tasks'),
+                  icon: "⏰",
+                  viewType: 'scheduled-tasks',
+                })
+              }
               type="button"
             >
               <Clock />
@@ -490,14 +442,19 @@ export const AppSidebar = ({
             </SidebarMenuItem>
           ) : null}
         </SidebarMenu>
-        <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarProject />
-        <WorkspaceChatList />
+      <SidebarContent className="flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <SidebarProject />
+        </div>
+        {activeWorkspace && (
+          <div className="flex-1 min-h-0 flex flex-col border-t overflow-hidden">
+            <WorkspaceChatList workspaceId={activeWorkspace.id} />
+          </div>
+        )}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarFeedback />
+        <SidebarWorkspace />
       </SidebarFooter>
     </Sidebar>
   );

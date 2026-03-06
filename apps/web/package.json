@@ -92,7 +92,7 @@
     "@tanstack/react-query": "^5.90.20",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
-    "@trpc/tanstack-react-query": "^11.8.1",
+    "@trpc/tanstack-react-query": "^11.11.0",
     "@udecode/cn": "^52.0.11",
     "@univerjs/core": "0.15.1",
     "@univerjs/design": "0.15.1",

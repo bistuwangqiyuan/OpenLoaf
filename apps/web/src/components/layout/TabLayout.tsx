@@ -478,7 +478,8 @@ function RightChatPanel({ tabId }: { tabId: string }) {
     ]
   );
   // Render the pinned new-session bar.
-  const newSessionBar = (
+  // Only show for project chats (not workspace chats)
+  const newSessionBar = currentProjectId ? (
     <button
       type="button"
       className={cn(
@@ -491,9 +492,9 @@ function RightChatPanel({ tabId }: { tabId: string }) {
         size={14}
         className="shrink-0 text-[#188038] dark:text-emerald-300"
       />
-      <span className="truncate">新建会话</span>
+      <span className="truncate">新建项目会话，开启多会话模式</span>
       </button>
-  );
+  ) : null;
   const renderSessionStack = () => (
     <div className="relative flex min-h-0 flex-1 flex-col rounded-lg bg-background overflow-hidden">
       {sessionList.map((session) => {
@@ -543,7 +544,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
         <LayoutGroup>
           <div className="flex min-h-0 flex-1 flex-col">
             {newSessionBar}
-            <div className="shrink-0 h-[6px] bg-sidebar" />
+            {newSessionBar && <div className="shrink-0 h-[6px] bg-sidebar" />}
             <AnimatePresence mode="popLayout">
               {sessionsAbove.map((session) => (
                 <React.Fragment key={session.sessionId}>
@@ -568,7 +569,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           {newSessionBar}
-          <div className="shrink-0 h-[6px] bg-sidebar" />
+          {newSessionBar && <div className="shrink-0 h-[6px] bg-sidebar" />}
           {renderSessionStack()}
         </div>
       )}

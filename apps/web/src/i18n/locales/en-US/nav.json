@@ -7,7 +7,7 @@
   "tasks": "Tasks",
   "settings": "Settings",
   "sidebar": {
-    "projectFolder": "Projects",
+    "projectFolder": "Project List",
     "refresh": "Refresh",
     "addProject": "Add Project",
     "addDialog": "Add Project",
@@ -126,6 +126,32 @@
     "createWorkspace": "Create Workspace",
     "workspaceSettings": "Workspace Settings",
     "exitWorkspace": "Exit Workspace"
+  },
+  "workspaceChatList": {
+    "title": "Chat History",
+    "viewMore": "View More",
+    "empty": "No conversations yet",
+    "confirmDelete": "Delete this conversation?",
+    "renamePrompt": "Enter new name",
+    "contextMenu": {
+      "rename": "Rename",
+      "delete": "Delete",
+      "convertToProject": "Convert to Project"
+    }
+  },
+  "convertToProject": {
+    "title": "Convert to Project",
+    "description": "Convert this conversation to a formal project. Files will be copied to the project directory.",
+    "projectName": "Project Name",
+    "projectNamePlaceholder": "Enter project name",
+    "parentProject": "Parent Project",
+    "parentProjectPlaceholder": "Select parent project (optional)",
+    "noParent": "No parent",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "converting": "Converting...",
+    "success": "Converted to project",
+    "failed": "Conversion failed"
   },
   "header": {
     "toggleSidebar": "Toggle Sidebar ({{shortcut}})",

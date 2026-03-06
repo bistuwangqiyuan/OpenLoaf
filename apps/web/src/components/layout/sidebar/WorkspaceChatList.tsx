@@ -9,19 +9,13 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
-import { useNavigation, getViewKey } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from "@openloaf/ui/sidebar";
+import { MessageSquare, MoreHorizontal, Trash2, Edit2, FolderInput } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { trpc } from "@/utils/trpc";
+import { useTabs } from "@/hooks/use-tabs";
+import { useNavigation } from "@/hooks/use-navigation";
 import { Button } from "@openloaf/ui/button";
 import {
   DropdownMenu,
@@ -31,122 +25,189 @@ import {
 } from "@openloaf/ui/dropdown-menu";
 import { ConvertChatToProjectDialog } from "./ConvertChatToProjectDialog";
 
-const DEFAULT_DISPLAY_COUNT = 10;
+interface WorkspaceChatListProps {
+  workspaceId: string;
+}
 
-export function WorkspaceChatList() {
+export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
   const { t } = useTranslation("nav");
-  const { workspace } = useWorkspace();
   const [expanded, setExpanded] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
-  const activeView = useNavigation((s) => s.activeView);
-  const setActiveView = useNavigation((s) => s.setActiveView);
-  const getWorkspaceChats = useNavigation((s) => s.getWorkspaceChats);
-  const removeWorkspaceChat = useNavigation((s) => s.removeWorkspaceChat);
+  const addTab = useTabs((s) => s.addTab);
+  const setActiveTab = useTabs((s) => s.setActiveTab);
+  const tabs = useTabs((s) => s.tabs);
+  const activeTabId = useTabs((s) => s.activeTabId);
+  const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat);
+  const activeWorkspaceChatSessionId = useNavigation((s) => s.activeWorkspaceChatSessionId);
 
-  if (!workspace) return null;
+  // 查询 Workspace Chat 列表
+  const { data: chats, refetch } = useQuery(
+    trpc.chat.listByWorkspace.queryOptions({
+      workspaceId,
+      projectId: null, // 只查询 Workspace 级别的对话
+      limit: expanded ? undefined : 10,
+    })
+  );
 
-  const allChats = getWorkspaceChats(workspace.id);
-  const displayChats = expanded ? allChats : allChats.slice(0, DEFAULT_DISPLAY_COUNT);
-  const hasMore = allChats.length > DEFAULT_DISPLAY_COUNT;
+  const deleteMutation = useMutation(
+    trpc.chat.deleteSession.mutationOptions({
+      onSuccess: () => {
+        refetch();
+      },
+    })
+  );
 
-  const isActive = (chatSessionId: string) => {
-    return activeView?.type === "workspace-chat" && activeView.chatSessionId === chatSessionId;
-  };
+  const updateMutation = useMutation(
+    trpc.chat.updateSession.mutationOptions({
+      onSuccess: () => {
+        refetch();
+      },
+    })
+  );
 
-  const handleChatClick = (chatSessionId: string) => {
-    setActiveView({ type: "workspace-chat", chatSessionId });
-  };
+  const handleChatClick = useCallback(
+    (chatId: string, chatTitle: string) => {
+      // 检查是否已有该 chat 的 tab
+      const existingTab = tabs.find(
+        (tab) =>
+          tab.workspaceId === workspaceId &&
+          tab.chatSessionId === chatId
+      );
 
-  const handleConvertToProject = (chatSessionId: string) => {
-    setSelectedChatId(chatSessionId);
+      if (existingTab) {
+        setActiveTab(existingTab.id);
+      } else {
+        // 创建新 tab
+        addTab({
+          workspaceId,
+          createNew: true,
+          title: chatTitle,
+          icon: "💬",
+          chatSessionId: chatId,
+          chatParams: { projectId: null },
+          leftWidthPercent: 0,
+          rightChatCollapsed: false,
+          chatLoadHistory: true,
+        });
+      }
+
+      setActiveWorkspaceChat(chatId);
+    },
+    [workspaceId, tabs, addTab, setActiveTab, setActiveWorkspaceChat]
+  );
+
+  const handleDelete = useCallback(
+    (chatId: string) => {
+      if (confirm(t("workspaceChatList.confirmDelete"))) {
+        deleteMutation.mutate({ sessionId: chatId });
+      }
+    },
+    [deleteMutation, t]
+  );
+
+  const handleRename = useCallback(
+    (chatId: string, currentTitle: string) => {
+      const newTitle = prompt(t("workspaceChatList.renamePrompt"), currentTitle);
+      if (newTitle && newTitle.trim() !== currentTitle) {
+        updateMutation.mutate({
+          sessionId: chatId,
+          title: newTitle.trim(),
+          isUserRename: true,
+        });
+      }
+    },
+    [updateMutation, t]
+  );
+
+  const handleConvertToProject = useCallback((chatId: string) => {
+    setSelectedChatId(chatId);
     setConvertDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteChat = (chatSessionId: string) => {
-    if (confirm(t("confirmDeleteChat"))) {
-      removeWorkspaceChat(workspace.id, chatSessionId);
-    }
-  };
+  if (!chats || chats.length === 0) {
+    return null;
+  }
 
-  if (allChats.length === 0) return null;
+  const displayChats = expanded ? chats : chats.slice(0, 10);
+  const hasMore = chats.length > 10;
 
   return (
-    <>
-      <SidebarGroup>
-        <SidebarGroupLabel className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          <span className="flex-1">{t("workspaceChats")}</span>
-        </SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {displayChats.map((chat) => (
-              <SidebarMenuItem key={chat.chatSessionId}>
-                <SidebarMenuButton
-                  isActive={isActive(chat.chatSessionId)}
-                  onClick={() => handleChatClick(chat.chatSessionId)}
-                  className="group relative"
-                >
-                  <MessageSquare className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 truncate">{chat.title || t("untitledChat")}</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleConvertToProject(chat.chatSessionId)}>
-                        {t("convertToProject")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteChat(chat.chatSessionId)}
-                        className="text-destructive"
-                      >
-                        {t("delete")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          {hasMore && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
-              onClick={() => setExpanded(!expanded)}
+    <div className="workspace-chat-list flex flex-col h-full">
+      <div className="text-xs font-medium text-muted-foreground px-4 py-2 shrink-0">
+        {t("workspaceChatList.title")}
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 space-y-0.5 min-h-0">
+        {displayChats.map((chat) => {
+          const isActive = activeWorkspaceChatSessionId === chat.id;
+          return (
+            <div
+              key={chat.id}
+              className={`group/chat-item flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer ${
+                isActive ? "bg-accent" : ""
+              }`}
+              onClick={() => handleChatClick(chat.id, chat.title)}
             >
-              {expanded ? (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-2" />
-                  {t("showLess")}
-                </>
-              ) : (
-                <>
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                  {t("showMore", { count: allChats.length - DEFAULT_DISPLAY_COUNT })}
-                </>
-              )}
-            </Button>
-          )}
-        </SidebarGroupContent>
-      </SidebarGroup>
-
+            <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="flex-1 truncate text-sm min-w-0">{chat.title}</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 opacity-0 group-hover/chat-item:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleRename(chat.id, chat.title)}>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  {t("workspaceChatList.contextMenu.rename")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleConvertToProject(chat.id)}>
+                  <FolderInput className="mr-2 h-4 w-4" />
+                  {t("workspaceChatList.contextMenu.convertToProject")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDelete(chat.id)}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t("workspaceChatList.contextMenu.delete")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+        })}
+      </div>
+      {!expanded && hasMore && (
+        <div className="px-2 pt-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => setExpanded(true)}
+          >
+            {t("workspaceChatList.viewMore")}
+          </Button>
+        </div>
+      )}
       {selectedChatId && (
         <ConvertChatToProjectDialog
           open={convertDialogOpen}
           onOpenChange={setConvertDialogOpen}
           chatSessionId={selectedChatId}
+          workspaceId={workspaceId}
+          onSuccess={() => {
+            refetch();
+            setConvertDialogOpen(false);
+          }}
         />
       )}
-    </>
+    </div>
   );
 }

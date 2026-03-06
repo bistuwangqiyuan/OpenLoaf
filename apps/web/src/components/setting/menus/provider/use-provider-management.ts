@@ -47,6 +47,8 @@ type ProviderEntry = ProviderSettingValue & {
 
 /** Category name for S3 providers stored in settings. */
 const S3_PROVIDER_CATEGORY = "s3Provider";
+/** Custom provider id for user-defined OpenAI-compatible endpoints. */
+const CUSTOM_PROVIDER_ID = "custom";
 
 type S3ProviderOption = {
   /** Provider id stored in settings. */
@@ -382,8 +384,16 @@ export function useProviderManagement() {
   const PROVIDER_OPTIONS = useMemo(() => {
     // registryReady 作为依赖触发重新计算。
     void registryReady;
-    return getProviderOptions();
-  }, [registryReady]);
+    const options = getProviderOptions();
+    if (options.some((provider) => provider.id === CUSTOM_PROVIDER_ID)) {
+      return options;
+    }
+    // 逻辑：当 SaaS 模板未返回 custom 时，本地补齐“自定义服务商地址”入口。
+    return [
+      ...options,
+      { id: CUSTOM_PROVIDER_ID, label: t('provider.customProviderAddressOption') },
+    ];
+  }, [registryReady, t]);
   const PROVIDER_LABEL_BY_ID = useMemo(
     () =>
       Object.fromEntries(

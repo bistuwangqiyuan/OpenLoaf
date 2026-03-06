@@ -1713,7 +1713,7 @@ export default function ChatInput({
         uploadFileToSession={uploadFileToSession}
         workspaceName={workspaceName}
         onProjectChange={handleProjectChange}
-        projectSelectorDisabled={conversationStarted}
+        projectSelectorDisabled
         afterProjectSelector={
           !isUnconfigured && (showCodexModelSelector || showClaudeCodeModelSelector) ? (
             showCodexModelSelector ? (

@@ -7,7 +7,7 @@
   "tasks": "任务",
   "settings": "设置",
   "sidebar": {
-    "projectFolder": "项目文件夹",
+    "projectFolder": "项目列表",
     "refresh": "刷新",
     "addProject": "添加项目",
     "addDialog": "添加项目",
@@ -41,7 +41,7 @@
     "addToWorkspace": "已添加到工作空间",
     "addError": "添加失败",
     "feedback": {
-      "title": "反馈与建议",
+      "title": "反馈建议",
       "typeLabel": "反馈类型",
       "typePlaceholder": "选择类型",
       "contentPlaceholder": "请描述你遇到的问题或建议",
@@ -126,6 +126,32 @@
     "createWorkspace": "新建工作空间",
     "workspaceSettings": "工作空间设置",
     "exitWorkspace": "退出工作空间"
+  },
+  "workspaceChatList": {
+    "title": "对话历史",
+    "viewMore": "查看更多",
+    "empty": "暂无对话",
+    "confirmDelete": "确认删除此对话？",
+    "renamePrompt": "请输入新名称",
+    "contextMenu": {
+      "rename": "重命名",
+      "delete": "删除",
+      "convertToProject": "转为项目"
+    }
+  },
+  "convertToProject": {
+    "title": "转为项目",
+    "description": "将此对话转换为正式项目，文件将被复制到项目目录",
+    "projectName": "项目名称",
+    "projectNamePlaceholder": "请输入项目名称",
+    "parentProject": "父项目",
+    "parentProjectPlaceholder": "选择父项目（可选）",
+    "noParent": "无父项目",
+    "confirm": "确认",
+    "cancel": "取消",
+    "converting": "转换中...",
+    "success": "已转换为项目",
+    "failed": "转换失败"
   },
   "header": {
     "toggleSidebar": "切换侧边栏 ({{shortcut}})",

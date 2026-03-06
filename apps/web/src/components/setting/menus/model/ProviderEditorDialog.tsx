@@ -38,6 +38,9 @@ import {
   isModelRegistryReady,
 } from "@/lib/model-registry";
 
+/** Custom provider id for user-defined OpenAI-compatible endpoints. */
+const CUSTOM_PROVIDER_ID = "custom";
+
 export type ProviderEntryPayload = {
   /** Entry display name. */
   key: string;
@@ -112,8 +115,16 @@ export function ProviderEditorDialog({
   const registryReady = isModelRegistryReady();
   const PROVIDER_OPTIONS = useMemo(() => {
     void registryReady;
-    return getProviderOptions();
-  }, [registryReady]);
+    const options = getProviderOptions();
+    if (options.some((provider) => provider.id === CUSTOM_PROVIDER_ID)) {
+      return options;
+    }
+    // 逻辑：当 SaaS 模板未返回 custom 时，本地补齐“自定义服务商地址”入口。
+    return [
+      ...options,
+      { id: CUSTOM_PROVIDER_ID, label: t('provider.customProviderAddressOption') },
+    ];
+  }, [registryReady, t]);
   const PROVIDER_LABEL_BY_ID = useMemo(
     () =>
       Object.fromEntries(
@@ -142,7 +153,7 @@ export function ProviderEditorDialog({
     setError(null);
     const defaultProvider = PROVIDER_OPTIONS[0]?.id ?? "";
     setDraftProvider(defaultProvider);
-    setDraftName(getDefaultProviderName(defaultProvider));
+    setDraftName(providerLabelById[defaultProvider] ?? getDefaultProviderName(defaultProvider));
     setDraftApiUrl(getDefaultApiUrl(defaultProvider));
     setDraftAuthRaw("");
     setDraftModelIds(getDefaultModelIds(defaultProvider));
@@ -238,8 +249,10 @@ export function ProviderEditorDialog({
                     const provider = next;
                     const currentDefault = getDefaultApiUrl(draftProvider);
                     const nextDefault = getDefaultApiUrl(provider);
-                    const currentDefaultName = getDefaultProviderName(draftProvider);
-                    const nextDefaultName = getDefaultProviderName(provider);
+                    const currentDefaultName =
+                      providerLabelById[draftProvider] ?? getDefaultProviderName(draftProvider);
+                    const nextDefaultName =
+                      providerLabelById[provider] ?? getDefaultProviderName(provider);
                     const nextDefaultModels = getDefaultModelIds(provider);
                     setDraftProvider(provider);
                     if (!draftApiUrl.trim() || draftApiUrl.trim() === currentDefault) {

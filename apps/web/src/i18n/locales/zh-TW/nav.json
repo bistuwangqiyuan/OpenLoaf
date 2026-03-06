@@ -7,7 +7,7 @@
   "tasks": "任務",
   "settings": "設定",
   "sidebar": {
-    "projectFolder": "專案資料夾",
+    "projectFolder": "專案列表",
     "refresh": "重新整理",
     "addProject": "新增專案",
     "addDialog": "新增專案",
@@ -41,7 +41,7 @@
     "addToWorkspace": "已新增至工作區",
     "addError": "新增失敗",
     "feedback": {
-      "title": "意見回饋",
+      "title": "意見建議",
       "typeLabel": "反饋類型",
       "typePlaceholder": "選擇類型",
       "contentPlaceholder": "請描述您遇到的問題或建議",
@@ -126,6 +126,32 @@
     "createWorkspace": "新建工作區",
     "workspaceSettings": "工作區設定",
     "exitWorkspace": "退出工作區"
+  },
+  "workspaceChatList": {
+    "title": "對話歷史",
+    "viewMore": "檢視更多",
+    "empty": "暫無對話",
+    "confirmDelete": "確認刪除此對話？",
+    "renamePrompt": "請輸入新名稱",
+    "contextMenu": {
+      "rename": "重新命名",
+      "delete": "刪除",
+      "convertToProject": "轉為專案"
+    }
+  },
+  "convertToProject": {
+    "title": "轉為專案",
+    "description": "將此對話轉換為正式專案，檔案將被複製到專案目錄",
+    "projectName": "專案名稱",
+    "projectNamePlaceholder": "請輸入專案名稱",
+    "parentProject": "父專案",
+    "parentProjectPlaceholder": "選擇父專案（可選）",
+    "noParent": "無父專案",
+    "confirm": "確認",
+    "cancel": "取消",
+    "converting": "轉換中...",
+    "success": "已轉換為專案",
+    "failed": "轉換失敗"
   },
   "header": {
     "toggleSidebar": "切換側邊欄 ({{shortcut}})",
