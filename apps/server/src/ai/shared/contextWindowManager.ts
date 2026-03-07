@@ -160,7 +160,8 @@ const TOOL_RESULT_IMPORTANCE: Record<string, ToolImportance> = {
   'project-mutate': 'drop',
   'calendar-mutate': 'drop',
   'email-mutate': 'drop',
-  'office-execute': 'drop',
+  'excel-query': 'summarize',
+  'excel-mutate': 'drop',
   'abort-agent': 'drop',
 }
 

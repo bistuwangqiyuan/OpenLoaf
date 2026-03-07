@@ -19,7 +19,7 @@ import { calendarQueryToolDef, calendarMutateToolDef } from "./calendar";
 import { projectQueryToolDef, projectMutateToolDef } from "./db";
 import { emailQueryToolDef, emailMutateToolDef } from "./email";
 import { imageGenerateToolDef, videoGenerateToolDef, listMediaModelsToolDef } from "./mediaGenerate";
-import { officeExecuteToolDef } from "./office";
+import { excelQueryToolDef, excelMutateToolDef } from "./excel";
 import { testApprovalToolDef } from "./approvalTest";
 import {
   spawnAgentToolDef,
@@ -90,7 +90,8 @@ const TOOL_DEFS: ToolDefLike[] = [
   emailMutateToolDef,
   calendarQueryToolDef,
   calendarMutateToolDef,
-  officeExecuteToolDef,
+  excelQueryToolDef,
+  excelMutateToolDef,
   listMediaModelsToolDef,
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -174,7 +175,8 @@ const TOOL_KEYWORDS: Record<string, { keywords: string[]; group: string }> = {
   'project-mutate': { keywords: ['project', 'database', 'create', 'update', 'delete', 'modify', 'write'], group: 'db' },
   'task-manage': { keywords: ['task', 'todo', 'reminder', 'schedule', 'create', 'manage', 'cancel'], group: 'task' },
   'task-status': { keywords: ['task', 'status', 'progress', 'check', 'query', 'active'], group: 'task' },
-  'office-execute': { keywords: ['office', 'document', 'spreadsheet', 'wps', 'excel', 'word'], group: 'office' },
+  'excel-query': { keywords: ['excel', 'spreadsheet', 'xlsx', 'csv', 'sheet', 'cell', 'read'], group: 'office' },
+  'excel-mutate': { keywords: ['excel', 'spreadsheet', 'xlsx', 'create', 'write', 'formula'], group: 'office' },
   'generate-widget': { keywords: ['widget', 'generate', 'create', 'component', 'ui'], group: 'ui' },
   'widget-init': { keywords: ['widget', 'init', 'initialize', 'setup'], group: 'ui' },
   'widget-list': { keywords: ['widget', 'list', 'available', 'browse'], group: 'ui' },

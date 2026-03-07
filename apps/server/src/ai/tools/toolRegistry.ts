@@ -34,7 +34,9 @@ import { updatePlanTool } from "@/ai/tools/updatePlanTool";
 import { projectMutateTool, projectQueryTool } from "@/ai/tools/projectTools";
 import { calendarMutateTool, calendarQueryTool } from "@/ai/tools/calendarTools";
 import { emailMutateTool, emailQueryTool } from "@/ai/tools/emailTools";
-import { officeExecuteTool } from "@/ai/tools/officeTools";
+// office-execute (WPS) is disabled — replaced by excel-query / excel-mutate
+// import { officeExecuteTool } from "@/ai/tools/officeTools";
+import { excelQueryTool, excelMutateTool } from "@/ai/tools/excelTools";
 import { imageGenerateTool, videoGenerateTool, listMediaModelsTool } from "@/ai/tools/mediaGenerateTools";
 import { requestUserInputTool } from "@/ai/tools/requestUserInputTool";
 import { jsxCreateTool } from "@/ai/tools/jsxCreateTool";
@@ -66,7 +68,8 @@ import {
   emailMutateToolDef,
   emailQueryToolDef,
 } from "@openloaf/api/types/tools/email";
-import { officeExecuteToolDef } from "@openloaf/api/types/tools/office";
+// import { officeExecuteToolDef } from "@openloaf/api/types/tools/office";
+import { excelQueryToolDef, excelMutateToolDef } from "@openloaf/api/types/tools/excel";
 import {
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -198,8 +201,13 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   [emailMutateToolDef.id]: {
     tool: emailMutateTool,
   },
-  [officeExecuteToolDef.id]: {
-    tool: officeExecuteTool,
+  // office-execute (WPS) disabled
+  // [officeExecuteToolDef.id]: { tool: officeExecuteTool },
+  [excelQueryToolDef.id]: {
+    tool: excelQueryTool,
+  },
+  [excelMutateToolDef.id]: {
+    tool: excelMutateTool,
   },
   [generateWidgetToolDef.id]: {
     tool: generateWidgetTool,
@@ -258,6 +266,8 @@ const TOOL_ALIASES: Record<string, string> = {
   search: "grep-files",
   find: "grep-files",
   "create-task": "task-manage",
+  "read-excel": "excel-query",
+  "write-excel": "excel-mutate",
 };
 
 /** Tool IDs excluded from auto-approval (complex/interactive). */

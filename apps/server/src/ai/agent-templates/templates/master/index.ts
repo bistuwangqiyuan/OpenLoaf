@@ -57,6 +57,9 @@ export const masterTemplate: AgentTemplate = {
     'calendar-query',
     // email
     'email-query',
+    // excel
+    'excel-query',
+    'excel-mutate',
   ],
   allowSubAgents: true,
   maxDepth: 2,

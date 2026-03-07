@@ -24,6 +24,8 @@ export const documentTemplate: AgentTemplate = {
     'edit-document',
     'project-query',
     'project-mutate',
+    'excel-query',
+    'excel-mutate',
     'spawn-agent',
     'wait-agent',
   ],

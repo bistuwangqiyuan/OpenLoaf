@@ -379,6 +379,10 @@ export const readFileTool = tool({
     const { absPath } = resolveToolPath({ target: filePath });
     // 过滤常见二进制文件后缀，避免读取非文本文件内容。
     if (hasBlockedBinaryExtension(absPath)) {
+      const ext = path.extname(absPath).toLowerCase()
+      if (ext === '.xlsx' || ext === '.xls') {
+        throw new Error("This file is in Excel format. Use the excel-query tool to read it.")
+      }
       throw new Error("Only text files are supported; binary file extensions are not allowed.");
     }
     const stat = await fs.stat(absPath);

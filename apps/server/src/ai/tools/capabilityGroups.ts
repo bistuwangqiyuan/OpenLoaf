@@ -80,8 +80,8 @@ const RAW_CAPABILITY_GROUPS = [
   {
     id: 'office',
     label: 'Office 文档',
-    description: '打开并控制 WPS / Microsoft Office 进行文档编辑',
-    toolIds: ['office-execute'],
+    description: '读写 Excel 电子表格',
+    toolIds: ['excel-query', 'excel-mutate'],
   },
   {
     id: 'image-generate',

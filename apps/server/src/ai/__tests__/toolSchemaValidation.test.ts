@@ -35,7 +35,7 @@ import { calendarQueryToolDef, calendarMutateToolDef } from "@openloaf/api/types
 import { projectQueryToolDef, projectMutateToolDef } from "@openloaf/api/types/tools/db";
 import { emailQueryToolDef, emailMutateToolDef } from "@openloaf/api/types/tools/email";
 import { imageGenerateToolDef, videoGenerateToolDef } from "@openloaf/api/types/tools/mediaGenerate";
-import { officeExecuteToolDef } from "@openloaf/api/types/tools/office";
+import { excelQueryToolDef, excelMutateToolDef } from "@openloaf/api/types/tools/excel";
 import { testApprovalToolDef } from "@openloaf/api/types/tools/approvalTest";
 import {
   spawnAgentToolDef,
@@ -93,7 +93,8 @@ const ALL_TOOL_DEFS: ToolDefLike[] = [
   emailMutateToolDef,
   calendarQueryToolDef,
   calendarMutateToolDef,
-  officeExecuteToolDef,
+  excelQueryToolDef,
+  excelMutateToolDef,
   imageGenerateToolDef,
   videoGenerateToolDef,
   widgetInitToolDef,

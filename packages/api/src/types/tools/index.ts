@@ -18,6 +18,7 @@ export * from "./widget";
 export * from "./calendar";
 export * from "./email";
 export * from "./office";
+export * from "./excel";
 export * from "./mediaGenerate";
 export * from "./jsxCreate";
 export * from "./toolCatalog";
