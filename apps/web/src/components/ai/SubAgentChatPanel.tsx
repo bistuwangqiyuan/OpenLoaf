@@ -254,7 +254,6 @@ export default function SubAgentChatPanel({
     toolParts: {} as Record<string, any>,
     upsertToolPart: noop,
     markToolStreaming: noop,
-    subAgentStreams: {} as Record<string, SubAgentStreamState>,
     queueToolApprovalPayload: noop,
     clearToolApprovalPayload: noop,
     continueAfterToolApprovals: noop,

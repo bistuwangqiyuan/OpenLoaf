@@ -27,7 +27,6 @@ export type ChatToolContextValue = {
   toolParts: Record<string, ToolPartSnapshot>;
   upsertToolPart: (toolCallId: string, next: ToolPartSnapshot) => void;
   markToolStreaming: (toolCallId: string) => void;
-  subAgentStreams: Record<string, SubAgentStreamState>;
   /** Queue approval payload for a tool call. */
   queueToolApprovalPayload: (toolCallId: string, payload: Record<string, unknown>) => void;
   /** Clear queued approval payload for a tool call. */

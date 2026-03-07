@@ -34,6 +34,8 @@ interface ChatProjectSelectorProps {
   onProjectChange: (projectId: string | undefined) => void;
   /** When true, selector is read-only (conversation already started). */
   disabled?: boolean;
+  /** Use larger text and icons (for full-page centered layout). */
+  large?: boolean;
 }
 
 /** Flatten a project tree into a flat list (depth-first). */
@@ -55,6 +57,7 @@ export function ChatProjectSelector({
   projects,
   onProjectChange,
   disabled = false,
+  large = false,
 }: ChatProjectSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -74,12 +77,13 @@ export function ChatProjectSelector({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 max-w-[160px]",
-          "text-[12px] font-medium leading-none",
-          "text-muted-foreground/60 select-none",
+          "inline-flex items-center select-none",
+          large
+            ? "gap-1.5 max-w-[220px] text-[13px] font-normal leading-none text-muted-foreground/40"
+            : "gap-1 max-w-[160px] text-[12px] font-normal leading-none text-muted-foreground/40",
         )}
       >
-        <Layers className="w-3 h-3 shrink-0" />
+        <Layers className={large ? "w-3.5 h-3.5 shrink-0" : "w-3 h-3 shrink-0"} />
         <span className="truncate">{displayLabel}</span>
       </span>
     );
@@ -92,24 +96,26 @@ export function ChatProjectSelector({
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex items-center gap-1 max-w-[160px]",
-            "text-[12px] font-medium leading-none",
+            "inline-flex items-center",
             "transition-colors duration-150",
             "outline-none select-none",
+            large
+              ? "gap-1.5 max-w-[220px] text-[13px] font-normal leading-none"
+              : "gap-1 max-w-[160px] text-[12px] font-normal leading-none",
             disabled
-              ? "text-muted-foreground/60 cursor-default"
-              : "text-muted-foreground hover:text-foreground cursor-pointer",
+              ? "text-muted-foreground/40 cursor-default"
+              : "text-muted-foreground/50 hover:text-muted-foreground cursor-pointer",
           )}
         >
           {selectedProject?.icon ? (
-            <span className="text-[12px] leading-none shrink-0">{selectedProject.icon}</span>
+            <span className={cn("leading-none shrink-0", large ? "text-[13px]" : "text-[12px]")}>{selectedProject.icon}</span>
           ) : selectedProject ? (
-            <FolderOpen className="w-3 h-3 shrink-0" />
+            <FolderOpen className={large ? "w-3.5 h-3.5 shrink-0" : "w-3 h-3 shrink-0"} />
           ) : (
-            <Layers className="w-3 h-3 shrink-0" />
+            <Layers className={large ? "w-3.5 h-3.5 shrink-0" : "w-3 h-3 shrink-0"} />
           )}
           <span className="truncate">{displayLabel}</span>
-          {!disabled && <ChevronDown className="w-3 h-3 shrink-0 opacity-60" />}
+          {!disabled && <ChevronDown className={large ? "w-3.5 h-3.5 shrink-0 opacity-60" : "w-3 h-3 shrink-0 opacity-60"} />}
         </button>
       </PopoverTrigger>
       <PopoverContent

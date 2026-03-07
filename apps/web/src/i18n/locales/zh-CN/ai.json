@@ -122,6 +122,8 @@
     "browser-extract": "页面提取",
     "browser-act": "页面动作",
     "browser-wait": "页面等待",
+    "browser-screenshot": "页面截图",
+    "browser-download-image": "下载网页图片",
     "calendar-query": "日历查询",
     "calendar-mutate": "日历变更",
     "chart-render": "图表渲染",
@@ -136,6 +138,8 @@
     "video-generate": "视频生成",
     "excel-query": "Excel 查询",
     "excel-mutate": "Excel 操作",
+    "word-query": "Word 查询",
+    "word-mutate": "Word 操作",
     "shell": "Shell 命令",
     "shell-command": "Shell 命令",
     "exec-command": "交互命令",
@@ -317,7 +321,18 @@
     "thinkingAnalyzing": "正在分析上下文并生成计划，请稍候...",
     "sourcesTitle": "引用来源",
     "revisedPrompt": "改写提示词",
-    "needsApproval": "需要审批："
+    "needsApproval": "需要审批：",
+    "excel": {
+      "processing": "处理中…",
+      "operationFailed": "操作失败",
+      "confirmAction": "确认执行此操作？",
+      "hasMore": "显示 {{returned}} / {{total}} 行",
+      "cellsWritten": "写入 {{count}} 个单元格",
+      "sheetCount": "{{count}} 个工作表",
+      "exportedTo": "已导出至",
+      "renamed": "重命名",
+      "formula": "公式"
+    }
   },
   "error": {
     "title": "出错了",

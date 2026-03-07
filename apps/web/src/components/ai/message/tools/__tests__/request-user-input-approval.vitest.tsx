@@ -89,7 +89,6 @@ function renderWithProviders(ui: React.ReactNode, providers: {
               toolParts,
               upsertToolPart: vi.fn(),
               markToolStreaming: vi.fn(),
-              subAgentStreams: {},
               queueToolApprovalPayload,
               clearToolApprovalPayload: vi.fn(),
               continueAfterToolApprovals,

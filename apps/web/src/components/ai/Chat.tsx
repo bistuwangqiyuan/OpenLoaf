@@ -417,7 +417,7 @@ function ChatFullPageLayout({
       ) : isEmpty ? (
         <div className="flex flex-1 flex-col min-h-0">
           <div className="flex flex-1 flex-col items-center justify-center min-h-0">
-            <div className="flex w-full max-w-2xl flex-col items-center gap-4 px-4 -mt-20">
+            <div className="flex w-full max-w-3xl flex-col items-center gap-4 px-6 -mt-20">
               <motion.img
                 src="/logo_nobody.png"
                 alt="OpenLoaf"
@@ -436,6 +436,7 @@ function ChatFullPageLayout({
               </motion.p>
               <ChatInput
                 className="w-full !max-h-none !mt-0"
+                large
                 attachments={attachments}
                 onAddAttachments={onAddAttachments}
                 onRemoveAttachment={onRemoveAttachment}

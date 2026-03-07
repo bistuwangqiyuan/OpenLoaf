@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils'
 import { BotIcon, ChevronRightIcon } from 'lucide-react'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
-import { useChatSession, useChatTools } from '../../context'
+import { useChatRuntime } from '@/hooks/use-chat-runtime'
+import { useChatSession } from '../../context'
 import type { AnyToolPart } from './shared/tool-utils'
 import {
   asPlainObject,
@@ -76,7 +77,6 @@ export default function SpawnAgentTool({
   const { tabId: contextTabId, sessionId } = useChatSession()
   const activeTabId = useTabs((s) => s.activeTabId)
   const tabId = contextTabId ?? activeTabId ?? undefined
-  const { subAgentStreams } = useChatTools()
 
   // 从 input / output 解析 agent 信息
   const inputObj = asPlainObject(normalizeToolInput(part.input))
@@ -84,7 +84,11 @@ export default function SpawnAgentTool({
 
   // agent_id 来自 spawn-agent 的 output，也是 subAgentStreams 的 key
   const agentId = typeof outputObj?.agent_id === 'string' ? outputObj.agent_id : ''
-  const stream = agentId ? subAgentStreams[agentId] : undefined
+  // 性能关键：直接从 zustand 按 agentId selector 订阅，避免 context 整体刷新。
+  const stream = useChatRuntime((s) => {
+    if (!tabId || !agentId) return undefined
+    return s.subAgentStreamsByTabId[tabId]?.[agentId]
+  })
 
   const agentName = stream?.name
     || (typeof inputObj?.agentType === 'string' ? inputObj.agentType : '')

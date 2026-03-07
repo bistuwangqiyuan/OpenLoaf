@@ -12,7 +12,8 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { ClockIcon, CheckCircle2Icon, XCircleIcon, ShieldAlertIcon } from 'lucide-react'
-import { useChatTools } from '../../context'
+import { useChatSession, useChatTools } from '../../context'
+import { useChatRuntime } from '@/hooks/use-chat-runtime'
 import type { AnyToolPart } from './shared/tool-utils'
 import {
   asPlainObject,
@@ -128,7 +129,8 @@ export default function WaitAgentTool({
   part: AnyToolPart
   className?: string
 }) {
-  const { subAgentStreams, toolParts } = useChatTools()
+  const { toolParts } = useChatTools()
+  const { tabId } = useChatSession()
 
   const inputObj = asPlainObject(normalizeToolInput(part.input))
   const outputObj = asPlainObject(normalizeToolInput(part.output))
@@ -151,14 +153,18 @@ export default function WaitAgentTool({
     return false
   }, [waitIds, toolParts])
 
-  // subAgentStreams 的 key 就是 agent_id，直接查找
+  // 性能关键：直接从 zustand 按 tabId selector 订阅子代理流，避免 context 整体刷新。
+  const subAgentStreamsForTab = useChatRuntime((s) => {
+    if (!tabId) return undefined
+    return s.subAgentStreamsByTabId[tabId]
+  })
   const agentStreamMap = React.useMemo(() => {
     const map: Record<string, SubAgentStreamState | undefined> = {}
     for (const id of waitIds) {
-      map[id] = subAgentStreams[id]
+      map[id] = subAgentStreamsForTab?.[id]
     }
     return map
-  }, [waitIds, subAgentStreams])
+  }, [waitIds, subAgentStreamsForTab])
 
   return (
     <div

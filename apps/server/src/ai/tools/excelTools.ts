@@ -15,7 +15,13 @@ import {
   excelQueryToolDef,
   excelMutateToolDef,
 } from '@openloaf/api/types/tools/excel'
-import { resolveToolPath, isTargetOutsideScope } from '@/ai/tools/toolScope'
+import { resolveToolPath } from '@/ai/tools/toolScope'
+import {
+  getSessionId,
+  getWorkspaceId,
+  getProjectId,
+} from '@/ai/shared/context/requestContext'
+import { saveChatBinaryAttachment } from '@/ai/services/image/attachmentResolver'
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100 MB
 const DEFAULT_READ_LIMIT = 100
@@ -81,6 +87,25 @@ async function writeWorkbook(wb: XLSX.WorkBook, filePath: string): Promise<strin
   return absPath
 }
 
+/** Save a new workbook to the chat session directory (for create / save-as). */
+async function writeWorkbookToSession(wb: XLSX.WorkBook, fileName: string): Promise<string> {
+  const sessionId = getSessionId()
+  if (!sessionId) {
+    // fallback: 无 session 上下文时使用 resolveToolPath
+    return writeWorkbook(wb, fileName)
+  }
+  const buf = Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }))
+  const saved = await saveChatBinaryAttachment({
+    workspaceId: getWorkspaceId(),
+    projectId: getProjectId(),
+    sessionId,
+    fileName: path.basename(fileName),
+    buffer: buf,
+    mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  return saved.relativePath
+}
+
 // ---------------------------------------------------------------------------
 // Excel Query Tool
 // ---------------------------------------------------------------------------
@@ -88,7 +113,6 @@ async function writeWorkbook(wb: XLSX.WorkBook, filePath: string): Promise<strin
 export const excelQueryTool = tool({
   description: excelQueryToolDef.description,
   inputSchema: zodSchema(excelQueryToolDef.parameters),
-  needsApproval: ({ filePath }) => isTargetOutsideScope(filePath),
   execute: async (input) => {
     const { mode, filePath, sheetName, sheetIndex, range, offset, limit, outputPath, includeHeaders } = input as {
       mode: string
@@ -208,8 +232,8 @@ export const excelMutateTool = tool({
         const wsName = sheetName || 'Sheet1'
         const ws = data ? XLSX.utils.aoa_to_sheet(data) : XLSX.utils.aoa_to_sheet([[]])
         XLSX.utils.book_append_sheet(wb, ws, wsName)
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, sheetName: wsName } }
+        const savedPath = await writeWorkbookToSession(wb, filePath)
+        return { ok: true, data: { action, filePath: savedPath, sheetName: wsName } }
       }
 
       case 'write-cells': {
@@ -226,6 +250,8 @@ export const excelMutateTool = tool({
             const val = row[c]
             if (val === null || val === undefined) {
               delete ws[addr]
+            } else if (typeof val === 'string' && val.startsWith('=')) {
+              ws[addr] = { t: 'n', f: val.slice(1) }
             } else {
               ws[addr] = { t: typeof val === 'number' ? 'n' : typeof val === 'boolean' ? 'b' : 's', v: val }
             }
@@ -324,8 +350,8 @@ export const excelMutateTool = tool({
         if (!filePath) throw new Error('filePath is required for save-as action.')
         if (!outputPath) throw new Error('outputPath is required for save-as action.')
         const wb = await readWorkbook(filePath)
-        const absPath = await writeWorkbook(wb, outputPath)
-        return { ok: true, data: { action, outputPath: absPath } }
+        const savedPath = await writeWorkbookToSession(wb, outputPath)
+        return { ok: true, data: { action, outputPath: savedPath } }
       }
 
       default:

@@ -171,6 +171,8 @@ interface ChatInputEditorProps {
   onPasteFiles?: (files: File[]) => void;
   placeholder?: string;
   className?: string;
+  /** Use larger text and height (for full-page centered layout). */
+  large?: boolean;
   ref?: RefObject<ChatInputEditorHandle | null>;
 }
 
@@ -183,6 +185,7 @@ export function ChatInputEditor({
   onPasteFiles,
   placeholder,
   className,
+  large,
   ref,
 }: ChatInputEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -427,7 +430,10 @@ export function ChatInputEditor({
     <div className="relative">
       {isEmpty && placeholder && (
         <div
-          className="absolute inset-0 pointer-events-none text-[13px] leading-5 px-3 py-2.5 text-muted-foreground truncate"
+          className={cn(
+            "absolute inset-0 pointer-events-none px-3 py-2.5 text-muted-foreground truncate",
+            large ? "text-[15px] leading-6" : "text-[13px] leading-5",
+          )}
           aria-hidden="true"
         >
           {placeholder}
@@ -442,8 +448,9 @@ export function ChatInputEditor({
         className={cn(
           "outline-none whitespace-pre-wrap break-words",
           "flex-1 rounded-none border-0 bg-transparent shadow-none",
-          "min-h-16 max-h-48 overflow-y-auto",
-          "text-[13px] leading-5 px-3 py-2.5",
+          large
+            ? "min-h-28 max-h-64 overflow-y-auto text-[15px] leading-6 px-3.5 py-3"
+            : "min-h-16 max-h-48 overflow-y-auto text-[13px] leading-5 px-3 py-2.5",
           className,
         )}
         role="textbox"

@@ -37,6 +37,7 @@ import { emailMutateTool, emailQueryTool } from "@/ai/tools/emailTools";
 // office-execute (WPS) is disabled — replaced by excel-query / excel-mutate
 // import { officeExecuteTool } from "@/ai/tools/officeTools";
 import { excelQueryTool, excelMutateTool } from "@/ai/tools/excelTools";
+import { wordQueryTool, wordMutateTool } from "@/ai/tools/wordTools";
 import { imageGenerateTool, videoGenerateTool, listMediaModelsTool } from "@/ai/tools/mediaGenerateTools";
 import { requestUserInputTool } from "@/ai/tools/requestUserInputTool";
 import { jsxCreateTool } from "@/ai/tools/jsxCreateTool";
@@ -50,6 +51,8 @@ import {
   browserObserveToolDef,
   browserSnapshotToolDef,
   browserWaitToolDef,
+  browserScreenshotToolDef,
+  browserDownloadImageToolDef,
 } from "@openloaf/api/types/tools/browserAutomation";
 import { timeNowToolDef } from "@openloaf/api/types/tools/system";
 import { testApprovalToolDef } from "@openloaf/api/types/tools/approvalTest";
@@ -70,6 +73,7 @@ import {
 } from "@openloaf/api/types/tools/email";
 // import { officeExecuteToolDef } from "@openloaf/api/types/tools/office";
 import { excelQueryToolDef, excelMutateToolDef } from "@openloaf/api/types/tools/excel";
+import { wordQueryToolDef, wordMutateToolDef } from "@openloaf/api/types/tools/word";
 import {
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -109,6 +113,8 @@ import {
   browserObserveTool,
   browserSnapshotTool,
   browserWaitTool,
+  browserScreenshotTool,
+  browserDownloadImageTool,
 } from "@/ai/tools/browserAutomationTools";
 import { wrapToolWithTimeout } from "@/ai/tools/toolTimeout";
 import { wrapToolWithErrorEnhancer } from "@/ai/tools/toolErrorEnhancer";
@@ -152,6 +158,12 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   },
   [browserWaitToolDef.id]: {
     tool: browserWaitTool,
+  },
+  [browserScreenshotToolDef.id]: {
+    tool: browserScreenshotTool,
+  },
+  [browserDownloadImageToolDef.id]: {
+    tool: browserDownloadImageTool,
   },
   [shellToolDef.id]: {
     tool: shellTool,
@@ -208,6 +220,12 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   },
   [excelMutateToolDef.id]: {
     tool: excelMutateTool,
+  },
+  [wordQueryToolDef.id]: {
+    tool: wordQueryTool,
+  },
+  [wordMutateToolDef.id]: {
+    tool: wordMutateTool,
   },
   [generateWidgetToolDef.id]: {
     tool: generateWidgetTool,
@@ -268,6 +286,10 @@ const TOOL_ALIASES: Record<string, string> = {
   "create-task": "task-manage",
   "read-excel": "excel-query",
   "write-excel": "excel-mutate",
+  "read-word": "word-query",
+  "read-docx": "word-query",
+  "write-word": "word-mutate",
+  "create-word": "word-mutate",
 };
 
 /** Tool IDs excluded from auto-approval (complex/interactive). */

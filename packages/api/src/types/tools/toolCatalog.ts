@@ -14,12 +14,15 @@ import {
   browserExtractToolDef,
   browserActToolDef,
   browserWaitToolDef,
+  browserScreenshotToolDef,
+  browserDownloadImageToolDef,
 } from "./browserAutomation";
 import { calendarQueryToolDef, calendarMutateToolDef } from "./calendar";
 import { projectQueryToolDef, projectMutateToolDef } from "./db";
 import { emailQueryToolDef, emailMutateToolDef } from "./email";
 import { imageGenerateToolDef, videoGenerateToolDef, listMediaModelsToolDef } from "./mediaGenerate";
 import { excelQueryToolDef, excelMutateToolDef } from "./excel";
+import { wordQueryToolDef, wordMutateToolDef } from "./word";
 import { testApprovalToolDef } from "./approvalTest";
 import {
   spawnAgentToolDef,
@@ -77,6 +80,8 @@ const TOOL_DEFS: ToolDefLike[] = [
   browserExtractToolDef,
   browserActToolDef,
   browserWaitToolDef,
+  browserScreenshotToolDef,
+  browserDownloadImageToolDef,
   readFileToolDef,
   listDirToolDef,
   grepFilesToolDef,
@@ -92,6 +97,8 @@ const TOOL_DEFS: ToolDefLike[] = [
   calendarMutateToolDef,
   excelQueryToolDef,
   excelMutateToolDef,
+  wordQueryToolDef,
+  wordMutateToolDef,
   listMediaModelsToolDef,
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -161,6 +168,8 @@ const TOOL_KEYWORDS: Record<string, { keywords: string[]; group: string }> = {
   'browser-extract': { keywords: ['browser', 'extract', 'scrape', 'content', 'data', 'page'], group: 'web' },
   'browser-act': { keywords: ['browser', 'click', 'type', 'interact', 'automate', 'action'], group: 'web' },
   'browser-wait': { keywords: ['browser', 'wait', 'load', 'ready', 'page'], group: 'web' },
+  'browser-screenshot': { keywords: ['browser', 'screenshot', 'capture', 'page', 'image', 'photo'], group: 'web' },
+  'browser-download-image': { keywords: ['browser', 'download', 'image', 'picture', 'save', 'photo', 'img'], group: 'web' },
   'image-generate': { keywords: ['image', 'picture', 'photo', 'draw', 'generate', 'art', 'illustration'], group: 'media' },
   'video-generate': { keywords: ['video', 'clip', 'animation', 'generate', 'motion', 'movie'], group: 'media' },
   'list-media-models': { keywords: ['media', 'model', 'list', 'available', 'image', 'video'], group: 'media' },
@@ -177,6 +186,8 @@ const TOOL_KEYWORDS: Record<string, { keywords: string[]; group: string }> = {
   'task-status': { keywords: ['task', 'status', 'progress', 'check', 'query', 'active'], group: 'task' },
   'excel-query': { keywords: ['excel', 'spreadsheet', 'xlsx', 'csv', 'sheet', 'cell', 'read'], group: 'office' },
   'excel-mutate': { keywords: ['excel', 'spreadsheet', 'xlsx', 'create', 'write', 'formula'], group: 'office' },
+  'word-query': { keywords: ['word', 'docx', 'document', 'read', 'text', 'html', 'markdown'], group: 'office' },
+  'word-mutate': { keywords: ['word', 'docx', 'document', 'create', 'write', 'patch', 'template'], group: 'office' },
   'generate-widget': { keywords: ['widget', 'generate', 'create', 'component', 'ui'], group: 'ui' },
   'widget-init': { keywords: ['widget', 'init', 'initialize', 'setup'], group: 'ui' },
   'widget-list': { keywords: ['widget', 'list', 'available', 'browse'], group: 'ui' },

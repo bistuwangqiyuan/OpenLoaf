@@ -177,7 +177,7 @@ export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
                     htmlFor="filter-project-sessions"
                     className="text-xs cursor-pointer select-none"
                   >
-                    显示项目对话历史
+                    {t("header.showProjectSessions")}
                   </Label>
                 </div>
               </PopoverContent>

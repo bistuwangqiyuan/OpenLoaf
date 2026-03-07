@@ -122,6 +122,8 @@
     "browser-extract": "頁面提取",
     "browser-act": "頁面動作",
     "browser-wait": "頁面等待",
+    "browser-screenshot": "頁面截圖",
+    "browser-download-image": "下載網頁圖片",
     "calendar-query": "行事曆查詢",
     "calendar-mutate": "行事曆變更",
     "chart-render": "圖表渲染",
@@ -136,6 +138,8 @@
     "video-generate": "影片生成",
     "excel-query": "Excel 查詢",
     "excel-mutate": "Excel 操作",
+    "word-query": "Word 查詢",
+    "word-mutate": "Word 操作",
     "shell": "Shell 命令",
     "shell-command": "Shell 命令",
     "exec-command": "互動命令",
@@ -317,7 +321,18 @@
     "thinkingAnalyzing": "正在分析上下文並生成計劃，請稍候...",
     "sourcesTitle": "引用來源",
     "revisedPrompt": "改寫提示詞",
-    "needsApproval": "需要審批："
+    "needsApproval": "需要審批：",
+    "excel": {
+      "processing": "處理中…",
+      "operationFailed": "操作失敗",
+      "confirmAction": "確認執行此操作？",
+      "hasMore": "顯示 {{returned}} / {{total}} 行",
+      "cellsWritten": "寫入 {{count}} 個儲存格",
+      "sheetCount": "{{count}} 個工作表",
+      "exportedTo": "已導出至",
+      "renamed": "重新命名",
+      "formula": "公式"
+    }
   },
   "error": {
     "title": "發生錯誤",

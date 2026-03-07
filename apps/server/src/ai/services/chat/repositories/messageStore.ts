@@ -318,6 +318,9 @@ function normalizeParts(parts: unknown): unknown[] {
       if (record.type === 'text' && record.text === '') return false
       // input-streaming 且无 input → 真正的中断残留，过滤
       if (record.state === 'input-streaming' && record.input == null) return false
+      // sub-agent 流式中间产物，仅用于实时 UI，不应落盘
+      if (record.type === 'data-sub-agent-chunk') return false
+      if (record.type === 'data-sub-agent-delta') return false
       return true
     })
     .map((part) => {

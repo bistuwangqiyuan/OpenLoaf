@@ -122,6 +122,8 @@
     "browser-extract": "Extract Page",
     "browser-act": "Page Action",
     "browser-wait": "Wait for Page",
+    "browser-screenshot": "Page Screenshot",
+    "browser-download-image": "Download Page Image",
     "calendar-query": "Calendar Query",
     "calendar-mutate": "Calendar Update",
     "chart-render": "Chart Render",
@@ -136,6 +138,8 @@
     "video-generate": "Video Generate",
     "excel-query": "Excel Query",
     "excel-mutate": "Excel Operations",
+    "word-query": "Word Query",
+    "word-mutate": "Word Operations",
     "shell": "Shell Command",
     "shell-command": "Shell Command",
     "exec-command": "Interactive Command",
@@ -317,7 +321,18 @@
     "thinkingAnalyzing": "Analyzing context and generating plan, please wait...",
     "sourcesTitle": "Sources",
     "revisedPrompt": "Revised prompt",
-    "needsApproval": "Approval required:"
+    "needsApproval": "Approval required:",
+    "excel": {
+      "processing": "Processing...",
+      "operationFailed": "Operation failed",
+      "confirmAction": "Confirm this operation?",
+      "hasMore": "Showing {{returned}} / {{total}} rows",
+      "cellsWritten": "{{count}} cells written",
+      "sheetCount": "{{count}} sheets",
+      "exportedTo": "Exported to",
+      "renamed": "Renamed",
+      "formula": "Formula"
+    }
   },
   "error": {
     "title": "An error occurred",

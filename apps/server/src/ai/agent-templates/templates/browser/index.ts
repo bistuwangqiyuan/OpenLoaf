@@ -23,6 +23,8 @@ export const browserTemplate: AgentTemplate = {
     'browser-extract',
     'browser-act',
     'browser-wait',
+    'browser-screenshot',
+    'browser-download-image',
   ],
   allowSubAgents: false,
   maxDepth: 1,

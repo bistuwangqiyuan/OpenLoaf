@@ -40,6 +40,8 @@ const RAW_CAPABILITY_GROUPS = [
       'browser-extract',
       'browser-act',
       'browser-wait',
+      'browser-screenshot',
+      'browser-download-image',
     ],
   },
   {
@@ -80,8 +82,8 @@ const RAW_CAPABILITY_GROUPS = [
   {
     id: 'office',
     label: 'Office 文档',
-    description: '读写 Excel 电子表格',
-    toolIds: ['excel-query', 'excel-mutate'],
+    description: '读写 Excel 电子表格和 Word 文档',
+    toolIds: ['excel-query', 'excel-mutate', 'word-query', 'word-mutate'],
   },
   {
     id: 'image-generate',

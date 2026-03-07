@@ -14,12 +14,15 @@ import {
   browserObserveToolDef,
   browserSnapshotToolDef,
   browserWaitToolDef,
+  browserScreenshotToolDef,
+  browserDownloadImageToolDef,
 } from "@openloaf/api/types/tools/browserAutomation";
 import { logger } from "@/common/logger";
-import { getClientId, getSessionId } from "@/ai/shared/context/requestContext";
+import { getClientId, getSessionId, getWorkspaceId, getProjectId } from "@/ai/shared/context/requestContext";
 import { requireTabId } from "@/common/tabContext";
 import { sendCdpCommand } from "@/modules/browser/cdpClient";
 import { getActiveBrowserTargetId, tabSnapshotStore } from "@/modules/tab/TabSnapshotStoreAdapter";
+import { saveChatBinaryAttachment } from "@/ai/services/image/attachmentResolver";
 
 // 页面文本截断上限，避免快照过大。
 const MAX_TEXT_LENGTH = 10_000;
@@ -565,5 +568,169 @@ export const browserWaitTool = tool({
     }
 
     throw new Error("Unsupported wait type");
+  },
+});
+
+/** Max bytes for a single downloaded image. */
+const MAX_IMAGE_DOWNLOAD_BYTES = 10 * 1024 * 1024;
+
+export const browserScreenshotTool = tool({
+  description: browserScreenshotToolDef.description,
+  inputSchema: zodSchema(browserScreenshotToolDef.parameters),
+  execute: async ({ format, quality, fullPage }) => {
+    const targetId = pickActiveTargetId();
+    const fmt = format || "png";
+    const params: Record<string, unknown> = { format: fmt };
+    if ((fmt === "jpeg" || fmt === "webp") && typeof quality === "number") {
+      params.quality = quality;
+    }
+    if (fullPage) {
+      const dims = await evalInTarget<{ width: number; height: number }>(
+        targetId,
+        `(() => ({
+          width: Math.max(document.documentElement.scrollWidth, document.documentElement.clientWidth),
+          height: Math.max(document.documentElement.scrollHeight, document.documentElement.clientHeight),
+        }))()`,
+      );
+      params.clip = { x: 0, y: 0, width: dims.width, height: dims.height, scale: 1 };
+      params.captureBeyondViewport = true;
+    }
+    const result = (await sendCdpCommand({
+      targetId,
+      method: "Page.captureScreenshot",
+      params,
+    })) as { data: string };
+    const buffer = Buffer.from(result.data, "base64");
+    const ext = fmt === "jpeg" ? "jpg" : fmt;
+    const mediaType = fmt === "jpeg" ? "image/jpeg" : fmt === "webp" ? "image/webp" : "image/png";
+    const sessionId = requireSessionId();
+    const workspaceId = getWorkspaceId();
+    const projectId = getProjectId();
+    if (!workspaceId) throw new Error("workspaceId is required.");
+    const saved = await saveChatBinaryAttachment({
+      workspaceId,
+      projectId,
+      sessionId,
+      fileName: `screenshot.${ext}`,
+      buffer,
+      mediaType,
+    });
+    return {
+      ok: true,
+      data: {
+        url: saved.url,
+        format: fmt,
+        bytes: buffer.length,
+      },
+    };
+  },
+});
+
+export const browserDownloadImageTool = tool({
+  description: browserDownloadImageToolDef.description,
+  inputSchema: zodSchema(browserDownloadImageToolDef.parameters),
+  execute: async ({ imageUrls, selector, maxCount }) => {
+    const limit = Math.min(maxCount || 10, 20);
+    let urls: string[] = [];
+
+    if (imageUrls && imageUrls.length > 0) {
+      urls = imageUrls;
+    } else if (selector) {
+      const targetId = pickActiveTargetId();
+      urls = await evalInTarget<string[]>(
+        targetId,
+        `(() => {
+          const els = Array.from(document.querySelectorAll(${JSON.stringify(selector)}));
+          const results = [];
+          for (const el of els) {
+            const tag = (el.tagName || '').toLowerCase();
+            let src = '';
+            if (tag === 'img') {
+              src = el.src || el.getAttribute('data-src') || el.getAttribute('data-lazy-src') || '';
+            } else {
+              const img = el.querySelector('img');
+              if (img) src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || '';
+            }
+            if (src && !src.startsWith('data:')) results.push(src);
+          }
+          return results;
+        })()`,
+      );
+    }
+
+    if (!urls.length) {
+      throw new Error("No image URLs found. Provide imageUrls or a valid selector.");
+    }
+
+    urls = urls.slice(0, limit);
+    const sessionId = requireSessionId();
+    const workspaceId = getWorkspaceId();
+    const projectId = getProjectId();
+    if (!workspaceId) throw new Error("workspaceId is required.");
+
+    const images: Array<{ url: string; sourceUrl: string; fileName: string; bytes: number }> = [];
+    const errors: Array<{ sourceUrl: string; error: string }> = [];
+
+    for (const sourceUrl of urls) {
+      try {
+        const response = await fetch(sourceUrl);
+        if (!response.ok) {
+          errors.push({ sourceUrl, error: `HTTP ${response.status}` });
+          continue;
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength > MAX_IMAGE_DOWNLOAD_BYTES) {
+          errors.push({ sourceUrl, error: "Image too large (>10MB)" });
+          continue;
+        }
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = response.headers.get("content-type") || "image/png";
+        let ext = "png";
+        if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+        else if (contentType.includes("webp")) ext = "webp";
+        else if (contentType.includes("gif")) ext = "gif";
+        else if (contentType.includes("svg")) ext = "svg";
+        else {
+          try {
+            const urlPath = new URL(sourceUrl).pathname.toLowerCase();
+            if (urlPath.endsWith(".jpg") || urlPath.endsWith(".jpeg")) ext = "jpg";
+            else if (urlPath.endsWith(".webp")) ext = "webp";
+            else if (urlPath.endsWith(".gif")) ext = "gif";
+            else if (urlPath.endsWith(".svg")) ext = "svg";
+          } catch {
+            // URL 解析失败时保持默认 png。
+          }
+        }
+
+        const saved = await saveChatBinaryAttachment({
+          workspaceId,
+          projectId,
+          sessionId,
+          fileName: `download.${ext}`,
+          buffer,
+          mediaType: contentType,
+        });
+        images.push({
+          url: saved.url,
+          sourceUrl,
+          fileName: saved.fileName,
+          bytes: buffer.length,
+        });
+      } catch (err) {
+        errors.push({ sourceUrl, error: String(err instanceof Error ? err.message : err) });
+      }
+    }
+
+    if (!images.length && errors.length) {
+      throw new Error(`All image downloads failed: ${errors.map((e) => e.error).join("; ")}`);
+    }
+
+    return {
+      ok: true,
+      data: {
+        images,
+        ...(errors.length > 0 ? { errors } : {}),
+      },
+    };
   },
 });

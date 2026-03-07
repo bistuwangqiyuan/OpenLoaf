@@ -140,6 +140,27 @@ export const MESSAGE_FILE_CLASSNAME = cn(
   "flex flex-wrap gap-2",
 );
 
+/** Wrap content in motion.div when animation is needed, plain div otherwise. */
+function wrapPart(
+  key: string,
+  className: string | undefined,
+  children: React.ReactNode,
+  motionProps?: React.ComponentProps<typeof motion.div>,
+): React.ReactNode {
+  if (motionProps) {
+    return (
+      <motion.div key={key} className={className} {...motionProps}>
+        {children}
+      </motion.div>
+    );
+  }
+  return (
+    <div key={key} className={className}>
+      {children}
+    </div>
+  );
+}
+
 /** Render message parts into motion-wrapped elements. */
 export function renderMessageParts(
   parts: AnyMessagePart[],
@@ -194,19 +215,18 @@ export function renderMessageParts(
       const normalizedText = preprocessChatText(mergedText);
       if (normalizedText.trim().length > 0) {
         nodes.push(
-          <motion.div
-            key={`text:${index}:${nextIndex}`}
-            className={cn(MESSAGE_TEXT_CLASSNAME, options?.textClassName)}
-            {...motionProps}
-          >
+          wrapPart(
+            `text:${index}:${nextIndex}`,
+            cn(MESSAGE_TEXT_CLASSNAME, options?.textClassName),
             <MessageResponse
               components={markdownComponents}
               parseIncompleteMarkdown
               isAnimating={isAnimating}
             >
               {normalizedText}
-            </MessageResponse>
-          </motion.div>,
+            </MessageResponse>,
+            motionProps,
+          ),
         );
       }
       index = nextIndex - 1;
@@ -234,7 +254,9 @@ export function renderMessageParts(
         const reasoningText = preprocessChatText(reasoningChunks.join("\n\n"));
         if (reasoningText) {
           nodes.push(
-            <motion.div key={`reasoning:${index}:${nextIndex}`} className="px-1" {...motionProps}>
+            wrapPart(
+              `reasoning:${index}:${nextIndex}`,
+              "px-1",
               <Reasoning isStreaming defaultOpen>
                 <ReasoningTrigger
                   getThinkingMessage={() => i18next.t("tool.thinkingStreaming", { ns: "ai", defaultValue: "深度思考中..." })}
@@ -242,8 +264,9 @@ export function renderMessageParts(
                 <ReasoningContent className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-xs text-muted-foreground">
                   {reasoningText}
                 </ReasoningContent>
-              </Reasoning>
-            </motion.div>,
+              </Reasoning>,
+              motionProps,
+            ),
           );
         }
       }
@@ -262,7 +285,9 @@ export function renderMessageParts(
       }
       if (sources.length > 0) {
         nodes.push(
-          <motion.div key={`source:${index}:${nextIndex}`} {...motionProps}>
+          wrapPart(
+            `source:${index}:${nextIndex}`,
+            undefined,
             <Sources>
               <SourcesTrigger count={sources.length}>
                 <span className="font-medium">{i18next.t("tool.sourcesTitle", { ns: "ai", defaultValue: "引用来源" })} {sources.length}</span>
@@ -276,8 +301,9 @@ export function renderMessageParts(
                   />
                 ))}
               </SourcesContent>
-            </Sources>
-          </motion.div>,
+            </Sources>,
+            motionProps,
+          ),
         );
       }
       index = nextIndex - 1;
@@ -289,20 +315,21 @@ export function renderMessageParts(
       const revisedText = part?.data?.text;
       if (!revisedText) continue;
       nodes.push(
-        <motion.div
-          key={`revised-prompt:${index}`}
-          className={cn(MESSAGE_REVISED_PROMPT_CLASSNAME, options?.textClassName)}
-          {...motionProps}
-        >
-          <div className="text-[11px] font-medium text-muted-foreground/80">{i18next.t("tool.revisedPrompt", { ns: "ai", defaultValue: "改写提示词" })}</div>
-          <MessageResponse
-            components={markdownComponents}
-            parseIncompleteMarkdown
-            isAnimating={isAnimating}
-          >
-            {preprocessChatText(String(revisedText))}
-          </MessageResponse>
-        </motion.div>,
+        wrapPart(
+          `revised-prompt:${index}`,
+          cn(MESSAGE_REVISED_PROMPT_CLASSNAME, options?.textClassName),
+          <>
+            <div className="text-[11px] font-medium text-muted-foreground/80">{i18next.t("tool.revisedPrompt", { ns: "ai", defaultValue: "改写提示词" })}</div>
+            <MessageResponse
+              components={markdownComponents}
+              parseIncompleteMarkdown
+              isAnimating={isAnimating}
+            >
+              {preprocessChatText(String(revisedText))}
+            </MessageResponse>
+          </>,
+          motionProps,
+        ),
       );
       continue;
     }
@@ -318,15 +345,18 @@ export function renderMessageParts(
             : undefined;
       if (!url) continue;
       nodes.push(
-        <motion.div key={`file:${index}`} {...motionProps}>
+        wrapPart(
+          `file:${index}`,
+          undefined,
           <MessageFile
             key={index}
             url={url}
             mediaType={mediaType}
             title={title}
             className={MESSAGE_FILE_CLASSNAME}
-          />
-        </motion.div>,
+          />,
+          motionProps,
+        ),
       );
       continue;
     }
@@ -338,14 +368,17 @@ export function renderMessageParts(
       if (!renderTools) continue;
       const toolPart = part as any;
       nodes.push(
-        <motion.div key={toolPart.toolCallId ?? `${toolPart.type}-${index}`} {...motionProps}>
+        wrapPart(
+          toolPart.toolCallId ?? `${toolPart.type}-${index}`,
+          undefined,
           <MessageTool
             part={toolPart}
             className={options?.toolClassName}
             variant={options?.toolVariant}
             messageId={options?.messageId}
-          />
-        </motion.div>,
+          />,
+          motionProps,
+        ),
       );
     }
   }

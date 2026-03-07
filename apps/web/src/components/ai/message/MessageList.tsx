@@ -41,7 +41,7 @@ export default function MessageList({ className, projectId, workspaceId }: Messa
   incrementChatPerf("render.messageList");
   const { messages, status, error, isHistoryLoading, stepThinking, pendingCloudMessage } =
     useChatState();
-  const { staticMessages, streamingMessage } = useStreamingMessageBuffer({
+  const { staticMessages, streamingMessage, isStreamingActive } = useStreamingMessageBuffer({
     messages,
     status,
     isHistoryLoading,
@@ -142,7 +142,7 @@ export default function MessageList({ className, projectId, workspaceId }: Messa
         className
       )}
     >
-      <Conversation className="min-h-0 flex-1 overflow-x-hidden [&_*:not(summary)]:!select-text">
+      <Conversation className="min-h-0 flex-1 overflow-x-hidden [&_*:not(summary)]:!select-text" {...(isStreamingActive ? { resize: "instant" } : {})}>
         <ConversationContent className="flex min-h-full w-full min-w-0 flex-col gap-1 pb-4">
           {shouldShowHelper ? (
             <ConversationEmptyState

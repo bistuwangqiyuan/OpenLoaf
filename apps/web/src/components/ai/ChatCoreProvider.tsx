@@ -467,8 +467,8 @@ export default function ChatCoreProvider({
   const approvalPayloadsRef = React.useRef<Record<string, Record<string, unknown>>>({});
   /** Track ongoing approval submission to avoid duplicate sends. */
   const approvalSubmitInFlightRef = React.useRef(false);
-  /** Remember the last assistant message id that triggered an approval continuation. */
-  const lastApprovalSubmitMessageIdRef = React.useRef<string | null>(null);
+  /** Remember the tool call IDs included in the last approval continuation to prevent duplicate sends. */
+  const lastApprovalSubmittedKeyRef = React.useRef<string>("");
 
   const ensureSubAgentStreamController = React.useCallback(
     (toolCallId: string) => {
@@ -610,7 +610,7 @@ export default function ChatCoreProvider({
     // 会话切换时清空审批暂存，避免跨会话串联。
     approvalPayloadsRef.current = {};
     approvalSubmitInFlightRef.current = false;
-    lastApprovalSubmitMessageIdRef.current = null;
+    lastApprovalSubmittedKeyRef.current = "";
   }, [sessionId]);
 
   React.useEffect(() => {
@@ -1430,7 +1430,6 @@ export default function ChatCoreProvider({
       : "";
     if (!assistantId) return;
     if (approvalSubmitInFlightRef.current) return;
-    if (lastApprovalSubmitMessageIdRef.current === assistantId) return;
 
     const runtimeToolParts = tabId
       ? useChatRuntime.getState().toolPartsByTabId[tabId] ?? EMPTY_TOOL_PARTS
@@ -1442,6 +1441,10 @@ export default function ChatCoreProvider({
       new Set([...approvalToolCallIds, ...payloadToolCallIds]),
     );
     if (mergedToolCallIds.length === 0) return;
+    // 逻辑：按工具调用 ID 集合防重（而非按消息 ID），因为同一条 assistant 消息
+    // 在多轮工具循环中可能追加新的需审批工具调用。
+    const currentKey = mergedToolCallIds.slice().sort().join(",");
+    if (lastApprovalSubmittedKeyRef.current === currentKey) return;
     // 逻辑：最后一条 assistant 的所有审批完成后才继续发送。
     const unresolved = mergedToolCallIds.filter((toolCallId) => {
       if (payloadToolCallIds.includes(toolCallId)) return false;
@@ -1475,7 +1478,7 @@ export default function ChatCoreProvider({
       } else {
         await chat.sendMessage(undefined as any);
       }
-      lastApprovalSubmitMessageIdRef.current = assistantId;
+      lastApprovalSubmittedKeyRef.current = currentKey;
       for (const toolCallId of mergedToolCallIds) {
         delete approvalPayloadsRef.current[toolCallId];
       }
@@ -1664,7 +1667,6 @@ export default function ChatCoreProvider({
       toolParts,
       upsertToolPart: upsertToolPartForTab,
       markToolStreaming,
-      subAgentStreams,
       queueToolApprovalPayload,
       clearToolApprovalPayload,
       continueAfterToolApprovals,
@@ -1673,7 +1675,6 @@ export default function ChatCoreProvider({
       toolParts,
       upsertToolPartForTab,
       markToolStreaming,
-      subAgentStreams,
       queueToolApprovalPayload,
       clearToolApprovalPayload,
       continueAfterToolApprovals,

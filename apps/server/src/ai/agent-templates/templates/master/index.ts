@@ -60,6 +60,9 @@ export const masterTemplate: AgentTemplate = {
     // excel
     'excel-query',
     'excel-mutate',
+    // word
+    'word-query',
+    'word-mutate',
   ],
   allowSubAgents: true,
   maxDepth: 2,

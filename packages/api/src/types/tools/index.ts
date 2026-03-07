@@ -19,6 +19,7 @@ export * from "./calendar";
 export * from "./email";
 export * from "./office";
 export * from "./excel";
+export * from "./word";
 export * from "./mediaGenerate";
 export * from "./jsxCreate";
 export * from "./toolCatalog";

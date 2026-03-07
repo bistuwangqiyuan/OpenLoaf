@@ -84,6 +84,8 @@ import {
 
 interface ChatInputProps {
   className?: string;
+  /** Use larger editor text and height (for full-page centered layout). */
+  large?: boolean;
   attachments?: ChatAttachment[];
   onAddAttachments?: (files: FileList | ChatAttachmentInput[]) => void;
   onRemoveAttachment?: (attachmentId: string) => void;
@@ -152,6 +154,8 @@ export interface ChatInputBoxProps {
   tabId?: string;
   /** Whether to show slash command menu. */
   commandMenuEnabled?: boolean;
+  /** Use larger editor text and height (for full-page centered layout). */
+  large?: boolean;
   /** Dictation language for OS speech recognition. */
   dictationLanguage?: string;
   /** Whether to play a start tone when dictation begins. */
@@ -223,6 +227,7 @@ export function ChatInputBox({
   workspaceId,
   tabId,
   commandMenuEnabled = false,
+  large,
   dictationLanguage,
   dictationSoundEnabled,
   onDictationListeningChange,
@@ -535,6 +540,7 @@ export function ChatInputBox({
                     projects={projects}
                     onProjectChange={handleProjectSelectorChange}
                     disabled={projectSelectorDisabled}
+                    large={large}
                   />
                   {afterProjectSelector ? (
                     <div className="min-w-0 flex-1 overflow-x-auto">
@@ -559,6 +565,7 @@ export function ChatInputBox({
                   onAddAttachments(dt.files);
                 } : undefined}
                 placeholder={resolvedPlaceholder}
+                large={large}
                 className={cn(isOverLimit && "text-destructive")}
               />
             </div>
@@ -717,6 +724,7 @@ export function ChatInputBox({
 
 export default function ChatInput({
   className,
+  large,
   attachments,
   onAddAttachments,
   onRemoveAttachment,
@@ -1220,6 +1228,7 @@ export default function ChatInput({
         className={className}
         variant="default"
         compact={false}
+        large={large}
         isLoading={isLoading}
         isStreaming={isStreaming}
         blocked={isUnconfigured}

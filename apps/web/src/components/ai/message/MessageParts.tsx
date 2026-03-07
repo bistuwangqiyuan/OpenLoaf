@@ -23,16 +23,18 @@ const MessageParts = React.memo(function MessageParts({
   options?: MessagePartsOptions;
 }) {
   const reduceMotion = useReducedMotion();
+  const isAnimating = options?.isAnimating;
+  // 流式输出期间跳过入场动画，避免 framer-motion 每次 tick 都计算动画状态。
   const motionProps = React.useMemo(
     () =>
-      reduceMotion
+      reduceMotion || isAnimating
         ? undefined
         : {
             initial: { opacity: 0, y: 6 },
             animate: { opacity: 1, y: 0 },
             transition: { duration: 0.2 },
           },
-    [reduceMotion],
+    [reduceMotion, isAnimating],
   );
 
   return (

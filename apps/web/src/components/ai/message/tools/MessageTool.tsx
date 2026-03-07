@@ -25,6 +25,7 @@ import JsxCreateTool from "./JsxCreateTool";
 import SpawnAgentTool from "./SpawnAgentTool";
 import WaitAgentTool from "./WaitAgentTool";
 import ChartTool from "./ChartTool";
+import ExcelTool from "./ExcelTool";
 import TaskTool from "./TaskTool";
 import ClaudeCodeBashTool from "./ClaudeCodeBashTool";
 import ClaudeCodeReadTool from "./ClaudeCodeReadTool";
@@ -196,6 +197,10 @@ export default function MessageTool({
 
   if (toolKind === "chart-render") {
     return <ChartTool part={resolvedPart} className={className} />;
+  }
+
+  if (toolKind === "excel-query" || toolKind === "excel-mutate") {
+    return <ExcelTool part={resolvedPart} className={className} />;
   }
 
   if (toolKind === "task-manage" || toolKind === "create-task" || toolKind === "task-status") {

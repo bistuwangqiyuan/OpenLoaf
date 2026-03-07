@@ -48,7 +48,7 @@ export function useStreamingMessageBuffer(
   input: UseStreamingMessageBufferInput,
 ): StreamingMessageBufferResult {
   const { messages, status, isHistoryLoading } = input;
-  const bufferMs = Number.isFinite(input.bufferMs) ? Math.max(0, input.bufferMs ?? 0) : 50;
+  const bufferMs = Number.isFinite(input.bufferMs) ? Math.max(0, input.bufferMs ?? 0) : 100;
   const [staticMessages, setStaticMessages] = React.useState<UIMessage[]>(messages);
   const [bufferedMessage, setBufferedMessage] = React.useState<UIMessage | null>(null);
   const latestMessageRef = React.useRef<UIMessage | null>(null);

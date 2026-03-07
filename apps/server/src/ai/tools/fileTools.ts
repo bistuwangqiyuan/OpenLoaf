@@ -383,6 +383,9 @@ export const readFileTool = tool({
       if (ext === '.xlsx' || ext === '.xls') {
         throw new Error("This file is in Excel format. Use the excel-query tool to read it.")
       }
+      if (ext === '.docx' || ext === '.doc') {
+        throw new Error("This file is in Word format. Use the word-query tool to read it.")
+      }
       throw new Error("Only text files are supported; binary file extensions are not allowed.");
     }
     const stat = await fs.stat(absPath);

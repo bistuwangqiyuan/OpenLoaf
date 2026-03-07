@@ -116,3 +116,61 @@ export const browserWaitToolDef = {
   }),
   component: null,
 } as const;
+
+export const browserScreenshotToolDef = {
+  id: "browser-screenshot",
+  name: "页面截图",
+  description:
+    "触发：当你需要截取当前浏览器页面的截图时调用。用途：捕获页面可视区域或完整页面的截图并保存为图片文件。返回：{ ok: true, data: { url, format, bytes } }；无可用页面或截图失败会报错。不适用：仅需提取文本时使用 browser-extract。",
+  parameters: z.object({
+    actionName: z
+      .string()
+      .min(1)
+      .describe("由调用的 LLM 传入，用于说明本次工具调用目的，例如：截取当前页面截图。"),
+    format: z
+      .enum(["png", "jpeg", "webp"])
+      .optional()
+      .describe("截图格式，默认 png。"),
+    quality: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("图片质量（仅 jpeg/webp 有效），默认 80。"),
+    fullPage: z
+      .boolean()
+      .optional()
+      .describe("是否截取完整页面（包括滚动不可见区域），默认 false 仅截取可视区域。"),
+  }),
+  component: null,
+} as const;
+
+export const browserDownloadImageToolDef = {
+  id: "browser-download-image",
+  name: "下载网页图片",
+  description:
+    "触发：当你需要下载当前页面上的图片文件时调用。用途：通过提供图片 URL 列表或 CSS 选择器从页面中查找 img 元素并下载图片。返回：{ ok: true, data: { images: [{ url, sourceUrl, fileName, bytes }], errors? } }；全部失败会报错。不适用：需要截取整个页面请用 browser-screenshot。",
+  parameters: z.object({
+    actionName: z
+      .string()
+      .min(1)
+      .describe("由调用的 LLM 传入，用于说明本次工具调用目的，例如：下载商品图片。"),
+    imageUrls: z
+      .array(z.string())
+      .optional()
+      .describe("要下载的图片绝对 URL 列表。与 selector 二选一。"),
+    selector: z
+      .string()
+      .optional()
+      .describe("CSS 选择器，用于从页面中查找 img 元素并提取其 src 下载。例如：'.product img'。与 imageUrls 二选一。"),
+    maxCount: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .optional()
+      .describe("最多下载的图片数量，默认 10，最大 20。"),
+  }),
+  component: null,
+} as const;
