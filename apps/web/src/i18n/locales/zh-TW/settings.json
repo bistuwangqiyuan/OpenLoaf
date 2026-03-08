@@ -291,7 +291,10 @@
     "installNow": "立即安裝",
     "betaChannel": "Beta 體驗",
     "betaChannelDesc": "開啟後優先取得測試版更新，可能包含未完善的功能",
-    "bundledVersion": "內建版本"
+    "bundledVersion": "內建版本",
+    "openLogsFolder": "開啟系統日誌資料夾",
+    "openLogsFolderDesc": "在檔案管理員中開啟應用程式資料目錄",
+    "open": "開啟"
   },
   "project": {
     "title": "專案設定",

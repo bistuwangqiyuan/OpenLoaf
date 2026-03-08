@@ -114,15 +114,30 @@ export function getProjectRootPath(projectId: string, workspaceId?: string): str
   return resolveFilePathFromUri(rootUri);
 }
 
-/** Get all project root paths for a workspace. */
+/** Get all project root paths for a workspace (including sub-projects). */
 export function getAllProjectRootPaths(workspaceId?: string): string[] {
   const entries = getWorkspaceProjectEntries(workspaceId);
   const paths: string[] = [];
-  for (const [, rootUri] of entries) {
+  const visited = new Set<string>();
+
+  // BFS through top-level projects and their sub-projects
+  const queue = entries.map((entry) => entry[1]);
+  while (queue.length > 0) {
+    const rootUri = queue.shift();
+    if (!rootUri || visited.has(rootUri)) continue;
+    visited.add(rootUri);
     try {
       paths.push(resolveFilePathFromUri(rootUri));
     } catch {
       // skip invalid URIs
+      continue;
+    }
+    // Traverse sub-projects
+    const meta = readProjectConfigProjects(rootUri);
+    if (meta?.projects) {
+      for (const childUri of Object.values(meta.projects)) {
+        if (!visited.has(childUri)) queue.push(childUri);
+      }
     }
   }
   return paths;

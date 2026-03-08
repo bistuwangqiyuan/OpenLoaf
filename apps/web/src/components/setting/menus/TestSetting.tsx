@@ -18,7 +18,7 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { Globe } from "lucide-react";
-import { memo } from "react";
+import { memo, useState, useCallback, useEffect } from "react";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
@@ -47,6 +47,46 @@ const TestSetting = memo(function TestSetting() {
   /** Terminal feature status reported by server. */
   const terminalStatus = useTerminalStatus();
   const isElectron = isElectronEnv();
+
+  const [webContentsViewCount, setWebContentsViewCount] = useState<number | null>(null);
+
+  const fetchWebContentsViewCount = useCallback(async () => {
+    const api = window.openloafElectron;
+    if (!isElectron || !api?.getWebContentsViewCount) return;
+    try {
+      const res = await api.getWebContentsViewCount();
+      if (res?.ok) setWebContentsViewCount(res.count);
+    } catch {
+      // ignore
+    }
+  }, [isElectron]);
+
+  const clearWebContentsViews = useCallback(async () => {
+    const api = window.openloafElectron;
+    if (!isElectron || !api?.clearWebContentsViews) return;
+    try {
+      const res = await api.clearWebContentsViews();
+      if (res?.ok) setWebContentsViewCount(0);
+      await fetchWebContentsViewCount();
+    } catch {
+      // ignore
+    }
+  }, [isElectron, fetchWebContentsViewCount]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    void fetchWebContentsViewCount();
+    const onFocus = () => void fetchWebContentsViewCount();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") onFocus();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [isElectron, fetchWebContentsViewCount]);
 
   /**
    * Pushes 3 demo stack items into the active tab for quick UI testing.
@@ -271,6 +311,33 @@ const TestSetting = memo(function TestSetting() {
               </Button>
             </OpenLoafSettingsField>
           </div>
+          {isElectron ? (
+            <div className="flex flex-wrap items-start gap-3 py-3">
+              <div className="text-sm font-medium">WebContentsView 数</div>
+              <OpenLoafSettingsField className="max-w-[70%] gap-2">
+                <button
+                  type="button"
+                  aria-label="点击刷新"
+                  title="点击刷新"
+                  className="text-right bg-transparent p-0 text-xs truncate text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                  onClick={() => void fetchWebContentsViewCount()}
+                >
+                  {webContentsViewCount == null ? "—" : String(webContentsViewCount)}
+                </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  aria-label="清除"
+                  disabled={webContentsViewCount == null || webContentsViewCount === 0}
+                  onClick={() => void clearWebContentsViews()}
+                >
+                  清除
+                </Button>
+              </OpenLoafSettingsField>
+            </div>
+          ) : null}
         </div>
       </OpenLoafSettingsGroup>
 

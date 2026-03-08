@@ -23,6 +23,7 @@ export function SettingsDialog() {
       <DialogContent
         className="w-[92vw] max-w-[92vw]! h-[90vh] p-0 gap-0 overflow-hidden"
         overlayClassName="backdrop-blur-sm bg-black/30"
+        showCloseButton={false}
       >
         <DialogTitle className="sr-only">Settings</DialogTitle>
         {open && <SettingsPage settingsMenu={menu as any} />}

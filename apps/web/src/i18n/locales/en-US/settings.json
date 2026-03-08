@@ -291,7 +291,10 @@
     "installNow": "Install Now",
     "betaChannel": "Beta Channel",
     "betaChannelDesc": "Receive beta updates first. May include unfinished features.",
-    "bundledVersion": "Built-in"
+    "bundledVersion": "Built-in",
+    "openLogsFolder": "Open Logs Folder",
+    "openLogsFolderDesc": "Open the app data directory in file manager",
+    "open": "Open"
   },
   "project": {
     "title": "Project Settings",

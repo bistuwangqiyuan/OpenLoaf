@@ -21,6 +21,8 @@ const PROVIDER_ICON_MAP: Record<string, string> = {
   google: "Gemini",
   grok: "Grok",
   moonshot: "Moonshot",
+  moonshotai: "Moonshot",
+  "moonshotai-cn": "Moonshot",
   openai: "OpenAI",
   qwen: "Qwen",
   vercel: "V0",

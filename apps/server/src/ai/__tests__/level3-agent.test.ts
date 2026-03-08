@@ -61,11 +61,8 @@ async function main() {
   try {
     const callStart = Date.now()
     const agent = createSubAgent({
-      agentType: 'system',
+      subagentType: 'general-purpose',
       model: resolved.model,
-      inlineConfig: {
-        toolIds: [...ALLOWED_TOOL_IDS],
-      },
     })
 
     const agentStream = await agent.stream({

@@ -14,19 +14,8 @@
  * 运行时逻辑（工厂、runner）不在此模块中。
  */
 
-/** Agent 模版 ID 联合类型。 */
-export type AgentTemplateId =
-  | 'master'
-  | 'document'
-  | 'shell'
-  | 'browser'
-  | 'email'
-  | 'calendar'
-  | 'widget'
-  | 'project'
-  | 'vision'
-  | 'coder'
-  | 'wps-agent'
+/** Agent 模版 ID 联合类型（仅保留 master；子 agent 改为行为驱动类型）。 */
+export type AgentTemplateId = 'master'
 
 /** Agent 模版定义。 */
 export type AgentTemplate = {

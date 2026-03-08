@@ -295,7 +295,7 @@ export default function TaskTool({
     <div className={cn('w-full min-w-0', className)}>
       {/* 任务卡片样式 - 可点击 */}
       <div
-        className="cursor-pointer overflow-hidden rounded-lg border bg-card p-3 shadow-sm transition-colors hover:bg-accent/50"
+        className="max-w-sm cursor-pointer overflow-hidden rounded-lg border bg-card p-3 shadow-none transition-colors hover:bg-accent/50"
         onClick={!streaming ? handleOpenTaskBoard : undefined}
       >
         {/* Header: 状态图标 + 标题 + 优先级 */}

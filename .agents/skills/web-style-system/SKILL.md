@@ -94,9 +94,14 @@ version: 0.1.0
 
 优先采用轻玻璃材质：低透明背景 + 细边框 + 背景模糊。**禁止对输入框、卡片、面板等内容区域添加 box-shadow**，仅在极少数浮层（如 Popover、Dropdown）允许轻阴影。避免重金属拟态、强噪声材质和高饱和霓虹块。
 
-### 3. Neutral Base, Local Accent — Colored Buttons
+### 3. Neutral Base, Local Accent — Typed Buttons
 
-以中性底色承载信息密度，色彩强调只用于局部状态与语义高亮。**按钮必须带有语义色彩**：主操作使用扁平色背景（如 `bg-sky-500/10 text-sky-600`），危险操作用红色系，成功/确认用绿色系。禁止所有按钮都用无色 ghost 样式——用户需要通过颜色快速区分操作语义。
+以中性底色承载信息密度，色彩强调只用于局部状态与语义高亮。按钮分为两类：
+
+- **Action 按钮**（触发操作）：`rounded-full` 胶囊形 + 语义扁平色背景（如 `bg-sky-500/10 text-sky-600`）。按语义选色——sky=主操作、red=危险、emerald=确认、violet=调试、amber=测试。
+- **View 按钮**（查看/导航）：`rounded-full` 胶囊形 + `variant="ghost"` + `text-muted-foreground`，无背景色，保持低调。
+
+禁止所有按钮都用无色 ghost 样式——用户需要通过颜色快速区分操作语义与查看导航。
 
 ### 4. Dense but Breathable
 

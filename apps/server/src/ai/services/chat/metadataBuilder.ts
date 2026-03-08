@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { TokenUsage } from "@openloaf/api/types/message";
+import { getCreditsConsumed } from "@/ai/shared/context/requestContext";
 import { toNumberOrUndefined, isRecord } from "@/ai/shared/util";
 
 /** Build usage metadata from stream part. */
@@ -38,13 +39,16 @@ export function buildTimingMetadata(input: {
   finishedAt: Date;
 }): Record<string, unknown> {
   const elapsedMs = Math.max(0, input.finishedAt.getTime() - input.startedAt.getTime());
-  return {
-    openloaf: {
-      assistantStartedAt: input.startedAt.toISOString(),
-      assistantFinishedAt: input.finishedAt.toISOString(),
-      assistantElapsedMs: elapsedMs,
-    },
+  const openloaf: Record<string, unknown> = {
+    assistantStartedAt: input.startedAt.toISOString(),
+    assistantFinishedAt: input.finishedAt.toISOString(),
+    assistantElapsedMs: elapsedMs,
   };
+  const credits = getCreditsConsumed();
+  if (typeof credits === "number" && credits > 0) {
+    openloaf.creditsConsumed = credits;
+  }
+  return { openloaf };
 }
 
 /** Merge abort info into metadata. */

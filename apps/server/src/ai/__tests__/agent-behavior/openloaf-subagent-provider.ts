@@ -30,7 +30,6 @@ import type {
   CallApiOptionsParams,
 } from 'promptfoo'
 import { createSubAgent } from '@/ai/services/agentFactory'
-import { getTemplate } from '@/ai/agent-templates'
 import {
   resolveTestModel,
   setMinimalRequestContext,
@@ -64,17 +63,7 @@ export default class OpenLoafSubagentProvider implements ApiProvider {
     const start = Date.now()
 
     try {
-      // 1. 从注册表查找模板
-      const template = getTemplate(this.agentType)
-      if (!template) {
-        return {
-          error: `未找到 agentType="${this.agentType}" 的模板，可用: master/calendar/email/project/document/shell/coder/widget/browser`,
-          output: '',
-          latencyMs: Date.now() - start,
-        }
-      }
-
-      // 2. 解析模型 + 设置上下文
+      // 1. 解析模型 + 设置上下文
       const resolved = await resolveTestModel()
       setMinimalRequestContext()
       setChatModel(resolved.model)
@@ -85,15 +74,10 @@ export default class OpenLoafSubagentProvider implements ApiProvider {
         options.abortSignal.addEventListener('abort', () => ac.abort(), { once: true })
       }
 
-      // 3. 创建专项 Agent（使用模板的 toolIds 和 systemPrompt）
+      // 2. 创建子 Agent（使用行为驱动类型）
       const agent = createSubAgent({
-        agentType: 'system',
+        subagentType: this.agentType,
         model: resolved.model,
-        rawAgentType: this.agentType,
-        inlineConfig: {
-          systemPrompt: template.systemPrompt,
-          toolIds: [...template.toolIds],
-        },
       })
 
       const agentStream = await agent.stream({
@@ -142,7 +126,7 @@ export default class OpenLoafSubagentProvider implements ApiProvider {
           toolNames,
           toolCallCount: toolCalls.length,
           agentType: this.agentType,
-          templateId: template.id,
+          subagentType: this.agentType,
         },
         latencyMs: Date.now() - start,
       }

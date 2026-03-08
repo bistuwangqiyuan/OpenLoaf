@@ -63,6 +63,12 @@ export const masterTemplate: AgentTemplate = {
     // word
     'word-query',
     'word-mutate',
+    // pptx
+    'pptx-query',
+    'pptx-mutate',
+    // pdf
+    'pdf-query',
+    'pdf-mutate',
   ],
   allowSubAgents: true,
   maxDepth: 2,

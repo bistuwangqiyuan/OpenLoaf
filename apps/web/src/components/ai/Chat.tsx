@@ -48,6 +48,10 @@ import {
   DragDropOverlay,
 } from "@/components/ai-elements/drag-drop";
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
+import {
+  matchProjectFileDragSession,
+  clearProjectFileDragSession,
+} from "@/lib/project-file-drag-session";
 import { useTabView } from "@/hooks/use-tab-view";
 import { resolveServerUrl } from "@/utils/server-url";
 import { createChatSessionId } from "@/lib/chat-session-id";
@@ -963,9 +967,8 @@ export function Chat({
       (Boolean(fileRef || fileName) && isImageFileRef(fileRef || fileName));
     const wantsImage = hasImageUpload || hasOpenLoafImage || isFileRefImage;
     // 系统文件（hasFiles）现在通过 /chat/files 端点统一处理，无需 deny。
-    const shouldDeny =
-      (wantsImage && !canAttachImage && !hasFiles) ||
-      ((hasOpenLoafRef || hasOpenLoafUri) && !canAttachAll);
+    // 非图片文件引用统一以 @[path] mention 插入，不依赖 canAttachAll。
+    const shouldDeny = wantsImage && !canAttachImage && !hasFiles;
     if (shouldDeny) {
       event.preventDefault();
       setIsDragActive(true);
@@ -977,7 +980,7 @@ export function Chat({
     setIsDragActive(true);
     setDragMode("allow");
     setDragHint(wantsImage ? "image" : "file");
-  }, [canAttachAll, canAttachImage]);
+  }, [canAttachImage]);
 
   const handleDragOver = React.useCallback((event: React.DragEvent) => {
     const hasFiles = event.dataTransfer?.types?.includes("Files") ?? false;
@@ -995,10 +998,8 @@ export function Chat({
       hasOpenLoafImage ||
       (Boolean(fileRef || fileName) && isImageFileRef(fileRef || fileName));
     const wantsImage = hasImageUpload || hasOpenLoafImage || isFileRefImage;
-    // 系统文件（hasFiles）现在通过 /chat/files 端点统一处理，无需 deny。
-    const shouldDeny =
-      (wantsImage && !canAttachImage && !hasFiles) ||
-      ((hasOpenLoafRef || hasOpenLoafUri) && !canAttachAll);
+    // 非图片文件引用统一以 @[path] mention 插入，不依赖 canAttachAll。
+    const shouldDeny = wantsImage && !canAttachImage && !hasFiles;
     event.preventDefault();
     if (shouldDeny) {
       setIsDragActive(true);
@@ -1010,7 +1011,7 @@ export function Chat({
     setIsDragActive(true);
     setDragMode("allow");
     setDragHint(wantsImage ? "image" : "file");
-  }, [canAttachAll, canAttachImage]);
+  }, [canAttachImage]);
 
   const handleDragLeave = React.useCallback((event: React.DragEvent) => {
     const hasFiles = event.dataTransfer?.types?.includes("Files") ?? false;
@@ -1068,19 +1069,13 @@ export function Chat({
         const isPayloadImage =
           Boolean(imagePayload.maskUri) || IMAGE_FILE_NAME_REGEX.test(payloadFileName);
         if (!isPayloadImage) {
-          if (!canAttachAll) {
-            setDragMode("allow");
-            return;
-          }
+          // 非图片文件统一以 @[path] mention 插入，不依赖 canAttachAll。
           const resolvedFileRef =
             fileRef || (isRelativePath(imagePayload.baseUri) ? imagePayload.baseUri : "");
-          const normalizedRef = resolvedFileRef.startsWith("@")
-            ? resolvedFileRef.slice(1)
-            : resolvedFileRef;
-          if (normalizedRef && isRelativePath(normalizedRef)) {
+          if (resolvedFileRef && isRelativePath(resolvedFileRef)) {
             window.dispatchEvent(
               new CustomEvent("openloaf:chat-insert-mention", {
-                detail: { value: normalizedRef },
+                detail: { value: resolvedFileRef },
               })
             );
           }
@@ -1121,6 +1116,23 @@ export function Chat({
           return;
         }
       }
+      // Electron 原生拖拽回落：检查 projectFileDragSession，将文件作为 mention 插入。
+      const session = matchProjectFileDragSession(event.dataTransfer);
+      if (session && session.fileRefs.length > 0) {
+        event.preventDefault();
+        dragCounterRef.current = 0;
+        setIsDragActive(false);
+        setDragMode("allow");
+        for (const ref of session.fileRefs) {
+          window.dispatchEvent(
+            new CustomEvent("openloaf:chat-insert-mention", {
+              detail: { value: ref },
+            })
+          );
+        }
+        clearProjectFileDragSession("chat-root-drop");
+        return;
+      }
       const droppedFiles = Array.from(event.dataTransfer?.files ?? []);
       if (droppedFiles.length > 0) {
         event.preventDefault();
@@ -1137,14 +1149,13 @@ export function Chat({
       dragCounterRef.current = 0;
       setIsDragActive(false);
       setDragMode("allow");
-      if (!canAttachAll) return;
       window.dispatchEvent(
         new CustomEvent("openloaf:chat-insert-mention", {
           detail: { value: fileRef },
         })
       );
     },
-    [addAttachments, addMaskedAttachment, canAttachAll, canAttachImage, projectId]
+    [addAttachments, addMaskedAttachment, canAttachImage, projectId]
   );
 
   // 共享的 ChatInput / drag 相关 props，避免重复。

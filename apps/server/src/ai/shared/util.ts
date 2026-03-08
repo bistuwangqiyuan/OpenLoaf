@@ -13,6 +13,7 @@ import { getEnvString } from "@openloaf/config";
 import { prisma } from "@openloaf/db";
 import { resolveProjectAncestorRootUris } from "@openloaf/api/services/projectDbService";
 import { resolveFilePathFromUri } from "@openloaf/api/services/vfsService";
+import { addCreditsConsumed } from "@/ai/shared/context/requestContext";
 import { logger } from "@/common/logger";
 
 const DATA_URL_PREFIX = "data:";
@@ -34,7 +35,7 @@ function readSseData(rawEvent: string): string | null {
   return dataLines.join("\n");
 }
 
-/** 判断是否需要忽略自定义计费 SSE 事件。 */
+/** 判断是否需要忽略自定义计费 SSE 事件，同时捕获积分消耗。 */
 function shouldDropBillingSseEvent(eventData: string): boolean {
   if (!eventData || eventData === "[DONE]") return false;
   try {
@@ -42,7 +43,14 @@ function shouldDropBillingSseEvent(eventData: string): boolean {
     if (!isRecord(parsed)) return false;
     // 逻辑：仅过滤自定义计费事件，避免误伤正常聊天 chunk。
     if (hasChatChunkPayload(parsed)) return false;
-    return "x_credits_consumed" in parsed;
+    if ("x_credits_consumed" in parsed) {
+      const credits = Number(parsed.x_credits_consumed);
+      if (Number.isFinite(credits) && credits > 0) {
+        addCreditsConsumed(credits);
+      }
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }

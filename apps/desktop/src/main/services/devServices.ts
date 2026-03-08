@@ -143,6 +143,8 @@ function spawnLogged(
     // ipc: 添加 IPC channel（fd3），让子进程通过 disconnect 感知父进程退出
     stdio: opts.ipc ? ['ignore', 'pipe', 'pipe', 'ipc'] : ['ignore', 'pipe', 'pipe'],
     shell: useCmdShim,
+    // detached: 让子进程成为新进程组的 leader，退出时可通过 kill(-pid) 杀掉整棵进程树
+    detached: true,
   });
 
   child.stdout?.on('data', (d) => process.stdout.write(`[${label}] ${d}`));

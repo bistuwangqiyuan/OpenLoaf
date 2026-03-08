@@ -291,7 +291,10 @@
     "installNow": "立即安装",
     "betaChannel": "Beta 体验",
     "betaChannelDesc": "开启后优先获取测试版更新，可能包含未完善的功能",
-    "bundledVersion": "内置版本"
+    "bundledVersion": "内置版本",
+    "openLogsFolder": "打开系统日志文件夹",
+    "openLogsFolderDesc": "在文件管理器中打开应用数据目录",
+    "open": "打开"
   },
   "project": {
     "title": "项目设置",

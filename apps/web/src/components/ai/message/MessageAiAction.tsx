@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Clock3,
+  Coins,
   Copy,
   Minimize2,
   RotateCcw,
@@ -132,6 +133,16 @@ function extractAssistantElapsedMs(metadata: unknown): number | undefined {
 }
 
 /**
+ * Extract credits consumed from metadata.openloaf.
+ */
+function extractCreditsConsumed(metadata: unknown): number | undefined {
+  const meta = metadata as any;
+  const credits = meta?.openloaf?.creditsConsumed;
+  if (typeof credits === "number" && Number.isFinite(credits) && credits > 0) return credits;
+  return;
+}
+
+/**
  * Format milliseconds into a compact duration label.
  */
 function formatDurationMs(value?: number): string {
@@ -217,6 +228,7 @@ export default function MessageAiAction({
 
   const usage = extractTokenUsage(message.metadata);
   const assistantElapsedMs = extractAssistantElapsedMs(message.metadata);
+  const creditsConsumed = extractCreditsConsumed(message.metadata);
 
   const agentInfo = ((message as any)?.agent ?? (message.metadata as any)?.agent) as
     | { model?: { provider?: string; modelId?: string } }
@@ -435,6 +447,13 @@ export default function MessageAiAction({
         <span className="ml-1 inline-flex select-none items-center gap-1 text-xs text-muted-foreground/60 tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
           <Clock3 className="size-3" />
           {formatDurationMs(assistantElapsedMs)}
+        </span>
+      ) : null}
+
+      {typeof creditsConsumed === "number" ? (
+        <span className="ml-1 inline-flex select-none items-center gap-1 text-xs text-muted-foreground/60 tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
+          <Coins className="size-3" />
+          {creditsConsumed % 1 === 0 ? creditsConsumed : creditsConsumed.toFixed(2)}
         </span>
       ) : null}
     </MessageActions>

@@ -34,10 +34,10 @@ import { updatePlanTool } from "@/ai/tools/updatePlanTool";
 import { projectMutateTool, projectQueryTool } from "@/ai/tools/projectTools";
 import { calendarMutateTool, calendarQueryTool } from "@/ai/tools/calendarTools";
 import { emailMutateTool, emailQueryTool } from "@/ai/tools/emailTools";
-// office-execute (WPS) is disabled — replaced by excel-query / excel-mutate
-// import { officeExecuteTool } from "@/ai/tools/officeTools";
 import { excelQueryTool, excelMutateTool } from "@/ai/tools/excelTools";
 import { wordQueryTool, wordMutateTool } from "@/ai/tools/wordTools";
+import { pptxQueryTool, pptxMutateTool } from "@/ai/tools/pptxTools";
+import { pdfQueryTool, pdfMutateTool } from "@/ai/tools/pdfTools";
 import { imageGenerateTool, videoGenerateTool, listMediaModelsTool } from "@/ai/tools/mediaGenerateTools";
 import { requestUserInputTool } from "@/ai/tools/requestUserInputTool";
 import { jsxCreateTool } from "@/ai/tools/jsxCreateTool";
@@ -71,9 +71,10 @@ import {
   emailMutateToolDef,
   emailQueryToolDef,
 } from "@openloaf/api/types/tools/email";
-// import { officeExecuteToolDef } from "@openloaf/api/types/tools/office";
 import { excelQueryToolDef, excelMutateToolDef } from "@openloaf/api/types/tools/excel";
 import { wordQueryToolDef, wordMutateToolDef } from "@openloaf/api/types/tools/word";
+import { pptxQueryToolDef, pptxMutateToolDef } from "@openloaf/api/types/tools/pptx";
+import { pdfQueryToolDef, pdfMutateToolDef } from "@openloaf/api/types/tools/pdf";
 import {
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -213,8 +214,6 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   [emailMutateToolDef.id]: {
     tool: emailMutateTool,
   },
-  // office-execute (WPS) disabled
-  // [officeExecuteToolDef.id]: { tool: officeExecuteTool },
   [excelQueryToolDef.id]: {
     tool: excelQueryTool,
   },
@@ -226,6 +225,18 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   },
   [wordMutateToolDef.id]: {
     tool: wordMutateTool,
+  },
+  [pptxQueryToolDef.id]: {
+    tool: pptxQueryTool,
+  },
+  [pptxMutateToolDef.id]: {
+    tool: pptxMutateTool,
+  },
+  [pdfQueryToolDef.id]: {
+    tool: pdfQueryTool,
+  },
+  [pdfMutateToolDef.id]: {
+    tool: pdfMutateTool,
   },
   [generateWidgetToolDef.id]: {
     tool: generateWidgetTool,
@@ -290,6 +301,16 @@ const TOOL_ALIASES: Record<string, string> = {
   "read-docx": "word-query",
   "write-word": "word-mutate",
   "create-word": "word-mutate",
+  "read-pptx": "pptx-query",
+  "read-ppt": "pptx-query",
+  "write-pptx": "pptx-mutate",
+  "create-pptx": "pptx-mutate",
+  "create-ppt": "pptx-mutate",
+  "read-pdf": "pdf-query",
+  "write-pdf": "pdf-mutate",
+  "create-pdf": "pdf-mutate",
+  "merge-pdf": "pdf-mutate",
+  "fill-pdf": "pdf-mutate",
 };
 
 /** Tool IDs excluded from auto-approval (complex/interactive). */

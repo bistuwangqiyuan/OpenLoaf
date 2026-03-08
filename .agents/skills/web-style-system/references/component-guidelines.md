@@ -151,16 +151,54 @@ Dialog 遵循四区结构，每区可选但顺序固定：
 - **Body**：表单字段使用堆叠布局（label 在上、input 在下），**不使用 `grid-cols-4` 横向排列**。间距 `gap-2 py-2`。
 - **DialogFooter**：取消按钮 `variant=”outline”`，主操作按钮使用语义扁平色。
 
-### 按钮色彩
+### 按钮分类与形态
 
-**按钮必须带有语义扁平色**，禁止所有按钮都用无色 ghost：
+按钮分为两大类，视觉权重不同：
 
-| 语义     | 样式                                                                        |
-|----------|----------------------------------------------------------------------------|
-| 主操作   | `bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none` |
-| 危险操作 | `bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none` |
-| 确认/成功 | `bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none` |
-| 次要操作 | `variant=”outline”` 或 `variant=”ghost”`，同组内至少一个按钮带色             |
+#### Action 按钮（操作型）
+
+触发实际动作的按钮（保存、创建、删除、打开、检查等）。**必须**使用：
+
+- `rounded-full` — 胶囊圆角
+- 语义扁平色背景 — 通过颜色传达操作性质
+- `shadow-none` — 禁止阴影
+- `transition-colors duration-150` — 统一过渡
+
+#### View 按钮（查看/导航型）
+
+仅用于查看信息、跳转链接的按钮（查看日志、查看文档等）。**必须**使用：
+
+- `variant=”ghost”` — 无背景
+- `rounded-full` — 胶囊圆角
+- `text-muted-foreground` — 低视觉权重
+- `shadow-none` — 禁止阴影
+
+View 按钮不需要语义色彩，保持低调以突出 Action 按钮。
+
+### 按钮语义色彩
+
+Action 按钮的颜色由操作语义决定，**禁止所有按钮都用无色 ghost**：
+
+| 语义       | 色系    | 样式                                                                                          |
+|-----------|---------|----------------------------------------------------------------------------------------------|
+| 主操作     | sky     | `rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none`   |
+| 危险操作   | red     | `rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none`   |
+| 确认/成功  | emerald | `rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none` |
+| 调试/代码  | violet  | `rounded-full bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 dark:text-violet-400 shadow-none` |
+| 测试/实验  | amber   | `rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400 shadow-none` |
+| 文档/帮助  | teal    | `rounded-full bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400 shadow-none` |
+| 中性操作   | slate   | `rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none` |
+| 次要操作   | —       | `variant=”outline”` 或 `variant=”ghost”`，同组内至少一个按钮带色                                  |
+
+### 按钮通用公式
+
+所有扁平色按钮遵循统一公式：
+
+```
+rounded-full bg-{color}-500/10 text-{color}-600 hover:bg-{color}-500/20 dark:text-{color}-400 shadow-none
+```
+
+同一组操作中，主操作与次要操作应有明确视觉层级差异。
 
 ### 表单布局
 
@@ -191,7 +229,86 @@ className=”shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-vi
 - 关闭确认弹窗：`CloseConfirmDialog.tsx`（AlertDialog + Checkbox）
 - 图标选择器：`ProjectBasicSettings.tsx`（Popover + EmojiPicker）
 
-## 8. Motion and State
+## 8. Dividers and Separators
+
+适用对象：
+
+- Settings 列表分割线
+- 面板内分组分割
+
+原则：
+
+- 分割线使用低透明度，避免视觉噪音：`divide-border/40`（40% 透明度）。
+- 禁止使用全不透明 `divide-border`，视觉过重会破坏呼吸感。
+- 分割线仅用于同级元素间的视觉分组，不用于层级分割（层级用间距和背景区分）。
+
+护栏：
+
+- Settings 页面列表项之间统一使用 `divide-y divide-border/40`。
+- Dark 模式下分割线同样保持低透明度。
+
+## 9. Settings Item Pattern
+
+适用对象：
+
+- `apps/web/src/components/setting/menus/*`
+- 所有设置页面的配置项
+
+### Setting Icon
+
+每个设置项前可带语义图标徽章，使用统一的 `SettingIcon` 模式：
+
+```tsx
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
+}
+```
+
+- 外层容器：`h-5 w-5 rounded`（小圆角方块）
+- 内层图标：`h-3 w-3`
+- 背景色与前景色使用语义扁平色（与按钮色系一致）
+
+语义色彩映射示例：
+
+| 语义         | bg                  | fg                                  |
+|-------------|---------------------|-------------------------------------|
+| 版本/信息    | `bg-sky-500/10`     | `text-sky-600 dark:text-sky-400`    |
+| 安全/许可    | `bg-emerald-500/10` | `text-emerald-600 dark:text-emerald-400` |
+| 调试/代码    | `bg-violet-500/10`  | `text-violet-600 dark:text-violet-400` |
+| 警告/实验    | `bg-amber-500/10`   | `text-amber-600 dark:text-amber-400` |
+| 危险/删除    | `bg-red-500/10`     | `text-red-600 dark:text-red-400`    |
+| 中性/系统    | `bg-slate-500/10`   | `text-slate-600 dark:text-slate-400` |
+
+### Settings 行布局
+
+Settings 配置项使用扁平 flex 布局：
+
+```tsx
+<div className="flex flex-wrap items-center gap-2 px-3 py-3">
+  <SettingIcon icon={SomeIcon} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+  <div className="flex-1 min-w-0">
+    <div className="text-sm font-medium">标题</div>
+    <div className="text-xs text-muted-foreground">描述</div>
+  </div>
+  <OpenLoafSettingsField>
+    {/* 操作控件 */}
+  </OpenLoafSettingsField>
+</div>
+```
+
+- Icon + 标题 + 操作控件在同一行
+- 使用 `gap-2` 控制间距（不要过宽）
+- 标题区 `flex-1 min-w-0` 自适应宽度
+
+### 参考实现
+
+- `AboutOpenLoaf.tsx`：完整的 SettingIcon + 扁平色按钮 + 分割线示例
+
+## 10. Motion and State
 
 适用对象：
 
@@ -209,7 +326,7 @@ className=”shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-vi
 - 避免大位移与长时动画影响可用性。
 - 需考虑 reduced-motion 退化。
 
-## 9. Dark Mode Consistency
+## 11. Dark Mode Consistency
 
 适用对象：
 
@@ -225,7 +342,7 @@ className=”shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-vi
 
 - 任何新增组件需同时定义 light/dark 表达。
 
-## 10. Domain-Specific Application Notes
+## 12. Domain-Specific Application Notes
 
 建议优先级：
 

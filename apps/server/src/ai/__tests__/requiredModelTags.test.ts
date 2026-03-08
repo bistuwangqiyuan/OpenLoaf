@@ -24,7 +24,6 @@ import { writeFileSync, mkdirSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { setOpenLoafRootOverride } from '@openloaf/config'
-import { visionTemplate } from '@/ai/agent-templates/templates/vision/index'
 import { getTemplate } from '@/ai/agent-templates'
 import {
   serializeAgentToMarkdown,
@@ -71,37 +70,17 @@ async function main() {
     // =================================================================
     console.log('\n--- A layer: pure functions ---')
 
-    // A1: visionTemplate 声明了 requiredModelTags
-    await test('A1: visionTemplate has requiredModelTags', () => {
-      assert.ok(
-        visionTemplate.requiredModelTags,
-        'visionTemplate.requiredModelTags should be defined',
-      )
-      assert.deepEqual(
-        [...visionTemplate.requiredModelTags!],
-        ['image_analysis'],
-      )
-    })
-
-    // A2: getTemplate('vision') 返回相同的 requiredModelTags
-    await test('A2: getTemplate("vision") returns requiredModelTags', () => {
-      const tmpl = getTemplate('vision')
-      assert.ok(tmpl, 'vision template should exist in registry')
-      assert.deepEqual(
-        [...(tmpl!.requiredModelTags ?? [])],
-        ['image_analysis'],
-      )
-    })
-
-    // A3: 非视觉模板不带 requiredModelTags
-    await test('A3: non-vision templates have no requiredModelTags', () => {
+    // A1: master template 存在且不带 requiredModelTags
+    await test('A1: master template has no requiredModelTags', () => {
       const masterTmpl = getTemplate('master')
       assert.ok(masterTmpl, 'master template should exist')
       assert.equal(masterTmpl!.requiredModelTags, undefined)
+    })
 
-      const shellTmpl = getTemplate('shell')
-      assert.ok(shellTmpl, 'shell template should exist')
-      assert.equal(shellTmpl!.requiredModelTags, undefined)
+    // A2: 非 master 模板已移除（子 agent 改为行为驱动类型）
+    await test('A2: non-master templates removed', () => {
+      assert.equal(getTemplate('vision'), undefined)
+      assert.equal(getTemplate('shell'), undefined)
     })
 
     // A4: serializeAgentToMarkdown 包含 requiredModelTags

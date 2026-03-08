@@ -198,6 +198,8 @@ declare global {
       setTitleBarOverlayHeight?: (payload: {
         height: number;
       }) => Promise<{ ok: true } | { ok: false; reason?: string }>;
+      /** Open the app logs folder (userData) in system file manager. */
+      openLogsFolder?: () => Promise<{ ok: true } | { ok: false; reason?: string }>;
       /** Read startup.log content for crash feedback. */
       readStartupLog?: () => Promise<{ ok: true; content: string } | { ok: false; reason: string }>;
       /** Trigger incremental update check (server/web). */

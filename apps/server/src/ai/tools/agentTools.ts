@@ -8,14 +8,13 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { tool, zodSchema } from 'ai'
-import type { LanguageModelV3 } from '@ai-sdk/provider'
 import {
   spawnAgentToolDef,
   sendInputToolDef,
   waitAgentToolDef,
   abortAgentToolDef,
 } from '@openloaf/api/types/tools/agent'
-import { agentManager, type SpawnContext, type SpawnItem } from '@/ai/services/agentManager'
+import { agentManager, type SpawnContext } from '@/ai/services/agentManager'
 import {
   getChatModel,
   getUiWriter,
@@ -23,76 +22,7 @@ import {
   getAssistantParentMessageId,
   getRequestContext,
 } from '@/ai/shared/context/requestContext'
-import type { RequestContext } from '@/ai/shared/context/requestContext'
-import { resolveChatModel } from '@/ai/models/resolveChatModel'
 import { resolveEffectiveAgentName } from '@/ai/services/agentFactory'
-import type { ModelTag } from '@openloaf/api/common'
-import {
-  resolveAgentModelIdsFromConfig,
-  type AgentModelIds,
-} from '@/ai/shared/resolveAgentModelFromConfig'
-
-/** Resolve the model for a spawn-agent call.
- *
- * Priority:
- * 1. modelOverride — explicit override from tool call
- * 2. agentType — read from agent config (chatModelId)
- * 3. requiredModelTags — auto-resolve model by tag constraints
- * 4. fallback — master agent's current model
- */
-async function resolveSpawnModel(input: {
-  agentType?: string
-  modelOverride?: string
-  requestContext: RequestContext
-}): Promise<{ model: LanguageModelV3; agentModelIds?: AgentModelIds }> {
-  // 1. modelOverride 最高优先
-  if (input.modelOverride) {
-    const resolved = await resolveChatModel({ chatModelId: input.modelOverride })
-    return { model: resolved.model }
-  }
-
-  // 2. 从指定 agent 配置读取模型
-  if (input.agentType) {
-    const agentModelIds = resolveAgentModelIdsFromConfig({
-      agentName: input.agentType,
-      workspaceId: input.requestContext.workspaceId,
-      projectId: input.requestContext.projectId,
-      parentRoots: input.requestContext.parentProjectRootPaths,
-    })
-    if (agentModelIds.chatModelId) {
-      const resolved = await resolveChatModel({
-        chatModelId: agentModelIds.chatModelId,
-        chatModelSource: agentModelIds.chatModelSource,
-      })
-      return { model: resolved.model, agentModelIds }
-    }
-    // 逻辑：agent 配置无 chat model，但可能有 media model override。
-    if (agentModelIds.imageModelId || agentModelIds.videoModelId) {
-      const masterModel = getChatModel()
-      if (!masterModel) throw new Error('chat model is not available.')
-      return { model: masterModel, agentModelIds }
-    }
-
-    // 3. requiredModelTags — 用标签约束自动解析满足条件的模型
-    const tags = agentModelIds.requiredModelTags
-    if (tags && tags.length > 0) {
-      try {
-        const resolved = await resolveChatModel({
-          requiredTags: tags as ModelTag[],
-          saasAccessToken: input.requestContext.saasAccessToken,
-        })
-        return { model: resolved.model, agentModelIds }
-      } catch {
-        // 无满足标签的模型，降级到 master
-      }
-    }
-  }
-
-  // 4. fallback: master 的模型
-  const masterModel = getChatModel()
-  if (!masterModel) throw new Error('chat model is not available.')
-  return { model: masterModel }
-}
 
 /** Spawn a new sub-agent. */
 export const spawnAgentTool = tool({
@@ -101,90 +31,61 @@ export const spawnAgentTool = tool({
   inputExamples: [
     {
       input: {
-        items: [{ type: 'text', text: '分析 src/utils 目录下的所有 TypeScript 文件，总结主要的工具函数及其用途。' }],
-        agentType: 'shell',
+        description: '分析代码库结构',
+        prompt: '分析 src/utils 目录下的所有 TypeScript 文件，总结主要的工具函数及其用途。',
+        subagent_type: 'explore',
       },
     },
     {
       input: {
-        items: [
-          { type: 'text', text: '阅读以下文件并生成重构建议：' },
-          { type: 'file', path: 'src/components/Dashboard.tsx' },
-        ],
+        description: '设计重构方案',
+        prompt: '阅读 src/components/Dashboard.tsx 及其依赖文件，设计组件拆分的重构方案。',
+        subagent_type: 'plan',
       },
     },
   ],
-  execute: async ({ items, agentType, modelOverride, config }): Promise<string> => {
+  execute: async ({ description: _desc, prompt, subagent_type }): Promise<string> => {
     const requestContext = getRequestContext()
     if (!requestContext) throw new Error('request context is not available.')
 
-    const { model, agentModelIds } = await resolveSpawnModel({
-      agentType,
-      modelOverride,
-      requestContext,
-    })
-
-    // 逻辑：将 agent 级 media model 覆盖合并到 requestContext。
-    const mediaOverrides = agentModelIds
-      ? {
-          ...(agentModelIds.imageModelId ? { imageModelId: agentModelIds.imageModelId } : {}),
-          ...(agentModelIds.videoModelId ? { videoModelId: agentModelIds.videoModelId } : {}),
-        }
-      : {}
-    const requestContextForSpawn =
-      Object.keys(mediaOverrides).length > 0
-        ? { ...requestContext, ...mediaOverrides }
-        : requestContext
+    const model = getChatModel()
+    if (!model) throw new Error('chat model is not available.')
 
     const context: SpawnContext = {
       model,
       writer: getUiWriter(),
       sessionId: getSessionId(),
       parentMessageId: getAssistantParentMessageId() ?? null,
-      requestContext: requestContextForSpawn,
+      requestContext,
     }
 
-    const spawnItems = items as SpawnItem[]
-    const task = spawnItems.map((i) => i.type === 'text' ? i.text : `[file: ${i.path}]`).join('\n')
+    const effectiveName = resolveEffectiveAgentName(subagent_type)
 
-    // 逻辑：config 参数存在时，传递 inlineConfig 给 agentManager。
-    const inlineConfig = config
-      ? {
-          ...(config.systemPrompt ? { systemPrompt: config.systemPrompt } : {}),
-          ...(config.toolIds?.length ? { toolIds: config.toolIds } : {}),
-        }
-      : undefined
-
-    // Derive current depth from agentStack (each frame = 1 depth level)
-    const currentDepth = requestContext.agentStack?.length ?? 0
-
-    // 逻辑：禁止 spawn master agent 作为子 agent。
-    const effectiveName = resolveEffectiveAgentName(agentType)
+    // 禁止 spawn master agent 作为子 agent
     if (effectiveName === 'master') {
       throw new Error('Cannot spawn master agent as a sub-agent.')
     }
 
-    // 逻辑：禁止 agent 创建和自己同类型的子 agent，防止无意义递归。
+    // 禁止 agent 创建和自己同类型的子 agent
     const stack = requestContext.agentStack ?? []
-    if (stack.length > 0 && agentType) {
+    if (stack.length > 0 && subagent_type) {
       const parentName = resolveEffectiveAgentName(stack[stack.length - 1]!.name)
-      const childName = resolveEffectiveAgentName(agentType)
-      if (parentName === childName) {
+      if (parentName === effectiveName) {
         throw new Error(
-          `Agent "${agentType}" cannot spawn a sub-agent of the same type. Try a different approach or use available tools directly.`,
+          `Agent "${subagent_type}" cannot spawn a sub-agent of the same type. Try a different approach or use available tools directly.`,
         )
       }
     }
 
+    // Derive current depth from agentStack
+    const currentDepth = requestContext.agentStack?.length ?? 0
+
     const agentId = agentManager.spawn({
-      task,
-      items: spawnItems,
-      name: agentType || 'default',
-      agentType,
-      modelOverride,
+      task: prompt,
+      name: effectiveName,
+      subagentType: subagent_type,
       context,
       depth: currentDepth,
-      inlineConfig,
     })
     return JSON.stringify({ agent_id: agentId })
   },
@@ -198,7 +99,7 @@ export const sendInputTool = tool({
     const model = getChatModel()
     const requestContext = getRequestContext()
 
-    // 逻辑：构建 SpawnContext 供 JSONL 恢复使用。
+    // 构建 SpawnContext 供 JSONL 恢复使用
     const context: SpawnContext | undefined =
       model && requestContext
         ? {
@@ -221,7 +122,6 @@ export const waitAgentTool = tool({
   inputSchema: zodSchema(waitAgentToolDef.parameters),
   execute: async ({ ids, timeoutMs }): Promise<string> => {
     const result = await agentManager.wait(ids, timeoutMs)
-    // 逻辑：将每个 agent 的输出文本附带在结果中，供 master agent 使用。
     const outputs: Record<string, string | null> = {}
     const errors: Record<string, string | null> = {}
     for (const id of ids) {

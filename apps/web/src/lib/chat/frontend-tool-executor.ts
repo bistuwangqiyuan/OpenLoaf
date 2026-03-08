@@ -14,7 +14,6 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { createBrowserTabId } from "@/hooks/tab-id";
 import { resolveServerUrl } from "@/utils/server-url";
-// import { ensureAddonInstalled, invokeWpsOpen } from "@/lib/wps/wps-rpc";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { useTabs } from "@/hooks/use-tabs";
 import { queryClient } from "@/utils/trpc";
@@ -342,7 +341,4 @@ export function registerDefaultFrontendToolHandlers(executor: FrontendToolExecut
 
     return { status: "success", output: { url: normalizedUrl, viewKey } };
   });
-
-  // office-execute (WPS) is disabled — replaced by server-side excel-query / excel-mutate tools.
-  // executor.register("office-execute", ...);
 }

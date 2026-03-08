@@ -28,7 +28,11 @@ export type ServiceManager = {
 };
 
 /**
- * 尝试优雅停止子进程（发 SIGTERM）；用于退出时清理。
+ * 尝试优雅停止子进程及其整个进程树。
+ *
+ * Unix: 通过 `kill(-pid)` 向整个进程组发送信号（需要子进程以 detached 模式启动）。
+ *       同时对直接子进程发 SIGTERM 作为后备。
+ * Windows: 使用 `taskkill /t` 杀掉整个进程树。
  */
 function stopManaged(child: ChildProcess | null) {
   if (!child) return;
@@ -49,10 +53,18 @@ function stopManaged(child: ChildProcess | null) {
     }
   }
 
+  // Unix: kill the entire process group via negative PID.
+  // This reaches grandchildren (e.g. node --watch → actual server process)
+  // that a simple child.kill('SIGTERM') would miss.
   try {
-    child.kill('SIGTERM');
+    process.kill(-pid, 'SIGTERM');
   } catch {
-    // ignore
+    // Process group may not exist (not detached), fall back to direct kill.
+    try {
+      child.kill('SIGTERM');
+    } catch {
+      // ignore
+    }
   }
 }
 

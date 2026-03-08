@@ -23,6 +23,8 @@ import { emailQueryToolDef, emailMutateToolDef } from "./email";
 import { imageGenerateToolDef, videoGenerateToolDef, listMediaModelsToolDef } from "./mediaGenerate";
 import { excelQueryToolDef, excelMutateToolDef } from "./excel";
 import { wordQueryToolDef, wordMutateToolDef } from "./word";
+import { pptxQueryToolDef, pptxMutateToolDef } from "./pptx";
+import { pdfQueryToolDef, pdfMutateToolDef } from "./pdf";
 import { testApprovalToolDef } from "./approvalTest";
 import {
   spawnAgentToolDef,
@@ -99,6 +101,10 @@ const TOOL_DEFS: ToolDefLike[] = [
   excelMutateToolDef,
   wordQueryToolDef,
   wordMutateToolDef,
+  pptxQueryToolDef,
+  pptxMutateToolDef,
+  pdfQueryToolDef,
+  pdfMutateToolDef,
   listMediaModelsToolDef,
   imageGenerateToolDef,
   videoGenerateToolDef,
@@ -187,7 +193,11 @@ const TOOL_KEYWORDS: Record<string, { keywords: string[]; group: string }> = {
   'excel-query': { keywords: ['excel', 'spreadsheet', 'xlsx', 'csv', 'sheet', 'cell', 'read'], group: 'office' },
   'excel-mutate': { keywords: ['excel', 'spreadsheet', 'xlsx', 'create', 'write', 'formula'], group: 'office' },
   'word-query': { keywords: ['word', 'docx', 'document', 'read', 'text', 'html', 'markdown'], group: 'office' },
-  'word-mutate': { keywords: ['word', 'docx', 'document', 'create', 'write', 'patch', 'template'], group: 'office' },
+  'word-mutate': { keywords: ['word', 'docx', 'document', 'create', 'write', 'edit', 'xml'], group: 'office' },
+  'pptx-query': { keywords: ['pptx', 'ppt', 'powerpoint', 'slide', 'presentation', 'read'], group: 'office' },
+  'pptx-mutate': { keywords: ['pptx', 'ppt', 'powerpoint', 'slide', 'presentation', 'create', 'edit'], group: 'office' },
+  'pdf-query': { keywords: ['pdf', 'document', 'read', 'text', 'form', 'structure'], group: 'office' },
+  'pdf-mutate': { keywords: ['pdf', 'document', 'create', 'fill', 'merge', 'write', 'form'], group: 'office' },
   'generate-widget': { keywords: ['widget', 'generate', 'create', 'component', 'ui'], group: 'ui' },
   'widget-init': { keywords: ['widget', 'init', 'initialize', 'setup'], group: 'ui' },
   'widget-list': { keywords: ['widget', 'list', 'available', 'browse'], group: 'ui' },

@@ -27,7 +27,6 @@ import type {
   CallApiOptionsParams,
 } from 'promptfoo'
 import { createSubAgent } from '@/ai/services/agentFactory'
-import { getTemplate } from '@/ai/agent-templates'
 import { runChatStream } from '@/ai/services/chat/chatStreamService'
 import { consumeSseResponse, type SseStreamResult } from '../helpers/sseParser'
 import { installHttpProxy } from '@/modules/proxy/httpProxy'
@@ -223,15 +222,6 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     start: number,
     options?: CallApiOptionsParams,
   ): Promise<ProviderResponse> {
-    const template = getTemplate(agentType)
-    if (!template) {
-      return {
-        error: `未找到 agentType="${agentType}" 的模板，可用: master/calendar/email/project/document/shell/coder/widget/browser`,
-        output: '',
-        latencyMs: Date.now() - start,
-      }
-    }
-
     const resolved = await resolveTestModel()
     setMinimalRequestContext()
     setChatModel(resolved.model)
@@ -242,13 +232,8 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     }
 
     const agent = createSubAgent({
-      agentType: 'system',
+      subagentType: agentType,
       model: resolved.model,
-      rawAgentType: agentType,
-      inlineConfig: {
-        systemPrompt: template.systemPrompt,
-        toolIds: [...template.toolIds],
-      },
     })
 
     const agentStream = await agent.stream({
@@ -295,7 +280,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
         toolNames,
         toolCallCount: toolCalls.length,
         agentType,
-        templateId: template.id,
+        subagentType: agentType,
       },
       latencyMs: Date.now() - start,
     }

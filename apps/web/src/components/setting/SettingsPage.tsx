@@ -33,7 +33,10 @@ import {
   Sparkles,
   Wand2Icon,
   Terminal,
+  X,
 } from "lucide-react";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
+import { Button } from "@openloaf/ui/button";
 
 import { BasicSettings } from "./menus/BasicSettings";
 import { AboutOpenLoaf } from "./menus/AboutOpenLoaf";
@@ -225,6 +228,13 @@ export default function SettingsPage({
   const lastCollapsedRef = useRef<boolean | null>(null);
   const { basic } = useBasicConfig();
   const shouldAnimate = basic.uiAnimationLevel !== "low";
+  const setSettingsOpen = useGlobalOverlay((s) => s.setSettingsOpen);
+  const isDialogMode = !tabId;
+
+  const activeLabel = useMemo(
+    () => MENU.find((item) => item.key === activeKey)?.label ?? t('nav:settings'),
+    [MENU, activeKey, t],
+  );
 
   const setTabMinLeftWidth = useTabRuntime((s) => s.setTabMinLeftWidth);
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
@@ -328,53 +338,69 @@ export default function SettingsPage({
   };
 
   return (
-    <OpenLoafSettingsLayout
-      ref={containerRef}
-      isCollapsed={isCollapsed}
-      contentWrapperClassName="min-w-[400px]"
-      contentInnerClassName="p-3 pr-1"
-      menu={
-        <OpenLoafSettingsMenu
-          groups={menuGroups}
-          activeKey={activeKey}
-          isCollapsed={isCollapsed}
-          onChange={(key) => handleMenuChange(key as SettingsMenuKey)}
-          renderItemWrapper={(item, button) => {
-            const tooltipEnabled = isCollapsed && isActiveTab;
-            if (!tooltipEnabled) return button;
-            return (
-              <Tooltip
-                delayDuration={200}
-                open={openTooltipKey === item.key}
-                onOpenChange={(open) => {
-                  if (open) {
-                    setOpenTooltipKey(item.key as SettingsMenuKey);
-                    return;
-                  }
-                  setOpenTooltipKey((prev) =>
-                    prev === item.key ? null : prev,
-                  );
-                }}
-              >
-                <TooltipTrigger asChild>{button}</TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            );
-          }}
-        />
-      }
-      content={
-        <div
-          key={activeKey}
-          className={cn(
-            "h-full min-h-0 flex flex-col",
-            shouldAnimate &&
-              "settings-animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out",
-          )}
-        >
-          <ActiveComponent />
+    <div className="flex h-full min-h-0 flex-col">
+      {isDialogMode && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2.5">
+          <h2 className="text-sm font-medium">{activeLabel}</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full text-muted-foreground"
+            onClick={() => setSettingsOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      }
-    />
+      )}
+      <OpenLoafSettingsLayout
+        ref={containerRef}
+        className="flex-1 min-h-0"
+        isCollapsed={isCollapsed}
+        contentWrapperClassName="min-w-[400px]"
+        contentInnerClassName="p-3 pr-1"
+        menu={
+          <OpenLoafSettingsMenu
+            groups={menuGroups}
+            activeKey={activeKey}
+            isCollapsed={isCollapsed}
+            onChange={(key) => handleMenuChange(key as SettingsMenuKey)}
+            renderItemWrapper={(item, button) => {
+              const tooltipEnabled = isCollapsed && isActiveTab;
+              if (!tooltipEnabled) return button;
+              return (
+                <Tooltip
+                  delayDuration={200}
+                  open={openTooltipKey === item.key}
+                  onOpenChange={(open) => {
+                    if (open) {
+                      setOpenTooltipKey(item.key as SettingsMenuKey);
+                      return;
+                    }
+                    setOpenTooltipKey((prev) =>
+                      prev === item.key ? null : prev,
+                    );
+                  }}
+                >
+                  <TooltipTrigger asChild>{button}</TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              );
+            }}
+          />
+        }
+        content={
+          <div
+            key={activeKey}
+            className={cn(
+              "h-full min-h-0 flex flex-col",
+              shouldAnimate &&
+                "settings-animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out",
+            )}
+          >
+            <ActiveComponent />
+          </div>
+        }
+      />
+    </div>
   );
 }

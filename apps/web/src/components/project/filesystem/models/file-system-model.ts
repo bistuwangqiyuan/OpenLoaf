@@ -1850,51 +1850,38 @@ export function useProjectFileSystemModel({
     event: DragEvent<HTMLElement>
   ) => {
     const primaryEntry = entries[0];
-    if (isElectron && window.openloafElectron?.startDrag) {
-      // 中文注释：Electron 原生拖拽需要阻止 HTML5 dragstart，避免拖拽卡死。
-      event.preventDefault();
-      const dragUris = entries
-        .map((item) => {
-          if (rootUri) {
+    if (isElectron) {
+      // 中文注释：Electron 下不调用 startDrag（它会同步阻塞主进程读取整个文件，大文件会卡死，
+      // 且接管拖拽后 HTML5 drop 事件不会触发）。应用内拖放统一走 HTML5 通道，
+      // use-file-system-drag.ts 已设置 MIME 数据。仅保留 projectFileDragSession 作为回退。
+      const effectiveProjectId = projectId ?? "";
+      if (effectiveProjectId && rootUri) {
+        const sessionFileRefs = entries
+          .map((item) => {
+            const relativePath = getRelativePathFromUri(rootUri, item.uri);
+            if (!relativePath) return "";
+            return formatScopedProjectPath({
+              projectId: effectiveProjectId,
+              relativePath,
+              includeAt: true,
+            });
+          })
+          .filter((item): item is string => Boolean(item));
+        const dragUris = entries
+          .map((item) => {
             const fileUri = resolveFileUriFromRoot(rootUri, item.uri);
             return getDisplayPathFromUri(fileUri);
-          }
-          return getDisplayPathFromUri(item.uri);
-        })
-        .filter((item) => item.length > 0);
-      console.log("[drag-out] renderer startDrag", {
-        isElectron,
-        hasApi: Boolean(window.openloafElectron?.startDrag),
-        dragUris,
-      });
-      if (dragUris.length > 0) {
-        const effectiveProjectId = projectId ?? "";
-        const sessionFileRefs =
-          effectiveProjectId && rootUri
-            ? entries
-                .map((item) => {
-                  const relativePath = getRelativePathFromUri(rootUri, item.uri);
-                  if (!relativePath) return "";
-                  return formatScopedProjectPath({
-                    projectId: effectiveProjectId,
-                    relativePath,
-                    includeAt: true,
-                  });
-                })
-                .filter((item): item is string => Boolean(item))
-            : [];
-        if (effectiveProjectId) {
-          setProjectFileDragSession({
-            id: generateId(),
-            projectId: effectiveProjectId,
-            rootUri,
-            entryUris: entries.map((item) => item.uri),
-            fileRefs: sessionFileRefs,
-            localPaths: dragUris,
-            createdAt: Date.now(),
-          });
-        }
-        window.openloafElectron.startDrag({ uris: dragUris });
+          })
+          .filter((item) => item.length > 0);
+        setProjectFileDragSession({
+          id: generateId(),
+          projectId: effectiveProjectId,
+          rootUri,
+          entryUris: entries.map((item) => item.uri),
+          fileRefs: sessionFileRefs,
+          localPaths: dragUris,
+          createdAt: Date.now(),
+        });
       }
       return;
     }

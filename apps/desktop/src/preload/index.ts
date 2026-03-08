@@ -118,6 +118,9 @@ contextBridge.exposeInMainWorld('openloafElectron', {
     height: number;
   }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
     ipcRenderer.invoke('openloaf:window:set-titlebar-overlay-height', payload),
+  // 使用系统文件管理器打开应用日志目录。
+  openLogsFolder: (): Promise<{ ok: true } | { ok: false; reason?: string }> =>
+    ipcRenderer.invoke('openloaf:open-logs-folder'),
   // 读取 startup.log 内容（崩溃反馈时附带）。
   readStartupLog: (): Promise<{ ok: true; content: string } | { ok: false; reason: string }> =>
     ipcRenderer.invoke('openloaf:startup-log:read'),

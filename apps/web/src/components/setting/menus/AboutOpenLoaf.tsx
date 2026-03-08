@@ -13,7 +13,29 @@ import { Button } from "@openloaf/ui/button";
 import { Switch } from "@openloaf/ui/switch";
 import { useTranslation } from "react-i18next";
 import { getWebClientId } from "@/lib/chat/streamClientId";
-import { ChevronRight, Download, FileText, Loader2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowDownToLine,
+  BookOpen,
+  Bug,
+  ChevronRight,
+  CircleAlert,
+  Code2,
+  Download,
+  FileText,
+  Fingerprint,
+  FlaskConical,
+  FolderOpen,
+  Globe,
+  Loader2,
+  Mail,
+  Monitor,
+  RefreshCw,
+  Scale,
+  ScrollText,
+  Server,
+  Shield,
+} from "lucide-react";
 import * as React from "react";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
@@ -28,7 +50,6 @@ import {
 } from "@openloaf/ui/sheet";
 import { Streamdown } from "streamdown";
 
-const STEP_UP_ROUTE = "/step-up";
 const UPDATE_BASE_URL = process.env.NEXT_PUBLIC_UPDATE_BASE_URL;
 
 /**
@@ -79,6 +100,15 @@ async function fetchChangelogWithLang(baseUrl: string, lang: string): Promise<st
   return null;
 }
 
+/** Flat-color icon badge for settings items. */
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
+}
+
 export function AboutOpenLoaf() {
   const { t } = useTranslation('settings');
   const { basic, setBasic } = useBasicConfig();
@@ -87,14 +117,13 @@ export function AboutOpenLoaf() {
 
   // Build ITEMS with translations
   const ITEMS = React.useMemo(() => [
-    { key: "license", label: t('aboutAdditions.license') },
-    { key: "privacy", label: t('aboutAdditions.privacy') },
-    { key: "oss", label: t('aboutAdditions.oss') },
-    { key: "docs", label: t('aboutAdditions.docs') },
-    { key: "contact", label: t('aboutAdditions.contact') },
-    { key: "issues", label: t('aboutAdditions.issues') },
+    { key: "license", label: t('aboutAdditions.license'), icon: Scale, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
+    { key: "privacy", label: t('aboutAdditions.privacy'), icon: Shield, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400" },
+    { key: "oss", label: t('aboutAdditions.oss'), icon: Code2, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
+    { key: "docs", label: t('aboutAdditions.docs'), icon: BookOpen, bg: "bg-teal-500/10", fg: "text-teal-600 dark:text-teal-400" },
+    { key: "contact", label: t('aboutAdditions.contact'), icon: Mail, bg: "bg-amber-500/10", fg: "text-amber-600 dark:text-amber-400" },
+    { key: "issues", label: t('aboutAdditions.issues'), icon: CircleAlert, bg: "bg-red-500/10", fg: "text-red-600 dark:text-red-400" },
   ], [t]);
-  const [webContentsViewCount, setWebContentsViewCount] = React.useState<number | null>(null);
   const [appVersion, setAppVersion] = React.useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = React.useState<OpenLoafIncrementalUpdateStatus | null>(
     null,
@@ -215,32 +244,6 @@ export function AboutOpenLoaf() {
     ]);
   }, [isElectron, isDevDesktop]);
 
-  /** Fetch WebContentsView count from Electron main process via IPC. */
-  const fetchWebContentsViewCount = React.useCallback(async () => {
-    const api = window.openloafElectron;
-    if (!isElectron || !api?.getWebContentsViewCount) return;
-    try {
-      const res = await api.getWebContentsViewCount();
-      if (res?.ok) setWebContentsViewCount(res.count);
-    } catch {
-      // ignore
-    }
-  }, [isElectron]);
-
-  /** Clear all WebContentsViews via Electron IPC. */
-  const clearWebContentsViews = React.useCallback(async () => {
-    const api = window.openloafElectron;
-    if (!isElectron || !api?.clearWebContentsViews) return;
-    try {
-      const res = await api.clearWebContentsViews();
-      if (res?.ok) setWebContentsViewCount(0);
-      // 清除后再刷新一次，避免计数残留。
-      await fetchWebContentsViewCount();
-    } catch {
-      // ignore
-    }
-  }, [isElectron, fetchWebContentsViewCount]);
-
   /** Open changelog sheet and fetch content. */
   const openChangelog = React.useCallback(async (component: "server" | "web", version: string) => {
     setChangelogSheet({
@@ -268,25 +271,6 @@ export function AboutOpenLoaf() {
       }));
     }
   }, [basic.uiLanguage]);
-
-  React.useEffect(() => {
-    if (!isElectron) return;
-
-    // 设置页打开时拉取一次，并在窗口重新聚焦/重新可见时刷新，避免数值长期陈旧。
-    void fetchWebContentsViewCount();
-
-    const onFocus = () => void fetchWebContentsViewCount();
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") onFocus();
-    };
-
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [isElectron, fetchWebContentsViewCount]);
 
   React.useEffect(() => {
     if (!isElectron) return;
@@ -325,18 +309,6 @@ export function AboutOpenLoaf() {
       window.location.reload();
     }
   }, []);
-
-  /** Re-enter the setup flow by resetting step-up status. */
-  const restartSetup = React.useCallback(async () => {
-    // 流程：先重置初始化标记，再跳转到初始化页面；写入异常时也进入页面，避免卡在当前页。
-    try {
-      await setBasic({ stepUpInitialized: false });
-    } finally {
-      if (typeof window !== "undefined") {
-        window.location.assign(STEP_UP_ROUTE);
-      }
-    }
-  }, [setBasic]);
 
   /**
    * Toggle chat preface viewer button.
@@ -445,35 +417,38 @@ export function AboutOpenLoaf() {
   return (
     <div className="space-y-6">
       <OpenLoafSettingsGroup title={t('aboutAdditions.versionInfo')}>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           {/* Electron 版本 */}
           <div className="px-3 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
-                  {autoUpdateStatus?.state === "downloaded" && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                      <Download className="h-3 w-3" />
-                      {t('aboutAdditions.readyRestart')}
-                    </span>
-                  )}
-                  {autoUpdateStatus?.state === "downloading" && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {t('aboutAdditions.downloading')}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {fmtVersion(currentVersion)}
-                  {autoUpdateStatus?.nextVersion && ` → v${autoUpdateStatus.nextVersion}`}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <SettingIcon icon={Monitor} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
+                    {autoUpdateStatus?.state === "downloaded" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                        <Download className="h-3 w-3" />
+                        {t('aboutAdditions.readyRestart')}
+                      </span>
+                    )}
+                    {autoUpdateStatus?.state === "downloading" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {t('aboutAdditions.downloading')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {fmtVersion(currentVersion)}
+                    {autoUpdateStatus?.nextVersion && ` → v${autoUpdateStatus.nextVersion}`}
+                  </div>
                 </div>
               </div>
               {autoUpdateStatus?.state === "downloaded" && (
                 <Button
-                  variant="outline"
                   size="sm"
+                  className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
                   onClick={() => void window.openloafElectron?.relaunchApp?.()}
                 >
                   {t('aboutAdditions.installNow')}
@@ -500,25 +475,27 @@ export function AboutOpenLoaf() {
 
           {/* Server 版本 */}
           <div className="flex items-center justify-between px-3 py-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">{t('aboutAdditions.server')}</div>
-                {serverHasUpdate && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                    <Download className="h-3 w-3" />
-                    {t('aboutAdditions.hasUpdate')}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {fmtVersion(serverVersion)}
-                {serverHasUpdate && ` → v${updateStatus?.server?.newVersion}`}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <SettingIcon icon={Server} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">{t('aboutAdditions.server')}</div>
+                  {serverHasUpdate && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                      <Download className="h-3 w-3" />
+                      {t('aboutAdditions.hasUpdate')}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {fmtVersion(serverVersion)}
+                  {serverHasUpdate && ` → v${updateStatus?.server?.newVersion}`}
+                </div>
               </div>
             </div>
             <Button
-              variant="ghost"
               size="sm"
-              className="h-8 gap-1.5"
+              variant="ghost" className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
               onClick={() => void openChangelog("server", serverVersion)}
             >
               <FileText className="h-3.5 w-3.5" />
@@ -528,78 +505,135 @@ export function AboutOpenLoaf() {
 
           {/* Web 版本 */}
           <div className="flex items-center justify-between px-3 py-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">Web</div>
-                {webHasUpdate && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                    <Download className="h-3 w-3" />
-                    {t('aboutAdditions.hasUpdate')}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {fmtVersion(webVersion)}
-                {webHasUpdate && ` → v${updateStatus?.web?.newVersion}`}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <SettingIcon icon={Globe} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">Web</div>
+                  {webHasUpdate && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                      <Download className="h-3 w-3" />
+                      {t('aboutAdditions.hasUpdate')}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {fmtVersion(webVersion)}
+                  {webHasUpdate && ` → v${updateStatus?.web?.newVersion}`}
+                </div>
               </div>
             </div>
             <Button
-              variant="ghost"
               size="sm"
-              className="h-8 gap-1.5"
+              variant="ghost" className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
               onClick={() => void openChangelog("web", webVersion)}
             >
               <FileText className="h-3.5 w-3.5" />
               {t('aboutAdditions.changelog')}
             </Button>
           </div>
-        </div>
-      </OpenLoafSettingsGroup>
-
-      {/* 更新检查 */}
-      {isElectron && (
-        <OpenLoafSettingsGroup title={t('aboutAdditions.updateCheck')}>
-          <div className="px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium mb-1">{t('aboutAdditions.incrementalUpdate')}</div>
+          {/* 增量更新 */}
+          {isElectron && (
+            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+              <SettingIcon icon={ArrowDownToLine} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{t('aboutAdditions.incrementalUpdate')}</div>
                 <div className="text-xs text-muted-foreground">
                   {isDesktopUpdating
                     ? t('aboutAdditions.desktopUpdatingSkipIncremental', { defaultValue: 'Desktop 正在更新，增量更新已暂停' })
                     : updateLabel}
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={updateActionDisabled}
-                onClick={() => void triggerUpdateAction()}
-              >
-                {updateActionLabel}
-              </Button>
+              <OpenLoafSettingsField>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
+                  disabled={updateActionDisabled}
+                  onClick={() => void triggerUpdateAction()}
+                >
+                  {updateActionLabel}
+                </Button>
+              </OpenLoafSettingsField>
             </div>
-          </div>
-          <div className="border-t border-border px-3 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
+          )}
+
+          {/* Beta 渠道 */}
+          {isElectron && (
+            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+              <SettingIcon icon={FlaskConical} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
+              <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{t('aboutAdditions.betaChannel')}</div>
                 <div className="text-xs text-muted-foreground">
                   {t('aboutAdditions.betaChannelDesc')}
                 </div>
               </div>
-              <Switch
-                checked={updateChannel === "beta"}
-                disabled={channelSwitching || isDevDesktop}
-                onCheckedChange={(checked) => void handleChannelSwitch(checked)}
-              />
+              <OpenLoafSettingsField className="shrink-0 justify-end">
+                <Switch
+                  checked={updateChannel === "beta"}
+                  disabled={channelSwitching || isDevDesktop}
+                  onCheckedChange={(checked) => void handleChannelSwitch(checked)}
+                />
+              </OpenLoafSettingsField>
             </div>
-          </div>
-        </OpenLoafSettingsGroup>
-      )}
+          )}
+        </div>
+      </OpenLoafSettingsGroup>
 
-      <OpenLoafSettingsGroup title={t('aboutAdditions.status')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+      <OpenLoafSettingsGroup title={t('aboutAdditions.actions')}>
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <SettingIcon icon={RefreshCw} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium">{t('aboutAdditions.pageReload')}</div>
+              <div className="text-xs text-muted-foreground">{t('aboutAdditions.reloadDesc')}</div>
+            </div>
+            <OpenLoafSettingsField>
+              <Button type="button" size="sm" className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none" onClick={reloadPage}>
+                {t('aboutAdditions.reload')}
+              </Button>
+            </OpenLoafSettingsField>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <SettingIcon icon={Bug} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium">{t('aboutAdditions.aiDebugMode')}</div>
+              <div className="text-xs text-muted-foreground">{t('aboutAdditions.aiDebugModeDesc')}</div>
+            </div>
+            <OpenLoafSettingsField className="shrink-0 justify-end">
+              <Switch
+                checked={Boolean(basic.chatPrefaceEnabled)}
+                onCheckedChange={handleToggleChatPreface}
+                aria-label={t('aboutAdditions.aiDebugMode')}
+              />
+            </OpenLoafSettingsField>
+          </div>
+          {isElectron ? (
+            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+              <SettingIcon icon={ScrollText} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{t('aboutAdditions.openLogsFolder')}</div>
+                <div className="text-xs text-muted-foreground">{t('aboutAdditions.openLogsFolderDesc')}</div>
+              </div>
+              <OpenLoafSettingsField>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
+                  onClick={() => void window.openloafElectron?.openLogsFolder?.()}
+                >
+                  <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                  {t('aboutAdditions.open')}
+                </Button>
+              </OpenLoafSettingsField>
+            </div>
+          ) : null}
+        </div>
+      </OpenLoafSettingsGroup>
+
+      <OpenLoafSettingsGroup title={t('aboutAdditions.info')}>
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <SettingIcon icon={Fingerprint} bg="bg-slate-500/10" fg="text-slate-600 dark:text-slate-400" />
             <div className="text-sm font-medium">{t('aboutAdditions.clientId')}</div>
             <OpenLoafSettingsField className="max-w-[70%]">
               <button
@@ -622,80 +656,6 @@ export function AboutOpenLoaf() {
               </button>
             </OpenLoafSettingsField>
           </div>
-          {isElectron ? (
-            <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-              <div className="text-sm font-medium">{t('aboutAdditions.webContentsViewCount')}</div>
-              <OpenLoafSettingsField className="max-w-[70%] gap-2">
-                <button
-                  type="button"
-                  aria-label={t('aboutAdditions.clickRefresh')}
-                  title={t('aboutAdditions.clickRefresh')}
-                  className={[
-                    "text-right",
-                    "bg-transparent p-0",
-                    "text-xs truncate",
-                    "text-muted-foreground hover:text-foreground hover:underline cursor-pointer",
-                  ].join(" ")}
-                  onClick={() => void fetchWebContentsViewCount()}
-                >
-                  {webContentsViewCount == null ? "—" : String(webContentsViewCount)}
-                </button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  aria-label={t('aboutAdditions.clearWebContents')}
-                  disabled={webContentsViewCount == null || webContentsViewCount === 0}
-                  onClick={() => void clearWebContentsViews()}
-                >
-                  {t('aboutAdditions.clearWebContents')}
-                </Button>
-              </OpenLoafSettingsField>
-            </div>
-          ) : null}
-        </div>
-      </OpenLoafSettingsGroup>
-
-      <OpenLoafSettingsGroup title={t('aboutAdditions.actions')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium">{t('aboutAdditions.pageReload')}</div>
-              <div className="text-xs text-muted-foreground">{t('aboutAdditions.reloadDesc')}</div>
-            </div>
-            <OpenLoafSettingsField>
-              <Button type="button" variant="outline" size="sm" onClick={reloadPage}>
-                {t('aboutAdditions.reload')}
-              </Button>
-            </OpenLoafSettingsField>
-          </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-            <div className="text-sm font-medium">{t('aboutAdditions.restartSetup')}</div>
-            <OpenLoafSettingsField>
-              <Button type="button" variant="outline" size="sm" onClick={() => void restartSetup()}>
-                {t('aboutAdditions.enter')}
-              </Button>
-            </OpenLoafSettingsField>
-          </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium">{t('aboutAdditions.aiDebugMode')}</div>
-              <div className="text-xs text-muted-foreground">{t('aboutAdditions.aiDebugModeDesc')}</div>
-            </div>
-            <OpenLoafSettingsField className="w-full sm:w-64 shrink-0 justify-end">
-              <Switch
-                checked={Boolean(basic.chatPrefaceEnabled)}
-                onCheckedChange={handleToggleChatPreface}
-                aria-label={t('aboutAdditions.aiDebugMode')}
-              />
-            </OpenLoafSettingsField>
-          </div>
-        </div>
-      </OpenLoafSettingsGroup>
-
-      <OpenLoafSettingsGroup title={t('aboutAdditions.info')}>
-        <div className="divide-y divide-border">
           {ITEMS.map((item) => (
             <Button
               key={item.key}
@@ -703,7 +663,10 @@ export function AboutOpenLoaf() {
               variant="ghost"
               className="w-full justify-between px-3 py-3 h-auto rounded-none"
             >
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="flex items-center gap-2">
+                <SettingIcon icon={item.icon} bg={item.bg} fg={item.fg} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Button>
           ))}

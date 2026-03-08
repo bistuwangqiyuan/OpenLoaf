@@ -560,6 +560,18 @@ export function registerIpcHandlers(args: { log: Logger }) {
     return { ok: true as const, count: getWebContentsViewCount(win) };
   });
 
+  // 使用系统文件管理器打开应用日志目录（userData）。
+  ipcMain.handle('openloaf:open-logs-folder', async () => {
+    try {
+      const logsDir = app.getPath('userData');
+      const result = await shell.openPath(logsDir);
+      if (result) return { ok: false as const, reason: result };
+      return { ok: true as const };
+    } catch (error) {
+      return { ok: false as const, reason: String(error) };
+    }
+  });
+
   // 读取 startup.log 内容（最后 5000 字符），供崩溃反馈时附带。
   ipcMain.handle('openloaf:startup-log:read', async () => {
     try {

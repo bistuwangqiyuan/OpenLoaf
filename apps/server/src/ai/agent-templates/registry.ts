@@ -8,36 +8,16 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 /**
- * Agent 模版注册表 — 统一管理所有模版的查询与过滤。
+ * Agent 模版注册表 — 仅保留 master 模版。
+ * 子 agent 已改为行为驱动类型（general-purpose / explore / plan），不再使用模版。
  */
 
 import type { AgentTemplate, AgentTemplateId } from './types'
 import { masterTemplate } from './templates/master'
-import { documentTemplate } from './templates/document'
-import { browserTemplate } from './templates/browser'
-import { shellTemplate } from './templates/shell'
-import { emailTemplate } from './templates/email'
-import { calendarTemplate } from './templates/calendar'
-import { widgetTemplate } from './templates/widget'
-import { projectTemplate } from './templates/project'
-import { visionTemplate } from './templates/vision'
-import { coderTemplate } from './templates/coder'
-// TODO: WPS Agent 暂时屏蔽，待 WPS 插件联调完成后恢复
-// import { wpsAgentTemplate } from './templates/wps-agent'
 
-/** 所有 Agent 模版。 */
+/** 所有 Agent 模版（仅 master）。 */
 export const ALL_TEMPLATES: readonly AgentTemplate[] = [
   masterTemplate,
-  documentTemplate,
-  shellTemplate,
-  browserTemplate,
-  emailTemplate,
-  calendarTemplate,
-  widgetTemplate,
-  projectTemplate,
-  visionTemplate,
-  coderTemplate,
-  // wpsAgentTemplate,
 ] as const
 
 /** 模版 ID → AgentTemplate 映射。 */
@@ -57,11 +37,10 @@ export function isTemplateId(id: string): id is AgentTemplateId {
 
 /** 获取主 Agent 模版。 */
 export function getPrimaryTemplate(): AgentTemplate {
-  const primary = ALL_TEMPLATES.find((t) => t.isPrimary)
-  return primary!
+  return masterTemplate
 }
 
-/** 获取可脚手架化的模版（排除 builtinOnly）。 */
+/** 获取可脚手架化的模版（仅 master）。 */
 export function getScaffoldableTemplates(): readonly AgentTemplate[] {
   return ALL_TEMPLATES.filter((t) => !t.isBuiltinOnly)
 }

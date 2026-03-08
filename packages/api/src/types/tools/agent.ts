@@ -13,38 +13,37 @@ export const spawnAgentToolDef = {
   id: 'spawn-agent',
   name: '启动子代理',
   description:
-    '触发：当你需要启动一个子代理来执行独立任务时调用。用途：创建子代理并立即返回 agentId。返回：{agent_id: string}。不适用：简单任务不需要子代理。常见错误：1) 不要用子代理执行 1-2 个工具调用就能完成的简单任务。2) 不要同时 spawn 超过 3 个相互依赖的子代理。3) 不要在子代理中再嵌套 spawn 子代理（最大深度为 2）。',
+    '启动一个新的子代理来处理复杂的多步骤任务。\n'
+    + '\n'
+    + '子代理在独立的 LLM 会话中运行，保护主对话的上下文窗口不被大量中间结果淹没。\n'
+    + '\n'
+    + '可用子代理类型：\n'
+    + '- general-purpose: 通用子代理（默认值，不传 subagent_type 时使用）。用于执行复杂多步骤任务，包括文件操作、Shell 命令、Web 浏览、代码开发等。拥有完整工具发现能力（tool-search）。当你需要搜索代码或执行多步操作且不确定能在几次尝试内完成时，使用此类型。（工具：全部）\n'
+    + '- explore: 代码库探索专用（只读）。用于快速按模式查找文件、搜索关键词或回答关于代码库的问题。（工具：read-file, list-dir, grep-files, project-query）\n'
+    + '- plan: 架构方案设计专用（只读）。用于设计实现策略、识别关键文件、评估架构权衡。（工具：read-file, list-dir, grep-files, project-query）\n'
+    + '\n'
+    + '你也可以传入项目中定义的自定义 Agent 名称作为 subagent_type。\n'
+    + '\n'
+    + '使用注意：\n'
+    + '- 尽可能并行启动多个独立的子代理以提高效率；要做到这一点，在一次回复中同时调用多个 spawn-agent\n'
+    + '- 启动后调用 wait-agent 等待结果\n'
+    + '- 简单任务不需要子代理 — 1-2 个工具调用能完成的事情直接做\n'
+    + '- 子代理不能再创建子代理（嵌套深度上限为 1），最大并发为 4\n'
+    + '- 不要启动和自己同类型的子代理\n'
+    + '- 返回：{agent_id: string}',
   parameters: z.object({
-    items: z
-      .array(
-        z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('text'),
-            text: z.string().min(1),
-          }),
-          z.object({
-            type: z.literal('file'),
-            path: z.string().min(1),
-          }),
-        ]),
-      )
+    description: z
+      .string()
       .min(1)
-      .describe('子代理输入，支持文本和文件引用。纯文本场景用 [{type:"text",text:"..."}]。'),
-    agentType: z
+      .describe('简短描述（3-5 个词），概括子代理将做什么。'),
+    prompt: z
+      .string()
+      .min(1)
+      .describe('子代理要执行的任务描述。提供清晰、详细的提示以便子代理能自主工作并返回你所需的信息。'),
+    subagent_type: z
       .string()
       .optional()
-      .describe('子代理类型：系统 Agent 名称（master/document/shell/browser/email/calendar/widget/project）或自定义 Agent 名称。'),
-    modelOverride: z
-      .string()
-      .optional()
-      .describe('模型覆盖，格式为 "provider:modelId"（如 "openai:gpt-4o"）。留空则使用 Agent 自身配置或 Auto。'),
-    config: z
-      .object({
-        systemPrompt: z.string().optional().describe('自定义系统提示词。'),
-        toolIds: z.array(z.string()).optional().describe('工具 ID 列表。'),
-      })
-      .optional()
-      .describe('内联 agent 配置，用于创建动态自定义 agent。与 agentType 互斥。'),
+      .describe('子代理类型。不指定时默认为 general-purpose。'),
   }),
   component: null,
 } as const

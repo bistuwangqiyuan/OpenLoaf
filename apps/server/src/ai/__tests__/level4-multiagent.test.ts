@@ -51,11 +51,8 @@ async function runAgentTest(input: {
     setAbortSignal(ac.signal)
 
     const agent = createSubAgent({
-      agentType: 'system',
+      subagentType: 'general-purpose',
       model: input.model,
-      inlineConfig: {
-        toolIds: [...input.toolIds],
-      },
     })
 
     const agentStream = await agent.stream({

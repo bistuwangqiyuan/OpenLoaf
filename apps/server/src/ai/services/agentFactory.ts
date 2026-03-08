@@ -8,7 +8,13 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 /**
- * 统一 Agent 工厂 — 合并 masterAgent + subAgentFactory + 内置 SubAgent 创建逻辑。
+ * 统一 Agent 工厂 — Master Agent + 行为驱动子 Agent。
+ *
+ * 子 Agent 类型：
+ * - general-purpose: 通用（tool-search + 全量工具）
+ * - explore: 只读代码库探索（固定工具集）
+ * - plan: 只读架构方案设计（固定工具集）
+ * - dynamic: 从文件系统 AGENT.md 加载
  */
 
 import {
@@ -27,20 +33,8 @@ import { createToolCallRepair } from '@/ai/shared/repairToolCall'
 import { ActivatedToolSet } from '@/ai/tools/toolSearchState'
 import { createToolSearchTool } from '@/ai/tools/toolSearchTool'
 import {
-  getTemplate,
-  isTemplateId,
   getPrimaryTemplate,
-  ALL_TEMPLATES,
-  getBrowserPrompt,
-  getCalendarPrompt,
-  getCoderPrompt,
-  getDocumentPrompt,
-  getEmailPrompt,
   getMasterPrompt,
-  getProjectPrompt,
-  getShellPrompt,
-  getVisionPrompt,
-  getWidgetPrompt,
 } from '@/ai/agent-templates'
 import type { AgentTemplate } from '@/ai/agent-templates'
 import { logger } from '@/common/logger'
@@ -49,19 +43,21 @@ import {
   type AgentConfig,
 } from '@/ai/services/agentConfigService'
 import { resolveAgentByName } from '@/ai/tools/AgentSelector'
-import { existsSync, readFileSync } from 'node:fs'
-import path from 'node:path'
-import { getWorkspaceRootPath } from '@openloaf/api'
-import { resolveAgentDir } from '@/ai/shared/defaultAgentResolver'
 import { buildHardRules } from '@/ai/shared/hardRules'
 
 // ---------------------------------------------------------------------------
-// 模版工具 ID 解析
+// 子 Agent 行为类型
 // ---------------------------------------------------------------------------
 
-/** 从模版获取工具 ID 列表。 */
-function resolveTemplateToolIds(template: AgentTemplate): readonly string[] {
-  return template.toolIds
+/** 内置子 Agent 类型 ID。 */
+export type BuiltinSubAgentType = 'general-purpose' | 'explore' | 'plan'
+
+/** explore / plan 共用的只读工具集。 */
+const READ_ONLY_TOOL_IDS = ['read-file', 'list-dir', 'grep-files', 'project-query'] as const
+
+/** 判断是否为内置子 Agent 类型。 */
+export function isBuiltinSubAgentType(type: string): type is BuiltinSubAgentType {
+  return type === 'general-purpose' || type === 'explore' || type === 'plan'
 }
 
 // ---------------------------------------------------------------------------
@@ -78,27 +74,9 @@ export type MasterAgentModelInfo = {
   modelId: string
 }
 
-/** Get template prompt in specified language. */
-function getTemplatePrompt(templateId: string, lang?: string): string {
-  const promptGetters: Record<string, (lang?: string) => string> = {
-    browser: getBrowserPrompt,
-    calendar: getCalendarPrompt,
-    coder: getCoderPrompt,
-    document: getDocumentPrompt,
-    email: getEmailPrompt,
-    master: getMasterPrompt,
-    project: getProjectPrompt,
-    shell: getShellPrompt,
-    vision: getVisionPrompt,
-    widget: getWidgetPrompt,
-  }
-  const getter = promptGetters[templateId]
-  return getter ? getter(lang) : getPrimaryTemplate().systemPrompt
-}
-
 /** Read base system prompt markdown content. */
 export function readMasterAgentBasePrompt(lang?: string): string {
-  return getTemplatePrompt('master', lang)
+  return getMasterPrompt(lang)
 }
 
 type CreateMasterAgentInput = {
@@ -121,7 +99,6 @@ const CORE_TOOL_IDS = ['tool-search'] as const
 
 /**
  * Creates a prepareStep that only exposes tool-search + dynamically activated tools.
- * Replaces the old TOOL_GROUPS push-based narrowing logic.
  */
 function createToolSearchPrepareStep(
   allToolIds: readonly string[],
@@ -166,11 +143,15 @@ export function buildToolSearchGuidance(): string {
 - 打开链接/URL → select:open-url
 - 渲染组件/诗歌/UI 展示 → select:jsx-create
 - 画图表/折线图/柱状图 → select:chart-render
-- 代码开发（"帮我开发"、"Claude Code"）→ select:spawn-agent（coder 子代理）
+- Word/docx 文档（读取、创建、编辑）→ select:word-query,word-mutate
+- Excel/xlsx 电子表格（读取、创建、编辑）→ select:excel-query,excel-mutate
+- PPT/pptx 演示文稿（读取、创建、编辑）→ select:pptx-query,pptx-mutate
+- PDF 文档（读取文本、查看结构、表单、创建、合并、填表）→ select:pdf-query,pdf-mutate
 
 重要：简单对话直接回答，不需要加载任何工具。
 </tool-search-guidance>`
 }
+
 
 // ---------------------------------------------------------------------------
 // 动态步数预算 — 自适应 StopCondition (Anthropic Best Practice)
@@ -270,137 +251,118 @@ export function createMasterAgentFrame(input: {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-Agent
+// Sub-Agent Creation
 // ---------------------------------------------------------------------------
 
-export type SubAgentType =
-  | 'system'
-  | 'default'
-  | 'dynamic'
-
-/** Legacy aliases for backward compatibility. */
-const LEGACY_ALIASES: Record<string, string> = {
-  default: 'master',
-  browser: 'browser',
-  browsersubagent: 'browser',
-  'document-analysis': 'document',
-  documentanalysissubagent: 'document',
-}
-
-/** 显示名称 → 模版 ID 映射（支持中文名称解析，如 "终端助手" → "shell"）。 */
-const NAME_TO_ID = new Map<string, string>(
-  ALL_TEMPLATES
-    .filter((t) => !t.isPrimary)
-    .map((t) => [t.name.toLowerCase().trim(), t.id]),
-)
-
-/** Resolve raw agentType string to a known SubAgentType. */
-export function resolveAgentType(raw?: string): SubAgentType {
-  if (!raw) return 'default'
-  const lower = raw.toLowerCase().trim()
-
-  const mapped = LEGACY_ALIASES[lower] ?? lower
-  if (isTemplateId(mapped)) return 'system'
-
-  // 按显示名称反查模版 ID（支持中文名称）
-  const byName = NAME_TO_ID.get(lower)
-  if (byName && isTemplateId(byName)) return 'system'
-
-  return 'dynamic'
-}
-
-/** Resolve the effective agent name after legacy alias mapping. */
-export function resolveEffectiveAgentName(raw?: string): string {
-  if (!raw) return 'master'
-  const lower = raw.toLowerCase().trim()
-  const aliased = LEGACY_ALIASES[lower]
-  if (aliased) return aliased
-
-  // 按显示名称反查模版 ID（支持中文名称）
-  const byName = NAME_TO_ID.get(lower)
-  if (byName) return byName
-
-  return lower
-}
-
 export type CreateSubAgentInput = {
-  agentType: SubAgentType
+  /** 子 Agent 类型字符串（general-purpose / explore / plan / 自定义名称）。 */
+  subagentType?: string
   model: LanguageModelV3
-  rawAgentType?: string
-  modelOverride?: string
   skillRoots?: {
     projectRoot?: string
     parentRoots?: string[]
     workspaceRoot?: string
   }
-  inlineConfig?: {
-    systemPrompt?: string
-    toolIds?: string[]
-  }
 }
 
-/** Create a ToolLoopAgent instance by agentType. */
+/** Create a ToolLoopAgent instance by subagent_type. */
 export function createSubAgent(input: CreateSubAgentInput): ToolLoopAgent {
   const wrappedModel = wrapModelWithExamples(input.model)
+  const effectiveType = (input.subagentType || 'general-purpose').toLowerCase().trim()
 
-  // 逻辑：内联配置 — 直接创建自定义 agent，优先级最高。
-  if (input.inlineConfig?.systemPrompt || input.inlineConfig?.toolIds?.length) {
-    const fallbackTemplate = getPrimaryTemplate()
-    const toolIds = input.inlineConfig.toolIds?.length
-      ? input.inlineConfig.toolIds
-      : resolveTemplateToolIds(fallbackTemplate)
-    const systemPrompt = input.inlineConfig.systemPrompt || '你是一个 AI 助手。'
-    return new ToolLoopAgent({
-      id: `inline-agent-${Date.now()}`,
-      model: wrappedModel,
-      instructions: systemPrompt,
-      tools: buildToolset(toolIds),
-      stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
-      experimental_repairToolCall: createToolCallRepair(),
-    })
+  // 内置类型
+  if (effectiveType === 'general-purpose') {
+    return createGeneralPurposeSubAgent(wrappedModel)
+  }
+  if (effectiveType === 'explore') {
+    return createExploreSubAgent(wrappedModel)
+  }
+  if (effectiveType === 'plan') {
+    return createPlanSubAgent(wrappedModel)
   }
 
-  const effectiveName = resolveEffectiveAgentName(input.rawAgentType)
+  // 动态 Agent — 从文件系统查找 AGENT.md
+  const dynamicAgent = tryCreateDynamicAgent(effectiveType, input.skillRoots, wrappedModel)
+  if (dynamicAgent) return dynamicAgent
 
-  // 逻辑：系统 Agent — 从模版查找定义，支持用户 AGENT.md 覆盖。
-  if (input.agentType === 'system') {
-    const template = getTemplate(effectiveName)
-    if (template) {
-      const toolIds = resolveTemplateToolIds(template)
-      const userOverride = readSystemAgentOverride(effectiveName, input.skillRoots)
-      const instructions = userOverride
-        || template.systemPrompt
-        || `你是 ${template.name}。${template.description}`
-      return new ToolLoopAgent({
-        id: `system-agent-${template.id}`,
-        model: wrappedModel,
-        instructions,
-        tools: buildToolset(toolIds),
-        stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
-        experimental_repairToolCall: createToolCallRepair(),
-      })
-    }
-  }
-
-  // 逻辑：动态 Agent — 从文件系统查找 AGENT.md 配置。
-  if (input.rawAgentType) {
-    const dynamicAgent = tryCreateDynamicAgent(input)
-    if (dynamicAgent) return dynamicAgent
-  }
-
-  // 逻辑：fallback 到 master 模版。
+  // Fallback → general-purpose
   logger.warn(
-    { rawAgentType: input.rawAgentType, agentType: input.agentType },
-    '[agent-factory] No matching template or dynamic agent found, falling back to master template',
+    { subagentType: input.subagentType },
+    '[agent-factory] No matching agent type found, falling back to general-purpose',
   )
+  return createGeneralPurposeSubAgent(wrappedModel)
+}
+
+/** Create a general-purpose sub-agent with tool-search + full deferred toolset (excluding agent collaboration tools). */
+function createGeneralPurposeSubAgent(model: LanguageModelV3): ToolLoopAgent {
   const masterTpl = getPrimaryTemplate()
-  const toolIds = resolveTemplateToolIds(masterTpl)
+  const coreToolIds = ['tool-search'] as string[]
+  const deferredToolIds = (masterTpl.deferredToolIds ?? [])
+    .filter((id) => !AGENT_TOOL_IDS_TO_EXCLUDE.has(id))
+  const allToolIds = [...new Set([...coreToolIds, ...deferredToolIds])]
+
+  const tools = buildToolset(allToolIds)
+  const activatedSet = new ActivatedToolSet(coreToolIds)
+  tools['tool-search'] = createToolSearchTool(activatedSet, new Set(allToolIds))
+
+  // 使用与主 Agent 相同的完整 instructions
+  const basePrompt = masterTpl.systemPrompt
+  const finalInstructions = `${basePrompt}\n\n${buildHardRules()}\n\n${buildToolSearchGuidance()}`
+
   return new ToolLoopAgent({
-    id: 'fallback-master-agent',
-    model: wrappedModel,
-    instructions:
-      masterTpl.systemPrompt || `你是 ${masterTpl.name}。${masterTpl.description}`,
-    tools: buildToolset(toolIds),
+    id: `sub-agent-general-${Date.now()}`,
+    model,
+    instructions: finalInstructions,
+    tools,
+    stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
+    experimental_repairToolCall: createToolCallRepair(),
+    prepareStep: createToolSearchPrepareStep(allToolIds, activatedSet),
+  })
+}
+
+/** Create an explore sub-agent (read-only, fixed tools). */
+function createExploreSubAgent(model: LanguageModelV3): ToolLoopAgent {
+  const instructions = [
+    '你是一个代码库探索专用子代理。你的任务是快速搜索和分析代码库。',
+    '',
+    '你可以使用以下工具：',
+    '- read-file: 读取文件内容',
+    '- list-dir: 列出目录内容',
+    '- grep-files: 搜索文件内容',
+    '- project-query: 查询项目数据',
+    '',
+    '注意：你是只读的，不能修改任何文件。专注于搜索、分析和回答问题。',
+  ].join('\n')
+
+  return new ToolLoopAgent({
+    id: `sub-agent-explore-${Date.now()}`,
+    model,
+    instructions,
+    tools: buildToolset([...READ_ONLY_TOOL_IDS]),
+    stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
+    experimental_repairToolCall: createToolCallRepair(),
+  })
+}
+
+/** Create a plan sub-agent (read-only, fixed tools, architecture focus). */
+function createPlanSubAgent(model: LanguageModelV3): ToolLoopAgent {
+  const instructions = [
+    '你是一个架构方案设计专用子代理。你的任务是分析代码库并设计实现方案。',
+    '',
+    '你可以使用以下工具：',
+    '- read-file: 读取文件内容',
+    '- list-dir: 列出目录内容',
+    '- grep-files: 搜索文件内容',
+    '- project-query: 查询项目数据',
+    '',
+    '注意：你是只读的，不能修改任何文件。专注于分析架构、识别关键文件、评估权衡，输出分步实现计划。',
+  ].join('\n')
+
+  return new ToolLoopAgent({
+    id: `sub-agent-plan-${Date.now()}`,
+    model,
+    instructions,
+    tools: buildToolset([...READ_ONLY_TOOL_IDS]),
     stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
     experimental_repairToolCall: createToolCallRepair(),
   })
@@ -408,18 +370,17 @@ export function createSubAgent(input: CreateSubAgentInput): ToolLoopAgent {
 
 /** Try to create a dynamic agent from AGENT.md. */
 function tryCreateDynamicAgent(
-  input: CreateSubAgentInput,
+  agentName: string,
+  skillRoots: CreateSubAgentInput['skillRoots'],
+  model: LanguageModelV3,
 ): ToolLoopAgent | null {
-  if (!input.rawAgentType) return null
-
-  const match = resolveAgentByName(
-    input.rawAgentType,
-    input.skillRoots ?? {},
-  )
+  const match = resolveAgentByName(agentName, skillRoots ?? {})
   if (!match) return null
-
-  return createDynamicAgentFromConfig(match.config, input.model)
+  return createDynamicAgentFromConfig(match.config, model)
 }
+
+/** Agent 协作工具 ID（general-purpose 子 agent 不可用）。 */
+const AGENT_TOOL_IDS_TO_EXCLUDE = new Set(['spawn-agent', 'send-input', 'wait-agent', 'abort-agent'])
 
 /** Agent collaboration tool IDs that are auto-injected when allowSubAgents is true. */
 const AGENT_COLLAB_TOOL_IDS = ['spawn-agent', 'send-input', 'wait-agent', 'abort-agent']
@@ -432,29 +393,6 @@ function ensureAgentToolIds(toolIds: readonly string[], allowSubAgents?: boolean
     if (!effectiveToolIds.includes(id)) effectiveToolIds.push(id)
   }
   return effectiveToolIds
-}
-
-/** Read user-override AGENT.md for a system agent template. */
-function readSystemAgentOverride(
-  templateId: string,
-  skillRoots?: CreateSubAgentInput['skillRoots'],
-): string | null {
-  const roots = [
-    skillRoots?.projectRoot,
-    skillRoots?.workspaceRoot,
-    getWorkspaceRootPath(),
-  ].filter(Boolean) as string[]
-
-  for (const root of roots) {
-    const agentMdPath = path.join(resolveAgentDir(root, templateId), 'prompt.md')
-    if (existsSync(agentMdPath)) {
-      try {
-        const content = readFileSync(agentMdPath, 'utf8').trim()
-        if (content) return content
-      } catch { /* ignore */ }
-    }
-  }
-  return null
 }
 
 /** Create a ToolLoopAgent from an AgentConfig. */
@@ -474,4 +412,10 @@ export function createDynamicAgentFromConfig(
     stopWhen: stepCountIs(SUB_AGENT_MAX_STEPS),
     experimental_repairToolCall: createToolCallRepair(),
   })
+}
+
+/** Resolve the effective sub-agent type for display/logging. */
+export function resolveEffectiveAgentName(raw?: string): string {
+  if (!raw) return 'general-purpose'
+  return raw.toLowerCase().trim()
 }

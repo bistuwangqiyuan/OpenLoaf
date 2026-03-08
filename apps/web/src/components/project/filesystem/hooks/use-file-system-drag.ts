@@ -209,10 +209,7 @@ function useFileSystemDrag({
         isElectron,
         hasApi: Boolean(window.openloafElectron?.startDrag),
       });
-      if (isElectron) {
-        onEntryDragStartRef.current?.(normalizedEntries, event);
-        return;
-      }
+      // 统一设置 HTML5 拖拽 MIME 数据，确保应用内拖放（含 Electron）均可触发 drop 事件。
       const dragUri = dragUris[0];
       setImageDragPayload(event.dataTransfer, {
         baseUri: dragUri,

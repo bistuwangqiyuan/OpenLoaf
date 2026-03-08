@@ -447,16 +447,16 @@ function buildContextReminderBlocks(input: {
     sections.push(buildProjectRulesSection(context));
   }
 
-  // 可用子 Agent 列表
-  sections.push(
-    buildSubAgentListSection(
-      collectAvailableAgents({
-        workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE ? context.workspace.rootPath : undefined,
-        projectRootPath: context.project.rootPath !== UNKNOWN_VALUE ? context.project.rootPath : undefined,
-        parentProjectRootPaths,
-      }),
-    ),
-  );
+  // TODO: 可用子 Agent 列表 — 暂时禁用，待后续重新整理后恢复
+  // sections.push(
+  //   buildSubAgentListSection(
+  //     collectAvailableAgents({
+  //       workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE ? context.workspace.rootPath : undefined,
+  //       projectRootPath: context.project.rootPath !== UNKNOWN_VALUE ? context.project.rootPath : undefined,
+  //       parentProjectRootPaths,
+  //     }),
+  //   ),
+  // );
 
   // 执行规则
   sections.push(buildExecutionRulesSection());

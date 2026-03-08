@@ -113,6 +113,8 @@ const SAAS_PROVIDER_FACTORIES: Record<
 > = {
   anthropic: ({ baseURL, apiKey, fetch }) => createAnthropic({ baseURL, apiKey, fetch }),
   moonshot: ({ baseURL, apiKey, fetch }) => createMoonshotAI({ baseURL, apiKey, fetch }),
+  moonshotai: ({ baseURL, apiKey, fetch }) => createMoonshotAI({ baseURL, apiKey, fetch }),
+  "moonshotai-cn": ({ baseURL, apiKey, fetch }) => createMoonshotAI({ baseURL, apiKey, fetch }),
   deepseek: ({ baseURL, apiKey, fetch }) => createDeepSeek({ baseURL, apiKey, fetch }),
   google: ({ baseURL, apiKey, fetch }) => createGoogleGenerativeAI({ baseURL, apiKey, fetch }),
   xai: ({ baseURL, apiKey, fetch }) => createXai({ baseURL, apiKey, fetch }),

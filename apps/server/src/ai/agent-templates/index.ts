@@ -9,6 +9,7 @@
  */
 /**
  * Agent 模版模块统一导出。
+ * 子 agent 已改为行为驱动类型，仅保留 master 模版。
  */
 
 export type { AgentTemplate, AgentTemplateId } from './types'
@@ -20,15 +21,5 @@ export {
   getScaffoldableTemplates,
 } from './registry'
 
-// Export multilingual prompt getters for each agent template
-export { getBrowserPrompt } from './templates/browser'
-export { getCalendarPrompt } from './templates/calendar'
-export { getCoderPrompt } from './templates/coder'
-export { getDocumentPrompt } from './templates/document'
-export { getEmailPrompt } from './templates/email'
+// Export master prompt getter
 export { getMasterPrompt } from './templates/master'
-export { getProjectPrompt } from './templates/project'
-export { getShellPrompt } from './templates/shell'
-export { getVisionPrompt } from './templates/vision'
-export { getWidgetPrompt } from './templates/widget'
-export { getWpsAgentPrompt } from './templates/wps-agent'

@@ -11,7 +11,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { trpc } from '@/utils/trpc'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useTabs } from '@/hooks/use-tabs'
@@ -700,9 +700,10 @@ export default function TaskBoardPage({
   const workspaceId = workspace?.id ?? ''
 
   const { data: tasks = [], isLoading, refetch } = useQuery(
-    trpc.scheduledTask.list.queryOptions({ workspaceId, projectId }, {
-      refetchInterval: 60_000, // 每1分钟自动刷新
-    }),
+    trpc.scheduledTask.list.queryOptions(
+      workspaceId ? { workspaceId, projectId } : skipToken,
+      { refetchInterval: 60_000, staleTime: 0, refetchOnMount: 'always' },
+    ),
   )
 
   // 手动刷新功能

@@ -29,7 +29,6 @@ import {
 } from '@/ai/shared/promptBuilder'
 import { loadSkillSummaries } from '@/ai/services/skillsLoader'
 import { loadAgentSummaries } from '@/ai/services/agentConfigService'
-import { ALL_TEMPLATES } from '@/ai/agent-templates'
 import { resolvePythonInstallInfo } from '@/ai/models/cli/pythonTool'
 import { getAuthSessionSnapshot } from '@/modules/auth/tokenStore'
 import { getSaasAccessToken } from '@/ai/shared/context/requestContext'
@@ -72,7 +71,7 @@ export function buildSubAgentListSection(agents: SubAgentEntry[]): string {
   return lines.join('\n')
 }
 
-/** 收集所有可用 agent（模板 + 动态）。 */
+/** 收集所有可用的自定义 agent（仅动态，从文件系统扫描）。 */
 export function collectAvailableAgents(input: {
   workspaceRootPath?: string
   projectRootPath?: string
@@ -81,22 +80,6 @@ export function collectAvailableAgents(input: {
   const entries: SubAgentEntry[] = []
   const seen = new Set<string>()
 
-  // 逻辑：内置模板 agent（排除 master 和 builtinOnly）
-  for (const tpl of ALL_TEMPLATES) {
-    if (tpl.isPrimary || tpl.isBuiltinOnly) {
-      seen.add(tpl.id) // 加入 seen，防止动态 agent 同名覆盖
-      continue
-    }
-    if (seen.has(tpl.id)) continue
-    seen.add(tpl.id)
-    entries.push({
-      key: tpl.id,
-      name: tpl.name,
-      description: tpl.description,
-    })
-  }
-
-  // 逻辑：动态 agent（从文件系统扫描）
   try {
     const dynamicAgents = loadAgentSummaries({
       workspaceRootPath: input.workspaceRootPath,
@@ -281,19 +264,19 @@ export async function buildSubAgentPrefaceText(input: {
     sections.push(buildProjectRulesSection(context))
   }
 
-  // 可用子 Agent 列表（可选）
-  if (capabilities.needsSubAgentList) {
-    const agents = collectAvailableAgents({
-      workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE
-        ? context.workspace.rootPath
-        : undefined,
-      projectRootPath: context.project.rootPath !== UNKNOWN_VALUE
-        ? context.project.rootPath
-        : undefined,
-      parentProjectRootPaths: input.requestContext.parentProjectRootPaths,
-    })
-    sections.push(buildSubAgentListSection(agents))
-  }
+  // TODO: 可用子 Agent 列表 — 暂时禁用，待后续重新整理后恢复
+  // if (capabilities.needsSubAgentList) {
+  //   const agents = collectAvailableAgents({
+  //     workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE
+  //       ? context.workspace.rootPath
+  //       : undefined,
+  //     projectRootPath: context.project.rootPath !== UNKNOWN_VALUE
+  //       ? context.project.rootPath
+  //       : undefined,
+  //     parentProjectRootPaths: input.requestContext.parentProjectRootPaths,
+  //   })
+  //   sections.push(buildSubAgentListSection(agents))
+  // }
 
   // 执行规则
   sections.push(buildExecutionRulesSection())

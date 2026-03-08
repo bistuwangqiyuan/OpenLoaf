@@ -10,100 +10,155 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { tool, zodSchema } from 'ai'
-import * as XLSX from 'xlsx'
 import {
   excelQueryToolDef,
   excelMutateToolDef,
 } from '@openloaf/api/types/tools/excel'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 import {
-  getSessionId,
-  getWorkspaceId,
-  getProjectId,
-} from '@/ai/shared/context/requestContext'
-import { saveChatBinaryAttachment } from '@/ai/services/image/attachmentResolver'
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100 MB
-const DEFAULT_READ_LIMIT = 100
-const MAX_READ_LIMIT = 500
+  resolveOfficeFile,
+  listZipEntries,
+  readZipEntryText,
+  readZipEntryBuffer,
+  editZip,
+  createZip,
+} from '@/ai/tools/office/streamingZip'
+import { parseXlsxStructure } from '@/ai/tools/office/structureParser'
+import type { OfficeEdit } from '@/ai/tools/office/types'
 
 // ---------------------------------------------------------------------------
-// Helpers
+// XLSX XML Templates (for create action)
 // ---------------------------------------------------------------------------
 
-async function readWorkbook(filePath: string): Promise<XLSX.WorkBook> {
-  const { absPath } = resolveToolPath({ target: filePath })
-  const stat = await fs.stat(absPath)
-  if (!stat.isFile()) throw new Error('Path is not a file.')
-  if (stat.size > MAX_FILE_SIZE) {
-    throw new Error(
-      `File size (${(stat.size / 1024 / 1024).toFixed(1)} MB) exceeds 100 MB limit. Please use a smaller file.`,
-    )
+function xlsxContentTypes(sheetCount: number): string {
+  const overrides = [`<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`,
+    `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`,
+    `<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>`,
+  ]
+  for (let i = 1; i <= sheetCount; i++) {
+    overrides.push(`<Override PartName="/xl/worksheets/sheet${i}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`)
   }
-  const buf = await fs.readFile(absPath)
-  return XLSX.read(buf, { type: 'buffer' })
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  ${overrides.join('\n  ')}
+</Types>`
 }
 
-function resolveSheet(
-  wb: XLSX.WorkBook,
-  sheetName?: string,
-  sheetIndex?: number,
-): { ws: XLSX.WorkSheet; name: string } {
-  let name: string
-  if (sheetName) {
-    if (!wb.SheetNames.includes(sheetName)) {
-      throw new Error(`Sheet "${sheetName}" not found. Available: ${wb.SheetNames.join(', ')}`)
+const XLSX_ROOT_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`
+
+function xlsxWorkbookRels(sheetCount: number): string {
+  const rels = [`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`,
+    `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>`,
+  ]
+  for (let i = 1; i <= sheetCount; i++) {
+    rels.push(`<Relationship Id="rId${i + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i}.xml"/>`)
+  }
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  ${rels.join('\n  ')}
+</Relationships>`
+}
+
+function xlsxWorkbook(sheetNames: string[]): string {
+  const sheets = sheetNames
+    .map((name, i) => `<sheet name="${escapeXml(name)}" sheetId="${i + 1}" r:id="rId${i + 3}"/>`)
+    .join('')
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>${sheets}</sheets>
+</workbook>`
+}
+
+const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
+  <fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+</styleSheet>`
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** Build a worksheet XML and collect shared strings. */
+function buildSheetXml(
+  data: (string | number | boolean | null)[][],
+  sharedStrings: string[],
+  ssIndex: Map<string, number>,
+): string {
+  if (data.length === 0) {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData/>
+</worksheet>`
+  }
+
+  const rows: string[] = []
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r]!
+    const cells: string[] = []
+    for (let c = 0; c < row.length; c++) {
+      const ref = colIndexToLetter(c) + (r + 1)
+      const val = row[c]
+      if (val === null || val === undefined) continue
+      if (typeof val === 'number') {
+        cells.push(`<c r="${ref}"><v>${val}</v></c>`)
+      } else if (typeof val === 'boolean') {
+        cells.push(`<c r="${ref}" t="b"><v>${val ? 1 : 0}</v></c>`)
+      } else {
+        // String → shared string
+        const str = String(val)
+        let idx = ssIndex.get(str)
+        if (idx === undefined) {
+          idx = sharedStrings.length
+          sharedStrings.push(str)
+          ssIndex.set(str, idx)
+        }
+        cells.push(`<c r="${ref}" t="s"><v>${idx}</v></c>`)
+      }
     }
-    name = sheetName
-  } else if (typeof sheetIndex === 'number') {
-    if (sheetIndex < 0 || sheetIndex >= wb.SheetNames.length) {
-      throw new Error(`Sheet index ${sheetIndex} out of range (0..${wb.SheetNames.length - 1}).`)
+    if (cells.length > 0) {
+      rows.push(`<row r="${r + 1}">${cells.join('')}</row>`)
     }
-    name = wb.SheetNames[sheetIndex]!
-  } else {
-    name = wb.SheetNames[0]!
   }
-  const ws = wb.Sheets[name]
-  if (!ws) throw new Error(`Sheet "${name}" not found.`)
-  return { ws, name }
+
+  const maxCol = Math.max(...data.map((r) => r.length)) - 1
+  const maxRow = data.length
+  const dimension = `A1:${colIndexToLetter(maxCol)}${maxRow}`
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="${dimension}"/>
+  <sheetData>${rows.join('')}</sheetData>
+</worksheet>`
 }
 
-function getSheetDimensions(ws: XLSX.WorkSheet): { rows: number; cols: number; ref: string } {
-  const ref = ws['!ref'] ?? ''
-  if (!ref) return { rows: 0, cols: 0, ref: '' }
-  const range = XLSX.utils.decode_range(ref)
-  return {
-    rows: range.e.r - range.s.r + 1,
-    cols: range.e.c - range.s.c + 1,
-    ref,
-  }
+function buildSharedStringsXml(strings: string[]): string {
+  const items = strings.map((s) => `<si><t>${escapeXml(s)}</t></si>`).join('')
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${strings.length}" uniqueCount="${strings.length}">${items}</sst>`
 }
 
-async function writeWorkbook(wb: XLSX.WorkBook, filePath: string): Promise<string> {
-  const { absPath } = resolveToolPath({ target: filePath })
-  await fs.mkdir(path.dirname(absPath), { recursive: true })
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
-  await fs.writeFile(absPath, buf)
-  return absPath
-}
-
-/** Save a new workbook to the chat session directory (for create / save-as). */
-async function writeWorkbookToSession(wb: XLSX.WorkBook, fileName: string): Promise<string> {
-  const sessionId = getSessionId()
-  if (!sessionId) {
-    // fallback: 无 session 上下文时使用 resolveToolPath
-    return writeWorkbook(wb, fileName)
+function colIndexToLetter(col: number): string {
+  let result = ''
+  let c = col
+  while (c >= 0) {
+    result = String.fromCharCode((c % 26) + 65) + result
+    c = Math.floor(c / 26) - 1
   }
-  const buf = Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }))
-  const saved = await saveChatBinaryAttachment({
-    workspaceId: getWorkspaceId(),
-    projectId: getProjectId(),
-    sessionId,
-    fileName: path.basename(fileName),
-    buffer: buf,
-    mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })
-  return saved.relativePath
+  return result
 }
 
 // ---------------------------------------------------------------------------
@@ -114,83 +169,66 @@ export const excelQueryTool = tool({
   description: excelQueryToolDef.description,
   inputSchema: zodSchema(excelQueryToolDef.parameters),
   execute: async (input) => {
-    const { mode, filePath, sheetName, sheetIndex, range, offset, limit, outputPath, includeHeaders } = input as {
+    const { mode, filePath, sheet, xmlPath } = input as {
       mode: string
       filePath: string
-      sheetName?: string
-      sheetIndex?: number
-      range?: string
-      offset?: number
-      limit?: number
-      outputPath?: string
-      includeHeaders?: boolean
+      sheet?: string
+      xmlPath?: string
     }
 
-    const wb = await readWorkbook(filePath)
+    // Handle .xls legacy format
+    const ext = path.extname(filePath).toLowerCase()
+    if (ext === '.xls') {
+      return handleLegacyXls(filePath, mode, sheet)
+    }
+
+    const absPath = await resolveOfficeFile(filePath, ['.xlsx'])
 
     switch (mode) {
-      case 'get-info': {
-        const sheets = wb.SheetNames.map((name) => {
-          const ws = wb.Sheets[name]!
-          const dims = getSheetDimensions(ws)
-          return { name, rows: dims.rows, cols: dims.cols, ref: dims.ref }
-        })
-        return { ok: true, data: { mode, fileName: path.basename(filePath), sheetCount: sheets.length, sheets } }
+      case 'read-structure': {
+        const entries = await listZipEntries(absPath)
+        const readEntry = (p: string) => readZipEntryBuffer(absPath, p)
+        const structure = await parseXlsxStructure(readEntry, entries, sheet)
+        return { ok: true, data: { mode, fileName: path.basename(filePath), ...structure } }
       }
 
-      case 'list-sheets': {
-        return { ok: true, data: { mode, sheets: wb.SheetNames } }
+      case 'read-xml': {
+        if (!xmlPath || xmlPath === '*') {
+          const entries = await listZipEntries(absPath)
+          return { ok: true, data: { mode, fileName: path.basename(filePath), entries } }
+        }
+        const xml = await readZipEntryText(absPath, xmlPath)
+        return { ok: true, data: { mode, fileName: path.basename(filePath), xmlPath, xml } }
       }
 
-      case 'read-sheet': {
-        const { ws, name } = resolveSheet(wb, sheetName, sheetIndex)
-        const useHeaders = includeHeaders !== false
-        const allRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { header: useHeaders ? undefined : 1 })
-        const rowOffset = typeof offset === 'number' ? offset : 0
-        const rowLimit = Math.min(typeof limit === 'number' ? limit : DEFAULT_READ_LIMIT, MAX_READ_LIMIT)
-        const slice = allRows.slice(rowOffset, rowOffset + rowLimit)
-        const dims = getSheetDimensions(ws)
+      case 'read-text': {
+        const entries = await listZipEntries(absPath)
+        const readEntry = (p: string) => readZipEntryBuffer(absPath, p)
+        const structure = await parseXlsxStructure(readEntry, entries)
+        const lines: string[] = []
+        for (const s of structure.sheets) {
+          lines.push(`=== Sheet: ${s.name} (${s.rowCount}x${s.colCount}) ===`)
+          // Read cells for each sheet
+          const sheetStructure = await parseXlsxStructure(readEntry, entries, s.name)
+          if (sheetStructure.cells) {
+            for (const cell of sheetStructure.cells) {
+              if (cell.value !== null) {
+                lines.push(`${cell.ref}: ${cell.value}`)
+              }
+            }
+          }
+        }
+        const text = lines.join('\n')
+        const truncated = text.length > 200_000
         return {
           ok: true,
           data: {
             mode,
-            sheetName: name,
-            totalRows: dims.rows,
-            returnedRows: slice.length,
-            offset: rowOffset,
-            hasMore: rowOffset + rowLimit < allRows.length,
-            rows: slice,
+            fileName: path.basename(filePath),
+            text: truncated ? text.slice(0, 200_000) : text,
+            truncated,
           },
         }
-      }
-
-      case 'read-cells': {
-        if (!range) throw new Error('range is required for read-cells mode (e.g. "A1:C10").')
-        const { ws, name } = resolveSheet(wb, sheetName, sheetIndex)
-        const parsedRange = XLSX.utils.decode_range(range)
-        const cells: (string | number | boolean | null)[][] = []
-        for (let r = parsedRange.s.r; r <= parsedRange.e.r; r++) {
-          const row: (string | number | boolean | null)[] = []
-          for (let c = parsedRange.s.c; c <= parsedRange.e.c; c++) {
-            const addr = XLSX.utils.encode_cell({ r, c })
-            const cell = ws[addr]
-            row.push(cell ? (cell.v as string | number | boolean | null) ?? null : null)
-          }
-          cells.push(row)
-        }
-        return { ok: true, data: { mode, sheetName: name, range, cells } }
-      }
-
-      case 'export-csv': {
-        const { ws, name } = resolveSheet(wb, sheetName, sheetIndex)
-        const csv = XLSX.utils.sheet_to_csv(ws)
-        if (outputPath) {
-          const { absPath: outAbs } = resolveToolPath({ target: outputPath })
-          await fs.mkdir(path.dirname(outAbs), { recursive: true })
-          await fs.writeFile(outAbs, csv, 'utf-8')
-          return { ok: true, data: { mode, sheetName: name, outputPath: outAbs } }
-        }
-        return { ok: true, data: { mode, sheetName: name, csv } }
       }
 
       default:
@@ -208,150 +246,49 @@ export const excelMutateTool = tool({
   inputSchema: zodSchema(excelMutateToolDef.parameters),
   needsApproval: true,
   execute: async (input) => {
-    const {
-      action, filePath, sheetName, range, data, newSheetName,
-      formula, csvContent, csvFilePath, outputPath, delimiter,
-    } = input as {
+    const { action, filePath, sheetName, data, edits } = input as {
       action: string
-      filePath?: string
+      filePath: string
       sheetName?: string
-      range?: string
       data?: (string | number | boolean | null)[][]
-      newSheetName?: string
-      formula?: string
-      csvContent?: string
-      csvFilePath?: string
-      outputPath?: string
-      delimiter?: string
+      edits?: OfficeEdit[]
     }
+
+    const { absPath } = resolveToolPath({ target: filePath })
 
     switch (action) {
       case 'create': {
-        if (!filePath) throw new Error('filePath is required for create action.')
-        const wb = XLSX.utils.book_new()
         const wsName = sheetName || 'Sheet1'
-        const ws = data ? XLSX.utils.aoa_to_sheet(data) : XLSX.utils.aoa_to_sheet([[]])
-        XLSX.utils.book_append_sheet(wb, ws, wsName)
-        const savedPath = await writeWorkbookToSession(wb, filePath)
-        return { ok: true, data: { action, filePath: savedPath, sheetName: wsName } }
-      }
+        const sharedStrings: string[] = []
+        const ssIndex = new Map<string, number>()
+        const sheetXml = buildSheetXml(data ?? [[]], sharedStrings, ssIndex)
 
-      case 'write-cells': {
-        if (!filePath) throw new Error('filePath is required for write-cells action.')
-        if (!data || data.length === 0) throw new Error('data is required for write-cells action.')
-        const wb = await readWorkbook(filePath)
-        const { ws, name } = resolveSheet(wb, sheetName)
-        const startCell = range || 'A1'
-        const origin = XLSX.utils.decode_cell(startCell)
-        for (let r = 0; r < data.length; r++) {
-          const row = data[r]!
-          for (let c = 0; c < row.length; c++) {
-            const addr = XLSX.utils.encode_cell({ r: origin.r + r, c: origin.c + c })
-            const val = row[c]
-            if (val === null || val === undefined) {
-              delete ws[addr]
-            } else if (typeof val === 'string' && val.startsWith('=')) {
-              ws[addr] = { t: 'n', f: val.slice(1) }
-            } else {
-              ws[addr] = { t: typeof val === 'number' ? 'n' : typeof val === 'boolean' ? 'b' : 's', v: val }
-            }
-          }
+        const entries = new Map<string, Buffer>()
+        entries.set('[Content_Types].xml', Buffer.from(xlsxContentTypes(1), 'utf-8'))
+        entries.set('_rels/.rels', Buffer.from(XLSX_ROOT_RELS, 'utf-8'))
+        entries.set('xl/_rels/workbook.xml.rels', Buffer.from(xlsxWorkbookRels(1), 'utf-8'))
+        entries.set('xl/workbook.xml', Buffer.from(xlsxWorkbook([wsName]), 'utf-8'))
+        entries.set('xl/worksheets/sheet1.xml', Buffer.from(sheetXml, 'utf-8'))
+        entries.set('xl/styles.xml', Buffer.from(XLSX_STYLES, 'utf-8'))
+        entries.set('xl/sharedStrings.xml', Buffer.from(buildSharedStringsXml(sharedStrings), 'utf-8'))
+
+        await createZip(absPath, entries)
+        return {
+          ok: true,
+          data: { action, filePath: absPath, sheetName: wsName },
         }
-        // Update sheet range
-        const dims = getSheetDimensions(ws)
-        const maxR = Math.max(dims.rows - 1, origin.r + data.length - 1)
-        const maxC = Math.max(dims.cols - 1, origin.c + (data[0]?.length ?? 1) - 1)
-        ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxR, c: maxC } })
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, sheetName: name, cellsWritten: data.length * (data[0]?.length ?? 0) } }
       }
 
-      case 'add-sheet': {
-        if (!filePath) throw new Error('filePath is required for add-sheet action.')
-        const wsName = newSheetName || sheetName || 'NewSheet'
-        const wb = await readWorkbook(filePath)
-        if (wb.SheetNames.includes(wsName)) {
-          throw new Error(`Sheet "${wsName}" already exists.`)
+      case 'edit': {
+        if (!edits || edits.length === 0) {
+          throw new Error('edits is required for edit action.')
         }
-        const ws = data ? XLSX.utils.aoa_to_sheet(data) : XLSX.utils.aoa_to_sheet([[]])
-        XLSX.utils.book_append_sheet(wb, ws, wsName)
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, sheetName: wsName } }
-      }
-
-      case 'rename-sheet': {
-        if (!filePath) throw new Error('filePath is required for rename-sheet action.')
-        if (!sheetName) throw new Error('sheetName (current name) is required for rename-sheet.')
-        if (!newSheetName) throw new Error('newSheetName is required for rename-sheet.')
-        const wb = await readWorkbook(filePath)
-        const idx = wb.SheetNames.indexOf(sheetName)
-        if (idx === -1) throw new Error(`Sheet "${sheetName}" not found.`)
-        if (wb.SheetNames.includes(newSheetName)) {
-          throw new Error(`Sheet "${newSheetName}" already exists.`)
+        await resolveOfficeFile(filePath, ['.xlsx'])
+        await editZip(absPath, absPath, edits)
+        return {
+          ok: true,
+          data: { action, filePath: absPath, editCount: edits.length },
         }
-        wb.SheetNames[idx] = newSheetName
-        wb.Sheets[newSheetName] = wb.Sheets[sheetName]!
-        delete wb.Sheets[sheetName]
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, oldName: sheetName, newName: newSheetName } }
-      }
-
-      case 'delete-sheet': {
-        if (!filePath) throw new Error('filePath is required for delete-sheet action.')
-        if (!sheetName) throw new Error('sheetName is required for delete-sheet.')
-        const wb = await readWorkbook(filePath)
-        const idx = wb.SheetNames.indexOf(sheetName)
-        if (idx === -1) throw new Error(`Sheet "${sheetName}" not found.`)
-        if (wb.SheetNames.length <= 1) throw new Error('Cannot delete the last sheet.')
-        wb.SheetNames.splice(idx, 1)
-        delete wb.Sheets[sheetName]
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, deletedSheet: sheetName } }
-      }
-
-      case 'set-formula': {
-        if (!filePath) throw new Error('filePath is required for set-formula action.')
-        if (!range) throw new Error('range (cell address) is required for set-formula.')
-        if (!formula) throw new Error('formula is required for set-formula.')
-        const wb = await readWorkbook(filePath)
-        const { ws, name } = resolveSheet(wb, sheetName)
-        ws[range] = { t: 'n', f: formula }
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, sheetName: name, cell: range, formula } }
-      }
-
-      case 'import-csv': {
-        if (!filePath) throw new Error('filePath is required for import-csv action.')
-        let csv: string
-        if (csvContent) {
-          csv = csvContent
-        } else if (csvFilePath) {
-          const { absPath: csvAbs } = resolveToolPath({ target: csvFilePath })
-          csv = await fs.readFile(csvAbs, 'utf-8')
-        } else {
-          throw new Error('csvContent or csvFilePath is required for import-csv.')
-        }
-        const sep = delimiter || ','
-        const wb = await readWorkbook(filePath).catch(() => XLSX.utils.book_new())
-        const wsName = sheetName || 'Imported'
-        const ws = XLSX.utils.aoa_to_sheet(
-          csv.split('\n').filter(Boolean).map((line) => line.split(sep)),
-        )
-        if (wb.SheetNames.includes(wsName)) {
-          wb.Sheets[wsName] = ws
-        } else {
-          XLSX.utils.book_append_sheet(wb, ws, wsName)
-        }
-        const absPath = await writeWorkbook(wb, filePath)
-        return { ok: true, data: { action, filePath: absPath, sheetName: wsName } }
-      }
-
-      case 'save-as': {
-        if (!filePath) throw new Error('filePath is required for save-as action.')
-        if (!outputPath) throw new Error('outputPath is required for save-as action.')
-        const wb = await readWorkbook(filePath)
-        const savedPath = await writeWorkbookToSession(wb, outputPath)
-        return { ok: true, data: { action, outputPath: savedPath } }
       }
 
       default:
@@ -359,3 +296,86 @@ export const excelMutateTool = tool({
     }
   },
 })
+
+// ---------------------------------------------------------------------------
+// Legacy .xls handling (auto-convert to .xlsx via SheetJS)
+// ---------------------------------------------------------------------------
+
+async function handleLegacyXls(filePath: string, mode: string, sheet?: string) {
+  const { absPath } = resolveToolPath({ target: filePath })
+  const stat = await fs.stat(absPath)
+  if (stat.size > 100 * 1024 * 1024) {
+    throw new Error('File size exceeds 100 MB limit.')
+  }
+
+  // Convert .xls to .xlsx in memory using SheetJS
+  const XLSX = await import('xlsx')
+  const buf = await fs.readFile(absPath)
+  const wb = XLSX.read(buf, { type: 'buffer' })
+
+  // Write to temp .xlsx
+  const tmpPath = absPath.replace(/\.xls$/i, '.xlsx')
+  const xlsxBuf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  await fs.writeFile(tmpPath, xlsxBuf)
+
+  try {
+    // Use the new .xlsx path for structure parsing
+    const entries = await listZipEntries(tmpPath)
+    const readEntry = (p: string) => readZipEntryBuffer(tmpPath, p)
+
+    if (mode === 'read-structure') {
+      const structure = await parseXlsxStructure(readEntry, entries, sheet)
+      return {
+        ok: true,
+        data: {
+          mode,
+          fileName: path.basename(filePath),
+          ...structure,
+          legacy: true,
+          convertedPath: tmpPath,
+          hint: '该文件为旧版 .xls 格式，已自动转换为 .xlsx。如需编辑，请对转换后的 .xlsx 文件操作。',
+        },
+      }
+    }
+
+    if (mode === 'read-xml') {
+      const entryList = await listZipEntries(tmpPath)
+      return {
+        ok: true,
+        data: {
+          mode,
+          fileName: path.basename(filePath),
+          entries: entryList,
+          legacy: true,
+          convertedPath: tmpPath,
+        },
+      }
+    }
+
+    // read-text
+    const structure = await parseXlsxStructure(readEntry, entries)
+    const lines: string[] = []
+    for (const s of structure.sheets) {
+      lines.push(`=== Sheet: ${s.name} ===`)
+      const sheetData = await parseXlsxStructure(readEntry, entries, s.name)
+      if (sheetData.cells) {
+        for (const cell of sheetData.cells) {
+          if (cell.value !== null) lines.push(`${cell.ref}: ${cell.value}`)
+        }
+      }
+    }
+    return {
+      ok: true,
+      data: {
+        mode,
+        fileName: path.basename(filePath),
+        text: lines.join('\n'),
+        legacy: true,
+        convertedPath: tmpPath,
+      },
+    }
+  } catch (err) {
+    await fs.unlink(tmpPath).catch(() => {})
+    throw err
+  }
+}

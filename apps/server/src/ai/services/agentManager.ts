@@ -16,7 +16,6 @@ import {
   getAssistantParentMessageId,
 } from '@/ai/shared/context/requestContext'
 import {
-  resolveAgentType,
   createSubAgent,
   resolveEffectiveAgentName,
 } from '@/ai/services/agentFactory'
@@ -32,7 +31,7 @@ import {
 } from '@/ai/services/chat/repositories/messageStore'
 import { buildSubAgentPrefaceText } from '@/ai/shared/subAgentPrefaceBuilder'
 import { resolveAgentDir, readAgentJson } from '@/ai/shared/defaultAgentResolver'
-import { isSystemAgentId } from '@/ai/shared/systemAgentDefinitions'
+import { isBuiltinSubAgentType } from '@/ai/services/agentFactory'
 import {
   getWorkspaceRootPath,
   getWorkspaceRootPathById,
@@ -41,7 +40,6 @@ import {
 import { logger } from '@/common/logger'
 import { resolveApprovalGate, applyApprovalDecision } from '@/ai/tools/approvalUtils'
 import { registerFrontendToolPending } from '@/ai/tools/pendingRegistry'
-import { buildFilePartFromPath } from '@/ai/services/image/attachmentResolver'
 
 export type AgentStatus =
   | 'pending'
@@ -50,10 +48,6 @@ export type AgentStatus =
   | 'failed'
   | 'shutdown'
   | 'not_found'
-
-export type SpawnItem =
-  | { type: 'text'; text: string }
-  | { type: 'file'; path: string }
 
 export type SpawnContext = {
   model: LanguageModelV3
@@ -97,8 +91,6 @@ export type ManagedAgent = {
   prefaceInjected?: boolean
   /** Whether an empty-output retry has been attempted. */
   retried?: boolean
-  /** Raw spawn items for deferred file resolution (vision sub-agent support). */
-  rawItems?: SpawnItem[]
 }
 
 const MAX_DEPTH = 2
@@ -110,7 +102,8 @@ function resolveSubAgentSkills(
   requestContext: RequestContext,
 ): string[] {
   const effectiveName = resolveEffectiveAgentName(agentName)
-  if (!isSystemAgentId(effectiveName)) return []
+  // 内置行为类型（general-purpose/explore/plan）不加载 skills
+  if (isBuiltinSubAgentType(effectiveName)) return []
 
   const roots: string[] = []
   if (requestContext.projectId) {
@@ -209,16 +202,10 @@ class AgentManager {
   /** Spawn a new sub-agent and return its id immediately. */
   spawn(input: {
     task: string
-    items?: SpawnItem[]
     name: string
-    agentType?: string
-    modelOverride?: string
+    subagentType?: string
     context: SpawnContext
     depth?: number
-    inlineConfig?: {
-      systemPrompt?: string
-      toolIds?: string[]
-    }
   }): string {
     const depth = input.depth ?? 0
     if (depth >= MAX_DEPTH) {
@@ -234,31 +221,16 @@ class AgentManager {
 
     const id = `agent_${generateId()}`
 
-    // 逻辑：从 items 构建初始消息 parts。
-    const parts: Array<{ type: 'text'; text: string }> = []
-    if (input.items && input.items.length > 0) {
-      for (const item of input.items) {
-        if (item.type === 'text') {
-          parts.push({ type: 'text', text: item.text })
-        } else if (item.type === 'file') {
-          parts.push({ type: 'text', text: `[file: ${item.path}]` })
-        }
-      }
-    }
-    if (parts.length === 0) {
-      parts.push({ type: 'text', text: input.task })
-    }
-
     const initialMessage: UIMessage = {
       id: generateId(),
       role: 'user',
-      parts,
+      parts: [{ type: 'text', text: input.task }],
     }
 
     const agent: ManagedAgent = {
       id,
       status: 'pending',
-      name: input.name || input.agentType || 'default',
+      name: input.name || input.subagentType || 'general-purpose',
       task: input.task,
       result: null,
       error: null,
@@ -273,15 +245,14 @@ class AgentManager {
       responseParts: [],
       depth,
       isResumed: false,
-      rawItems: input.items && input.items.length > 0 ? input.items : undefined,
     }
     this.agents.set(id, agent)
 
     logger.info({ agentId: id, name: agent.name, task: input.task }, '[agent-manager] spawned')
     this.setStatus(id, 'running')
 
-    // 逻辑：fire-and-forget 执行，不阻塞 master agent。
-    this.scheduleExecution(id, input.agentType, input.modelOverride, input.inlineConfig)
+    // fire-and-forget 执行，不阻塞 master agent
+    this.scheduleExecution(id, input.subagentType)
 
     return id
   }
@@ -289,14 +260,12 @@ class AgentManager {
   /** Schedule an execution, serialized via the agent's executionLock. */
   private scheduleExecution(
     id: string,
-    rawAgentType?: string,
-    modelOverride?: string,
-    inlineConfig?: { systemPrompt?: string; toolIds?: string[] },
+    subagentType?: string,
   ): void {
     const agent = this.agents.get(id)
     if (!agent) return
     agent.executionLock = agent.executionLock
-      .then(() => this.executeAgent(id, rawAgentType, modelOverride, inlineConfig))
+      .then(() => this.executeAgent(id, subagentType))
       .catch((err) => {
         logger.error({ agentId: id, err }, '[agent-manager] scheduleExecution error')
         const msg = err instanceof Error ? err.message : String(err)
@@ -336,21 +305,16 @@ class AgentManager {
   /** Core execution loop for a sub-agent. */
   private async executeAgent(
     id: string,
-    rawAgentType?: string,
-    modelOverride?: string,
-    inlineConfig?: { systemPrompt?: string; toolIds?: string[] },
+    subagentType?: string,
   ): Promise<void> {
     const agent = this.agents.get(id)
     if (!agent) return
 
     const { spawnContext } = agent
-    const agentType = resolveAgentType(rawAgentType)
     const writer = spawnContext.writer
     const toolCallId = id
 
-    // 逻辑：创建子 RequestContext，并将当前 agent 入栈到 agentStack。
-    // 这样子 agent 内部调用 spawn-agent 时，agentStack.length 能正确反映嵌套深度，
-    // 从而让 MAX_DEPTH 限制生效，防止无限递归 spawn。
+    // 创建子 RequestContext，将当前 agent 入栈到 agentStack。
     const childRequestContext: RequestContext = {
       ...spawnContext.requestContext,
       agentStack: [
@@ -367,39 +331,11 @@ class AgentManager {
     await runWithContext(childRequestContext, async () => {
       try {
         const toolLoopAgent = createSubAgent({
-          agentType,
+          subagentType,
           model: spawnContext.model,
-          rawAgentType,
-          modelOverride,
-          inlineConfig,
         })
 
-        // 逻辑：解析初始消息中的文件引用为 data URL（仅首次 spawn，非恢复场景）。
-        if (!agent.isResumed && agent.rawItems && agent.messages.length > 0) {
-          const resolvedParts: any[] = []
-          for (const item of agent.rawItems) {
-            if (item.type === 'text') {
-              resolvedParts.push({ type: 'text', text: item.text })
-            } else if (item.type === 'file') {
-              try {
-                const filePart = await buildFilePartFromPath({ path: item.path })
-                if (filePart) {
-                  resolvedParts.push(filePart)
-                } else {
-                  resolvedParts.push({ type: 'text', text: `[file: ${item.path}]` })
-                }
-              } catch {
-                resolvedParts.push({ type: 'text', text: `[file: ${item.path}]` })
-              }
-            }
-          }
-          if (resolvedParts.length > 0) {
-            agent.messages[0] = { ...agent.messages[0]!, parts: resolvedParts }
-          }
-          agent.rawItems = undefined
-        }
-
-        // 逻辑：仅首次 spawn 时生成 preface、写入 session.json 和初始 user 消息，恢复场景跳过。
+        // 仅首次 spawn 时生成 preface、写入 session.json 和初始 user 消息，恢复场景跳过。
         if (!agent.isResumed) {
           // 逻辑：从 toolLoopAgent 获取实际工具名称列表，用于 preface 能力检测。
           const resolvedToolIds = Object.keys(toolLoopAgent.tools ?? {})
@@ -426,7 +362,7 @@ class AgentManager {
               agentId: agent.id,
               name: agent.name,
               task: agent.task,
-              agentType: agentType,
+              agentType: subagentType || 'general-purpose',
               preface: agent.preface,
               createdAt: agent.createdAt,
             }).catch((err) => {

@@ -22,6 +22,7 @@ import { fetchBlobFromUri, resolveFileName } from "@/lib/image/uri";
 import { buildMaskedPreviewUrl, resolveMaskFileName } from "@/lib/image/mask";
 import {
   clearProjectFileDragSession,
+  getProjectFileDragSession,
   matchProjectFileDragSession,
 } from "@/lib/project-file-drag-session";
 import {
@@ -241,7 +242,6 @@ export function useChatInputDrop({
   /** Insert file references using the same logic as drag-and-drop. */
   const handleProjectFileRefsInsert = useCallback(
     async (fileRefs: string[]) => {
-      if (!canAttachAll && !canAttachImage) return;
       if (!workspaceId) return;
       const mentionRefs: string[] = [];
       const normalizedRefs = Array.from(
@@ -260,10 +260,9 @@ export function useChatInputDrop({
         if (!pId || !relativePath) continue;
         const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
         const isImageExt = /^(png|jpe?g|gif|bmp|webp|svg|avif|tiff|heic)$/i.test(ext);
-        if (!isImageExt || !onAddAttachments) {
-          if (canAttachAll) {
-            mentionRefs.push(fileRef);
-          }
+        // 非图片文件统一以 @[path] mention 插入；图片仅在支持附件时走上传。
+        if (!isImageExt || !onAddAttachments || !canAttachImage) {
+          mentionRefs.push(fileRef);
           continue;
         }
         const rUri = resolveRootUri(pId);
@@ -300,7 +299,6 @@ export function useChatInputDrop({
       }
     },
     [
-      canAttachAll,
       canAttachImage,
       defaultProjectId,
       insertTextAtSelection,
@@ -322,23 +320,24 @@ export function useChatInputDrop({
 
   const handleDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
     console.debug("[ChatInput] drop payload", formatDragData(event.dataTransfer));
-    const session = matchProjectFileDragSession(event.dataTransfer);
+    // 优先级 1：projectFileDragSession — HTML5 拖拽不带真实文件，matchProjectFileDragSession
+    // 匹配不到路径，因此也尝试 getProjectFileDragSession 作为回退。
+    const session =
+      matchProjectFileDragSession(event.dataTransfer) || getProjectFileDragSession();
     if (
       session &&
-      session.projectId === defaultProjectId &&
       session.fileRefs.length > 0
     ) {
-      // 中文注释：拖拽来自项目文件系统时优先插入文件引用。
       await handleProjectFileRefsInsert(session.fileRefs);
       clearProjectFileDragSession("chat-drop");
       return;
     }
     const imagePayload = readImageDragPayload(event.dataTransfer);
     if (imagePayload) {
-      if (!canAttachImage && !canAttachAll) return;
       const payloadFileName = imagePayload.fileName || resolveFileName(imagePayload.baseUri);
       const isPayloadImage = Boolean(imagePayload.maskUri) || isImageFileName(payloadFileName);
-      if (!isPayloadImage && canAttachAll) {
+      // 非图片文件统一以 mention 插入，不受 canAttachAll 限制。
+      if (!isPayloadImage) {
         const fileRef =
           normalizeFileRef(event.dataTransfer.getData(FILE_DRAG_REF_MIME)) ||
           (isRelativePath(imagePayload.baseUri) ? imagePayload.baseUri : "");
@@ -347,6 +346,7 @@ export function useChatInputDrop({
         }
         return;
       }
+      if (!canAttachImage) return;
       if (imagePayload.maskUri) {
         if (!onAddMaskedAttachment) return;
         try {
@@ -424,7 +424,6 @@ export function useChatInputDrop({
     if (!fileRef) return;
     await handleProjectFileRefsInsert([fileRef]);
   }, [
-    canAttachAll,
     canAttachImage,
     defaultProjectId,
     handleProjectFileRefsInsert,

@@ -85,6 +85,8 @@ export type RequestContext = {
   cliSessionPreface?: string;
   /** SDK assistant UUID for resumeSessionAt (rewind target). */
   cliRewindTarget?: string;
+  /** Accumulated credits consumed by SaaS provider. */
+  creditsConsumed?: number;
 };
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -364,4 +366,16 @@ export function setCliRewindTarget(uuid: string): void {
 /** Get CLI rewind target (SDK assistant UUID for resumeSessionAt). */
 export function getCliRewindTarget(): string | undefined {
   return getRequestContext()?.cliRewindTarget;
+}
+
+/** Add credits consumed by SaaS provider. */
+export function addCreditsConsumed(credits: number): void {
+  const ctx = getRequestContext();
+  if (!ctx) return;
+  ctx.creditsConsumed = (ctx.creditsConsumed ?? 0) + credits;
+}
+
+/** Get accumulated credits consumed. */
+export function getCreditsConsumed(): number | undefined {
+  return getRequestContext()?.creditsConsumed;
 }

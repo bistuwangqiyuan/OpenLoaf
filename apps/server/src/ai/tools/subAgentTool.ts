@@ -13,7 +13,7 @@ import {
   browserSubAgentName,
   documentAnalysisSubAgentName,
 } from "@openloaf/api/types/tools/subAgent";
-import { createSubAgent, resolveAgentType } from "@/ai/services/agentFactory";
+import { createSubAgent } from "@/ai/services/agentFactory";
 import {
   saveAgentMessage,
   writeAgentSessionJson,
@@ -150,16 +150,10 @@ export const subAgentTool = tool({
     }
 
     // 逻辑：通过统一工厂按名称映射创建子Agent。
-    const legacyNameMap: Record<string, string> = {
-      [DOCUMENT_ANALYSIS_SUB_AGENT_NAME]: 'document',
-      [BROWSER_SUB_AGENT_NAME]: 'browser',
-    }
-    const mappedType = legacyNameMap[name ?? ''] ?? 'browser'
-    const agentType = resolveAgentType(mappedType)
+    // Legacy sub-agent: map to general-purpose (all tools via tool-search)
     const agent = createSubAgent({
-      agentType,
+      subagentType: 'general-purpose',
       model,
-      rawAgentType: mappedType,
     })
     const subAgentMessages = buildSubAgentMessages({ task }) as unknown as UIMessage[];
 

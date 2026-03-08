@@ -8,26 +8,31 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { z } from 'zod'
+import { officeEditSchema } from './office'
 
 export const wordQueryToolDef = {
   id: 'word-query',
   name: 'Word 查询',
   description:
-    '触发：当用户提到 Word、docx、文档，或询问"读取文档"、"查看 Word 内容"时调用。用途：读取 Word 文件的文本内容、HTML 或 Markdown。返回：{ ok: true, data: { mode, ... } }。不适用：需要创建、修改 Word 时不要使用，改用 word-mutate。',
+    '触发：当用户提到 Word、docx、文档，或询问"读取文档"、"查看 Word 内容"时调用。用途：读取 Word 文件的结构化概览、原始 XML 或纯文本。返回：{ ok: true, data: { mode, ... } }。模式说明：read-structure 返回段落/表格/图片的结构化 JSON；read-xml 读取 ZIP 内任意文件（xmlPath="*" 列出所有 entry）；read-text 提取纯文本。不适用：需要创建、修改 Word 时不要使用，改用 word-mutate。',
   parameters: z.object({
     actionName: z
       .string()
       .min(1)
       .describe('由调用的 LLM 传入，用于说明本次工具调用目的，例如：读取合同文档。'),
     mode: z
-      .enum(['get-info', 'read-text', 'read-html', 'read-markdown'])
+      .enum(['read-structure', 'read-xml', 'read-text'])
       .describe(
-        '查询模式：get-info 获取文档元信息（文件名、大小），read-text 提取纯文本内容，read-html 转换为 HTML，read-markdown 转换为 Markdown',
+        '查询模式：read-structure 获取文档结构化 JSON 概览（段落、表格、图片），read-xml 读取 ZIP 内任意文件的原始 XML（xmlPath="*" 列出所有 entry），read-text 提取纯文本内容',
       ),
     filePath: z
       .string()
       .min(1)
       .describe('Word 文件路径（相对于项目/工作空间根目录或绝对路径，支持 .docx）'),
+    xmlPath: z
+      .string()
+      .optional()
+      .describe('read-xml 模式时指定 ZIP 内部路径（如 "word/document.xml"），设为 "*" 列出所有 entry'),
   }),
   component: null,
 } as const
@@ -63,36 +68,32 @@ export const wordMutateToolDef = {
   id: 'word-mutate',
   name: 'Word 操作',
   description:
-    '触发：当你需要创建 Word 文件、修改已有 Word 文件（模板替换）时调用。用途：创建新的 .docx 文件或使用 patch 方式修改已有文件中的占位符。返回：{ ok: true, data: { action, ... } }。不适用：仅需读取 Word 时不要使用，改用 word-query。',
+    '触发：当你需要创建或编辑 Word 文件时调用。用途：create 从结构化内容创建新 .docx 文件，edit 使用 XPath 定位 + XML 编辑修改已有文件（支持修改文本/样式/表格/图片等任意内容）。返回：{ ok: true, data: { action, ... } }。编辑流程：先用 word-query(read-structure 或 read-xml) 查看文档结构，然后用 edit 的 edits 数组批量操作。不适用：仅需读取时不要使用，改用 word-query。',
   parameters: z.object({
     actionName: z
       .string()
       .min(1)
       .describe('由调用的 LLM 传入，用于说明本次工具调用目的，例如：创建项目报告。'),
     action: z
-      .enum(['create', 'patch'])
+      .enum(['create', 'edit'])
       .describe(
-        '操作类型：create 使用结构化内容创建新 .docx 文件，patch 替换已有 .docx 文件中的 {占位符} 文本',
+        '操作类型：create 使用结构化内容创建新 .docx 文件，edit 使用 edits 数组批量编辑已有文件',
       ),
     filePath: z
       .string()
       .min(1)
-      .describe('Word 文件路径（create 时为新文件路径，patch 时为已有文件路径）'),
-    outputPath: z
-      .string()
-      .optional()
-      .describe('输出文件路径（patch 时可选，不填则覆盖原文件）'),
+      .describe('Word 文件路径（create 时为新文件路径，edit 时为已有文件路径）'),
     content: z
       .array(contentItemSchema)
       .optional()
       .describe(
         'create 时必填：结构化文档内容数组，每项为 heading/paragraph/table/bullet-list/numbered-list',
       ),
-    patches: z
-      .record(z.string(), z.string())
+    edits: z
+      .array(officeEditSchema)
       .optional()
       .describe(
-        'patch 时必填：占位符替换映射，如 { "name": "张三", "date": "2026-03-08" } 会替换文档中的 {name} 和 {date}',
+        'edit 时必填：编辑操作数组。每个操作通过 op 指定类型（replace/insert/remove/write/delete），通过 path 指定 ZIP 内文件路径，通过 xpath 定位 XML 元素',
       ),
   }),
   needsApproval: true,

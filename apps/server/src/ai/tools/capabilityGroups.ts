@@ -82,8 +82,8 @@ const RAW_CAPABILITY_GROUPS = [
   {
     id: 'office',
     label: 'Office 文档',
-    description: '读写 Excel 电子表格和 Word 文档',
-    toolIds: ['excel-query', 'excel-mutate', 'word-query', 'word-mutate'],
+    description: '读写 Excel 电子表格、Word 文档、PowerPoint 演示文稿和 PDF 文档',
+    toolIds: ['excel-query', 'excel-mutate', 'word-query', 'word-mutate', 'pptx-query', 'pptx-mutate', 'pdf-query', 'pdf-mutate'],
   },
   {
     id: 'image-generate',
