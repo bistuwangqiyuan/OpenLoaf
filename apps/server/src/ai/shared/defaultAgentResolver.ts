@@ -8,15 +8,10 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import path from 'node:path'
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import {
   BUILTIN_AGENT_PROMPT,
 } from '@/ai/shared/builtinPrompts'
-import {
-  getScaffoldableTemplates,
-  getPrimaryTemplate,
-  type AgentTemplate,
-} from '@/ai/agent-templates'
 
 /** OpenLoaf meta directory name. */
 const OPENLOAF_META_DIR = '.openloaf'
@@ -111,80 +106,3 @@ export function resolveUserAgentOverride(
   return null
 }
 
-/** Default agent.json content (derived from primary template). */
-function buildDefaultAgentJson(): AgentJsonDescriptor {
-  const primary = getPrimaryTemplate()
-  return {
-    name: primary.name,
-    description: primary.description,
-    icon: primary.icon,
-  }
-}
-
-/** Default agent files to scaffold. */
-function buildDefaultAgentFiles(): Array<{ name: string; content: string }> {
-  return [
-    {
-      name: AGENT_JSON_FILE,
-      content: JSON.stringify(buildDefaultAgentJson(), null, 2),
-    },
-    { name: 'prompt.md', content: BUILTIN_AGENT_PROMPT },
-  ]
-}
-
-/**
- * Ensure .openloaf/agents/master/ directory exists in the given root path
- * with agent.json + default prompt files. Only creates missing files.
- */
-export function ensureDefaultAgentFiles(rootPath: string): void {
-  if (!rootPath) return
-  const defaultDir = resolveAgentDir(rootPath, DEFAULT_AGENT_FOLDER)
-  // 逻辑：目录已存在则跳过，避免覆盖用户自定义文件。
-  if (existsSync(defaultDir)) return
-  try {
-    mkdirSync(defaultDir, { recursive: true })
-    for (const file of buildDefaultAgentFiles()) {
-      const filePath = path.join(defaultDir, file.name)
-      if (!existsSync(filePath)) {
-        writeFileSync(filePath, file.content, 'utf8')
-      }
-    }
-  } catch {
-    // 逻辑：写入失败时静默忽略，不影响程序启动。
-  }
-}
-
-/** Build agent.json content for a scaffoldable template. */
-function buildTemplateAgentJson(template: AgentTemplate): string {
-  return JSON.stringify(
-    {
-      name: template.name,
-      description: template.description,
-      icon: template.icon,
-      toolIds: [...template.toolIds],
-      allowSubAgents: template.allowSubAgents,
-      maxDepth: template.maxDepth,
-    },
-    null,
-    2,
-  )
-}
-
-/**
- * Ensure all scaffoldable agent folders exist under .openloaf/agents/.
- * Only creates missing folders — never overwrites existing ones.
- */
-export function ensureSystemAgentFiles(rootPath: string): void {
-  if (!rootPath) return
-  for (const template of getScaffoldableTemplates()) {
-    const agentDir = resolveAgentDir(rootPath, template.id)
-    if (existsSync(agentDir)) continue
-    try {
-      mkdirSync(agentDir, { recursive: true })
-      const jsonPath = path.join(agentDir, AGENT_JSON_FILE)
-      writeFileSync(jsonPath, buildTemplateAgentJson(template), 'utf8')
-    } catch {
-      // 逻辑：写入失败时静默忽略，不影响程序启动。
-    }
-  }
-}

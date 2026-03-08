@@ -15,6 +15,17 @@ import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
 import { GLOBAL_SHORTCUTS } from "@/lib/globalShortcuts";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
+import type { LucideIcon } from "lucide-react";
+import { Command, Folder } from "lucide-react";
+
+/** Flat-color icon badge for settings items. */
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
+}
 
 const SHORTCUT_KEYS_MAP: Record<string, string> = {
   "sidebar.toggle": "sidebarToggle",
@@ -127,15 +138,16 @@ export function KeyboardShortcuts() {
   return (
     <div className="space-y-6">
       <OpenLoafSettingsGroup title={t('keyboardShortcuts.title')}>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           {GLOBAL_SHORTCUTS.map((shortcut) => {
             const text = getShortcutText(shortcut, (key) => t(key));
             return (
               <div
                 key={shortcut.id}
-                className="flex flex-wrap items-start gap-3 px-3 py-3"
+                className="flex flex-wrap items-center gap-2 py-3"
               >
-                <div className="min-w-0">
+                <SettingIcon icon={Command} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+                <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium">{text.label}</div>
                   {text.note ? (
                     <div className="text-xs text-muted-foreground mt-1">{text.note}</div>
@@ -150,13 +162,14 @@ export function KeyboardShortcuts() {
         </div>
       </OpenLoafSettingsGroup>
       <OpenLoafSettingsGroup title={t('keyboardShortcuts.projectShortcuts')}>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           {PROJECT_SHORTCUTS.map((shortcut) => (
             <div
               key={shortcut.id}
-              className="flex flex-wrap items-start gap-3 px-3 py-3"
+              className="flex flex-wrap items-center gap-2 py-3"
             >
-              <div className="min-w-0">
+              <SettingIcon icon={Folder} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
+              <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{shortcut.label}</div>
               </div>
               <OpenLoafSettingsField className="shrink-0">

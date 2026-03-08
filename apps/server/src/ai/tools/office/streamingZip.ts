@@ -212,7 +212,7 @@ export async function editZip(
         const buf = await readEntryBuffer(zipfile, entry)
         const xmlStr = buf.toString('utf-8')
         const editOps = xmlEdits.get(entryName)!
-        const modified = applyXmlEdits(xmlStr, editOps, entryName)
+        const modified = await applyXmlEdits(xmlStr, editOps, entryName)
         output.addBuffer(Buffer.from(modified, 'utf-8'), entryName)
         xmlEdits.delete(entryName)
       } else if (writeOps.has(entryName)) {

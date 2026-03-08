@@ -165,7 +165,11 @@
     "widget-list": "列出 Widget",
     "widget-get": "获取 Widget",
     "widget-check": "验证 Widget",
-    "generate-widget": "生成动态 Widget"
+    "generate-widget": "生成动态 Widget",
+    "image-process": "图片处理",
+    "video-convert": "视频转换",
+    "doc-convert": "文档转换",
+    "file-info": "文件信息"
   },
   "session": {
     "renameTitle": "重命名会话",
@@ -336,6 +340,54 @@
       "exportedTo": "已导出至",
       "renamed": "重命名",
       "formula": "公式"
+    },
+    "office": {
+      "processing": "处理中…",
+      "operationFailed": "操作失败",
+      "confirmAction": "确认执行此操作？",
+      "file": "文件",
+      "action": "操作",
+      "more": "+{{count}} 更多"
+    },
+    "word": {
+      "totalParagraphs": "{{count}} 个段落",
+      "tables": "{{count}} 个表格",
+      "images": "{{count}} 张图片",
+      "truncated": "显示前 {{shown}} / 共 {{total}} 个段落",
+      "characterCount": "{{count}} 个字符",
+      "textTruncated": "文本已截断",
+      "elementCount": "元素数",
+      "editCount": "编辑数",
+      "contentPreview": "内容摘要",
+      "legacyHint": "该文件为旧版 .doc 格式",
+      "table": "表格 {{index}}",
+      "header": "页眉",
+      "footer": "页脚"
+    },
+    "pptx": {
+      "slideCount": "{{count}} 张幻灯片",
+      "textBlocks": "{{count}} 个文本块",
+      "editCount": "编辑数",
+      "untitled": "无标题",
+      "masters": "{{count}} 个母版"
+    },
+    "pdf": {
+      "pageCount": "{{count}} 页",
+      "fileSize": "文件大小",
+      "formFieldCount": "{{count}} 个表单字段",
+      "metadata": "元数据",
+      "noFormFields": "无表单字段",
+      "elementCount": "元素数",
+      "filledCount": "已填充字段数",
+      "sourceCount": "源文件数",
+      "skipped": "已跳过",
+      "fieldName": "名称",
+      "fieldType": "类型",
+      "fieldValue": "值",
+      "fieldOptions": "选项",
+      "fillForm": "填充表单字段",
+      "mergePdfs": "合并 PDF",
+      "addText": "添加文本叠加"
     }
   },
   "error": {

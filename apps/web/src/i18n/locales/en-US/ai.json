@@ -165,7 +165,11 @@
     "widget-list": "List Widgets",
     "widget-get": "Get Widget",
     "widget-check": "Check Widget",
-    "generate-widget": "Generate Widget"
+    "generate-widget": "Generate Widget",
+    "image-process": "Image Process",
+    "video-convert": "Video Convert",
+    "doc-convert": "Document Convert",
+    "file-info": "File Info"
   },
   "session": {
     "renameTitle": "Rename Session",
@@ -336,6 +340,54 @@
       "exportedTo": "Exported to",
       "renamed": "Renamed",
       "formula": "Formula"
+    },
+    "office": {
+      "processing": "Processing...",
+      "operationFailed": "Operation failed",
+      "confirmAction": "Confirm this operation?",
+      "file": "File",
+      "action": "Action",
+      "more": "+{{count}} more"
+    },
+    "word": {
+      "totalParagraphs": "{{count}} paragraphs",
+      "tables": "{{count}} tables",
+      "images": "{{count}} images",
+      "truncated": "Showing {{shown}} / {{total}} paragraphs",
+      "characterCount": "{{count}} characters",
+      "textTruncated": "Text truncated",
+      "elementCount": "Elements",
+      "editCount": "Edits",
+      "contentPreview": "Content summary",
+      "legacyHint": "This is a legacy .doc file",
+      "table": "Table {{index}}",
+      "header": "Header",
+      "footer": "Footer"
+    },
+    "pptx": {
+      "slideCount": "{{count}} slides",
+      "textBlocks": "{{count}} text blocks",
+      "editCount": "Edits",
+      "untitled": "Untitled",
+      "masters": "{{count}} masters"
+    },
+    "pdf": {
+      "pageCount": "{{count}} pages",
+      "fileSize": "File size",
+      "formFieldCount": "{{count}} form fields",
+      "metadata": "Metadata",
+      "noFormFields": "No form fields",
+      "elementCount": "Elements",
+      "filledCount": "Fields filled",
+      "sourceCount": "Source files",
+      "skipped": "Skipped",
+      "fieldName": "Name",
+      "fieldType": "Type",
+      "fieldValue": "Value",
+      "fieldOptions": "Options",
+      "fillForm": "Fill form fields",
+      "mergePdfs": "Merge PDFs",
+      "addText": "Add text overlays"
     }
   },
   "error": {

@@ -95,7 +95,7 @@ jobs:
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter desktop... --filter server...
 
       - name: Generate Prisma client
         run: pnpm run db:generate
@@ -166,7 +166,7 @@ jobs:
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter desktop...
+        run: pnpm install --frozen-lockfile --filter desktop... --filter server...
 
       - name: Generate Prisma client
         run: pnpm run db:generate
@@ -273,7 +273,7 @@ jobs:
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter desktop...
+        run: pnpm install --frozen-lockfile --filter desktop... --filter server...
 
       - name: Generate Prisma client
         run: pnpm run db:generate
@@ -371,7 +371,7 @@ jobs:
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter desktop...
+        run: pnpm install --frozen-lockfile --filter desktop... --filter server...
 
       - name: Generate Prisma client
         run: pnpm run db:generate

@@ -419,7 +419,7 @@ export function AboutOpenLoaf() {
       <OpenLoafSettingsGroup title={t('aboutAdditions.versionInfo')}>
         <div className="divide-y divide-border/40">
           {/* Electron 版本 */}
-          <div className="px-3 py-3">
+          <div className="py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <SettingIcon icon={Monitor} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
@@ -474,7 +474,7 @@ export function AboutOpenLoaf() {
           </div>
 
           {/* Server 版本 */}
-          <div className="flex items-center justify-between px-3 py-3">
+          <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <SettingIcon icon={Server} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
               <div className="min-w-0 flex-1">
@@ -504,7 +504,7 @@ export function AboutOpenLoaf() {
           </div>
 
           {/* Web 版本 */}
-          <div className="flex items-center justify-between px-3 py-3">
+          <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <SettingIcon icon={Globe} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
               <div className="min-w-0 flex-1">
@@ -534,7 +534,7 @@ export function AboutOpenLoaf() {
           </div>
           {/* 增量更新 */}
           {isElectron && (
-            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2 py-3">
               <SettingIcon icon={ArrowDownToLine} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{t('aboutAdditions.incrementalUpdate')}</div>
@@ -559,7 +559,7 @@ export function AboutOpenLoaf() {
 
           {/* Beta 渠道 */}
           {isElectron && (
-            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2 py-3">
               <SettingIcon icon={FlaskConical} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{t('aboutAdditions.betaChannel')}</div>
@@ -581,7 +581,7 @@ export function AboutOpenLoaf() {
 
       <OpenLoafSettingsGroup title={t('aboutAdditions.actions')}>
         <div className="divide-y divide-border/40">
-          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={RefreshCw} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">{t('aboutAdditions.pageReload')}</div>
@@ -593,7 +593,7 @@ export function AboutOpenLoaf() {
               </Button>
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={Bug} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">{t('aboutAdditions.aiDebugMode')}</div>
@@ -608,7 +608,7 @@ export function AboutOpenLoaf() {
             </OpenLoafSettingsField>
           </div>
           {isElectron ? (
-            <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2 py-3">
               <SettingIcon icon={ScrollText} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{t('aboutAdditions.openLogsFolder')}</div>
@@ -632,7 +632,7 @@ export function AboutOpenLoaf() {
 
       <OpenLoafSettingsGroup title={t('aboutAdditions.info')}>
         <div className="divide-y divide-border/40">
-          <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={Fingerprint} bg="bg-slate-500/10" fg="text-slate-600 dark:text-slate-400" />
             <div className="text-sm font-medium">{t('aboutAdditions.clientId')}</div>
             <OpenLoafSettingsField className="max-w-[70%]">
@@ -661,7 +661,7 @@ export function AboutOpenLoaf() {
               key={item.key}
               type="button"
               variant="ghost"
-              className="w-full justify-between px-3 py-3 h-auto rounded-none"
+              className="w-full justify-between py-3 h-auto rounded-none"
             >
               <span className="flex items-center gap-2">
                 <SettingIcon icon={item.icon} bg={item.bg} fg={item.fg} />

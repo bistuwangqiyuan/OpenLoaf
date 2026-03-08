@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
 import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
-import { Copy, FolderOpen, Loader2, Save, Trash2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { BarChart3, Coins, Copy, Crown, FolderOpen, Hash, Layers, Loader2, MessageSquare, Save, TextCursorInput, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { useTabs } from "@/hooks/use-tabs";
@@ -53,6 +54,14 @@ function formatTokenCount(value: number): string {
 function countProjectNodes(nodes?: ProjectNode[]): number {
   if (!nodes?.length) return 0;
   return nodes.reduce((total, node) => total + 1 + countProjectNodes(node.children), 0);
+}
+
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
 }
 
 export function WorkspaceSettings() {
@@ -274,8 +283,9 @@ export function WorkspaceSettings() {
     <div className="space-y-6">
       {loggedIn && (
         <OpenLoafSettingsGroup title={t('settings.accountInfo')}>
-          <div className="divide-y divide-border">
-            <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="divide-y divide-border/40">
+            <div className="flex flex-wrap items-center gap-2 py-3">
+              <SettingIcon icon={Crown} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
               <div className="text-sm font-medium">{t('settings.membershipLevel')}</div>
               <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
                 {userProfileQuery.isLoading
@@ -286,7 +296,8 @@ export function WorkspaceSettings() {
                     : "—"}
               </OpenLoafSettingsField>
             </div>
-            <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2 py-3">
+              <SettingIcon icon={Coins} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
               <div className="text-sm font-medium">{t('settings.creditsBalance')}</div>
               <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
                 {userProfileQuery.isLoading
@@ -301,8 +312,9 @@ export function WorkspaceSettings() {
       )}
 
       <OpenLoafSettingsGroup title={t('settings.basicInfo')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Hash} bg="bg-slate-500/10" fg="text-slate-600 dark:text-slate-400" />
             <div className="text-sm font-medium">{t('settings.workspaceId')}</div>
             <OpenLoafSettingsField className="flex items-center justify-end gap-2 text-right text-xs text-muted-foreground">
               <span>{activeWorkspace?.id ?? "—"}</span>
@@ -319,7 +331,8 @@ export function WorkspaceSettings() {
               </Button>
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={TextCursorInput} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
             <div className="text-sm font-medium">{t('settings.workspaceName')}</div>
             <OpenLoafSettingsField className="w-full sm:w-[320px] shrink-0 justify-end gap-2 text-right">
               <Input
@@ -345,7 +358,8 @@ export function WorkspaceSettings() {
               </Button>
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={FolderOpen} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
             <div className="text-sm font-medium">{t('settings.storagePath')}</div>
             <OpenLoafSettingsField className="flex items-center justify-end gap-2 text-right text-xs text-muted-foreground">
               <span className="min-w-0 flex-1 truncate">{displayWorkspacePath}</span>
@@ -375,7 +389,8 @@ export function WorkspaceSettings() {
               </Button>
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Layers} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
             <div className="text-sm font-medium">{t('settings.projectCount')}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {projectsQuery.isLoading ? t('settings.loading') : totalProjectCount}
@@ -385,20 +400,23 @@ export function WorkspaceSettings() {
       </OpenLoafSettingsGroup>
 
       <OpenLoafSettingsGroup title={t('settings.chatData')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={MessageSquare} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
             <div className="text-sm font-medium">{t('settings.totalSessions')}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {typeof sessionCount === "number" ? sessionCount : "—"}
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Coins} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
             <div className="text-sm font-medium">{t('settings.totalTokens')}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {usage ? formatTokenCount(usage.totalTokens) : "—"}
             </OpenLoafSettingsField>
           </div>
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={BarChart3} bg="bg-teal-500/10" fg="text-teal-600 dark:text-teal-400" />
             <div className="text-sm font-medium">{t('settings.tokenUsage')}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {usage
@@ -415,9 +433,10 @@ export function WorkspaceSettings() {
       </OpenLoafSettingsGroup>
 
       <OpenLoafSettingsGroup title={t('settings.cleanup')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-            <div className="min-w-0">
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Trash2} bg="bg-red-500/10" fg="text-red-600 dark:text-red-400" />
+            <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">{t('settings.clearAllChat')}</div>
               <div className="text-xs text-muted-foreground">
                 {t('settings.clearAllChatDescription')}
@@ -428,7 +447,7 @@ export function WorkspaceSettings() {
               <Button
                 type="button"
                 size="sm"
-                variant="destructive"
+                className="rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none"
                 disabled={clearAllChat.isPending}
                 onClick={() => void handleClearAllChat()}
               >
@@ -437,8 +456,9 @@ export function WorkspaceSettings() {
             </OpenLoafSettingsField>
           </div>
 
-          <div className="flex flex-wrap items-start gap-3 px-3 py-3">
-            <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Trash2} bg="bg-red-500/10" fg="text-red-600 dark:text-red-400" />
+            <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">{t('settings.deleteWorkspace')}</div>
               <div className="text-xs text-muted-foreground">
                 {canDeleteCurrentWorkspace
@@ -451,7 +471,7 @@ export function WorkspaceSettings() {
               <Button
                 type="button"
                 size="sm"
-                variant="destructive"
+                className="rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none"
                 disabled={
                   !activeWorkspace?.id ||
                   !canDeleteCurrentWorkspace ||

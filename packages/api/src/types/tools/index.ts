@@ -28,3 +28,7 @@ export * from "./toolCatalog";
 export * from "./toolSearch";
 export * from "./chart";
 export * from "./task";
+export * from "./imageProcess";
+export * from "./videoConvert";
+export * from "./docConvert";
+export * from "./fileInfo";

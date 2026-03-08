@@ -145,8 +145,8 @@ async function main() {
   </w:body>
 </w:document>`
 
-  await test('B1: applyXmlEdits replace 替换 w:t 文本', () => {
-    const result = applyXmlEdits(
+  await test('B1: applyXmlEdits replace 替换 w:t 文本', async () => {
+    const result = await applyXmlEdits(
       sampleDocXml,
       [
         {
@@ -162,8 +162,8 @@ async function main() {
     assert.ok(!result.includes('Hello World'), 'should not contain original text')
   })
 
-  await test('B2: applyXmlEdits insert before 在目标前插入段落', () => {
-    const result = applyXmlEdits(
+  await test('B2: applyXmlEdits insert before 在目标前插入段落', async () => {
+    const result = await applyXmlEdits(
       sampleDocXml,
       [
         {
@@ -183,8 +183,8 @@ async function main() {
     assert.ok(insertedIdx < originalIdx, 'inserted text should be before original')
   })
 
-  await test('B3: applyXmlEdits insert after 在目标后插入段落', () => {
-    const result = applyXmlEdits(
+  await test('B3: applyXmlEdits insert after 在目标后插入段落', async () => {
+    const result = await applyXmlEdits(
       sampleDocXml,
       [
         {
@@ -205,8 +205,8 @@ async function main() {
     assert.ok(insertedIdx < secondParaIdx, 'inserted should be before second para')
   })
 
-  await test('B4: applyXmlEdits remove 删除指定元素', () => {
-    const result = applyXmlEdits(
+  await test('B4: applyXmlEdits remove 删除指定元素', async () => {
+    const result = await applyXmlEdits(
       sampleDocXml,
       [
         {
@@ -221,8 +221,8 @@ async function main() {
     assert.ok(result.includes('Second paragraph'), 'second paragraph should remain')
   })
 
-  await test('B5: 多个 edits 批量执行', () => {
-    const result = applyXmlEdits(
+  await test('B5: 多个 edits 批量执行', async () => {
+    const result = await applyXmlEdits(
       sampleDocXml,
       [
         {
@@ -244,28 +244,27 @@ async function main() {
     assert.ok(!result.includes('Second paragraph'), 'second para should be removed')
   })
 
-  await test('B6: XPath 匹配不到节点抛出错误', () => {
-    assert.throws(
-      () =>
-        applyXmlEdits(
-          sampleDocXml,
-          [
-            {
-              op: 'replace',
-              path: 'word/document.xml',
-              xpath: '//w:nonexistent',
-              xml: '<w:t>test</w:t>',
-            },
-          ],
-          'word/document.xml',
-        ),
+  await test('B6: XPath 匹配不到节点抛出错误', async () => {
+    await assert.rejects(
+      applyXmlEdits(
+        sampleDocXml,
+        [
+          {
+            op: 'replace',
+            path: 'word/document.xml',
+            xpath: '//w:nonexistent',
+            xml: '<w:t>test</w:t>',
+          },
+        ],
+        'word/document.xml',
+      ),
       /matched no nodes/,
     )
   })
 
-  await test('B7: xpathReplace 便捷函数正确工作', () => {
+  await test('B7: xpathReplace 便捷函数正确工作', async () => {
     const nsMap = detectNamespaces('word/document.xml')
-    const result = xpathReplace(
+    const result = await xpathReplace(
       sampleDocXml,
       '//w:p[1]/w:r/w:t',
       '<w:t>Convenience Replace</w:t>',

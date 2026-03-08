@@ -22,7 +22,6 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import {
   Bot,
-  Crown,
   Cpu,
   SlidersHorizontal,
   Info,
@@ -43,7 +42,6 @@ import { AboutOpenLoaf } from "./menus/AboutOpenLoaf";
 import { ProviderManagement } from "./menus/ProviderManagement";
 import { ObjectStorageService } from "./menus/ObjectStorageService";
 import { AgentManagement } from "./menus/agent/AgentManagement";
-import { MasterAgentSettings } from "./menus/agent/MasterAgentSettings";
 import { AuxiliaryModelSettings } from "./menus/AuxiliaryModelSettings";
 import { KeyboardShortcuts } from "./menus/KeyboardShortcuts";
 import { WorkspaceSettings } from "./menus/Workspace";
@@ -62,7 +60,6 @@ type SettingsMenuKey =
   | "about"
   | "keys"
   | "storage"
-  | "masterAgent"
   | "agents"
   | "auxiliaryModel"
   | "workspace"
@@ -78,7 +75,6 @@ const SETTINGS_MENU_ICON_COLOR = {
   thirdPartyTools: "text-[#188038] dark:text-emerald-300",
   keys: "text-[#e91e63] dark:text-pink-300",
   storage: "text-[#188038] dark:text-emerald-300",
-  masterAgent: "text-[#f9ab00] dark:text-amber-300",
   agents: "text-[#4f46e5] dark:text-indigo-300",
   auxiliaryModel: "text-[#0d9488] dark:text-teal-300",
   shortcuts: "text-[#f9ab00] dark:text-amber-300",
@@ -151,12 +147,6 @@ function buildMenu(t: (key: string) => string): Array<{
       Component: ObjectStorageService,
     },
     {
-      key: "masterAgent",
-      label: t('settings:menu.masterAgent'),
-      Icon: createMenuIcon(Crown, SETTINGS_MENU_ICON_COLOR.masterAgent),
-      Component: MasterAgentSettings,
-    },
-    {
       key: "agents",
       label: t('settings:menu.agents'),
       Icon: createMenuIcon(Bot, SETTINGS_MENU_ICON_COLOR.agents),
@@ -185,7 +175,7 @@ function buildMenu(t: (key: string) => string): Array<{
 }
 
 const ALL_MENU_KEYS: SettingsMenuKey[] = [
-  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'masterAgent', 'agents', 'auxiliaryModel', 'shortcuts', 'about', 'projectTest',
+  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'auxiliaryModel', 'shortcuts', 'about', 'projectTest',
 ];
 const MENU_KEY_SET = new Set<SettingsMenuKey>(ALL_MENU_KEYS);
 const HIDDEN_MENU_KEYS = new Set<SettingsMenuKey>([]);
@@ -231,10 +221,12 @@ export default function SettingsPage({
   const setSettingsOpen = useGlobalOverlay((s) => s.setSettingsOpen);
   const isDialogMode = !tabId;
 
-  const activeLabel = useMemo(
-    () => MENU.find((item) => item.key === activeKey)?.label ?? t('nav:settings'),
-    [MENU, activeKey, t],
+  const activeItem = useMemo(
+    () => MENU.find((item) => item.key === activeKey),
+    [MENU, activeKey],
   );
+  const activeLabel = activeItem?.label ?? t('nav:settings');
+  const ActiveIcon = activeItem?.Icon;
 
   const setTabMinLeftWidth = useTabRuntime((s) => s.setTabMinLeftWidth);
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
@@ -320,7 +312,6 @@ export default function SettingsPage({
       byKey.get("about"),
     ].filter(filterVisible);
     const group2 = [
-      byKey.get("masterAgent"),
       byKey.get("agents"),
       byKey.get("auxiliaryModel"),
       byKey.get("skills"),
@@ -338,69 +329,71 @@ export default function SettingsPage({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {isDialogMode && (
-        <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2.5">
-          <h2 className="text-sm font-medium">{activeLabel}</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 rounded-full text-muted-foreground"
-            onClick={() => setSettingsOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      <OpenLoafSettingsLayout
-        ref={containerRef}
-        className="flex-1 min-h-0"
-        isCollapsed={isCollapsed}
-        contentWrapperClassName="min-w-[400px]"
-        contentInnerClassName="p-3 pr-1"
-        menu={
-          <OpenLoafSettingsMenu
-            groups={menuGroups}
-            activeKey={activeKey}
-            isCollapsed={isCollapsed}
-            onChange={(key) => handleMenuChange(key as SettingsMenuKey)}
-            renderItemWrapper={(item, button) => {
-              const tooltipEnabled = isCollapsed && isActiveTab;
-              if (!tooltipEnabled) return button;
-              return (
-                <Tooltip
-                  delayDuration={200}
-                  open={openTooltipKey === item.key}
-                  onOpenChange={(open) => {
-                    if (open) {
-                      setOpenTooltipKey(item.key as SettingsMenuKey);
-                      return;
-                    }
-                    setOpenTooltipKey((prev) =>
-                      prev === item.key ? null : prev,
-                    );
-                  }}
-                >
-                  <TooltipTrigger asChild>{button}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              );
-            }}
-          />
-        }
-        content={
+    <OpenLoafSettingsLayout
+      ref={containerRef}
+      isCollapsed={isCollapsed}
+      contentWrapperClassName="min-w-[400px]"
+      contentInnerClassName="p-0"
+      menu={
+        <OpenLoafSettingsMenu
+          groups={menuGroups}
+          activeKey={activeKey}
+          isCollapsed={isCollapsed}
+          onChange={(key) => handleMenuChange(key as SettingsMenuKey)}
+          renderItemWrapper={(item, button) => {
+            const tooltipEnabled = isCollapsed && isActiveTab;
+            if (!tooltipEnabled) return button;
+            return (
+              <Tooltip
+                delayDuration={200}
+                open={openTooltipKey === item.key}
+                onOpenChange={(open) => {
+                  if (open) {
+                    setOpenTooltipKey(item.key as SettingsMenuKey);
+                    return;
+                  }
+                  setOpenTooltipKey((prev) =>
+                    prev === item.key ? null : prev,
+                  );
+                }}
+              >
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent side="right">{item.label}</TooltipContent>
+              </Tooltip>
+            );
+          }}
+        />
+      }
+      content={
+        <div className="flex h-full min-h-0 flex-col">
+          {isDialogMode && (
+            <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2">
+              <h2 className="flex items-center gap-2 text-sm font-medium">
+                {ActiveIcon && <ActiveIcon className="h-4 w-4" />}
+                {activeLabel}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-muted-foreground"
+                onClick={() => setSettingsOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div
             key={activeKey}
             className={cn(
-              "h-full min-h-0 flex flex-col",
+              "flex-1 min-h-0 overflow-auto p-3 pr-1",
               shouldAnimate &&
                 "settings-animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out",
             )}
           >
             <ActiveComponent />
           </div>
-        }
-      />
-    </div>
+        </div>
+      }
+    />
   );
 }

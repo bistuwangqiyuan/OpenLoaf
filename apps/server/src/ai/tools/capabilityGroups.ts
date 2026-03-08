@@ -48,7 +48,7 @@ const RAW_CAPABILITY_GROUPS = [
     id: 'file-read',
     label: '文件读取',
     description: '读取文件、列出目录、搜索文件内容',
-    toolIds: ['read-file', 'list-dir', 'grep-files'],
+    toolIds: ['read-file', 'list-dir', 'grep-files', 'file-info'],
   },
   {
     id: 'file-write',
@@ -143,6 +143,12 @@ const RAW_CAPABILITY_GROUPS = [
     label: 'JavaScript REPL',
     description: '在沙箱中执行 JavaScript 代码，支持持久化变量',
     toolIds: ['js-repl', 'js-repl-reset'],
+  },
+  {
+    id: 'convert',
+    label: '格式转换',
+    description: '图片处理、视频转换、文档格式转换',
+    toolIds: ['image-process', 'video-convert', 'doc-convert'],
   },
   {
     id: 'system',

@@ -124,6 +124,7 @@ export function StackHeader({
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
                   aria-label={t('openInSystem')}
                   onClick={handleOpenExternal}
                 >
@@ -139,6 +140,7 @@ export function StackHeader({
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
                   aria-label={t('copyPath')}
                   onClick={handleCopyPath}
                 >
@@ -151,7 +153,7 @@ export function StackHeader({
           {onRefresh ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={onRefresh} aria-label={t('refresh')}>
+                <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={onRefresh} aria-label={t('refresh')}>
                   <RotateCw className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -164,6 +166,7 @@ export function StackHeader({
             <Button
               size="sm"
               variant="ghost"
+              className="text-muted-foreground hover:text-foreground"
               aria-label="Minimize"
               onClick={onMinimize}
               disabled={!onMinimize}
@@ -172,7 +175,7 @@ export function StackHeader({
             </Button>
           ) : null}
           {canClose && onClose ? (
-            <Button size="sm" variant="ghost" onClick={onClose} aria-label="Close">
+            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={onClose} aria-label="Close">
               <X className="h-4 w-4" />
             </Button>
           ) : null}

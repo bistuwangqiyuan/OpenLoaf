@@ -69,6 +69,12 @@ export const masterTemplate: AgentTemplate = {
     // pdf
     'pdf-query',
     'pdf-mutate',
+    // convert
+    'image-process',
+    'video-convert',
+    'doc-convert',
+    // file info
+    'file-info',
   ],
   allowSubAgents: true,
   maxDepth: 2,

@@ -180,6 +180,10 @@ r.error 存在?
 | `spawn-agent`, `send-input`, `wait-agent`, `abort-agent` | `packages/api/src/types/tools/agent.ts` |
 | `generate-widget`, `widget-*` | `packages/api/src/types/tools/widget.ts` |
 | `office-execute` | `packages/api/src/types/tools/office.ts` |
+| `image-process` | `packages/api/src/types/tools/imageProcess.ts` |
+| `video-convert` | `packages/api/src/types/tools/videoConvert.ts` |
+| `doc-convert` | `packages/api/src/types/tools/docConvert.ts` |
+| `file-info` | `packages/api/src/types/tools/fileInfo.ts` |
 
 ## 修复护栏
 

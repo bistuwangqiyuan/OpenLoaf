@@ -147,6 +147,9 @@ export function buildToolSearchGuidance(): string {
 - Excel/xlsx 电子表格（读取、创建、编辑）→ select:excel-query,excel-mutate
 - PPT/pptx 演示文稿（读取、创建、编辑）→ select:pptx-query,pptx-mutate
 - PDF 文档（读取文本、查看结构、表单、创建、合并、填表）→ select:pdf-query,pdf-mutate
+- 图片处理（"把图片缩小到800x600"、"PNG转WebP"、"旋转90度"、"裁剪图片"、"加模糊效果"、"转成JPG"）→ select:image-process
+- 视频/音频转换（"MP4转WebM"、"提取音频"、"查看视频信息"、"AVI转MP4"、"WAV转MP3"、"视频转720p"）→ select:video-convert
+- 文档格式转换（"Word转PDF"、"PDF转文本"、"Excel导出CSV"、"Markdown转HTML"、"HTML转MD"、"CSV转Excel"）→ select:doc-convert
 
 重要：简单对话直接回答，不需要加载任何工具。
 </tool-search-guidance>`

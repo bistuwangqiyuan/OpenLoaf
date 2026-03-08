@@ -40,7 +40,3 @@ export function getPrimaryTemplate(): AgentTemplate {
   return masterTemplate
 }
 
-/** 获取可脚手架化的模版（仅 master）。 */
-export function getScaffoldableTemplates(): readonly AgentTemplate[] {
-  return ALL_TEMPLATES.filter((t) => !t.isBuiltinOnly)
-}

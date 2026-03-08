@@ -26,6 +26,8 @@ import {
 import { parseXlsxStructure } from '@/ai/tools/office/structureParser'
 import type { OfficeEdit } from '@/ai/tools/office/types'
 
+const MAX_XML_LENGTH = 200_000
+
 // ---------------------------------------------------------------------------
 // XLSX XML Templates (for create action)
 // ---------------------------------------------------------------------------
@@ -197,8 +199,10 @@ export const excelQueryTool = tool({
           const entries = await listZipEntries(absPath)
           return { ok: true, data: { mode, fileName: path.basename(filePath), entries } }
         }
-        const xml = await readZipEntryText(absPath, xmlPath)
-        return { ok: true, data: { mode, fileName: path.basename(filePath), xmlPath, xml } }
+        const rawXml = await readZipEntryText(absPath, xmlPath)
+        const xmlTruncated = rawXml.length > MAX_XML_LENGTH
+        const xml = xmlTruncated ? rawXml.slice(0, MAX_XML_LENGTH) : rawXml
+        return { ok: true, data: { mode, fileName: path.basename(filePath), xmlPath, xml, truncated: xmlTruncated, totalLength: rawXml.length } }
       }
 
       case 'read-text': {

@@ -257,7 +257,7 @@ export function AuxiliaryModelSettings() {
         icon={<Cpu className="h-4 w-4" />}
         subtitle={t('auxiliaryModel.modelSubtitle')}
       >
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           {/* Source row */}
           <div className="flex flex-wrap items-start gap-3 py-3">
             <div className="min-w-0 flex-1">

@@ -435,6 +435,22 @@ export async function addTextOverlays(
     const fontSize = overlay.fontSize ?? 12
     const color = overlay.color ? parseHexColor(overlay.color) : rgb(0, 0, 0)
 
+    // Draw background rectangle first (for redaction/masking)
+    if (overlay.background) {
+      const bg = overlay.background
+      const pad = bg.padding ?? 2
+      const textWidth = font.widthOfTextAtSize(overlay.text, fontSize)
+      const rectW = bg.width ?? textWidth + pad * 2
+      const rectH = bg.height ?? fontSize + pad * 2
+      page.drawRectangle({
+        x: overlay.x - pad,
+        y: overlay.y - pad,
+        width: rectW,
+        height: rectH,
+        color: parseHexColor(bg.color),
+      })
+    }
+
     page.drawText(overlay.text, {
       x: overlay.x,
       y: overlay.y,

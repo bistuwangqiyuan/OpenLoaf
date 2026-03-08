@@ -246,6 +246,7 @@ export function createFrontendToolExecutor(): FrontendToolExecutor {
       const toolCallId = typeof part?.toolCallId === "string" ? part.toolCallId : "";
       const toolName = resolveToolName(part);
       if (!toolCallId || !toolName) return false;
+      if (!allowedToolNames.has(toolName)) return false;
       if (part?.output != null || (typeof part?.errorText === "string" && part.errorText.trim())) {
         return false;
       }
@@ -253,7 +254,17 @@ export function createFrontendToolExecutor(): FrontendToolExecutor {
       // 逻辑：仅在 input 完整时（input-available）才执行前端工具。
       // input-streaming 状态下 input 可能不完整（如缺少 url），会导致误报 "url is required."。
       const state = typeof part?.state === "string" ? part.state : "";
-      if (state === "input-streaming") return false;
+      if (state === "input-streaming") {
+        // 中文注释：input 尚未完整，延迟重试一次，避免因子代理 chunk 解析时序导致永久错过。
+        if (!executed.has(toolCallId)) {
+          setTimeout(() => {
+            if (executed.has(toolCallId)) return;
+            const latestPart = { ...part, state: "input-available" };
+            void execute({ toolCallId, toolName, payload: latestPart.input, tabId });
+          }, 2000);
+        }
+        return false;
+      }
       return execute({ toolCallId, toolName, payload: part.input, tabId });
     },
   };

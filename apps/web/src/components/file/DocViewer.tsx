@@ -469,7 +469,11 @@ export default function DocViewer({
               </div>
             ) : null}
             <EditorContainer className="h-full">
-              <Editor variant="fullWidth" className="h-full" readOnly={!isEditMode} />
+              <Editor
+                variant="fullWidth"
+                className={`h-full${!isEditMode ? ' cursor-text select-text [&_*]:select-text' : ''}`}
+                readOnly={!isEditMode}
+              />
             </EditorContainer>
           </Plate>
         </div>

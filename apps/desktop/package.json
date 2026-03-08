@@ -78,7 +78,7 @@
     "package:ci": "pnpm run predesktop && electron-forge package",
     "dist:mac": "pnpm run package && node scripts/dist.mjs --mac",
     "dist:mac:ci": "pnpm run package:ci && node scripts/dist.mjs --mac",
-    "dist:mac:dev": "pnpm run package && node scripts/dist.mjs --mac --config.mac.identity=null",
+    "dist:mac:dev": "pnpm run package && node scripts/dist.mjs --mac --config.mac.identity=null --config.mac.target=dmg",
     "dist:win": "pnpm run package && node scripts/dist.mjs --win --config.npmRebuild=false",
     "dist:win:ci": "pnpm run package:ci && node scripts/dist.mjs --win --config.npmRebuild=false",
     "dist:linux": "pnpm run package && node scripts/dist.mjs --linux",

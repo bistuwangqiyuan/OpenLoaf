@@ -37,6 +37,16 @@ const TOOL_TIMEOUT_MAP: Record<string, number> = {
   'image-generate': 120_000,
   'video-generate': 180_000,
 
+  // Office document tools — ZIP I/O + XML parsing can be slow for large files
+  'word-mutate': 120_000,
+  'excel-mutate': 120_000,
+  'pptx-mutate': 120_000,
+  'pdf-mutate': 120_000,
+  'word-query': 60_000,
+  'excel-query': 60_000,
+  'pptx-query': 60_000,
+  'pdf-query': 60_000,
+
   // Agent collaboration — delegates to sub-agents which have their own lifecycle
   'spawn-agent': 10_000,
   'wait-agent': 310_000, // slightly above the max 300s wait timeout

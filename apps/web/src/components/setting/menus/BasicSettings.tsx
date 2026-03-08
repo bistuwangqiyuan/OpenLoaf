@@ -25,7 +25,17 @@ import {
 } from "@openloaf/ui/dropdown-menu";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
-import { ChevronDown } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  Languages,
+  Palette,
+  PanelBottomClose,
+  Sparkles,
+  SunMoon,
+  Type,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
 import { SUPPORTED_UI_LANGUAGES } from "@/i18n/types";
@@ -36,6 +46,14 @@ import LocalAccess from "./LocalAccess";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
 type AnimationLevel = "low" | "medium" | "high";
+
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
+}
 
 export function BasicSettings() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -140,8 +158,9 @@ export function BasicSettings() {
         return (
           <div className="space-y-6">
             <OpenLoafSettingsGroup title={t('basicSettings.systemConfig')}>
-              <div className="divide-y divide-border">
-                <div className="flex flex-wrap items-start gap-3 py-3">
+              <div className="divide-y divide-border/40">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={Languages} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.language')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -186,7 +205,8 @@ export function BasicSettings() {
                   </OpenLoafSettingsField>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-3 py-3">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={Palette} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.theme')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -212,7 +232,8 @@ export function BasicSettings() {
                   </OpenLoafSettingsField>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-3 py-3">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={SunMoon} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.themeAutoSwitch')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -240,7 +261,8 @@ export function BasicSettings() {
                   </OpenLoafSettingsField>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-3 py-3">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={Type} bg="bg-teal-500/10" fg="text-teal-600 dark:text-teal-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.fontSize')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -265,7 +287,8 @@ export function BasicSettings() {
                   </OpenLoafSettingsField>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-3 py-3">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={Sparkles} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.animationLevel')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -289,7 +312,8 @@ export function BasicSettings() {
                   </OpenLoafSettingsField>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-3 py-3">
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={Bell} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{t('basicSettings.notificationSound')}</div>
                     <div className="text-xs text-muted-foreground">
@@ -311,7 +335,8 @@ export function BasicSettings() {
                 </div>
 
                 {isElectron && (
-                  <div className="flex flex-wrap items-start gap-3 py-3">
+                  <div className="flex flex-wrap items-center gap-2 py-3">
+                    <SettingIcon icon={PanelBottomClose} bg="bg-slate-500/10" fg="text-slate-600 dark:text-slate-400" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">{t('basicSettings.minimizeToTray')}</div>
                       <div className="text-xs text-muted-foreground">

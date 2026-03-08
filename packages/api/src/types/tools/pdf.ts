@@ -74,6 +74,15 @@ const pdfTextOverlaySchema = z.object({
   text: z.string().describe('要叠加的文字'),
   fontSize: z.number().optional().describe('字体大小（默认 12）'),
   color: z.string().optional().describe('颜色（十六进制如 "#FF0000"，默认黑色）'),
+  background: z
+    .object({
+      color: z.string().describe('背景矩形颜色（十六进制如 "#FFFFFF" 白色遮罩）'),
+      padding: z.number().optional().describe('矩形在文字四周的内边距（默认 2）'),
+      width: z.number().optional().describe('矩形宽度（不指定则根据文字宽度+padding 自动计算）'),
+      height: z.number().optional().describe('矩形高度（不指定则根据字体大小+padding 自动计算）'),
+    })
+    .optional()
+    .describe('可选背景矩形，用于遮盖原有内容（如隐私遮罩）。先画矩形再画文字。'),
 })
 
 export const pdfMutateToolDef = {

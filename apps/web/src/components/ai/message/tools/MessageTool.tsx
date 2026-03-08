@@ -26,6 +26,9 @@ import SpawnAgentTool from "./SpawnAgentTool";
 import WaitAgentTool from "./WaitAgentTool";
 import ChartTool from "./ChartTool";
 import ExcelTool from "./ExcelTool";
+import WordTool from "./WordTool";
+import PptxTool from "./PptxTool";
+import PdfTool from "./PdfTool";
 import TaskTool from "./TaskTool";
 import ClaudeCodeBashTool from "./ClaudeCodeBashTool";
 import ClaudeCodeReadTool from "./ClaudeCodeReadTool";
@@ -35,7 +38,7 @@ import ClaudeCodeSearchTool from "./ClaudeCodeSearchTool";
 import ClaudeCodeWebTool from "./ClaudeCodeWebTool";
 import ClaudeCodeTaskTool from "./ClaudeCodeTaskTool";
 import { useChatState, useChatTools } from "../../context";
-import { getApprovalId, isApprovalPending, type AnyToolPart, type ToolVariant } from "./shared/tool-utils";
+import { getApprovalId, isApprovalPending, normalizeToolInput, type AnyToolPart, type ToolVariant } from "./shared/tool-utils";
 import ToolApprovalActions from "./shared/ToolApprovalActions";
 import i18next from "i18next";
 
@@ -201,6 +204,26 @@ export default function MessageTool({
 
   if (toolKind === "excel-query" || toolKind === "excel-mutate") {
     return <ExcelTool part={resolvedPart} className={className} />;
+  }
+
+  if (toolKind === "word-query" || toolKind === "word-mutate") {
+    const inputMode = normalizeToolInput(resolvedPart.input);
+    const inputObj = typeof inputMode === 'object' && inputMode != null ? inputMode as Record<string, unknown> : null;
+    if (inputObj?.mode !== "read-xml") {
+      return <WordTool part={resolvedPart} className={className} />;
+    }
+  }
+
+  if (toolKind === "pptx-query" || toolKind === "pptx-mutate") {
+    const inputMode = normalizeToolInput(resolvedPart.input);
+    const inputObj = typeof inputMode === 'object' && inputMode != null ? inputMode as Record<string, unknown> : null;
+    if (inputObj?.mode !== "read-xml") {
+      return <PptxTool part={resolvedPart} className={className} />;
+    }
+  }
+
+  if (toolKind === "pdf-query" || toolKind === "pdf-mutate") {
+    return <PdfTool part={resolvedPart} className={className} />;
   }
 
   if (toolKind === "task-manage" || toolKind === "create-task" || toolKind === "task-status") {

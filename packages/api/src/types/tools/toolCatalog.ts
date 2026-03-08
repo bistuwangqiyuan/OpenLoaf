@@ -59,6 +59,10 @@ import {
 } from "./widget";
 import { subAgentToolDef } from "./subAgent";
 import { taskManageToolDef, taskStatusToolDef } from "./task";
+import { imageProcessToolDef } from "./imageProcess";
+import { videoConvertToolDef } from "./videoConvert";
+import { docConvertToolDef } from "./docConvert";
+import { fileInfoToolDef } from "./fileInfo";
 import { toolSearchToolDef } from "./toolSearch";
 
 export type ToolCatalogItem = {
@@ -130,6 +134,10 @@ const TOOL_DEFS: ToolDefLike[] = [
   chartRenderToolDef,
   taskManageToolDef,
   taskStatusToolDef,
+  imageProcessToolDef,
+  videoConvertToolDef,
+  docConvertToolDef,
+  fileInfoToolDef,
 ];
 
 // 逻辑：统一生成工具元数据，避免前端重复维护名称与描述。
@@ -205,6 +213,10 @@ const TOOL_KEYWORDS: Record<string, { keywords: string[]; group: string }> = {
   'widget-check': { keywords: ['widget', 'check', 'validate', 'verify', 'status'], group: 'ui' },
   'test-approval': { keywords: ['test', 'approval', 'review', 'verify', 'check'], group: 'core' },
   'sub-agent': { keywords: ['agent', 'sub', 'delegate', 'dispatch', 'spawn'], group: 'agent' },
+  'image-process': { keywords: ['image', 'picture', 'photo', 'resize', 'crop', 'rotate', 'convert', 'format', 'compress', 'sharp', 'jpg', 'png', 'webp'], group: 'convert' },
+  'video-convert': { keywords: ['video', 'audio', 'convert', 'format', 'ffmpeg', 'mp4', 'mp3', 'extract', 'transcode'], group: 'convert' },
+  'doc-convert': { keywords: ['document', 'convert', 'format', 'docx', 'pdf', 'html', 'markdown', 'csv', 'xlsx', 'txt', 'transform', 'word', 'export', 'import', 'to'], group: 'convert' },
+  'file-info': { keywords: ['file', 'info', 'metadata', 'size', 'type', 'mime', 'resolution', 'duration', 'pages', 'details', 'stat', 'width', 'height', 'image', 'picture', 'photo', 'video', 'audio', 'pdf', 'excel', 'spreadsheet'], group: 'fileRead' },
 };
 
 export const TOOL_CATALOG_EXTENDED: ToolCatalogExtendedItem[] = TOOL_CATALOG.map(

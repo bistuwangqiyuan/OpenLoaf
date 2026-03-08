@@ -29,8 +29,19 @@ import { Claude, OpenAI } from "@lobehub/icons";
 import { Switch } from "@openloaf/ui/animate-ui/components/radix/switch";
 import { toast } from "sonner";
 import type { CliToolConfig, CliToolsConfig } from "@openloaf/api/types/basic";
+import type { LucideIcon } from "lucide-react";
+import { Monitor, Terminal } from "lucide-react";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { queryClient, trpc } from "@/utils/trpc";
+
+/** Flat-color icon badge for settings items. */
+function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
+      <Icon className={`h-3 w-3 ${fg}`} />
+    </div>
+  );
+}
 
 type CliToolKind = keyof CliToolsConfig;
 type CliToolSettings = CliToolConfig;
@@ -48,14 +59,6 @@ type CliToolStatus = {
   hasUpdate?: boolean;
   /** Installed binary path. */
   path?: string;
-};
-
-type OfficeInfo = {
-  wps: {
-    installed: boolean;
-    path?: string;
-    version?: string;
-  };
 };
 
 type CliStatusMap = Record<CliToolKind, CliToolStatus>;
@@ -153,12 +156,6 @@ export function ThirdPartyTools() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-  const officeInfoQuery = useQuery({
-    ...trpc.settings.officeInfo.queryOptions(),
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
   const cliStatuses = useMemo(
     () => buildCliStatusMap(cliStatusQuery.data as CliToolStatus[] | undefined),
     [cliStatusQuery.data],
@@ -166,10 +163,6 @@ export function ThirdPartyTools() {
   const isCliStatusLoading = cliStatusQuery.isLoading && !cliStatusQuery.data;
   const systemCliInfo = systemCliInfoQuery.data;
   const isSystemCliLoading = systemCliInfoQuery.isLoading && !systemCliInfo;
-  const officeInfo = officeInfoQuery.data as OfficeInfo | undefined;
-  const wpsInfo = officeInfo?.wps;
-  const isOfficeInfoLoading = officeInfoQuery.isLoading && !officeInfo;
-
   const systemVersionValue = useMemo(() => {
     if (isSystemCliLoading) return t('thirdPartyTools.detecting');
     if (!systemCliInfo) return t('thirdPartyTools.unknown');
@@ -203,15 +196,6 @@ export function ThirdPartyTools() {
       : "";
     return `${name}${version}${path}`;
   }, [isSystemCliLoading, systemCliInfo, t]);
-
-  const wpsStatusLabel = useMemo(() => {
-    if (isOfficeInfoLoading) return t('thirdPartyTools.detecting');
-    if (!wpsInfo) return t('thirdPartyTools.unknown');
-    if (!wpsInfo.installed) return t('thirdPartyTools.notInstalled');
-    const version = wpsInfo.version ? ` · ${t('thirdPartyTools.version')}：${wpsInfo.version}` : "";
-    const pathLabel = wpsInfo.path ? ` · ${t('thirdPartyTools.path')}：${wpsInfo.path}` : "";
-    return `${t('thirdPartyTools.installed')}${version}${pathLabel}`;
-  }, [isOfficeInfoLoading, wpsInfo, t]);
 
   /** Update cached CLI status list. */
   const updateCliStatusCache = (nextStatus: CliToolStatus) => {
@@ -360,8 +344,9 @@ export function ThirdPartyTools() {
   return (
     <div className="space-y-3">
       <OpenLoafSettingsGroup title={t('thirdPartyTools.systemInfo')} subtitle={t('thirdPartyTools.systemInfoDesc')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-2 py-3">
+        <div className="divide-y divide-border/40">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Monitor} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
             <div className="min-w-0 flex-1 text-sm font-medium">{t('thirdPartyTools.systemVersion')}</div>
             <OpenLoafSettingsField className="flex items-center justify-end text-right text-xs text-muted-foreground">
               <Button
@@ -378,7 +363,8 @@ export function ThirdPartyTools() {
             </OpenLoafSettingsField>
           </div>
 
-          <div className="flex flex-wrap items-start gap-2 py-3">
+          <div className="flex flex-wrap items-center gap-2 py-3">
+            <SettingIcon icon={Terminal} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
             <div className="min-w-0 flex-1 text-sm font-medium">{t('thirdPartyTools.cmdEnv')}</div>
             <OpenLoafSettingsField className="flex items-center justify-end text-right text-xs text-muted-foreground">
               <Button
@@ -398,7 +384,7 @@ export function ThirdPartyTools() {
       </OpenLoafSettingsGroup>
 
       <OpenLoafSettingsGroup title={t('thirdPartyTools.title')}>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -415,7 +401,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "python") ||
@@ -461,7 +447,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "codex") ||
@@ -488,7 +474,7 @@ export function ThirdPartyTools() {
               {cliStatuses.codex.installed ? (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none"
                   onClick={() => openCliSettings("codex")}
                 >
                   {t('thirdPartyTools.settings')}
@@ -512,7 +498,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "claudeCode") ||
@@ -540,43 +526,12 @@ export function ThirdPartyTools() {
               {cliStatuses.claudeCode.installed ? (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none"
                   onClick={() => openCliSettings("claudeCode")}
                 >
                   {t('thirdPartyTools.settings')}
                 </Button>
               ) : null}
-            </OpenLoafSettingsField>
-          </div>
-        </div>
-      </OpenLoafSettingsGroup>
-
-      <OpenLoafSettingsGroup title={t('thirdPartyTools.wps')} subtitle={t('thirdPartyTools.wpsOfficeStatus')}>
-        <div className="divide-y divide-border">
-          <div className="flex flex-wrap items-start gap-2 py-3">
-            <div className="min-w-0 flex-1 text-sm font-medium">{t('thirdPartyTools.wpsOffice')}</div>
-            <OpenLoafSettingsField className="flex items-center justify-end gap-2 text-right text-xs text-muted-foreground">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-auto px-2 py-1 text-xs text-muted-foreground"
-                onClick={() => void handleCopySystemInfo(wpsStatusLabel)}
-                aria-label={t('thirdPartyTools.copyWpsStatus')}
-                title={t('thirdPartyTools.clickToCopy')}
-              >
-                {wpsStatusLabel || "—"}
-              </Button>
-              {!isOfficeInfoLoading && !wpsInfo?.installed && (
-                <a
-                  href="https://platform.wps.cn"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900"
-                >
-                  {t('thirdPartyTools.download')}
-                </a>
-              )}
             </OpenLoafSettingsField>
           </div>
         </div>

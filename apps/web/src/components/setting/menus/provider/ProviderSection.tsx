@@ -183,7 +183,7 @@ export function ProviderSection({
                     <TableRow>
                       <TableCell colSpan={4} className="p-0">
                         <div className="px-4 pb-4">
-                          <div className="divide-y divide-border/60">
+                          <div className="divide-y divide-border/40">
                             {Object.keys(entry.models).map((modelId) => {
                               const modelDefinition =
                                 resolveMergedModelDefinition(

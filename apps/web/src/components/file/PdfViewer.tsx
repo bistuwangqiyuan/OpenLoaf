@@ -137,42 +137,13 @@ export default function PdfViewer({
   const displayTitle = useMemo(() => name ?? uri ?? "PDF", [name, uri]);
   const documentFile = useMemo(() => (data ? { data } : null), [data]);
 
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择PDF</div>;
-  }
-
-  if (status === "loading") {
-    return <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>;
-  }
-
-  if (status === "error") {
-    if (previewError?.kind === "too-large") {
-      const sizeLabel = formatSize(previewError.sizeBytes);
-      return (
-        <div className="flex h-full w-full flex-col items-start gap-3 p-4 text-sm text-muted-foreground">
-          <div>文件过大（{sizeLabel}），请使用系统工具打开</div>
-          {openUri ? (
-            <Button type="button" size="sm" variant="outline" onClick={handleOpenWithSystem}>
-              系统打开
-            </Button>
-          ) : null}
-        </div>
-      );
-    }
-    return (
-      <div className="h-full w-full p-4 text-destructive">
-        PDF 预览失败
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      <StackHeader
-        title={displayTitle}
-        openUri={openUri}
-        openRootUri={rootUri}
-        rightSlot={
+  const stackHeader = (
+    <StackHeader
+      title={displayTitle}
+      openUri={openUri}
+      openRootUri={rootUri}
+      rightSlot={
+        status === "ready" ? (
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -191,23 +162,69 @@ export default function PdfViewer({
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
-        }
-        showMinimize={canMinimize}
-        onMinimize={
-          canMinimize
-            ? () => {
-                requestStackMinimize(tabId!);
-              }
-            : undefined
-        }
-        onClose={
-          canClose
-            ? () => {
-                removeStackItem(tabId!, panelKey!);
-              }
-            : undefined
-        }
-      />
+        ) : undefined
+      }
+      showMinimize={canMinimize}
+      onMinimize={
+        canMinimize
+          ? () => {
+              requestStackMinimize(tabId!);
+            }
+          : undefined
+      }
+      onClose={
+        canClose
+          ? () => {
+              removeStackItem(tabId!, panelKey!);
+            }
+          : undefined
+      }
+    />
+  );
+
+  if (!uri) {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        {stackHeader}
+        <div className="flex-1 p-4 text-muted-foreground">未选择PDF</div>
+      </div>
+    );
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        {stackHeader}
+        <div className="flex-1 p-4 text-muted-foreground">加载中…</div>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        {stackHeader}
+        <div className="flex-1 p-4">
+          {previewError?.kind === "too-large" ? (
+            <div className="flex flex-col items-start gap-3 text-sm text-muted-foreground">
+              <div>文件过大（{formatSize(previewError.sizeBytes)}），请使用系统工具打开</div>
+              {openUri ? (
+                <Button type="button" size="sm" variant="outline" onClick={handleOpenWithSystem}>
+                  系统打开
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="text-destructive">PDF 预览失败</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      {stackHeader}
       <div
         className="flex-1 overflow-auto p-4"
         onWheel={(event) => {

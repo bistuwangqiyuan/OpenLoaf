@@ -695,14 +695,16 @@ export class SettingRouterImpl extends BaseSettingRouter {
           const scopeFiltered = scopeFilter && scopeFilter !== 'all'
             ? items.filter((item) => item.scope === scopeFilter)
             : items
+          // 过滤系统 Agent — 用户只能看到自己创建的 Agent。
+          const userOnly = scopeFiltered.filter((item) => !item.isSystem)
           if (input?.projectId) {
-            return scopeFiltered.filter(
+            return userOnly.filter(
               (item) =>
                 (item.scope !== "workspace" && item.scope !== "global") ||
                 !workspaceIgnoreSkills.includes(`agent:${item.ignoreKey}`),
             );
           }
-          return scopeFiltered;
+          return userOnly;
         }),
       /** Toggle agent enabled state. */
       setAgentEnabled: shieldedProcedure

@@ -56,7 +56,7 @@ export function ModelManagement() {
   return (
     <div className="space-y-3">
       <OpenLoafSettingsGroup title="模型设置">
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">工作空间项目划分规范</div>

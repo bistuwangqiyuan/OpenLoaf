@@ -126,4 +126,11 @@ export type PdfTextOverlay = {
   text: string
   fontSize?: number
   color?: string
+  /** Optional background rectangle drawn behind the text (for redaction/masking). */
+  background?: {
+    color: string
+    padding?: number
+    width?: number
+    height?: number
+  }
 }

@@ -18,7 +18,6 @@ export {
   getTemplate,
   isTemplateId,
   getPrimaryTemplate,
-  getScaffoldableTemplates,
 } from './registry'
 
 // Export master prompt getter

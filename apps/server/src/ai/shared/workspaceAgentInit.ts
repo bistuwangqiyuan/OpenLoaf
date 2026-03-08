@@ -7,28 +7,70 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   getActiveWorkspaceConfig,
   resolveWorkspaceRootPath,
 } from '@openloaf/api/services/workspaceConfig'
-import {
-  ensureDefaultAgentFiles,
-  ensureSystemAgentFiles,
-} from '@/ai/shared/defaultAgentResolver'
+
+/** OpenLoaf meta directory name. */
+const OPENLOAF_META_DIR = '.openloaf'
+/** Migration version marker file. */
+const MIGRATION_VERSION_FILE = '.agents-migration-version'
+/** Minimum version that no longer scaffolds system agents. */
+const MIN_CLEAN_VERSION = '0.2.8'
 
 /**
- * Initialize workspace agents:
- * 1. Ensure all system agent folders exist
- * 2. Ensure default (master) agent files exist
+ * Clean up legacy system agent folders scaffolded by older versions.
+ * Reads `.openloaf/.agents-migration-version` to determine if cleanup is needed.
  */
-function initWorkspaceAgents(rootPath: string): void {
-  ensureSystemAgentFiles(rootPath)
-  ensureDefaultAgentFiles(rootPath)
+function cleanupLegacySystemAgents(rootPath: string): void {
+  const metaDir = path.join(rootPath, OPENLOAF_META_DIR)
+  const versionFile = path.join(metaDir, MIGRATION_VERSION_FILE)
+
+  // Check if already migrated.
+  if (existsSync(versionFile)) {
+    try {
+      const existing = readFileSync(versionFile, 'utf8').trim()
+      if (existing >= MIN_CLEAN_VERSION) return
+    } catch {
+      // 读取失败则继续清理。
+    }
+  }
+
+  // Remove legacy master agent folder.
+  const masterDir = path.join(metaDir, 'agents', 'master')
+  try {
+    if (existsSync(masterDir)) {
+      rmSync(masterDir, { recursive: true, force: true })
+    }
+  } catch {
+    // 删除失败时静默忽略。
+  }
+
+  // Write current server version as migration marker.
+  try {
+    const require = createRequire(import.meta.url)
+    const version: string = require('../../package.json').version
+    writeFileSync(versionFile, version, 'utf8')
+  } catch {
+    // 写入版本标记失败时静默忽略。
+  }
 }
 
 /**
- * Ensure the active workspace has default agent files.
+ * Initialize workspace agents:
+ * Clean up legacy system agent folders from older versions.
+ */
+function initWorkspaceAgents(rootPath: string): void {
+  cleanupLegacySystemAgents(rootPath)
+}
+
+/**
+ * Ensure the active workspace has been migrated.
  * Called at server startup.
  */
 export function ensureActiveWorkspaceDefaultAgent(): void {
@@ -43,7 +85,7 @@ export function ensureActiveWorkspaceDefaultAgent(): void {
 }
 
 /**
- * Ensure a workspace has default agent files by its rootUri.
+ * Ensure a workspace has been migrated by its rootUri.
  * Called when creating or switching workspaces.
  */
 export function ensureWorkspaceDefaultAgentByRootUri(

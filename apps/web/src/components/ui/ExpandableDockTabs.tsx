@@ -474,6 +474,10 @@ export function ExpandableDockTabs({
 
   /** Handle tab selection. */
   const handleSelect = (index: number) => {
+    // 切换 dock 时自动隐藏已打开的 stack 面板
+    if (activeTabId && stack.length > 0 && !stackHidden) {
+      useTabRuntime.getState().setStackHidden(activeTabId, true);
+    }
     if (!isControlled) {
       setUncontrolledSelected(index);
     }

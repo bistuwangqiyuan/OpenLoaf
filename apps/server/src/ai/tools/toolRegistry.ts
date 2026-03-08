@@ -39,6 +39,10 @@ import { wordQueryTool, wordMutateTool } from "@/ai/tools/wordTools";
 import { pptxQueryTool, pptxMutateTool } from "@/ai/tools/pptxTools";
 import { pdfQueryTool, pdfMutateTool } from "@/ai/tools/pdfTools";
 import { imageGenerateTool, videoGenerateTool, listMediaModelsTool } from "@/ai/tools/mediaGenerateTools";
+import { imageProcessTool } from "@/ai/tools/imageProcessTools";
+import { videoConvertTool } from "@/ai/tools/videoConvertTools";
+import { docConvertTool } from "@/ai/tools/docConvertTools";
+import { fileInfoTool } from "@/ai/tools/fileInfoTool";
 import { requestUserInputTool } from "@/ai/tools/requestUserInputTool";
 import { jsxCreateTool } from "@/ai/tools/jsxCreateTool";
 import { jsReplTool, jsReplResetTool } from "@/ai/tools/jsReplTool";
@@ -80,6 +84,10 @@ import {
   videoGenerateToolDef,
   listMediaModelsToolDef,
 } from "@openloaf/api/types/tools/mediaGenerate";
+import { imageProcessToolDef } from "@openloaf/api/types/tools/imageProcess";
+import { videoConvertToolDef } from "@openloaf/api/types/tools/videoConvert";
+import { docConvertToolDef } from "@openloaf/api/types/tools/docConvert";
+import { fileInfoToolDef } from "@openloaf/api/types/tools/fileInfo";
 import { requestUserInputToolDef } from "@openloaf/api/types/tools/userInput";
 import { jsxCreateToolDef } from "@openloaf/api/types/tools/jsxCreate";
 import { chartRenderToolDef } from "@openloaf/api/types/tools/chart";
@@ -283,6 +291,18 @@ const TOOL_REGISTRY: Record<string, ToolEntry> = {
   [taskStatusToolDef.id]: {
     tool: taskStatusTool,
   },
+  [imageProcessToolDef.id]: {
+    tool: imageProcessTool,
+  },
+  [videoConvertToolDef.id]: {
+    tool: videoConvertTool,
+  },
+  [docConvertToolDef.id]: {
+    tool: docConvertTool,
+  },
+  [fileInfoToolDef.id]: {
+    tool: fileInfoTool,
+  },
 };
 
 /** Common aliases for tool names that LLMs might use incorrectly. */
@@ -311,6 +331,30 @@ const TOOL_ALIASES: Record<string, string> = {
   "create-pdf": "pdf-mutate",
   "merge-pdf": "pdf-mutate",
   "fill-pdf": "pdf-mutate",
+  "resize-image": "image-process",
+  "crop-image": "image-process",
+  "convert-image": "image-process",
+  "image-convert": "image-process",
+  "convert-video": "video-convert",
+  "extract-audio": "video-convert",
+  "convert-document": "doc-convert",
+  "document-convert": "doc-convert",
+  "convert-doc": "doc-convert",
+  "docx-to-pdf": "doc-convert",
+  "pdf-to-docx": "doc-convert",
+  "image-info": "file-info",
+  "get-image-info": "file-info",
+  "video-info": "file-info",
+  "get-file-info": "file-info",
+  "file-metadata": "file-info",
+  "file-size": "file-info",
+  "file-stat": "file-info",
+  "pdf-to-word": "doc-convert",
+  "word-to-pdf": "doc-convert",
+  "html-to-md": "doc-convert",
+  "md-to-pdf": "doc-convert",
+  "csv-to-excel": "doc-convert",
+  "excel-to-csv": "doc-convert",
 };
 
 /** Tool IDs excluded from auto-approval (complex/interactive). */

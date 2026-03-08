@@ -431,8 +431,8 @@ export function ChatInputEditor({
       {isEmpty && placeholder && (
         <div
           className={cn(
-            "absolute inset-0 pointer-events-none px-3 py-2.5 text-muted-foreground truncate",
-            large ? "text-[15px] leading-6" : "text-[13px] leading-5",
+            "absolute inset-0 pointer-events-none pl-4 pr-3 py-2.5 text-muted-foreground truncate",
+            large ? "text-base leading-6" : "text-sm leading-5",
           )}
           aria-hidden="true"
         >

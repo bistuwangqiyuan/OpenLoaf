@@ -732,6 +732,49 @@ async function main() {
     assert.ok(result.data.text.includes('RED_TEXT'), 'should contain colored overlay text')
   })
 
+  await test('L4b: add-text with background mask (redaction)', async () => {
+    const filePath = rel('l4b.pdf')
+    await withCtx(async () => {
+      await pdfMutateTool.execute(
+        {
+          actionName: 'test',
+          action: 'create',
+          filePath,
+          content: [{ type: 'paragraph', text: 'Secret phone 18812345678 here' }],
+        },
+        toolCtx,
+      )
+      // Mask the phone number with white background + black ****
+      await pdfMutateTool.execute(
+        {
+          actionName: 'test',
+          action: 'add-text',
+          filePath,
+          overlays: [{
+            page: 1,
+            x: 155,
+            y: 775,
+            text: '****',
+            fontSize: 12,
+            color: '#000000',
+            background: { color: '#FFFFFF', padding: 2, width: 80 },
+          }],
+        },
+        toolCtx,
+      )
+    })
+
+    // Verify the overlay was applied (file still readable)
+    const result: any = await withCtx(() =>
+      pdfQueryTool.execute(
+        { actionName: 'test', mode: 'read-structure', filePath },
+        toolCtx,
+      ),
+    )
+    assert.equal(result.ok, true)
+    assert.equal(result.data.pageCount, 1)
+  })
+
   await test('L5: merge two PDFs and verify combined text', async () => {
     const src1 = rel('l5_a.pdf')
     const src2 = rel('l5_b.pdf')
