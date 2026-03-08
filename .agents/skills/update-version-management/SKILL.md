@@ -118,24 +118,27 @@ git log {app}-v{lastVersion}..HEAD --oneline --no-merges -- apps/{app}/ packages
 - 按 emoji 类别分组，使用项目统一的 changelog 格式（详见 `docs/DEVELOPMENT.md` 的「Changelog 更新日志规范」）
 - 分类及顺序：💥 Breaking Changes → ✨ 新功能 → 🚀 改进 → 💄 界面优化 → ⚡ 性能优化 → 🌐 国际化 → 🐛 问题修复 → 🔒 安全 → 🔧 重构 → 📦 依赖更新 → 🗑️ 废弃
 - 只列出有内容的分类，空分类不出现
-- 生成中文和英文两个版本
+- **生成英文版 changelog**（用于 annotated tag 内容）
 - **展示给用户确认后再继续**
 
-在打 tag 前创建 `apps/{app}/changelogs/{currentVersion}/zh.md` 和 `en.md`，格式如下：
+Changelog 不再创建文件，而是作为 **annotated tag** 的内容写入 git tag。格式如下：
 
-```markdown
----
-version: x.y.z
-date: YYYY-MM-DD
----
+```
+✨ New Features
 
-## ✨ 新功能
+- Feature description
 
-- 具体描述
+🐛 Bug Fixes
 
-## 🐛 问题修复
+- Fix description
+```
 
-- 具体描述
+打 tag 时使用 annotated tag：
+```bash
+git tag -a {tag-name} -m "$(cat <<'EOF'
+changelog content here
+EOF
+)"
 ```
 
 #### Step 4: 更新 lockfile（如果需要）
@@ -162,9 +165,9 @@ pnpm check-types
 Server/Web 的打包和发布完全由 **GitHub Actions CI/CD** 完成。推送 tag 后 CI 自动执行：构建 → 上传到 R2 → 版本号自动加一并提交。
 
 ```bash
-# 打 tag（轻量 tag 即可，CI 从 tag 名提取版本号）
-git tag server-v{currentVersion}
-git tag web-v{currentVersion}
+# 打 annotated tag（英文 changelog 作为 tag message）
+git tag -a server-v{currentVersion} -m "changelog content"
+git tag -a web-v{currentVersion} -m "changelog content"
 
 # 推送代码和 tag
 git push origin main
