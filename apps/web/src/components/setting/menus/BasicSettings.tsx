@@ -29,6 +29,7 @@ import {
   Bell,
   ChevronDown,
   Languages,
+  Monitor,
   Palette,
   PanelBottomClose,
   Sparkles,
@@ -43,6 +44,7 @@ import type { LanguageId } from "@/i18n/types";
 import { detectSystemLanguage } from "@/i18n/detectLanguage";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import LocalAccess from "./LocalAccess";
+import { AboutOpenLoaf } from "./AboutOpenLoaf";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
 type AnimationLevel = "low" | "medium" | "high";
@@ -215,48 +217,45 @@ export function BasicSettings() {
                   </div>
 
                   <OpenLoafSettingsField className="w-full sm:w-64 shrink-0 justify-end">
-                    <Tabs
-                      value={themeTabsValue}
-                      onValueChange={(next) => {
-                        const nextTheme = next as "dark" | "light";
-                        lastManualThemeRef.current = nextTheme;
-                        toggleTheme(nextTheme);
-                        void setBasic({ uiTheme: nextTheme, uiThemeManual: nextTheme });
-                      }}
-                    >
-                      <TabsList>
-                        <TabsTrigger value="dark">{t('basicSettings.themeDark')}</TabsTrigger>
-                        <TabsTrigger value="light">{t('basicSettings.themeLight')}</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </OpenLoafSettingsField>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 py-3">
-                  <SettingIcon icon={SunMoon} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">{t('basicSettings.themeAutoSwitch')}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t('basicSettings.themeAutoSwitchDesc')}
-                    </div>
-                  </div>
-
-                  <OpenLoafSettingsField className="w-full sm:w-64 shrink-0 justify-end">
-                    <div className="origin-right scale-125">
-                      <Switch
-                        checked={isAutoTheme}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        aria-label={t('basicSettings.themeAutoSwitch')}
+                        title={t('basicSettings.themeAutoSwitch')}
+                        className={[
+                          "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors duration-150",
+                          isAutoTheme
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-transparent text-muted-foreground hover:bg-accent",
+                        ].join(" ")}
+                        onClick={() => {
+                          if (isAutoTheme) {
+                            const nextManual = lastManualThemeRef.current;
+                            toggleTheme(nextManual);
+                            void setBasic({ uiTheme: nextManual, uiThemeManual: nextManual });
+                          } else {
                             toggleTheme("system");
                             void setBasic({ uiTheme: "system" });
-                            return;
                           }
-                          const nextManual = lastManualThemeRef.current;
-                          toggleTheme(nextManual);
-                          void setBasic({ uiTheme: nextManual, uiThemeManual: nextManual });
                         }}
-                        aria-label="Auto theme"
-                      />
+                      >
+                        <Monitor className="h-3.5 w-3.5" />
+                        {t('basicSettings.themeFollowSystem')}
+                      </button>
+                      <Tabs
+                        value={themeTabsValue}
+                        onValueChange={(next) => {
+                          const nextTheme = next as "dark" | "light";
+                          lastManualThemeRef.current = nextTheme;
+                          toggleTheme(nextTheme);
+                          void setBasic({ uiTheme: nextTheme, uiThemeManual: nextTheme });
+                        }}
+                      >
+                        <TabsList>
+                          <TabsTrigger value="dark">{t('basicSettings.themeDark')}</TabsTrigger>
+                          <TabsTrigger value="light">{t('basicSettings.themeLight')}</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
                     </div>
                   </OpenLoafSettingsField>
                 </div>
@@ -359,10 +358,12 @@ export function BasicSettings() {
                   </div>
                 )}
 
+                <LocalAccess />
+
               </div>
             </OpenLoafSettingsGroup>
 
-            <LocalAccess />
+            <AboutOpenLoaf />
 
           </div>
         );

@@ -44,10 +44,15 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@openloaf/ui/sheet";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@openloaf/ui/accordion";
 import { Streamdown } from "streamdown";
 
 const UPDATE_BASE_URL = process.env.NEXT_PUBLIC_UPDATE_BASE_URL;
@@ -115,31 +120,16 @@ export function AboutOpenLoaf() {
   const clientId = getWebClientId();
   const [copiedKey, setCopiedKey] = React.useState<"clientId" | null>(null);
 
-  // Build ITEMS with translations
-  const ITEMS = React.useMemo(() => [
-    { key: "license", label: t('aboutAdditions.license'), icon: Scale, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
-    { key: "privacy", label: t('aboutAdditions.privacy'), icon: Shield, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400" },
-    { key: "oss", label: t('aboutAdditions.oss'), icon: Code2, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
-    { key: "docs", label: t('aboutAdditions.docs'), icon: BookOpen, bg: "bg-teal-500/10", fg: "text-teal-600 dark:text-teal-400" },
-    { key: "contact", label: t('aboutAdditions.contact'), icon: Mail, bg: "bg-amber-500/10", fg: "text-amber-600 dark:text-amber-400" },
-    { key: "issues", label: t('aboutAdditions.issues'), icon: CircleAlert, bg: "bg-red-500/10", fg: "text-red-600 dark:text-red-400" },
-  ], [t]);
   const [appVersion, setAppVersion] = React.useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = React.useState<OpenLoafIncrementalUpdateStatus | null>(
     null,
   );
   const [changelogSheet, setChangelogSheet] = React.useState<{
     open: boolean;
-    component: "server" | "web" | null;
-    version: string | null;
-    content: string | null;
-    loading: boolean;
+    changelogs: Record<string, { content: string | null; loading: boolean }>;
   }>({
     open: false,
-    component: null,
-    version: null,
-    content: null,
-    loading: false,
+    changelogs: {},
   });
   const isElectron = React.useMemo(() => isElectronEnv(), []);
   // 开发模式下禁用更新功能（pnpm desktop）。
@@ -244,34 +234,6 @@ export function AboutOpenLoaf() {
     ]);
   }, [isElectron, isDevDesktop]);
 
-  /** Open changelog sheet and fetch content. */
-  const openChangelog = React.useCallback(async (component: "server" | "web", version: string) => {
-    setChangelogSheet({
-      open: true,
-      component,
-      version,
-      content: null,
-      loading: true,
-    });
-
-    const changelogUrl = buildChangelogUrl(component, version);
-    if (changelogUrl) {
-      const lang = primaryLang(basic.uiLanguage ?? "zh-CN");
-      const content = await fetchChangelogWithLang(changelogUrl, lang);
-      setChangelogSheet((prev) => ({
-        ...prev,
-        content: content || null,
-        loading: false,
-      }));
-    } else {
-      setChangelogSheet((prev) => ({
-        ...prev,
-        content: null,
-        loading: false,
-      }));
-    }
-  }, [basic.uiLanguage]);
-
   React.useEffect(() => {
     if (!isElectron) return;
     void fetchAppVersion();
@@ -321,6 +283,35 @@ export function AboutOpenLoaf() {
   const currentVersion = appVersion ?? "—";
   const serverVersion = updateStatus?.server?.version ?? "—";
   const webVersion = updateStatus?.web?.version ?? "—";
+
+  /** Open changelog sheet and fetch all changelogs in parallel. */
+  const openAllChangelogs = React.useCallback(async () => {
+    const components: Array<{ key: string; component: "server" | "web"; version: string }> = [
+      { key: "server", component: "server", version: serverVersion },
+      { key: "web", component: "web", version: webVersion },
+    ];
+
+    const initial: Record<string, { content: string | null; loading: boolean }> = {};
+    for (const c of components) {
+      initial[c.key] = { content: null, loading: true };
+    }
+    setChangelogSheet({ open: true, changelogs: initial });
+
+    const lang = primaryLang(basic.uiLanguage ?? "zh-CN");
+    await Promise.all(
+      components.map(async (c) => {
+        const url = buildChangelogUrl(c.component, c.version);
+        const content = url ? await fetchChangelogWithLang(url, lang) : null;
+        setChangelogSheet((prev) => ({
+          ...prev,
+          changelogs: {
+            ...prev.changelogs,
+            [c.key]: { content, loading: false },
+          },
+        }));
+      }),
+    );
+  }, [basic.uiLanguage, serverVersion, webVersion]);
 
   /** Format a version string with "v" prefix, unless it's a placeholder. */
   const fmtVersion = (v: string) => {
@@ -418,145 +409,94 @@ export function AboutOpenLoaf() {
     <div className="space-y-6">
       <OpenLoafSettingsGroup title={t('aboutAdditions.versionInfo')}>
         <div className="divide-y divide-border/40">
-          {/* Electron 版本 */}
+          {/* 版本一行显示 */}
           <div className="py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <SettingIcon icon={Monitor} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">{t('aboutAdditions.desktop')}</div>
-                    {autoUpdateStatus?.state === "downloaded" && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                        <Download className="h-3 w-3" />
-                        {t('aboutAdditions.readyRestart')}
-                      </span>
-                    )}
-                    {autoUpdateStatus?.state === "downloading" && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        {t('aboutAdditions.downloading')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {fmtVersion(currentVersion)}
-                    {autoUpdateStatus?.nextVersion && ` → v${autoUpdateStatus.nextVersion}`}
-                  </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <SettingIcon icon={Monitor} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{t('aboutAdditions.currentVersion')}</div>
+                <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                  <span>{t('aboutAdditions.desktop')} {fmtVersion(currentVersion)}</span>
+                  <span>·</span>
+                  <span>{t('aboutAdditions.server')} {fmtVersion(serverVersion)}</span>
+                  <span>·</span>
+                  <span>Web {fmtVersion(webVersion)}</span>
                 </div>
               </div>
-              {autoUpdateStatus?.state === "downloaded" && (
+              <OpenLoafSettingsField className="shrink-0 justify-end gap-1.5">
                 <Button
                   size="sm"
-                  className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
-                  onClick={() => void window.openloafElectron?.relaunchApp?.()}
+                  variant="ghost"
+                  className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
+                  onClick={() => void openAllChangelogs()}
                 >
-                  {t('aboutAdditions.installNow')}
+                  <FileText className="h-3.5 w-3.5" />
+                  {t('aboutAdditions.changelog')}
                 </Button>
-              )}
+                {isElectron && (
+                  <Button
+                    size="sm"
+                    className="h-8 rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
+                    disabled={updateActionDisabled}
+                    onClick={() => void triggerUpdateAction()}
+                  >
+                    {isChecking && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {updateActionLabel}
+                  </Button>
+                )}
+              </OpenLoafSettingsField>
             </div>
-            {/* 下载进度条 */}
-            {autoUpdateStatus?.state === "downloading" && autoUpdateStatus.progress && (
-              <div className="mt-2 space-y-1">
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-blue-500 transition-all duration-300"
-                    style={{ width: `${Math.min(autoUpdateStatus.progress.percent, 100)}%` }}
-                  />
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {fmtMB(autoUpdateStatus.progress.transferred)}/{fmtMB(autoUpdateStatus.progress.total)} MB
-                  {" · "}{fmtSpeed(autoUpdateStatus.progress.bytesPerSecond)} MB/s
-                  {" · "}{Math.round(autoUpdateStatus.progress.percent)}%
-                </div>
+            {/* Desktop 更新状态标签 */}
+            {(autoUpdateStatus?.state === "downloaded" || autoUpdateStatus?.state === "downloading") && (
+              <div className="mt-2 flex items-center gap-2">
+                {autoUpdateStatus.state === "downloaded" && (
+                  <>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                      <Download className="h-3 w-3" />
+                      {t('aboutAdditions.desktop')} v{autoUpdateStatus.nextVersion ?? "?"} {t('aboutAdditions.readyRestart')}
+                    </span>
+                    <Button
+                      size="sm"
+                      className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
+                      onClick={() => void window.openloafElectron?.relaunchApp?.()}
+                    >
+                      {t('aboutAdditions.installNow')}
+                    </Button>
+                  </>
+                )}
+                {autoUpdateStatus.state === "downloading" && autoUpdateStatus.progress && (
+                  <div className="w-full space-y-1">
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                        style={{ width: `${Math.min(autoUpdateStatus.progress.percent, 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {t('aboutAdditions.downloading')}{t('aboutAdditions.desktop')} v{autoUpdateStatus.nextVersion ?? "?"} — {Math.round(autoUpdateStatus.progress.percent)}% ({fmtMB(autoUpdateStatus.progress.transferred)}/{fmtMB(autoUpdateStatus.progress.total)} MB, {fmtSpeed(autoUpdateStatus.progress.bytesPerSecond)} MB/s)
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Server / Web 增量更新提示 */}
+            {(serverHasUpdate || webHasUpdate) && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {serverHasUpdate && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                    <Download className="h-3 w-3" />
+                    {t('aboutAdditions.server')} → v{updateStatus?.server?.newVersion}
+                  </span>
+                )}
+                {webHasUpdate && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                    <Download className="h-3 w-3" />
+                    Web → v{updateStatus?.web?.newVersion}
+                  </span>
+                )}
               </div>
             )}
           </div>
-
-          {/* Server 版本 */}
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <SettingIcon icon={Server} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-sm font-medium">{t('aboutAdditions.server')}</div>
-                  {serverHasUpdate && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                      <Download className="h-3 w-3" />
-                      {t('aboutAdditions.hasUpdate')}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {fmtVersion(serverVersion)}
-                  {serverHasUpdate && ` → v${updateStatus?.server?.newVersion}`}
-                </div>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost" className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
-              onClick={() => void openChangelog("server", serverVersion)}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              {t('aboutAdditions.changelog')}
-            </Button>
-          </div>
-
-          {/* Web 版本 */}
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <SettingIcon icon={Globe} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-sm font-medium">Web</div>
-                  {webHasUpdate && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                      <Download className="h-3 w-3" />
-                      {t('aboutAdditions.hasUpdate')}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {fmtVersion(webVersion)}
-                  {webHasUpdate && ` → v${updateStatus?.web?.newVersion}`}
-                </div>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost" className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
-              onClick={() => void openChangelog("web", webVersion)}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              {t('aboutAdditions.changelog')}
-            </Button>
-          </div>
-          {/* 增量更新 */}
-          {isElectron && (
-            <div className="flex flex-wrap items-center gap-2 py-3">
-              <SettingIcon icon={ArrowDownToLine} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{t('aboutAdditions.incrementalUpdate')}</div>
-                <div className="text-xs text-muted-foreground">
-                  {isDesktopUpdating
-                    ? t('aboutAdditions.desktopUpdatingSkipIncremental', { defaultValue: 'Desktop 正在更新，增量更新已暂停' })
-                    : updateLabel}
-                </div>
-              </div>
-              <OpenLoafSettingsField>
-                <Button
-                  size="sm"
-                  className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
-                  disabled={updateActionDisabled}
-                  onClick={() => void triggerUpdateAction()}
-                >
-                  {updateActionLabel}
-                </Button>
-              </OpenLoafSettingsField>
-            </div>
-          )}
-
           {/* Beta 渠道 */}
           {isElectron && (
             <div className="flex flex-wrap items-center gap-2 py-3">
@@ -656,49 +596,81 @@ export function AboutOpenLoaf() {
               </button>
             </OpenLoafSettingsField>
           </div>
-          {ITEMS.map((item) => (
-            <Button
-              key={item.key}
-              type="button"
-              variant="ghost"
-              className="w-full justify-between py-3 h-auto rounded-none"
-            >
-              <span className="flex items-center gap-2">
-                <SettingIcon icon={item.icon} bg={item.bg} fg={item.fg} />
-                <span className="text-sm font-medium">{item.label}</span>
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          ))}
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={Scale} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.license')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={Shield} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.privacy')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={Code2} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.oss')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={BookOpen} bg="bg-teal-500/10" fg="text-teal-600 dark:text-teal-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.docs')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={Mail} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.contact')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2 py-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 rounded-md transition-colors">
+            <SettingIcon icon={CircleAlert} bg="bg-red-500/10" fg="text-red-600 dark:text-red-400" />
+            <div className="min-w-0 flex-1 text-sm font-medium">{t('aboutAdditions.issues')}</div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
         </div>
       </OpenLoafSettingsGroup>
 
       {/* Changelog Sheet */}
       <Sheet open={changelogSheet.open} onOpenChange={(open) => setChangelogSheet((prev) => ({ ...prev, open }))}>
-        <SheetContent side="right" className="w-full sm:max-w-lg">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              {t('aboutAdditions.changelogTitle', { component: changelogSheet.component === "server" ? t('aboutAdditions.server') : "Web" })}
-            </SheetTitle>
-            <SheetDescription>
-              {t('aboutAdditions.version')} {changelogSheet.version}
-            </SheetDescription>
+            <SheetTitle>{t('aboutAdditions.allChangelogs')}</SheetTitle>
           </SheetHeader>
-          <div className="mt-6">
-            {changelogSheet.loading ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                {t('aboutAdditions.loading')}
-              </div>
-            ) : changelogSheet.content ? (
-              <Streamdown mode="static" className="prose prose-sm dark:prose-invert max-w-none">
-                {changelogSheet.content}
-              </Streamdown>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                {t('aboutAdditions.changelogNotFound')}
-              </div>
-            )}
+          <div className="px-4">
+            <Accordion type="multiple" defaultValue={["server", "web"]}>
+              {[
+                { key: "server", label: t('aboutAdditions.server'), version: serverVersion, icon: Server, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400" },
+                { key: "web", label: "Web", version: webVersion, icon: Globe, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
+              ].map((item) => {
+                const entry = changelogSheet.changelogs[item.key];
+                return (
+                  <AccordionItem key={item.key} value={item.key}>
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <SettingIcon icon={item.icon} bg={item.bg} fg={item.fg} />
+                        <span>{item.label}</span>
+                        <span className="text-xs text-muted-foreground">{fmtVersion(item.version)}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {entry?.loading ? (
+                        <div className="flex items-center justify-center py-6 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          {t('aboutAdditions.loading')}
+                        </div>
+                      ) : entry?.content ? (
+                        <Streamdown mode="static" className="prose prose-sm dark:prose-invert max-w-none">
+                          {entry.content}
+                        </Streamdown>
+                      ) : (
+                        <div className="py-4 text-center text-sm text-muted-foreground">
+                          {t('aboutAdditions.changelogNotFound')}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
         </SheetContent>
       </Sheet>

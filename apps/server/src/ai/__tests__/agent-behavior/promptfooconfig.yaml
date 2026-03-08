@@ -4,6 +4,8 @@
 # 运行方式: cd apps/server && pnpm run test:ai:behavior
 # 查看结果: cd apps/server && pnpm run test:ai:behavior:view
 # 按前缀过滤: --filter-pattern "cmd-"
+# 模型对比: --model "profileId:modelId"（运行多次后在 UI 中对比）
+# 缓存控制: 默认开启缓存加速迭代，--no-cache 强制刷新
 
 description: "OpenLoaf AI Agent E2E 行为测试"
 
@@ -12,7 +14,15 @@ prompts:
 
 providers:
   - id: file://openloaf-universal-provider.ts
-    label: "OpenLoaf Universal"
+    label: "Kimi K2.5"
+    config:
+      label: "Kimi K2.5"
+      modelId: "79c0aa88-5366-4df0-bbf4-e9e9562335d2:kimi-k2.5"
+  - id: file://openloaf-universal-provider.ts
+    label: "Qwen3.5 Flash"
+    config:
+      label: "Qwen3.5 Flash"
+      modelId: "9d8cc1ae-5376-43b1-a35f-948004b50086:qwen3.5-flash"
 
 defaultTest:
   options:
@@ -22,10 +32,25 @@ defaultTest:
       config:
         apiBaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
         apiKeyEnvar: PROMPTFOO_GRADING_API_KEY
+  assert:
+    # 全局延迟门槛 — 所有用例必须在 30 秒内完成
+    - type: latency
+      threshold: 30000
+      weight: 0.5
+      metric: response_time
+
+# ── 聚合指标 ──────────────────────────────────────────────────
+# 从测试用例断言的 metric 名称自动推导
+derivedMetrics:
+  - name: tool_accuracy
+    value: tool_selection / (tool_selection + tool_selection_fail)
+  - name: quality_rate
+    value: output_quality / (output_quality + output_quality_fail)
 
 tests:
-  - file://tests/master.yaml
-  - file://tests/calendar.yaml
-  - file://tests/email.yaml
-  - file://tests/tools.yaml
-  - file://tests/commands.yaml
+  - file://tests/master/master.yaml
+  - file://tests/calendar/calendar.yaml
+  - file://tests/email/email.yaml
+  - file://tests/tools/tools.yaml
+  - file://tests/commands/commands.yaml
+  # - file://tests/regression/regression.yaml  # 首个回归测试创建时启用

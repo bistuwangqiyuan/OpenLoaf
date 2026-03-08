@@ -140,30 +140,28 @@ function MessageItem({
       if (!normalizedValue.trim() && !hasReadyAttachments) return;
       if (status === "error") clearError();
 
-      const parts: Array<any> = [];
+      // 将附件路径以 @{path} 格式嵌入到文本中，
+      // AI agent 通过文本直接获取路径，自行决定如何处理文件。
+      const imageRefTokens: string[] = [];
       for (const attachment of editAttachmentsRef.current) {
         if (attachment.status !== "ready") continue;
         const url = attachment.remoteUrl || attachment.objectUrl;
         if (!url) continue;
-        parts.push({
-          type: "file",
-          url,
-          mediaType: attachment.mediaType || attachment.file.type,
-        });
+        imageRefTokens.push(`@{${url}}`);
         if (attachment.mask && attachment.mask.status === "ready") {
           const maskUrl = attachment.mask.remoteUrl || attachment.mask.objectUrl;
           if (maskUrl) {
-            parts.push({
-              type: "file",
-              url: maskUrl,
-              mediaType: attachment.mask.mediaType || attachment.mask.file.type,
-              purpose: "mask",
-            });
+            imageRefTokens.push(`@{${maskUrl}}`);
           }
         }
       }
-      if (normalizedValue.trim()) {
-        parts.push({ type: "text", text: normalizedValue });
+      const imagePrefix = imageRefTokens.length > 0
+        ? imageRefTokens.join(' ') + (normalizedValue.trim() ? '\n' : '')
+        : '';
+      const combinedText = (imagePrefix + normalizedValue).trim();
+      const parts: Array<any> = [];
+      if (combinedText) {
+        parts.push({ type: "text", text: combinedText });
       }
 
       // 关键：编辑重发 = 在同 parent 下创建新 sibling，并把 UI 切到新分支

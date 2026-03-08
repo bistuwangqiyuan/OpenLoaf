@@ -1,12 +1,12 @@
 <div align="center">
   <img src="../apps/web/public/logo.png" alt="OpenLoaf Logo" width="120" />
   <h1>OpenLoaf</h1>
-  <p><strong>🍞 Open-Source AI Knowledge Base & Smart Workspace</strong></p>
-  <p>Local-first, privacy-focused AI workspace — structured docs + multi-model chat + cross-platform desktop. Your data never leaves your device.</p>
+  <p><strong>🍞 Open-Source AI Workspace with Multi-Project Team Collaboration</strong></p>
+  <p>Local-first, privacy-focused AI workspace — organize AI teams by project, cross-project collaboration, multi-model agents. Your data never leaves your device.</p>
 
-  <p>📝 Docs &nbsp;|&nbsp; 🤖 AI Chat &nbsp;|&nbsp; 🎨 Canvas &nbsp;|&nbsp; 📧 Email &nbsp;|&nbsp; 📅 Calendar &nbsp;|&nbsp; 🖥️ Terminal &nbsp;|&nbsp; 📋 Task Board &nbsp;|&nbsp; 📂 File Manager</p>
+  <p>🤖 AI Teams &nbsp;|&nbsp; 📚 Knowledge Base &nbsp;|&nbsp; 💻 Code Repo &nbsp;|&nbsp; 📊 Data Analysis &nbsp;|&nbsp; 🎨 Content Creation &nbsp;|&nbsp; 📧 Email &nbsp;|&nbsp; 📅 Calendar &nbsp;|&nbsp; 📋 Tasks</p>
 
-  <blockquote><strong>One app to replace Notion + ChatGPT + Trello + Whiteboard — with 100% local data</strong></blockquote>
+  <blockquote><strong>One app to orchestrate AI teams across projects — like departments in a company, each with its own agents, skills, and data. 100% local.</strong></blockquote>
 
   <a href="https://github.com/OpenLoaf/OpenLoaf/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License" /></a>
   <a href="https://github.com/OpenLoaf/OpenLoaf/releases"><img src="https://img.shields.io/github/v/release/OpenLoaf/OpenLoaf?label=latest" alt="Release" /></a>
@@ -26,9 +26,11 @@
 
 ## 🧐 About
 
-OpenLoaf is a modern, full-stack AI knowledge base and smart workspace application. It combines **Notion**-style hierarchical document management with **ChatGPT/Claude**-level AI conversation, creating a second brain that doesn't just chat — it retains knowledge.
+OpenLoaf is a modern full-stack AI workspace that organizes work around **projects as teams**. Each project is a self-contained unit with its own **AI agent team**, internal data, private skills, and task board — like a department in a company.
 
-Everything in OpenLoaf is organized around **Projects**. Each project is a self-contained folder — documents, conversations, files, tasks, and AI context all live together in one place. Switch between projects seamlessly, and AI always knows exactly which project you're working on.
+Create different types of projects to match your needs: **AI Teams** for multi-agent task automation, **Knowledge Bases** for document management and Q&A, **Code Repos** for development, **Data Analysis** for reports and dashboards, **Content Creation** for writing and design, or **Custom Projects** to build your own setup.
+
+Projects collaborate through **cross-project communication**: @ reference another project to query its data, delegate tasks between projects, or broadcast notifications through **groups** — shared chat spaces where multiple project agents coordinate in real time. An **AI Assistant** sits at the top level as your management hub, with full visibility across all projects.
 
 <div align="center">
   <img src="./screenshots/overview.png" alt="OpenLoaf Overview" width="800" />
@@ -40,9 +42,9 @@ Everything in OpenLoaf is organized around **Projects**. Each project is a self-
 
 ## ✨ Features
 
-### 🤖 AI Agents
+### 🤖 AI Agent Teams
 
-More than a chatbot — OpenLoaf's AI can **actually get things done**. Built-in system agents include a Document Assistant, Terminal Assistant, Browser Assistant, Email Assistant, Calendar Assistant, and more. The AI understands your intent, breaks down tasks, chains tools together, and collaborates across agents to complete multi-step workflows autonomously. Just give the command — AI handles the rest.
+More than a chatbot — OpenLoaf's AI can **actually get things done**. Each project has its own team of specialized agents: Document Assistant, Terminal Assistant, Browser Assistant, Email Assistant, Calendar Assistant, and more. The Master Agent understands your intent, breaks down tasks, invokes tool chains, and orchestrates sub-agents to complete multi-step workflows autonomously. Add custom skills and agents per project to tailor the team to your domain.
 
 <div align="center">
   <img src="./screenshots/ai-agent.png" alt="AI Agent" width="800" />
@@ -50,9 +52,28 @@ More than a chatbot — OpenLoaf's AI can **actually get things done**. Built-in
   <sub>AI automatically invokes the Terminal Assistant to organize files, then reports back</sub>
 </div>
 
+### 🏢 Multi-Project Organization
+
+Organize your work like a company organizes departments. Each project type comes pre-configured with the right agents, tools, and views:
+
+| Type | Purpose | Pre-configured with |
+|------|---------|-------------------|
+| 🤖 **AI Team** | Multi-agent collaboration + automation | Full agent team, scheduler, email/calendar/browser |
+| 📚 **Knowledge Base** | Document management & Q&A | File indexing, RAG, note editor |
+| 💻 **Code Repo** | Development & debugging | Terminal, Git, Coder Agent |
+| 📊 **Data Analysis** | Tables & reports | Data import, Python/SQL, visualization |
+| 🎨 **Content Creation** | Writing & design | Editor, board, image/video generation |
+| ⚙️ **Custom Project** | Build your own | Minimal config, fully customizable |
+
+All project types have AI capabilities — templates just set sensible defaults. You can add any tool or agent to any project at any time.
+
+### 🔗 Cross-Project Collaboration
+
+Projects don't work in isolation. Use **@ references** in conversations to query another project's data, delegate tasks across projects, or coordinate through **groups** — shared chat spaces with automatic event notifications. Each project's Master Agent acts as a gateway, controlling what information is shared externally.
+
 ### 💬 AI Chat
 
-Built-in multi-model AI chat supporting **OpenAI**, **Anthropic Claude**, **Google Gemini**, **DeepSeek**, **Qwen**, **xAI Grok**, and local models via **Ollama**. The AI is aware of your full project context — file structure, document content, conversation history — truly understanding your project. Supports file attachments, web search, custom system prompts, and one-click model switching to compare answer quality.
+Built-in multi-model AI chat supporting **OpenAI**, **Anthropic Claude**, **Google Gemini**, **DeepSeek**, **Qwen**, **xAI Grok**, and local models via **Ollama**. AI is aware of your current project's full context — file structure, document content, conversation history — truly "understanding your project". Built-in **memory system** lets AI retain knowledge across conversations. Supports file attachments, web search, custom system prompts, and one-click model switching.
 
 ### 🎨 Infinite Canvas (Board)
 
@@ -85,6 +106,7 @@ No more switching between apps — everything you need is built in:
 - 📅 **Calendar** — Schedule management with **native system calendar sync** (macOS Calendar / Google Calendar). Day / week / month views, AI-powered scheduling, and smart reminders.
 - 📂 **File Manager** — Grid / list / column views, drag-and-drop upload, file preview (images, PDFs, Office docs, code). AI can read and operate on your project files directly.
 - 🧩 **Workspace Widgets** — Customizable dashboard with clock, calendar, task summary, quick actions, and agent settings — your mission control at a glance.
+- 🧠 **Skills & Memory** — Each project can have private **skills** (reusable AI capabilities) and **memory** (persistent knowledge across conversations). AI learns your project's patterns and remembers key decisions.
 
 ---
 
@@ -94,6 +116,7 @@ No more switching between apps — everything you need is built in:
 - 💻 **Software Development** — Manage specs and design docs, use AI to generate code snippets, run commands in the terminal, and track tasks on the kanban board.
 - 🎨 **Creative Design** — Brainstorm on the infinite canvas, generate images and videos with AI, organize visual assets in the file manager, and iterate with AI feedback.
 - 📊 **Project Management** — Create a project per client or initiative, manage tasks through the kanban workflow, schedule meetings on the calendar, and coordinate via email — without leaving OpenLoaf.
+- 🏢 **Team & Department Simulation** — Model your org structure with projects: a "Sales AI Team" that delegates data requests to a "Data Analysis" project, a "Marketing" team that pulls product info from "Code Repo" — all orchestrated by an AI Assistant with global oversight.
 - 🧠 **Personal Knowledge Base** — Build your second brain: clip web content, write journals, link ideas with bi-directional references, and let AI help you connect the dots across your knowledge.
 
 ---
@@ -112,13 +135,15 @@ The AI era is here, but collaborating with AI in our daily work is still full of
 
 **🔄 Re-feeding Context Every Single Conversation** — Real work is **project-based**. AI should always understand the full context of your current project.
 
+**🧍 Single-project silos** — Existing tools treat each project as isolated. In reality, projects need to communicate — sales needs data from analytics, marketing needs specs from engineering. No AI tool supports this natively.
+
 ### 🎯 How OpenLoaf Solves This
 
 - **📦 Zero-Config, Ready to Go** — Download the installer, double-click, done. No servers, databases, or Docker to configure.
-- **🧠 Project-Centric, AI Understands Context Natively** — Each project is a self-contained space. AI is always aware of your full project context, with built-in memory.
-- **🔗 Unified Multi-Modal Workflow** — Text, images, video, code, terminal, email, calendar — all capabilities live in one app, orchestrated by one AI.
+- **🏢 Projects as teams** — Each project is a self-contained department with its own AI agent team, data, skills, and workflows. Choose from 6 project types or build your own.
+- **🔗 Cross-project collaboration** — Projects communicate through @ references, task delegation, and group notifications — like departments in a company coordinating through meetings and memos.
+- **🧠 AI with memory and skills** — AI retains knowledge across conversations and learns project-specific skills. The AI Assistant provides a management-level global view across all projects.
 - **🔓 Open Source + Local First** — Fully open-source code, 100% local data storage, use any AI model you want.
-- **🧩 Customizable Widget Workspace** — Different projects can have different widgets. In the future, build your own tools right inside OpenLoaf with AI.
 
 ### 🛋️ Loaf = Bread + Slacking Off
 
@@ -199,8 +224,13 @@ packages/
 
 ## 🗺️ Roadmap
 
+- [ ] 🏢 **Multi-Project Type System** — Create projects as AI Teams, Knowledge Bases, Code Repos, Data Analysis, Content Creation, or Custom — each pre-configured with the right agents and tools
+- [ ] 🔗 **Cross-Project Communication** — @ reference other projects in conversations, delegate tasks across projects, query data from any project through the Master Agent gateway
+- [ ] 💬 **Groups** — Shared chat spaces for multi-project coordination with automatic event notifications (task completion, version releases, report generation)
+- [ ] ✨ **AI Assistant (Management Layer)** — Global oversight across all projects, cross-project task dispatch, unified status dashboard
 - [ ] 🌐 **Full Web Browser Access** — Use OpenLoaf directly from any browser without installing the desktop app (partially available, under active development)
-- [ ] 📦 **Project Template Marketplace** — Expert-crafted templates, import with one click. Examples: stock analysis template (swap the sector and go), ad video template (just provide product photos — copy, storyboard, and video are fully auto-generated)
+- [ ] 🌍 **Internationalization (i18n)** — Full multi-language support (in progress)
+- [ ] 📦 **Project Template Marketplace** — Expert-crafted templates, import with one click
 - [ ] 📄 **WPS / Microsoft Office Integration** — Call WPS, Word, Excel, and PowerPoint to handle non-standard documents, spreadsheets, and presentations
 - [ ] 🔮 More to come...
 

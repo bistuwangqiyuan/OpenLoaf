@@ -196,7 +196,11 @@ function normalizeImageProps(
   const props = node.props as Record<string, unknown>;
   const originalSrc = typeof props.originalSrc === "string" ? props.originalSrc : "";
   const previewSrc = typeof props.previewSrc === "string" ? props.previewSrc : "";
-  const nextOriginal = toBoardRelativePath(originalSrc, boardFolderScope, boardFolderUri);
+  let nextOriginal = toBoardRelativePath(originalSrc, boardFolderScope, boardFolderUri);
+  if (nextOriginal.startsWith("data:") || nextOriginal.startsWith("blob:")) {
+    // 逻辑：data/blob URL 不写入协作文档，避免 base64 膨胀导致画布卡顿。
+    nextOriginal = "";
+  }
   let nextPreview = previewSrc;
   if (previewSrc.startsWith("data:") || previewSrc.startsWith("blob:")) {
     // 逻辑：预览数据不写入协作文档，避免 base64 膨胀。

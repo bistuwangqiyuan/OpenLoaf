@@ -51,6 +51,7 @@ import {
   setChatModel,
   setAbortSignal,
   setupE2eTestEnv,
+  setE2eAgentModel,
 } from '../helpers/testEnv'
 
 installHttpProxy()
@@ -109,9 +110,25 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
   private restoreChatSource: (() => void) | undefined
   private workspaceId: string | undefined
   private workspaceResolved = false
+  private modelId: string | undefined
+  private providerLabel: string | undefined
+
+  /**
+   * promptfoo 文件 provider 构造函数。
+   * 支持 config.modelId 指定测试模型（格式：profileId:modelId），用于多模型对比。
+   */
+  constructor(
+    idOrOptions?: string | { id?: string; config?: Record<string, unknown> },
+    maybeOptions?: { config?: Record<string, unknown> },
+  ) {
+    const config =
+      (typeof idOrOptions === 'object' ? idOrOptions?.config : maybeOptions?.config) ?? {}
+    this.modelId = config.modelId as string | undefined
+    this.providerLabel = config.label as string | undefined
+  }
 
   id() {
-    return 'openloaf-universal'
+    return this.providerLabel ?? 'openloaf-universal'
   }
 
   private async ensureAuth(): Promise<string | undefined> {
@@ -135,6 +152,23 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     return this.workspaceId
   }
 
+  /**
+   * 临时设置模型 ID（用于多模型对比测试）。
+   * 同时写入 agent.json（E2E 路径读取）和环境变量（子 Agent 路径读取）。
+   * 返回还原函数。--max-concurrency 1 保证无并发冲突。
+   */
+  private applyModelOverride(): () => void {
+    if (!this.modelId) return () => {}
+    const prev = process.env.OPENLOAF_TEST_CHAT_MODEL_ID
+    process.env.OPENLOAF_TEST_CHAT_MODEL_ID = this.modelId
+    // E2E 路径通过 chatStreamService → resolveAgentModelIds → agent.json 读取模型
+    setE2eAgentModel(this.modelId)
+    return () => {
+      if (prev === undefined) delete process.env.OPENLOAF_TEST_CHAT_MODEL_ID
+      else process.env.OPENLOAF_TEST_CHAT_MODEL_ID = prev
+    }
+  }
+
   async callApi(
     prompt: string,
     context?: CallApiContextParams,
@@ -147,6 +181,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     }
 
     const agentType = (context?.vars?.agentType as string | undefined) ?? 'master-e2e'
+    const restoreModel = this.applyModelOverride()
 
     try {
       // ─── 路径 A：Master E2E（完整 chat pipeline）───
@@ -162,6 +197,8 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
         output: '',
         latencyMs: Date.now() - start,
       }
+    } finally {
+      restoreModel()
     }
   }
 
@@ -206,12 +243,14 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     })
 
     const parsed = await consumeSseResponse(response)
+    // Expose args alias for test assertions (sseParser stores as 'input')
+    const toolCalls = parsed.toolCalls.map((tc) => ({ ...tc, args: tc.input }))
     return {
       output: parsed.textOutput,
       metadata: {
-        toolCalls: parsed.toolCalls,
+        toolCalls,
         toolNames: parsed.toolNames,
-        toolCallCount: parsed.toolCalls.length,
+        toolCallCount: toolCalls.length,
         commandEvents: parsed.commandEvents,
         subAgentEvents: parsed.subAgentEvents,
         hasSubAgentDispatch: parsed.subAgentEvents.some((e) =>
@@ -332,7 +371,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
         autoApproveTools: true,
       })
       lastParsed = await consumeSseResponse(response)
-      allToolCalls.push(...lastParsed.toolCalls)
+      allToolCalls.push(...lastParsed.toolCalls.map((tc) => ({ ...tc, args: tc.input })))
       allCommandEvents.push(...lastParsed.commandEvents)
     }
 

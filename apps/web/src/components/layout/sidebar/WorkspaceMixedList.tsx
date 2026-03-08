@@ -354,7 +354,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
     moveBoardMutation.mutate({
       workspaceId,
       from: moveTarget.uri,
-      to: `@[${moveSelectedProjectId}]/.openloaf/boards/${folderName}`,
+      to: `@{${moveSelectedProjectId}}/.openloaf/boards/${folderName}`,
     });
   }, [moveTarget, moveSelectedProjectId, moveBoardMutation, workspaceId]);
 

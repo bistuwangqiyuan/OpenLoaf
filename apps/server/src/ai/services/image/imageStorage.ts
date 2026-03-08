@@ -183,7 +183,7 @@ export async function uploadImagesToS3(input: {
 
 /** Supported image extensions for directory inference. */
 const IMAGE_SAVE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
-/** Scoped project path matcher like @[projectId]/path/to/dir. */
+/** Scoped project path matcher like @{projectId/path/to/dir}. */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
 
 /** Check whether extension is a known image extension. */

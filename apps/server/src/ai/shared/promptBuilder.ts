@@ -124,13 +124,13 @@ export function buildExecutionRulesSection(): string {
 export function buildFileReferenceRulesSection(): string {
   return [
     '# 输入中的文件引用',
-    '- 用户输入里的 `@[...]` 代表文件引用，方括号内为项目相对路径。',
-    '- 标准格式：`@[path/to/file]`（默认当前项目根目录）。',
-    '- 文件引用必须用 @[...] 方括号包裹，方括号内为项目相对路径。',
-    '- 跨项目格式：`@[[projectId]/path]`。',
-    '- 可选行号范围：`@[path/to/file:start-end]`，表示关注指定行区间。',
+    '- 用户输入里的 `@{...}` 代表文件引用，花括号内为项目相对路径。',
+    '- 标准格式：`@{path/to/file}`（默认当前项目根目录）。',
+    '- 文件引用必须用 @{...} 花括号包裹，花括号内为项目相对路径。',
+    '- 跨项目格式：`@{[projectId]/path}`。',
+    '- 可选行号范围：`@{path/to/file:start-end}`，表示关注指定行区间。',
     '- 系统插入的文件引用会优先使用当前会话的 projectId。',
-    '- 示例：`@[excel/125_1.xls]`、`@[[proj_6a5ba1eb]/年货节主图.xlsx]`。',
+    '- 示例：`@{excel/125_1.xls}`、`@{[proj_6a5ba1eb]/年货节主图.xlsx}`。',
   ].join('\n')
 }
 

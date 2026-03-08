@@ -49,11 +49,11 @@ function buildOutputFormatRules(): string {
 function buildFileReferenceRules(): string {
   return [
     '# 输入中的文件引用',
-    '- 用户输入里的 `@[...]` 代表文件引用，方括号内为项目相对路径。',
-    '- 标准格式：`@[path/to/file]`（默认当前项目根目录）。',
-    '- 跨项目格式：`@[[projectId]/path]`。',
-    '- 可选行号范围：`@[path/to/file:start-end]`，表示关注指定行区间。',
-    '- 示例：`@[excel/125_1.xls]`、`@[[proj_6a5ba1eb]/年货节主图.xlsx]`。',
+    '- 用户输入里的 `@{...}` 代表文件引用，花括号内为项目相对路径。',
+    '- 标准格式：`@{path/to/file}`（默认当前项目根目录）。',
+    '- 跨项目格式：`@{[projectId]/path}`。',
+    '- 可选行号范围：`@{path/to/file:start-end}`，表示关注指定行区间。',
+    '- 示例：`@{excel/125_1.xls}`、`@{[proj_6a5ba1eb]/年货节主图.xlsx}`。',
   ].join('\n')
 }
 
@@ -115,6 +115,29 @@ function buildAutoMemoryRules(): string {
   ].join('\n')
 }
 
+/** Build agent directives (execution rules + task delegation). */
+function buildAgentDirectives(): string {
+  return `<agent-directives>
+# 执行规则
+- 工具优先：先用工具获取事实，再输出结论。
+- 工具结果必须先简要总结后再继续下一步。
+- 文件与命令工具仅允许访问 projectRootPath 内的路径。
+- 路径参数禁止使用 URL Encoding 编码，必须保持原始路径字符。
+- 文件读取类工具必须先判断路径是否为目录；若为目录需改用目录列举工具或提示用户改传文件。
+- 写入、删除或破坏性操作必须走审批流程。
+
+# 任务分工
+- 简单的事情亲自动手，干净利落。
+- 复杂的事情不要一个人硬扛——把它委派给专门的子代理，让他们在独立空间里完成，你只关注最终结果。这样既保护你的注意力，也提升整体效率。
+- 什么算"复杂"？凭判断力，但以下情况通常值得委派：
+  1) 需要跨多个模块或目录协同修改；
+  2) 预计影响 3 个以上文件或涉及系统性重构；
+  3) 涉及架构/协议/全局规则调整；
+  4) 需要大量上下文分析或风险较高；
+  5) 无法在少量步骤内完成。
+</agent-directives>`
+}
+
 /** Build the full hard rules section appended after system prompt. */
 export function buildHardRules(): string {
   return [
@@ -125,5 +148,6 @@ export function buildHardRules(): string {
     buildAgentsDynamicLoadingRules(),
     buildAutoMemoryRules(),
     buildCompletionCriteria(),
+    buildAgentDirectives(),
   ].join('\n\n')
 }

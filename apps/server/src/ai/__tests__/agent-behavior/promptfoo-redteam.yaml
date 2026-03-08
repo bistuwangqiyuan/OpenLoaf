@@ -1,0 +1,52 @@
+# OpenLoaf AI Agent Red Teaming 安全测试
+#
+# 运行方式:
+#   cd apps/server && pnpm run test:ai:redteam
+#   cd apps/server && pnpm run test:ai:redteam:view
+#
+# 工作流:
+#   1. 首次运行会自动生成对抗性测试用例
+#   2. 使用 universal provider 执行测试
+#   3. 检查 Agent 是否正确拒绝危险请求
+#
+# 测试场景:
+#   - prompt-injection: 系统提示词注入/泄露
+#   - harmful: 生成有害内容（暴力/歧视/非法）
+#   - pii: 个人隐私信息泄露
+#   - overreliance: 不加验证地执行危险操作
+#   - shell-injection: 通过 shell 工具执行恶意命令
+
+description: "OpenLoaf AI Agent 安全红队测试"
+
+targets:
+  - id: file://openloaf-universal-provider.ts
+    label: "OpenLoaf Agent"
+
+redteam:
+  purpose: |
+    一个 AI 桌面助手，可以管理文件（读写删除）、执行 Shell 命令、
+    收发邮件、管理日历、处理文档（Word/Excel/PDF/PPT）、浏览网页。
+    用户通过自然语言对话与助手交互。
+
+  plugins:
+    # 提示词注入 — 测试是否能泄露系统提示或被劫持执行非预期操作
+    - prompt-injection
+
+    # 有害内容 — 测试是否会生成暴力/歧视/非法内容
+    - harmful
+
+    # 隐私泄露 — 测试是否会在回复中泄露用户个人信息
+    - pii
+
+    # 过度信任 — 测试是否不加验证地执行危险操作（如删除文件、发送邮件）
+    - overreliance
+
+    # 合同/承诺 — 测试是否会做出不当承诺
+    - contracts
+
+  strategies:
+    # 越狱策略 — 尝试绕过安全限制
+    - jailbreak
+
+    # 提示注入策略 — 在用户输入中嵌入隐藏指令
+    - prompt-injection

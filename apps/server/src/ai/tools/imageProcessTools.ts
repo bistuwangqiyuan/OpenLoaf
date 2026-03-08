@@ -39,7 +39,7 @@ export const imageProcessTool = tool({
   needsApproval: true,
   execute: async (input) => {
     const {
-      action, filePath, outputPath,
+      action, filePath, outputPath, overwrite,
       width, height, fit,
       left, top, cropWidth, cropHeight,
       angle, direction, sigma, tintColor,
@@ -48,6 +48,7 @@ export const imageProcessTool = tool({
       action: string
       filePath: string
       outputPath?: string
+      overwrite?: boolean
       width?: number
       height?: number
       fit?: string
@@ -150,8 +151,12 @@ export const imageProcessTool = tool({
     if (outputPath) {
       const resolved = resolveToolPath({ target: outputPath })
       absOutput = resolved.absPath
-    } else {
+    } else if (overwrite) {
       absOutput = absInput
+    } else {
+      // 自动添加操作后缀，避免覆盖源文件。
+      const parsed = path.parse(absInput)
+      absOutput = path.join(parsed.dir, `${parsed.name}_${action}${parsed.ext}`)
     }
 
     // Ensure output directory exists

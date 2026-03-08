@@ -26,7 +26,6 @@ import {
   matchProjectFileDragSession,
 } from "@/lib/project-file-drag-session";
 import {
-  buildUriFromRoot,
   formatScopedProjectPath,
   parseScopedProjectPath,
   resolveFileUriFromRoot,
@@ -34,19 +33,8 @@ import {
 import { resolveProjectRootUri } from "@/lib/chat/mention-pointer";
 import { createFileEntryFromUri, openFile } from "@/components/file/lib/open-file";
 import { useProjects } from "@/hooks/use-projects";
-import { useQueryClient } from "@tanstack/react-query";
-import { trpc } from "@/utils/trpc";
 import type { ChatAttachmentInput, MaskedAttachmentInput } from "./chat-attachments";
 import type { ChatInputEditorHandle } from "./ChatInputEditor";
-
-function base64ToUint8Array(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 function isImageFileName(name: string) {
   return /\.(png|jpe?g|gif|bmp|webp|svg|avif|tiff|heic)$/i.test(name);
@@ -107,7 +95,6 @@ export function useChatInputDrop({
   uploadFileToSession,
 }: UseChatInputDropOptions) {
   const { data: projects = [] } = useProjects();
-  const queryClient = useQueryClient();
 
   /** Insert text or a mention chip at the editor's current caret position. */
   const insertTextAtSelection = useCallback(
@@ -126,12 +113,12 @@ export function useChatInputDrop({
         ensureTrailingSpace: options?.ensureTrailingSpace,
       };
       // Single mention token → insert as chip
-      if (/^@\[[^\]]+\]$/.test(rawText)) {
+      if (/^@\{[^}]+\}$/.test(rawText)) {
         handle.insertMention(rawText, insertOpts);
         return;
       }
       // Plain text (no mention tokens) → insert as text
-      if (!/@\[[^\]]+\]/.test(rawText)) {
+      if (!/@\{[^}]+\}/.test(rawText)) {
         handle.insertText(rawText, insertOpts);
         return;
       }
@@ -162,7 +149,7 @@ export function useChatInputDrop({
     const trimmed = value.trim();
     if (!trimmed) return "";
     let normalized: string;
-    if (trimmed.startsWith("@[") && trimmed.endsWith("]")) {
+    if (trimmed.startsWith("@{") && trimmed.endsWith("}")) {
       normalized = trimmed.slice(2, -1);
     } else if (trimmed.startsWith("@")) {
       normalized = trimmed.slice(1);
@@ -190,7 +177,7 @@ export function useChatInputDrop({
     (fileRef: string, options?: { skipFocus?: boolean }) => {
       const normalizedRef = normalizeFileRef(fileRef);
       if (!normalizedRef) return;
-      insertTextAtSelection(`@[${normalizedRef}]`, {
+      insertTextAtSelection(`@{${normalizedRef}}`, {
         skipFocus: options?.skipFocus,
         ensureLeadingSpace: true,
         ensureTrailingSpace: true,
@@ -258,40 +245,11 @@ export function useChatInputDrop({
         const pId = parsed?.projectId ?? defaultProjectId ?? "";
         const relativePath = parsed?.relativePath ?? "";
         if (!pId || !relativePath) continue;
-        const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
-        const isImageExt = /^(png|jpe?g|gif|bmp|webp|svg|avif|tiff|heic)$/i.test(ext);
-        // 非图片文件统一以 @[path] mention 插入；图片仅在支持附件时走上传。
-        if (!isImageExt || !onAddAttachments || !canAttachImage) {
-          mentionRefs.push(fileRef);
-          continue;
-        }
-        const rUri = resolveRootUri(pId);
-        if (!rUri) continue;
-        const fUri = buildUriFromRoot(rUri, relativePath);
-        if (!fUri) continue;
-        try {
-          // 将项目内图片转为 File，交给 ChatImageAttachments 走上传。
-          const payload = await queryClient.fetchQuery(
-            trpc.fs.readBinary.queryOptions({
-              workspaceId,
-              projectId: pId,
-              uri: fUri,
-            })
-          ) as { contentBase64?: string; mime?: string } | null;
-          if (!payload?.contentBase64) continue;
-          const bytes = base64ToUint8Array(payload.contentBase64);
-          const mime = payload.mime || "application/octet-stream";
-          const fileName = relativePath.split("/").pop() || "image";
-          const arrayBuffer = new ArrayBuffer(bytes.byteLength);
-          new Uint8Array(arrayBuffer).set(bytes);
-          const file = new File([arrayBuffer], fileName, { type: mime });
-          onAddAttachments([file]);
-        } catch {
-          continue;
-        }
+        // 所有文件统一以 @{path} mention 插入（包括图片）。
+        mentionRefs.push(fileRef);
       }
       if (mentionRefs.length > 0) {
-        const mentionText = mentionRefs.map((item) => `@[${item}]`).join(" ");
+        const mentionText = mentionRefs.map((item) => `@{${item}}`).join(" ");
         insertTextAtSelection(mentionText, {
           ensureLeadingSpace: true,
           ensureTrailingSpace: true,
@@ -299,13 +257,9 @@ export function useChatInputDrop({
       }
     },
     [
-      canAttachImage,
       defaultProjectId,
       insertTextAtSelection,
-      onAddAttachments,
-      queryClient,
       normalizeFileRef,
-      resolveRootUri,
       workspaceId,
     ]
   );
@@ -371,9 +325,9 @@ export function useChatInputDrop({
         }
         return;
       }
-      if (!onAddAttachments) return;
+      if (!uploadFileToSession) return;
       try {
-        // 处理从消息中拖拽的图片，复用附件上传流程。
+        // 处理从消息中拖拽的图片，上传到 session 目录后以 @{path} mention 插入。
         const fileName = payloadFileName;
         const isImageByName = isImageFileName(fileName);
         const blob = await fetchBlobFromUri(imagePayload.baseUri, {
@@ -384,24 +338,23 @@ export function useChatInputDrop({
         const file = new File([blob], fileName, {
           type: blob.type || "application/octet-stream",
         });
-        const sourceUrl = isRelativePath(imagePayload.baseUri)
-          ? imagePayload.baseUri
-          : undefined;
-        // 中文注释：应用内拖拽优先使用相对路径上传。
-        onAddAttachments([{ file, sourceUrl }]);
+        const absPath = await uploadFileToSession(file);
+        if (absPath) {
+          insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+        }
       } catch {
         return;
       }
       return;
     }
-    // 优先级 3：系统文件拖拽 — 上传到 session files 目录，插入 @[/abs/path] mention
+    // 优先级 3：系统文件拖拽 — 上传到 session files 目录，插入 @{/abs/path} mention
     const files = Array.from(event.dataTransfer.files ?? []);
     if (files.length > 0) {
       if (uploadFileToSession) {
         for (const file of files) {
           const absPath = await uploadFileToSession(file);
           if (absPath) {
-            insertTextAtSelection(`@[${absPath}]`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+            insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
           }
         }
         return;

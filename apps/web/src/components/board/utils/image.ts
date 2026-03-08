@@ -254,10 +254,13 @@ export async function buildImageNodePayloadFromUri(
     previewMode?: "dataUrl" | "none";
     /** Project id for resolving relative paths. */
     projectId?: string;
+    /** Workspace id for resolving workspace-relative paths. */
+    workspaceId?: string;
   }
 ): Promise<ImageNodePayload> {
   const blob = await fetchBlobFromUri(uri, {
     projectId: options?.projectId,
+    workspaceId: options?.workspaceId,
     maxBytes: options?.maxPreviewBytes,
   });
   const previewMode = options?.previewMode ?? "dataUrl";

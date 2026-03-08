@@ -159,9 +159,9 @@ function resolveWriteTargetPath(targetPath: string): { absPath: string; rootPath
   const trimmed = targetPath.trim();
   if (!trimmed) throw new Error("path is required.");
   if (trimmed.startsWith("file:")) throw new Error("file:// URIs are not allowed.");
-  // Strip @[...] wrapper from new format, then check for project-scoped paths.
+  // Strip @{...} wrapper from new format, then check for project-scoped paths.
   let normalized: string;
-  if (trimmed.startsWith("@[") && trimmed.endsWith("]")) {
+  if (trimmed.startsWith("@{") && trimmed.endsWith("}")) {
     normalized = trimmed.slice(2, -1);
   } else if (trimmed.startsWith("@")) {
     normalized = trimmed.slice(1);

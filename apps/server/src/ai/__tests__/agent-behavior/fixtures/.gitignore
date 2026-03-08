@@ -1,0 +1,6 @@
+# Runtime generated files
+providers.json
+auth.json
+
+# Chat history (generated during test runs)
+workspace/.openloaf/chat-history/

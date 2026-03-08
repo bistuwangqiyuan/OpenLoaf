@@ -27,8 +27,10 @@ import type {
   LanguageModelV3,
 } from '@ai-sdk/provider'
 import type { PrepareStepFunction, StopCondition } from 'ai'
-import type { AgentFrame } from '@/ai/shared/context/requestContext'
+import type { ClientPlatform } from '@openloaf/api/types/platform'
+import { getRequestContext, type AgentFrame } from '@/ai/shared/context/requestContext'
 import { buildToolset } from '@/ai/tools/toolRegistry'
+import { filterToolIdsByPlatform } from '@/ai/tools/toolPlatformFilter'
 import { createToolCallRepair } from '@/ai/shared/repairToolCall'
 import { ActivatedToolSet } from '@/ai/tools/toolSearchState'
 import { createToolSearchTool } from '@/ai/tools/toolSearchTool'
@@ -118,10 +120,49 @@ function createToolSearchPrepareStep(
 // ---------------------------------------------------------------------------
 
 /**
- * Build ToolSearch guidance text appended to instructions at runtime.
- * Model discovers tools dynamically via tool-search; no pre-populated list needed.
+ * Build ToolSearch guidance text.
+ *
+ * Scenarios are filtered by client platform — tools unavailable on
+ * the current platform are omitted from the guidance list.
  */
-export function buildToolSearchGuidance(): string {
+export function buildToolSearchGuidance(platform?: ClientPlatform): string {
+  const isWeb = platform === 'web'
+  const isCli = platform === 'cli'
+
+  const scenarios: string[] = [
+    '- 查询时间/日期 → select:time-now',
+    '- 创建/修改/删除日历事件（"明天开会"、"创建日程"、"创建提醒"、"修改会议时间"、"取消日程"、"标记完成"）→ select:calendar-mutate,time-now',
+    '- 用户提及未来时间+后台提醒（"3小时后提醒我"、"设闹钟"、"每天提醒"）→ 先 time-now 获取当前时间，再 task-manage 创建定时任务（必须包含 schedule 参数），不可仅文字确认',
+    '- 多个事件 → 每个事件各调用一次 task-manage',
+    '- 查询待办/任务列表 → select:task-status',
+    '- 创建/修改/取消任务 → select:task-manage（取消前先 task-status 查询）',
+    '- 查询日程安排 → select:calendar-query',
+    '- 查询邮件/收件箱/搜索邮件 → select:email-query',
+    '- 发送/标记已读/加星标/删除/移动邮件 → select:email-mutate',
+    '- 文件/目录操作 → read-file, list-dir, grep-files, apply-patch',
+  ]
+
+  // open-url — 需要 Electron，web/cli 排除
+  if (!isWeb && !isCli) {
+    scenarios.push('- 打开链接/URL → select:open-url')
+  }
+
+  // jsx-create / chart-render — 需要前端 UI，cli 排除
+  if (!isCli) {
+    scenarios.push('- 渲染组件/诗歌/UI 展示 → select:jsx-create')
+    scenarios.push('- 画图表/折线图/柱状图 → select:chart-render')
+  }
+
+  scenarios.push(
+    '- Word/docx 文档（读取、创建、编辑）→ select:word-query,word-mutate',
+    '- Excel/xlsx 电子表格（读取、创建、编辑）→ select:excel-query,excel-mutate',
+    '- PPT/pptx 演示文稿（读取、创建、编辑）→ select:pptx-query,pptx-mutate',
+    '- PDF 文档（读取文本、查看结构、表单、创建、合并、填表）→ select:pdf-query,pdf-mutate',
+    '- 图片处理（"把图片缩小到800x600"、"PNG转WebP"、"旋转90度"、"裁剪图片"、"加模糊效果"、"转成JPG"）→ select:image-process',
+    '- 视频/音频转换（"MP4转WebM"、"提取音频"、"查看视频信息"、"AVI转MP4"、"WAV转MP3"、"视频转720p"）→ select:video-convert',
+    '- 文档格式转换（"Word转PDF"、"PDF转文本"、"Excel导出CSV"、"Markdown转HTML"、"HTML转MD"、"CSV转Excel"）→ select:doc-convert',
+  )
+
   return `<tool-search-guidance>
 你启动时只有 tool-search 一个工具可用。当用户请求需要执行操作时，必须先用 tool-search 加载所需工具。
 
@@ -132,24 +173,7 @@ export function buildToolSearchGuidance(): string {
 - 可一次加载多个：用逗号分隔 ID
 
 必须使用工具的场景（不可纯文本回答）：
-- 查询时间/日期 → select:time-now
-- 用户提及未来时间+事件（"明天开会"、"3小时后提醒"、"记一下周三拜访"、"设闹钟"）→ 先 time-now 获取当前时间，再 task-manage 创建定时任务（必须包含 schedule 参数），不可仅文字确认
-- 多个事件 → 每个事件各调用一次 task-manage
-- 查询待办/任务列表 → select:task-status
-- 创建/修改/取消任务 → select:task-manage（取消前先 task-status 查询）
-- 查询日程安排 → select:calendar-query
-- 查询/操作邮件 → select:email-query
-- 文件/目录操作 → read-file, list-dir, grep-files, apply-patch
-- 打开链接/URL → select:open-url
-- 渲染组件/诗歌/UI 展示 → select:jsx-create
-- 画图表/折线图/柱状图 → select:chart-render
-- Word/docx 文档（读取、创建、编辑）→ select:word-query,word-mutate
-- Excel/xlsx 电子表格（读取、创建、编辑）→ select:excel-query,excel-mutate
-- PPT/pptx 演示文稿（读取、创建、编辑）→ select:pptx-query,pptx-mutate
-- PDF 文档（读取文本、查看结构、表单、创建、合并、填表）→ select:pdf-query,pdf-mutate
-- 图片处理（"把图片缩小到800x600"、"PNG转WebP"、"旋转90度"、"裁剪图片"、"加模糊效果"、"转成JPG"）→ select:image-process
-- 视频/音频转换（"MP4转WebM"、"提取音频"、"查看视频信息"、"AVI转MP4"、"WAV转MP3"、"视频转720p"）→ select:video-convert
-- 文档格式转换（"Word转PDF"、"PDF转文本"、"Excel导出CSV"、"Markdown转HTML"、"HTML转MD"、"CSV转Excel"）→ select:doc-convert
+${scenarios.join('\n')}
 
 重要：简单对话直接回答，不需要加载任何工具。
 </tool-search-guidance>`
@@ -206,10 +230,14 @@ export function createMasterAgent(input: CreateMasterAgentInput) {
   const instructions = input.instructions || template.systemPrompt
   const wrappedModel = wrapModelWithExamples(input.model)
 
-  // ToolSearch Pull mode
+  // ToolSearch Pull mode — filter by client platform
+  const ctx = getRequestContext()
   const coreToolIds = [...CORE_TOOL_IDS] as string[]
-  const deferredToolIds = template.deferredToolIds ?? []
-  const allToolIds = [...new Set([...coreToolIds, ...deferredToolIds])]
+  const filteredDeferredToolIds = filterToolIdsByPlatform(
+    template.deferredToolIds ?? [],
+    ctx?.clientPlatform,
+  )
+  const allToolIds = [...new Set([...coreToolIds, ...filteredDeferredToolIds])]
 
   // Build full toolset (all tools registered, but only core visible via activeTools)
   const tools = buildToolset(allToolIds)
@@ -220,10 +248,10 @@ export function createMasterAgent(input: CreateMasterAgentInput) {
   // Inject tool-search (dynamically created, closes over activatedSet)
   tools['tool-search'] = createToolSearchTool(activatedSet, new Set(allToolIds))
 
-  // ★ Append Hard Rules + ToolSearch guidance to instructions (Layer 2)
+  // ★ Append Hard Rules to instructions (Layer 2)
+  // ToolSearch guidance is injected via session preface (platform-aware).
   const hardRules = buildHardRules()
-  const toolSearchGuidance = buildToolSearchGuidance()
-  const finalInstructions = `${instructions}\n\n${hardRules}\n\n${toolSearchGuidance}`
+  const finalInstructions = `${instructions}\n\n${hardRules}`
 
   const baseSettings = {
     model: wrappedModel,
@@ -299,18 +327,21 @@ export function createSubAgent(input: CreateSubAgentInput): ToolLoopAgent {
 /** Create a general-purpose sub-agent with tool-search + full deferred toolset (excluding agent collaboration tools). */
 function createGeneralPurposeSubAgent(model: LanguageModelV3): ToolLoopAgent {
   const masterTpl = getPrimaryTemplate()
+  const ctx = getRequestContext()
   const coreToolIds = ['tool-search'] as string[]
-  const deferredToolIds = (masterTpl.deferredToolIds ?? [])
-    .filter((id) => !AGENT_TOOL_IDS_TO_EXCLUDE.has(id))
+  const deferredToolIds = filterToolIdsByPlatform(
+    (masterTpl.deferredToolIds ?? []).filter((id) => !AGENT_TOOL_IDS_TO_EXCLUDE.has(id)),
+    ctx?.clientPlatform,
+  )
   const allToolIds = [...new Set([...coreToolIds, ...deferredToolIds])]
 
   const tools = buildToolset(allToolIds)
   const activatedSet = new ActivatedToolSet(coreToolIds)
   tools['tool-search'] = createToolSearchTool(activatedSet, new Set(allToolIds))
 
-  // 使用与主 Agent 相同的完整 instructions
+  // 使用与主 Agent 相同的完整 instructions（sub-agent 不共享 preface，需自带 guidance）
   const basePrompt = masterTpl.systemPrompt
-  const finalInstructions = `${basePrompt}\n\n${buildHardRules()}\n\n${buildToolSearchGuidance()}`
+  const finalInstructions = `${basePrompt}\n\n${buildHardRules()}\n\n${buildToolSearchGuidance(ctx?.clientPlatform)}`
 
   return new ToolLoopAgent({
     id: `sub-agent-general-${Date.now()}`,

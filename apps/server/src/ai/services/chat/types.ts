@@ -9,6 +9,7 @@
  */
 import type { ChatCommandId } from "@openloaf/api/common/chatCommands";
 import type { ChatModelSource } from "@openloaf/api/common";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { ChatRequestBody, OpenLoafUIMessage } from "@openloaf/api/types/message";
 
 /** Chat stream request payload, based on ChatRequestBody with server-only fields. */
@@ -74,6 +75,8 @@ export type AiExecuteRequest = {
   chatModelId?: string;
   /** Explicit chat model source from frontend (e.g. board nodes). */
   chatModelSource?: ChatModelSource;
+  /** Client platform for conditional tool registration. */
+  clientPlatform?: ClientPlatform;
 };
 
 export type AiCommandContext = {

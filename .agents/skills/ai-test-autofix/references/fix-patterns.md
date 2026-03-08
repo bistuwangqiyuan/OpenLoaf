@@ -296,17 +296,19 @@ toolIds: [
 
 ## 6. 验证技巧
 
-### 使用 --filter-description 精确重跑
+### 使用 --filter-pattern 精确重跑
 
 ```bash
-# 单个用例
-cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:behavior --keep-output --filter-description "e2e-001"
+cd apps/server
+
+# 单个用例（按前缀过滤）
+pnpm run test:ai:behavior -- --filter-pattern "master-001"
 
 # 多个用例（正则匹配）
-cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:behavior --keep-output --filter-description "e2e-00[1-3]"
+pnpm run test:ai:behavior -- --filter-pattern "master-00[1-3]"
 
 # 包含关键词
-cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:behavior --keep-output --filter-description "project"
+pnpm run test:ai:behavior -- --filter-pattern "project"
 ```
 
 ### 使用 --repeat 测试稳定性
@@ -314,7 +316,8 @@ cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:
 修复后建议用 `--repeat 2` 验证稳定性（LLM 有非确定性）：
 
 ```bash
-cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:behavior --keep-output --filter-description "e2e-001" --repeat 2
+cd apps/server
+pnpm run test:ai:behavior -- --filter-pattern "master-001" --repeat 2
 ```
 
 如果 2 次中有 1 次失败，说明修复还不够稳定，需要进一步加强。
@@ -322,12 +325,19 @@ cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:
 ### 快速验证单个修复
 
 ```bash
-# 1. 修改代码后
-# 2. 只跑目标用例（Docker volume 挂载了整个项目，代码改动立即生效）
-cd scripts/docker-e2e && docker compose run --rm behavior-test pnpm run test:ai:behavior --keep-output --filter-description "e2e-001"
-# 3. 读取输出确认（输出文件在宿主机可直接读取）
-cat apps/server/.behavior-test-output.json | jq '.results.results[0].success'
+cd apps/server
+
+# 1. 修改代码后，只跑目标用例（代码改动立即生效）
+pnpm run test:ai:behavior -- --filter-pattern "master-001"
+
+# 2. 读取输出确认
+cat .behavior-test-output.json | jq '.results.results[0].success'
+
+# 3. 查看 Web UI 结果矩阵
+pnpm run test:ai:behavior:view
 ```
+
+底层命令为 `node --no-warnings --env-file=.env --import tsx/esm scripts/run-behavior-test.mjs`，封装了 `promptfoo eval` 调用。
 
 ---
 
@@ -352,3 +362,110 @@ cat apps/server/.behavior-test-output.json | jq '.results.results[0].success'
 - 规则语义保持一致
 - 工具名保持不变（英文）
 - 用户说法的示例翻译为英文等价表达
+
+---
+
+## 9. Rubric 写作指南
+
+`llm-rubric` 断言由评分模型（Qwen3-235B via DashScope）判断 Agent 输出是否满足语义要求。写好 rubric 是提高测试稳定性的关键。
+
+### 核心原则
+
+1. **并列同义词**：用"X/Y"写法覆盖同义表述
+   - Bad: `"回复应说明文件不存在"`
+   - Good: `"回复应指出文件未找到/不存在"`
+
+2. **容错括号**：添加 `（...也可接受）` 处理合理的替代行为
+   - Bad: `"回复应列出 3 个日程"`
+   - Good: `"回复应列出日程信息（提示当前没有日程也可接受）"`
+
+3. **描述范围而非精确值**：避免绝对化要求
+   - Bad: `"回复必须包含'图片尺寸为 1920x1080'字样"`
+   - Good: `"回复应展示图片的基本信息（如尺寸、格式等）"`
+
+4. **避免格式要求**：LLM 输出格式不确定
+   - Bad: `"回复应以 Markdown 表格展示"`
+   - Good: `"回复应以结构化方式展示数据"`
+
+### Before/After 示例
+
+**Before**（过于严格，容易误判）：
+```yaml
+- type: llm-rubric
+  value: "回复必须包含文件大小（字节数），并以 KB 为单位显示"
+```
+
+**After**（有容错，覆盖合理变体）：
+```yaml
+- type: llm-rubric
+  value: "回复应展示文件的基本信息（如大小、类型），或指出文件未找到/路径不存在（提示检查路径也可接受）"
+```
+
+---
+
+## 10. 工具描述消歧义模式
+
+当 WRONG_TOOL 失败且根因是两个工具功能有交叉时，在**被错误调用**的工具 description 末尾添加排他说明。
+
+### 抽象模式
+
+```
+不适用：<场景描述>时改用 <正确工具>。
+```
+
+### 完整 Before/After 示例（excel-mutate 案例）
+
+**问题**：用户要求"将 CSV 转为 Excel"，Agent 错误调用了 `excel-mutate`（用于修改 Excel 内容），应使用 `doc-convert`（格式转换工具）。
+
+**Before**（`packages/api/src/types/tools/office.ts`）：
+```typescript
+export const excelMutateToolDef = {
+  id: 'excel-mutate',
+  description:
+    '触发：当用户要求修改 Excel 表格内容（增删改单元格、添加公式、格式化等）时调用。用途：在指定 Excel 文件上执行修改操作。返回：修改结果。',
+}
+```
+
+**After**：
+```typescript
+export const excelMutateToolDef = {
+  id: 'excel-mutate',
+  description:
+    '触发：当用户要求修改 Excel 表格内容（增删改单元格、添加公式、格式化等）时调用。用途：在指定 Excel 文件上执行修改操作。返回：修改结果。不适用：仅需读取时改用 excel-query；格式转换（如 CSV→Excel、Excel→CSV/JSON）改用 doc-convert。',
+}
+```
+
+### 适用场景
+
+- 两个工具名称或描述有语义重叠（如 `excel-mutate` vs `doc-convert`）
+- 同一用户意图可能匹配多个工具
+- 修改 prompt 选择策略不如直接在工具 description 中消歧义更精准
+
+### 注意事项
+
+- 只在**被错误调用**的工具上添加排他说明，不要修改正确工具
+- 排他说明放在 description **末尾**，以"不适用："开头
+- 保持原有描述不变，仅追加
+
+---
+
+## 11. 测试 Fixture 文件依赖
+
+Fixture 文件按领域拆分，与对应的测试定义关联放置。测试运行时由 `setupE2eTestEnv()`（`helpers/testEnv.ts`）两步复制到临时目录 `/tmp/openloaf-e2e-{timestamp}/workspace/`：先复制共享基础 `fixtures/workspace/`，再扫描 `tests/*/workspace/` 逐域 overlay。
+
+### 依赖映射
+
+| 测试用例前缀 | 依赖的 Fixture 文件 | Fixture 位置 |
+|-------------|-------------------|----|
+| `tools-imgproc-*` | 图片文件 | `tests/tools/workspace/` |
+| `tools-docconv-*` | `budget.xlsx`, `invoice.pdf`, `notes.docx`, `meeting-notes.docx`, `presentation.pptx` | `tests/tools/workspace/` |
+| `tools-fileinfo-*` | `invoice.pdf`, `budget.xlsx` | `tests/tools/workspace/` |
+| `tools-vidconv-*` | 视频文件（如有） | `tests/tools/workspace/` |
+| `master-*`（项目/任务相关） | `web-app/`, `data-analysis/`, `docs/`, `.openloaf/tasks/` | `tests/master/workspace/` + `fixtures/workspace/` |
+| `email-*` | `email.json` | `tests/email/workspace/` |
+
+### 新增测试文件
+
+1. 将文件放入对应域的 `tests/<domain>/workspace/` 目录（共享文件放 `fixtures/workspace/`）
+2. `setupE2eTestEnv()` 会自动合并，无需额外配置
+3. 测试用例中引用路径使用相对于 workspace 根的路径（如 `docs/xxx.pdf`）

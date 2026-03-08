@@ -17,7 +17,10 @@ import {
   getWorkspaceRootPath,
   getWorkspaceRootPathById,
 } from "@openloaf/api/services/vfsService";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { PromptContext } from "@/ai/shared/types";
+import { getPrimaryTemplate } from "@/ai/agent-templates";
+import { filterToolIdsByPlatform } from "@/ai/tools/toolPlatformFilter";
 import { loadSkillSummaries, type SkillSummary } from "@/ai/services/skillsLoader";
 import { resolvePythonInstallInfo } from "@/ai/models/cli/pythonTool";
 import { getAuthSessionSnapshot } from "@/modules/auth/tokenStore";
@@ -28,9 +31,8 @@ import {
   buildSessionContextSection,
   buildProjectRulesSection,
   buildSkillsSummarySection,
-  buildExecutionRulesSection,
-  buildTaskDelegationRulesSection,
 } from "@/ai/shared/promptBuilder";
+import { buildToolSearchGuidance } from "@/ai/services/agentFactory";
 import { assembleMemoryBlocks } from "@/ai/shared/agentPromptAssembler";
 import { collectAvailableAgents, buildSubAgentListSection } from "@/ai/shared/subAgentPrefaceBuilder";
 
@@ -433,11 +435,21 @@ function buildSkillsReminderBlock(
   return `<system-reminder>\n${content}\n</system-reminder>`;
 }
 
+/** Build available tools section as a comma-separated list. */
+function buildAvailableToolsSection(clientPlatform?: ClientPlatform): string {
+  const template = getPrimaryTemplate();
+  const allToolIds = template.deferredToolIds ?? [];
+  const filtered = filterToolIdsByPlatform(allToolIds, clientPlatform);
+  if (filtered.length === 0) return "";
+  return `# Available Tools\n${filtered.join(", ")}`;
+}
+
 /** Build context reminder blocks — each h1 section wrapped in its own <system-reminder>. */
 function buildContextReminderBlocks(input: {
   sessionId: string;
   context: PromptContext;
   parentProjectRootPaths: string[];
+  clientPlatform?: ClientPlatform;
 }): string[] {
   const { sessionId, context, parentProjectRootPaths } = input;
   const sections: string[] = [];
@@ -458,11 +470,13 @@ function buildContextReminderBlocks(input: {
   //   ),
   // );
 
-  // 执行规则
-  sections.push(buildExecutionRulesSection());
+  // NOTE: 执行规则 + 任务分工已移至 hardRules.ts <agent-directives>
 
-  // 任务分工规则
-  sections.push(buildTaskDelegationRulesSection());
+  // ToolSearch guidance（平台感知，按 clientPlatform 过滤场景）
+  sections.push(buildToolSearchGuidance(input.clientPlatform));
+
+  // 可用工具列表（会话上下文之前）
+  sections.push(buildAvailableToolsSection(input.clientPlatform));
 
   // 会话上下文（放到最底部）
   sections.push(buildSessionContextSection(sessionId, context));
@@ -480,6 +494,7 @@ export async function buildSessionPrefaceText(input: {
   selectedSkills: string[];
   parentProjectRootPaths: string[];
   timezone?: string;
+  clientPlatform?: ClientPlatform;
 }): Promise<string> {
   const context = await resolvePromptContext({
     workspaceId: input.workspaceId,
@@ -497,6 +512,7 @@ export async function buildSessionPrefaceText(input: {
     sessionId: input.sessionId,
     context,
     parentProjectRootPaths: input.parentProjectRootPaths,
+    clientPlatform: input.clientPlatform,
   });
 
   // Memory 独立块（每个 scope 独立的 <system-reminder>）

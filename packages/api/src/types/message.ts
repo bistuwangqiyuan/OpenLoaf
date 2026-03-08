@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { ModelDefinition } from "../common/modelTypes";
+import type { ClientPlatform } from "./platform";
 
 type UIDataTypes = Record<string, unknown>;
 type UITools = Record<string, unknown>;
@@ -137,6 +138,8 @@ export type ChatRequestBody = {
   autoApproveTools?: boolean;
   /** SDK assistant UUID for CLI rewind (resumeSessionAt). */
   sdkRewindTarget?: string;
+  /** Client platform for conditional tool registration. */
+  clientPlatform?: ClientPlatform;
 };
 
 export type TokenUsage = {

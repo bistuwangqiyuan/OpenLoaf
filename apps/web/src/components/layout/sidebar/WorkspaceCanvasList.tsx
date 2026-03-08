@@ -263,7 +263,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
     moveBoardMutation.mutate({
       workspaceId,
       from: moveTarget.uri,
-      to: `@[${moveSelectedProjectId}]/.openloaf/boards/${folderName}`,
+      to: `@{${moveSelectedProjectId}}/.openloaf/boards/${folderName}`,
     });
   }, [moveTarget, moveSelectedProjectId, moveBoardMutation, workspaceId]);
 

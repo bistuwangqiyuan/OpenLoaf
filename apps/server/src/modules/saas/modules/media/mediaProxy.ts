@@ -14,6 +14,7 @@ import {
   resolveVideoSaveDirectory,
   saveGeneratedVideoFromUrl,
 } from "@/ai/services/video/videoStorage";
+import { getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
 import {
   cancelMediaTask,
   fetchImageModels,
@@ -26,6 +27,20 @@ import {
   getMediaTaskContext,
   rememberMediaTask,
 } from "./mediaTaskStore";
+
+/** Convert an absolute file path to a workspace-relative path. */
+function toWorkspaceRelativePath(
+  filePath: string,
+  workspaceId?: string,
+): string | null {
+  if (!workspaceId) return null;
+  const workspaceRoot = getWorkspaceRootPathById(workspaceId);
+  if (!workspaceRoot) return null;
+  const rootResolved = path.resolve(workspaceRoot);
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(rootResolved + path.sep)) return null;
+  return path.relative(rootResolved, resolved).replace(/\\/g, "/");
+}
 
 export type MediaSubmitContext = {
   /** Workspace id for storage scoping. */
@@ -172,11 +187,19 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         urls: resultUrls,
         directory: resolvedDir,
       });
-      const normalizedSaveDir = saveDir.replace(/\\/g, "/").replace(/\/+$/, "");
-      resultUrls = savedPaths.map((filePath) => {
-        const fileName = path.basename(filePath);
-        return normalizedSaveDir ? `${normalizedSaveDir}/${fileName}` : fileName;
-      });
+      if (saveDir.startsWith("file://")) {
+        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        resultUrls = savedPaths.map((filePath) => {
+          const relativePath = toWorkspaceRelativePath(filePath, ctx?.workspaceId);
+          return relativePath ?? path.basename(filePath);
+        });
+      } else {
+        const normalizedSaveDir = saveDir.replace(/\\/g, "/").replace(/\/+$/, "");
+        resultUrls = savedPaths.map((filePath) => {
+          const fileName = path.basename(filePath);
+          return normalizedSaveDir ? `${normalizedSaveDir}/${fileName}` : fileName;
+        });
+      }
     }
 
     if (resultType === "video") {
@@ -194,10 +217,17 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         directory: resolvedDir,
         fileNameBase: taskId,
       });
-      const normalizedSaveDir = saveDir.replace(/\\/g, "/").replace(/\/+$/, "");
-      resultUrls = [
-        normalizedSaveDir ? `${normalizedSaveDir}/${saved.fileName}` : saved.fileName,
-      ];
+      if (saveDir.startsWith("file://")) {
+        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        const savedFilePath = path.join(resolvedDir, saved.fileName);
+        const relativePath = toWorkspaceRelativePath(savedFilePath, ctx?.workspaceId);
+        resultUrls = [relativePath ?? saved.fileName];
+      } else {
+        const normalizedSaveDir = saveDir.replace(/\\/g, "/").replace(/\/+$/, "");
+        resultUrls = [
+          normalizedSaveDir ? `${normalizedSaveDir}/${saved.fileName}` : saved.fileName,
+        ];
+      }
     }
 
     // 逻辑：任务完成后清理上下文缓存。

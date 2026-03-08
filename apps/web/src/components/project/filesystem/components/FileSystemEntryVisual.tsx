@@ -25,7 +25,9 @@ export const IMAGE_EXTS = new Set([
   "svg",
   "avif",
   "tiff",
+  "tif",
   "heic",
+  "heif",
 ]);
 export const ARCHIVE_EXTS = new Set(["zip", "rar", "7z", "gz", "tar", "bz2", "xz"]);
 export const AUDIO_EXTS = new Set(["mp3", "wav", "flac", "ogg", "m4a", "aac"]);

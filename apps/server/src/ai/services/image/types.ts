@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { ChatModelSource } from "@openloaf/api/common";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { OpenLoafUIMessage } from "@openloaf/api/types/message";
 
 export type ChatImageMessageInput = {
@@ -62,6 +63,8 @@ export type ChatImageRequest = {
   imageSaveDir?: string;
   /** Selected skill names for this request. */
   selectedSkills?: string[];
+  /** Client platform for conditional tool registration. */
+  clientPlatform?: ClientPlatform;
 };
 
 type ChatImageResponse = {

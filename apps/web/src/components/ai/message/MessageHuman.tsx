@@ -96,7 +96,7 @@ function parseSingleFileToken(text: string, defaultProjectId?: string): FileToke
   if (!projectId || !parsed?.relativePath) return null;
   return {
     token: rawToken,
-    pathToken: `@[${baseValue}]`,
+    pathToken: `@{${baseValue}}`,
     projectId,
     relativePath: parsed.relativePath,
   };

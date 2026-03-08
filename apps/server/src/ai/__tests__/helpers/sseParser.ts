@@ -21,6 +21,7 @@ export type SseToolCall = {
   toolCallId: string
   toolName: string
   input?: unknown
+  args?: unknown
   output?: unknown
 }
 
@@ -131,6 +132,7 @@ export async function consumeSseResponse(response: Response): Promise<SseStreamR
           toolCallId: d.toolCallId ?? '',
           toolName: d.toolName ?? '',
           input: d.args,
+          args: d.args,
         })
         break
 
@@ -145,6 +147,7 @@ export async function consumeSseResponse(response: Response): Promise<SseStreamR
           toolCallId: d.toolCallId ?? '',
           toolName: d.toolName ?? '',
           input: d.input,
+          args: d.input,
         })
         break
 
@@ -157,6 +160,7 @@ export async function consumeSseResponse(response: Response): Promise<SseStreamR
             toolCallId: d.toolCallId ?? '',
             toolName: d.toolName ?? '',
             input: d.input,
+            args: d.input,
           })
         }
         break
@@ -175,8 +179,8 @@ export async function consumeSseResponse(response: Response): Promise<SseStreamR
       default:
         if (type.startsWith('data-sub-agent')) {
           subAgentEvents.push({ type, data: d })
-        } else if (type.startsWith('data-')) {
-          commandEvents.push({ type, data: d })
+        } else if (type.startsWith('data-session-')) {
+          commandEvents.push({ type, data: d.data ?? d })
         }
         break
     }

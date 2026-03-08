@@ -51,7 +51,7 @@ export function isPreviewTooLargeError(error: unknown): error is PreviewTooLarge
 /** Fetch a Blob from any supported uri. */
 export async function fetchBlobFromUri(
   uri: string,
-  options?: { projectId?: string; maxBytes?: number }
+  options?: { projectId?: string; workspaceId?: string; maxBytes?: number }
 ) {
   const endpoint = isRelativePath(uri) ? getPreviewEndpoint(uri, options) : uri;
   const res = await fetch(endpoint);

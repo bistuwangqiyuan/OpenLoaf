@@ -532,14 +532,15 @@ async function main() {
     assert.equal(result.data.height, 1)
   })
 
-  await test('O11: blur without outputPath (overwrite source) → ok, outputPath contains source', async () => {
-    // Create a separate image to blur in place
+  await test('O11: blur without outputPath → auto-suffix _blur, source preserved', async () => {
     const blurSource = rel('o11_source.png')
     await sharp({
       create: { width: 100, height: 100, channels: 4, background: { r: 0, g: 255, b: 0, alpha: 1 } },
     })
       .png()
       .toFile(path.join(workspaceRoot, blurSource))
+
+    const sizeBefore = (await fs.stat(path.join(workspaceRoot, blurSource))).size
 
     const result: any = await withCtx(() =>
       imageProcessTool.execute(
@@ -548,7 +549,66 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    assert.ok(result.data.outputPath.includes('o11_source.png'), 'outputPath should contain source filename')
+    assert.ok(result.data.outputPath.includes('o11_source_blur.png'), `outputPath should have _blur suffix, got: ${result.data.outputPath}`)
+    // Source file should be preserved
+    const sizeAfter = (await fs.stat(path.join(workspaceRoot, blurSource))).size
+    assert.equal(sizeBefore, sizeAfter, 'source file should not be modified')
+    // Suffixed file should exist
+    const suffixedStat = await fs.stat(result.data.outputPath)
+    assert.ok(suffixedStat.size > 0, 'suffixed output file should exist')
+  })
+
+  await test('O11b: resize without outputPath → auto-suffix _resize', async () => {
+    const source = rel('o11b_source.png')
+    await sharp({
+      create: { width: 200, height: 200, channels: 4, background: { r: 128, g: 128, b: 128, alpha: 1 } },
+    })
+      .png()
+      .toFile(path.join(workspaceRoot, source))
+
+    const result: any = await withCtx(() =>
+      imageProcessTool.execute(
+        { action: 'resize', filePath: source, width: 50 },
+        toolCtx,
+      ),
+    )
+    assert.equal(result.ok, true)
+    assert.ok(result.data.outputPath.includes('o11b_source_resize.png'), `should have _resize suffix, got: ${result.data.outputPath}`)
+    // Source untouched
+    const sourceMeta = await sharp(path.join(workspaceRoot, source)).metadata()
+    assert.equal(sourceMeta.width, 200, 'source width should remain 200')
+  })
+
+  await test('O11c: overwrite=true without outputPath → overwrites source', async () => {
+    const source = rel('o11c_source.png')
+    await sharp({
+      create: { width: 200, height: 200, channels: 4, background: { r: 0, g: 0, b: 255, alpha: 1 } },
+    })
+      .png()
+      .toFile(path.join(workspaceRoot, source))
+
+    const result: any = await withCtx(() =>
+      imageProcessTool.execute(
+        { action: 'resize', filePath: source, width: 80, overwrite: true },
+        toolCtx,
+      ),
+    )
+    assert.equal(result.ok, true)
+    assert.ok(result.data.outputPath.includes('o11c_source.png'), 'should overwrite source path')
+    // Source file should now be 80px wide
+    const meta = await sharp(result.data.outputPath).metadata()
+    assert.equal(meta.width, 80, 'source should be overwritten to 80px')
+  })
+
+  await test('O11d: grayscale without outputPath → auto-suffix _grayscale', async () => {
+    const result: any = await withCtx(() =>
+      imageProcessTool.execute(
+        { action: 'grayscale', filePath: rel('test.png') },
+        toolCtx,
+      ),
+    )
+    assert.equal(result.ok, true)
+    assert.ok(result.data.outputPath.endsWith('test_grayscale.png'), `should end with _grayscale.png, got: ${result.data.outputPath}`)
   })
 
   await test('O12: rotate angle=0 → ok, dimensions unchanged (200x200)', async () => {

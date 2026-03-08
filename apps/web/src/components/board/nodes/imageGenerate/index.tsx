@@ -89,8 +89,12 @@ export function ImageGenerateNodeView({
         `${boardFolderScope.relativeFolderPath}/${BOARD_ASSETS_DIR_NAME}`
       );
     }
+    // 逻辑：独立画布无 projectId 时回退到 file:// URI，确保服务端能保存到文件。
+    if (fileContext?.boardFolderUri) {
+      return `${fileContext.boardFolderUri}/${BOARD_ASSETS_DIR_NAME}`;
+    }
     return "";
-  }, [boardFolderScope]);
+  }, [boardFolderScope, fileContext?.boardFolderUri]);
   /** Abort controller for the active request. */
   const abortControllerRef = useRef<AbortController | null>(null);
   /** Throttle timestamp for focus-driven viewport moves. */

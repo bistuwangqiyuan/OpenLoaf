@@ -260,11 +260,11 @@ function parseRenamePath(uri: string) {
   if (isProjectAbsolutePath(trimmed)) {
     if (!parsed.projectId) return null;
     return {
-      prefix: `@[${parsed.projectId}]/`,
+      prefix: `@{${parsed.projectId}}/`,
       relativePath: parsed.relativePath,
     };
   }
-  // 中文注释：非 @[] 形式一律视为项目相对路径，避免拼出完整 file:// 路径。
+  // 中文注释：非 @{} 形式一律视为项目相对路径，避免拼出完整 file:// 路径。
   return { prefix: "", relativePath: normalizeProjectRelativePath(trimmed) };
 }
 

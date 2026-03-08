@@ -355,6 +355,17 @@ const TOOL_ALIASES: Record<string, string> = {
   "md-to-pdf": "doc-convert",
   "csv-to-excel": "doc-convert",
   "excel-to-csv": "doc-convert",
+  "send-email": "email-mutate",
+  "compose-email": "email-mutate",
+  "delete-email": "email-mutate",
+  "move-email": "email-mutate",
+  "mark-read": "email-mutate",
+  "flag-email": "email-mutate",
+  "create-event": "calendar-mutate",
+  "create-meeting": "calendar-mutate",
+  "update-event": "calendar-mutate",
+  "delete-event": "calendar-mutate",
+  "create-reminder": "calendar-mutate",
 };
 
 /** Tool IDs excluded from auto-approval (complex/interactive). */

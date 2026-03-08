@@ -171,6 +171,7 @@ function buildChatStreamRequest(input: {
     chatModelId: input.request.chatModelId,
     chatModelSource: input.request.chatModelSource,
     autoApproveTools: input.autoApproveTools,
+    clientPlatform: input.request.clientPlatform,
   };
 }
 
@@ -201,6 +202,7 @@ function buildChatImageRequest(input: {
     boardId: input.request.boardId ?? null,
     imageSaveDir: input.request.imageSaveDir,
     selectedSkills: input.selectedSkills,
+    clientPlatform: input.request.clientPlatform,
   };
 }
 

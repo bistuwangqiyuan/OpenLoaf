@@ -26,6 +26,8 @@ type LocalAuthConfig = {
   sessionSecret?: string;
   /** Last update timestamp (ISO). */
   updatedAt?: string;
+  /** Whether external (non-loopback) access is allowed. */
+  externalAccessEnabled?: boolean;
 };
 
 /** Salt byte length for scrypt. */
@@ -81,7 +83,11 @@ function normalizeLocalAuthConfig(raw?: LocalAuthConfig | null): LocalAuthConfig
     typeof source.updatedAt === "string" && source.updatedAt.trim()
       ? source.updatedAt
       : undefined;
-  return { passwordHash, salt, sessionSecret, updatedAt };
+  const externalAccessEnabled =
+    typeof source.externalAccessEnabled === "boolean"
+      ? source.externalAccessEnabled
+      : undefined;
+  return { passwordHash, salt, sessionSecret, updatedAt, externalAccessEnabled };
 }
 
 /** Read local auth config. */
@@ -98,16 +104,36 @@ function writeLocalAuthConfig(next: LocalAuthConfig): void {
 }
 
 /** Get local auth snapshot for UI. */
-export function getLocalAuthSnapshot(): { configured: boolean; updatedAt?: string } {
+export function getLocalAuthSnapshot(): {
+  configured: boolean;
+  externalAccessEnabled: boolean;
+  updatedAt?: string;
+} {
   const config = readLocalAuthConfig();
   const configured = Boolean(config.passwordHash && config.salt);
-  return { configured, updatedAt: config.updatedAt };
+  return {
+    configured,
+    externalAccessEnabled: Boolean(config.externalAccessEnabled),
+    updatedAt: config.updatedAt,
+  };
 }
 
 /** Check if local auth password is configured. */
 export function isLocalAuthConfigured(): boolean {
   const config = readLocalAuthConfig();
   return Boolean(config.passwordHash && config.salt);
+}
+
+/** Check if external access is enabled. */
+export function isExternalAccessEnabled(): boolean {
+  const config = readLocalAuthConfig();
+  return Boolean(config.externalAccessEnabled);
+}
+
+/** Set external access enabled/disabled. */
+export function setExternalAccessEnabled(enabled: boolean): void {
+  const config = readLocalAuthConfig();
+  writeLocalAuthConfig({ ...config, externalAccessEnabled: enabled });
 }
 
 /** Ensure a session secret exists and return it. */

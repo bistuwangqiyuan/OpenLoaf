@@ -12,6 +12,7 @@ import type { LanguageModelV3 } from "@ai-sdk/provider";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { CodexRequestOptions } from "@/ai/models/cli/codex/codexOptions";
 import type { ClaudeCodeRequestOptions } from "@/ai/services/chat/messageOptionResolver";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { UpdatePlanArgs } from "@openloaf/api/types/tools/runtime";
 
 export type AgentFrame = {
@@ -87,6 +88,8 @@ export type RequestContext = {
   cliRewindTarget?: string;
   /** Accumulated credits consumed by SaaS provider. */
   creditsConsumed?: number;
+  /** Client platform for conditional tool registration. */
+  clientPlatform?: ClientPlatform;
 };
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -378,4 +381,9 @@ export function addCreditsConsumed(credits: number): void {
 /** Get accumulated credits consumed. */
 export function getCreditsConsumed(): number | undefined {
   return getRequestContext()?.creditsConsumed;
+}
+
+/** Get client platform for conditional tool registration. */
+export function getClientPlatform(): ClientPlatform | undefined {
+  return getRequestContext()?.clientPlatform;
 }

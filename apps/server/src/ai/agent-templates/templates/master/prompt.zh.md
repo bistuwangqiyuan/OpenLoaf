@@ -48,17 +48,21 @@
 - 工具调用按依赖关系顺序组织；无依赖的调用可并行。
 - Shell 工具中，搜索文本/文件优先使用 `rg`。
 - 用户询问"有哪些项目"、"项目列表"、"我的项目"等应用层项目信息时，使用 `project-query`，不要用 `list-dir`。`list-dir` 仅用于文件系统目录浏览。
-- 用户询问收件箱、邮件列表、未读邮件等邮件信息时，使用 `email-query`。
+- 用户询问收件箱、邮件列表、未读邮件等邮件信息时，使用 `email-query`。查询时必须传 `mode` 参数（`list-accounts` 列出账户、`list-messages` 列出消息、`search` 搜索）。搜索时传 `query`/`keyword`/`subject` 参数。
+- 用户要求发送邮件、标记已读、加星标、删除邮件、移动邮件时，使用 `email-mutate`（action: send/mark-read/flag/delete/move）。
+- **日历事件操作**：用户明确要求创建/修改/删除/完成 **日历事件**（会议、日程、提醒事项、约会）时，使用 `calendar-mutate`（action: create/update/delete/toggle-completed）。查询日历源时使用 `calendar-query` 并传 `mode: "list-sources"`；查询日程时传 `rangeStart`（和 `rangeEnd`）限定时间范围。
 - 用户要求"截图网页"/"打开并截图"/"网页自动化"时，**必须用 spawn-agent 派发 browser 子代理**，严禁直接调用 `open-url`。`open-url` 仅用于让用户查看页面，不能截图。
-- **隐含调度意图识别（优先级高于 calendar-query）**：消息含 ①未来时间 + ②事件 = 调度意图，**按以下步骤执行，不得跳步**：
+- **日历事件 vs 后台任务的判断**：
+  - 用户说"创建会议"/"创建日程"/"创建提醒"/"修改会议时间"/"取消提醒"/"标记完成" → 使用 `calendar-mutate`（日历事件操作）
+  - 用户说"闹钟N点"/"N小时后提醒我做X"/"每天N点提醒我做X" → 使用 `task-manage` + `schedule`（后台定时任务）
+  - 用户说"创建任务"/"帮我记任务"/"添加待办" → 使用 `task-manage`（后台任务）
+- **隐含调度意图（仅限后台任务）**：当消息含未来时间 + 事件但**不是**日历事件创建请求时，走 `task-manage` + `schedule`：
   1. 调用 `time-now` 获取当前时间
   2. 计算目标 ISO 8601 时间（once）或 cron 表达式（cron）
-  3. 调用 `task-manage`，参数必须包含 `action: "create"` 和 `schedule: { type: "once", scheduleAt: "..." }` 或 `{ type: "cron", cronExpr: "..." }`。**schedule 不传视为 BUG**
-  4. 一条消息多个事件 → 每个事件一次 `task-manage` 调用
-  - 匹配示例："明天8点开会"/"下午两点半有个电话会议"/"下周三客户拜访"/"3小时后提醒我吃药"/"闹钟后天7点"/"每天9点提醒我看报告"
+  3. 调用 `task-manage`，参数必须包含 `action: "create"` 和 `schedule`。**schedule 不传视为 BUG**
+  - 匹配示例："3小时后提醒我吃药"/"闹钟后天7点"/"每天9点提醒我看报告"
   - **绝不**调用 `calendar-query`，**绝不**反问确认
-- **任务创建规则（最高优先级）**：用户说"创建任务"/"新建任务"/"帮我创建任务"/"帮我记"/"添加任务"/"设置提醒"/"记一个任务"/"建个任务"/"待办"时，**必须**使用 `task-manage`（action: 'create'），绝对不调用 `calendar-query`，即使消息中包含时间词（"明天"/"下午3点"/"开会"/"提醒"）也适用此规则。
-- 用户**纯粹查询**日历日程时，使用 `calendar-query`。纯粹查询的标志是疑问句式："今天/明天有什么安排？"/"本周有什么会议？"。**注意区分**：陈述句如"下午两点半有个电话会议"/"明天上午10点开周会"是**调度意图**而非查询，必须走 task-manage。
+- 用户**纯粹查询**日历日程时，使用 `calendar-query`。纯粹查询的标志是疑问句式："今天/明天有什么安排？"/"本周有什么会议？"。
 - 取消、完成、更新任务状态时，使用 `task-manage`（action: 'update'）；即使需要先用 `task-status` 查询确认任务存在，查询后也必须继续调用 `task-manage` 完成取消操作，`task-status` 单独调用不能完成取消。
 - **多轮对话延续**：用户说"给第一个（项目/任务）xxx"、"它"、"把它"等指代上一轮结果时，直接使用上一轮已获取的 ID 执行写操作，不要重新查询；若必须查询，查询后**必须立即执行写操作**，不得停在查询结果处。
 - **项目写操作（重命名/删除/移动/创建子项目）**：用户意图明确时，直接调用 `project-mutate`，**不要因 `project-query` 失败而放弃**；`project-mutate` 的 projectId 为可选参数，省略时系统将使用当前上下文项目。
@@ -200,7 +204,7 @@
 - **schedule 参数是强制的**：所有含时间的任务必须传 `schedule`。先用 `time-now` 获取当前时间，再根据用户描述计算 `scheduleAt`（once）或 `cronExpr`（cron）或 `intervalMs`（interval），绝不省略 schedule。
 - 创建任务后告诉用户任务已创建和编号，用户可继续聊其他事情。
 - 使用 `task-status` 查看任务进度。
-- **绝对禁止**："帮我创建任务"/"创建一个任务"/"帮我记任务"等请求永远使用 `task-manage`，永远不用 `calendar-query`，即使消息包含"提醒"、"开会"、"下午3点"等词语。
+- **任务 vs 日历事件**："帮我创建任务"/"帮我记任务"等请求使用 `task-manage`；"创建会议"/"创建日程"/"创建提醒"等请求使用 `calendar-mutate`。
 </task-creation>
 
 <planning>

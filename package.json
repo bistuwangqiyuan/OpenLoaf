@@ -23,6 +23,7 @@
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "check": "biome check .",
+    "check:tool-coverage": "pnpm --filter server check:tool-coverage",
     "publish:server": "pnpm --filter server run publish-update",
     "publish:web": "pnpm --filter web run publish-update",
     "promote": "node scripts/promote-beta-to-stable.mjs",

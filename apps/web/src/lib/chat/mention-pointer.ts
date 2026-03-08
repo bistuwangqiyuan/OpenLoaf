@@ -100,7 +100,7 @@ function parseMentionFileRef(value: string, defaultProjectId?: string): MentionF
   const trimmed = value.trim();
   if (!trimmed) return null;
   let normalized: string;
-  if (trimmed.startsWith("@[") && trimmed.endsWith("]")) {
+  if (trimmed.startsWith("@{") && trimmed.endsWith("}")) {
     normalized = trimmed.slice(2, -1);
   } else if (trimmed.startsWith("@")) {
     normalized = trimmed.slice(1);
@@ -145,7 +145,7 @@ export function handleChatMentionPointerDown(
 
   // 绝对路径：直接用 file:// URI 打开，不走项目解析。
   if (!fileRef) {
-    const normalized = value.startsWith("@[") && value.endsWith("]")
+    const normalized = value.startsWith("@{") && value.endsWith("}")
       ? value.slice(2, -1)
       : value.startsWith("@") ? value.slice(1) : value;
     const baseValue = normalized.replace(/:\d+-\d+$/, "");

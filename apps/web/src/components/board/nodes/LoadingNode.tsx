@@ -164,6 +164,7 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
               for (const resultUrl of resultUrls) {
                 const payload = await buildImageNodePayloadFromUri(resultUrl, {
                   projectId: projectId || undefined,
+                  workspaceId: workspaceId || undefined,
                 });
                 const [nodeW, nodeH] = payload.size;
                 const nodeId = engine.addNodeElement(

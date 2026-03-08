@@ -88,7 +88,6 @@ import { buildTimingMetadata } from "./metadataBuilder";
 import { readBasicConf } from "@/modules/settings/openloafConfStore";
 import { resolveMessagesJsonlPath, writeSessionJson } from "@/ai/services/chat/repositories/chatFileStore";
 import { buildHardRules } from "@/ai/shared/hardRules";
-import { buildToolSearchGuidance } from "@/ai/services/agentFactory";
 import {
   createChatStreamResponse,
   createErrorStreamResponse,
@@ -307,6 +306,7 @@ export async function runChatStream(input: {
     saasAccessToken: input.saasAccessToken,
     imageModelId: agentModelIds.imageModelId,
     videoModelId: agentModelIds.videoModelId,
+    clientPlatform: input.request.clientPlatform,
   });
 
   const lastMessage = incomingMessages.at(-1) as OpenLoafUIMessage | undefined;
@@ -375,6 +375,7 @@ export async function runChatStream(input: {
       selectedSkills,
       parentProjectRootPaths,
       timezone,
+      clientPlatform: input.request.clientPlatform,
     }),
     createdAt: requestStartAt,
     workspaceId: resolvedWorkspaceId,
@@ -640,8 +641,8 @@ export async function runChatStream(input: {
       if (basicConf.chatPrefaceEnabled) {
         const jsonlPath = await resolveMessagesJsonlPath(sessionId)
         const sessionDir = path.dirname(jsonlPath)
-        // 完整指令 = prompt + hardRules + toolSearchGuidance（与 agentFactory 组装一致）
-        const fullPrompt = `${instructions}\n\n${buildHardRules()}\n\n${buildToolSearchGuidance()}`
+        // 完整指令 = prompt + hardRules（toolSearchGuidance 已移至 preface）
+        const fullPrompt = `${instructions}\n\n${buildHardRules()}`
         await fs.writeFile(path.join(sessionDir, 'PROMPT.md'), fullPrompt, 'utf-8')
         // sessionPreface → 独立 PREFACE.md
         const prefaceText = await resolveSessionPrefaceText(sessionId)
@@ -717,6 +718,7 @@ export async function runChatImageRequest(input: {
     requestSignal: input.requestSignal,
     messageId,
     saasAccessToken: input.saasAccessToken,
+    clientPlatform: input.request.clientPlatform,
   });
 
   const lastMessage = incomingMessages.at(-1) as OpenLoafUIMessage | undefined;
@@ -739,6 +741,7 @@ export async function runChatImageRequest(input: {
       selectedSkills,
       parentProjectRootPaths,
       timezone,
+      clientPlatform: input.request.clientPlatform,
     }),
     createdAt: requestStartAt,
     workspaceId: resolvedWorkspaceId,

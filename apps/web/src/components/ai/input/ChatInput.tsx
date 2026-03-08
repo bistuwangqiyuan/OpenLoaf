@@ -186,7 +186,7 @@ export interface ChatInputBoxProps {
   afterProjectSelector?: ReactNode;
   /**
    * 上传文件到 session files 目录，返回绝对路径。
-   * 用于系统文件拖拽场景，生成 @[/abs/path] mention。
+   * 用于系统文件拖拽场景，生成 @{/abs/path} mention。
    */
   uploadFileToSession?: (file: File) => Promise<string | null>;
 }
@@ -559,10 +559,13 @@ export function ChatInputBox({
                 onChange={onChange}
                 onKeyDown={handleKeyDown}
                 onChipClick={handleChipClick}
-                onPasteFiles={onAddAttachments ? (files) => {
-                  const dt = new DataTransfer();
-                  for (const f of files) dt.items.add(f);
-                  onAddAttachments(dt.files);
+                onPasteFiles={uploadFileToSession ? async (files) => {
+                  for (const file of files) {
+                    const absPath = await uploadFileToSession(file);
+                    if (absPath) {
+                      insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+                    }
+                  }
                 } : undefined}
                 placeholder={resolvedPlaceholder}
                 large={large}
@@ -1154,26 +1157,23 @@ export default function ChatInput({
       return;
     }
     if (status === "error") clearError();
-    const imageParts = readyImages.flatMap((item) => {
+    // 将上传的图片路径以 @{path} 格式嵌入到文本中，
+    // AI agent 通过文本直接获取路径，自行决定如何处理文件（读取、修改等）。
+    const imageRefTokens = readyImages.flatMap((item) => {
       if (!item.remoteUrl) return [];
-      const base = {
-        type: "file" as const,
-        url: item.remoteUrl,
-        mediaType: item.mediaType || item.file.type || "application/octet-stream",
-      };
-      if (!item.mask?.remoteUrl) return [base];
-      // mask 通过 purpose=mask 传递给服务端。
-      const maskPart = {
-        type: "file" as const,
-        url: item.mask.remoteUrl,
-        mediaType: item.mask.mediaType || item.mask.file.type || "application/octet-stream",
-        purpose: "mask" as const,
-      };
-      return [base, maskPart];
+      const tokens = [`@{${item.remoteUrl}}`];
+      if (item.mask?.remoteUrl) {
+        tokens.push(`@{${item.mask.remoteUrl}}`);
+      }
+      return tokens;
     });
+    const imagePrefix = imageRefTokens.length > 0
+      ? imageRefTokens.join(' ') + (textValue ? '\n' : '')
+      : '';
+    const combinedTextValue = (imagePrefix + textValue).trim();
     const { parts, metadata, chatModelId } = composeMessage({
-      textValue,
-      imageParts,
+      textValue: combinedTextValue,
+      imageParts: [],
       imageOptions,
       codexOptions: codexOptionsEnabled ? codexOptions : undefined,
       claudeCodeOptions:
@@ -1188,7 +1188,7 @@ export default function ChatInput({
     // 逻辑：云端模型 + 未登录时，暂存消息而不发送到服务端
     const isCloudSource = basic.chatSource === 'cloud'
     if (isCloudSource && !authLoggedIn) {
-      setPendingCloudMessage({ parts, metadata, text: textValue })
+      setPendingCloudMessage({ parts, metadata, text: combinedTextValue })
       setInput('')
       onClearAttachments?.()
       return

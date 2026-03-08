@@ -10,7 +10,11 @@
 import type { Context, Next } from "hono";
 import { getSignedCookie } from "hono/cookie";
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { ensureLocalAuthSecret, isLocalAuthConfigured } from "./localAuthStore";
+import {
+  ensureLocalAuthSecret,
+  isExternalAccessEnabled,
+  isLocalAuthConfigured,
+} from "./localAuthStore";
 
 /** Local auth session cookie name. */
 export const LOCAL_AUTH_COOKIE_NAME = "tn_local_auth";
@@ -62,6 +66,11 @@ export async function localAuthGuard(c: Context, next: Next): Promise<Response |
   const conn = getConnInfo(c);
   if (isLoopbackAddress(conn.remote?.address)) {
     return next();
+  }
+
+  if (!isExternalAccessEnabled()) {
+    // 逻辑：外部访问未启用时直接拒绝。
+    return c.json({ error: "external_access_disabled" }, 403);
   }
 
   if (!isLocalAuthConfigured()) {

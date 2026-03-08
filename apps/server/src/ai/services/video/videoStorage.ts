@@ -18,7 +18,7 @@ import {
   resolveFilePathFromUri,
 } from "@openloaf/api/services/vfsService";
 
-/** Scoped project path matcher like @[projectId]/path/to/dir. */
+/** Scoped project path matcher like @{projectId/path/to/dir}. */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
 /** Supported video extensions for directory inference. */
 const VIDEO_SAVE_EXTENSIONS = new Set([".mp4", ".webm", ".mov", ".mkv"]);

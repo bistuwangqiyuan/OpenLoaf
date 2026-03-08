@@ -9,6 +9,7 @@
  */
 import { generateId, type UIMessage } from "ai";
 import type { ModelDefinition } from "@openloaf/api/common";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { OpenLoafUIMessage } from "@openloaf/api/types/message";
 import { logger } from "@/common/logger";
 import {
@@ -128,6 +129,8 @@ export function initRequestContext(input: {
   imageModelId?: string | null;
   /** Selected video generation model id. */
   videoModelId?: string | null;
+  /** Client platform for conditional tool registration. */
+  clientPlatform?: ClientPlatform | null;
 }): RequestInitResult {
   const boardId =
     typeof input.boardId === "string" && input.boardId.trim() ? input.boardId.trim() : undefined;
@@ -153,6 +156,7 @@ export function initRequestContext(input: {
         : undefined,
     ...(input.autoApproveTools ? { autoApproveTools: true } : {}),
     ...(boardId ? { boardId } : {}),
+    ...(input.clientPlatform ? { clientPlatform: input.clientPlatform } : {}),
   });
 
   // 逻辑：注入 SaaS token 和媒体模型 ID，供 tool 执行层使用。

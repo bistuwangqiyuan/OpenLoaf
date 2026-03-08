@@ -15,6 +15,7 @@ import type { RefObject } from "react";
 import type { ChatRequestBody } from "@openloaf/api/types/message";
 import { getWebClientId } from "@/lib/chat/streamClientId";
 import { resolveServerUrl } from "@/utils/server-url";
+import { isElectronEnv } from "@/utils/is-electron-env";
 import { getClientTimeZone } from "@/utils/time-zone";
 import { getAccessToken } from "@/lib/saas-auth";
 
@@ -78,6 +79,7 @@ export function createChatTransport({
         messageId,
         intent: "chat",
         responseMode: "stream",
+        clientPlatform: isElectronEnv() ? 'desktop' : 'web',
       };
 
       if (messages.length === 0) {

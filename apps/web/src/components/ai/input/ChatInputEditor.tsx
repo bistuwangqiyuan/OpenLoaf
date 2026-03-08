@@ -67,7 +67,7 @@ function valueToHtml(value: string): string {
   if (!value) return "";
   let html = "";
   let lastIndex = 0;
-  const re = /@\[([^\]]+)\]/g;
+  const re = /@\{([^}]+)\}/g;
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: intentional loop pattern
   while ((match = re.exec(value)) !== null) {
@@ -150,7 +150,7 @@ export interface ChatInputEditorHandle {
     text: string,
     options?: { ensureLeadingSpace?: boolean; ensureTrailingSpace?: boolean },
   ) => void;
-  /** Insert a mention chip at the current caret position. Token format: @[path]. */
+  /** Insert a mention chip at the current caret position. Token format: @{path}. */
   insertMention: (
     token: string,
     options?: { ensureLeadingSpace?: boolean; ensureTrailingSpace?: boolean },

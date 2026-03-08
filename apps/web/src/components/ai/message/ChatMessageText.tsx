@@ -21,6 +21,12 @@ import {
   type ChatTextToken,
 } from "./text-tokenizer";
 import { getFileLabel } from "@/components/ai/input/chat-input-utils";
+import {
+  isImagePath,
+  isVideoPath,
+  MentionImageThumbnail,
+  MentionVideoThumbnail,
+} from "./MentionMediaThumbnail";
 
 interface ChatMessageTextProps {
   value: string;
@@ -84,6 +90,12 @@ export default function ChatMessageText({ value, className }: ChatMessageTextPro
     }
 
     if (segment.type === "mention") {
+      if (isImagePath(segment.value)) {
+        return <MentionImageThumbnail key={`mention-${index}`} path={segment.value} />;
+      }
+      if (isVideoPath(segment.value)) {
+        return <MentionVideoThumbnail key={`mention-${index}`} path={segment.value} />;
+      }
       const label = getFileLabel(segment.value);
       return (
         <span

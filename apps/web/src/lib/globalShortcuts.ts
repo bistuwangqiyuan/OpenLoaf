@@ -30,10 +30,6 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
   { id: "open.calendar", label: "打开日历", keys: "Mod+L" },
   { id: "open.workbench", label: "打开工作台", keys: "Mod+T" },
   { id: "open.ai-assistant", label: "打开 AI 助手", keys: "Mod+I" },
-  { id: "open.template", label: "打开模板", keys: "Mod+J" },
-  { id: "tab.new", label: "新建标签页", keys: "Mod+0" },
-  { id: "tab.switch", label: "切换标签页", keys: "Mod+1..9" },
-  { id: "tab.close", label: "关闭标签页", keys: "Mod+W" },
   {
     id: "settings.open",
     label: "打开设置",
@@ -160,30 +156,6 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
   if (!event.key) return
   const keyLower = event.key.toLowerCase();
 
-  // Cmd/Ctrl + W 应视为“全局快捷键”，即使当前焦点在输入框里也要生效（关闭当前标签/面板）
-  // 否则在自动聚焦 ChatInput 后会导致无法再用快捷键关闭 tab。
-  if (keyLower === "w" && withMod) {
-    event.preventDefault();
-    const state = useTabs.getState();
-    const tabId = state.activeTabId;
-    if (!tabId) return;
-
-    const runtime = useTabRuntime.getState().runtimeByTabId[tabId];
-    const stack = Array.isArray(runtime?.stack) ? runtime!.stack : [];
-    const activeStackId = String(runtime?.activeStackItemId ?? "");
-    const top =
-      (activeStackId ? stack.find((i) => i.id === activeStackId) : undefined) ??
-      stack.at(-1);
-
-    if (top) {
-      if (top.denyClose !== true) useTabRuntime.getState().removeStackItem(tabId, top.id);
-      return;
-    }
-
-    state.closeTab(tabId);
-    return;
-  }
-
   // Cmd/Ctrl + T 也应视为”全局快捷键”，即使当前焦点在输入框里也要生效（打开工作台）。
   // 注意：浏览器环境可能会被系统/浏览器占用；这里仍然尽量拦截并执行应用内行为。
   if (ctx.workspaceId && keyLower === "t" && withMod && !event.shiftKey && !event.altKey) {
@@ -275,39 +247,5 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
       return;
     }
 
-    // Cmd/Ctrl + J：打开模版
-    if (keyLower === "j" && withMod && !event.shiftKey && !event.altKey) {
-      event.preventDefault();
-      openSingletonTab(
-        ctx.workspaceId,
-        { baseId: "base:template", component: "template-page", title: "模版", icon: "📄" },
-        { leftWidthPercent: quickOpenLeftWidthPercent, closeSearch: true },
-      );
-      return;
-    }
-
-    if (withMod && !event.shiftKey && !event.altKey) {
-      const key = event.key;
-      if (key === "0") {
-        event.preventDefault();
-        useTabs.getState().addTab({
-          workspaceId: ctx.workspaceId,
-          createNew: true,
-        });
-        return;
-      }
-
-      if (key.length === 1 && key >= "1" && key <= "9") {
-        const index = Number.parseInt(key, 10) - 1;
-        const workspaceTabs = useTabs.getState().getWorkspaceTabs(ctx.workspaceId);
-        const tab = workspaceTabs[index];
-        if (!tab) return;
-        event.preventDefault();
-        startTransition(() => {
-          useTabs.getState().setActiveTab(tab.id);
-        });
-        return;
-      }
-    }
   }
 }

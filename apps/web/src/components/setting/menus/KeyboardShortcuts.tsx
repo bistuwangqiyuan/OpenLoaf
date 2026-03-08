@@ -16,7 +16,36 @@ import { GLOBAL_SHORTCUTS } from "@/lib/globalShortcuts";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
 import type { LucideIcon } from "lucide-react";
-import { Command, Folder } from "lucide-react";
+import {
+  Bot,
+  Calendar,
+  Columns2,
+  Copy,
+  Eraser,
+  Group,
+  Hand,
+  Highlighter,
+  Home,
+  LayoutDashboard,
+  LayoutGrid,
+  ListChecks,
+  Lock,
+  Maximize2,
+  MessageSquare,
+  MousePointer2,
+  Paperclip,
+  PenTool,
+  Redo2,
+  Scissors,
+  Search,
+  Settings,
+  ShieldOff,
+  Sparkles,
+  PanelLeft,
+  Trash2,
+  Undo2,
+  Wand2,
+} from "lucide-react";
 
 /** Flat-color icon badge for settings items. */
 function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
@@ -34,38 +63,58 @@ const SHORTCUT_KEYS_MAP: Record<string, string> = {
   "open.calendar": "openCalendar",
   "open.inbox": "openInbox",
   "open.ai": "openAi",
-  "open.template": "openTemplate",
-  "tab.new": "tabNew",
-  "tab.switch": "tabSwitch",
-  "tab.close": "tabClose",
   "settings.open": "settingsOpen",
   "refresh.disable": "refreshDisable",
 };
 
-const SHORTCUT_NOTE_KEYS_MAP: Record<string, string> = {
-  "settings.open": "settingsOpenNote",
-  "refresh.disable": "refreshDisableNote",
+/** Icon and color for each global shortcut. */
+const SHORTCUT_ICON_MAP: Record<string, { icon: LucideIcon; bg: string; fg: string }> = {
+  "sidebar.toggle": { icon: PanelLeft, bg: "bg-slate-500/10", fg: "text-slate-600 dark:text-slate-400" },
+  "chat.toggle": { icon: MessageSquare, bg: "bg-blue-500/10", fg: "text-blue-600 dark:text-blue-400" },
+  "search.toggle": { icon: Search, bg: "bg-amber-500/10", fg: "text-amber-600 dark:text-amber-400" },
+  "open.calendar": { icon: Calendar, bg: "bg-teal-500/10", fg: "text-teal-600 dark:text-teal-400" },
+  "open.workbench": { icon: Columns2, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
+  "open.ai-assistant": { icon: Bot, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
+  "settings.open": { icon: Settings, bg: "bg-zinc-500/10", fg: "text-zinc-600 dark:text-zinc-400" },
+  "refresh.disable": { icon: ShieldOff, bg: "bg-red-500/10", fg: "text-red-600 dark:text-red-400" },
 };
 
-const PROJECT_SHORTCUT_KEYS = [
-  "projectTabIndex",
-  "projectTabCanvas",
-  "projectTabTasks",
-  "projectTabMaterials",
-  "projectTabSkills",
-];
+/** Icon and color for each project shortcut. */
+const PROJECT_ICON_MAP: Record<string, { icon: LucideIcon; bg: string; fg: string }> = {
+  "project.tab.index": { icon: Home, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
+  "project.tab.canvas": { icon: LayoutGrid, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
+  "project.tab.tasks": { icon: ListChecks, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400" },
+  "project.tab.materials": { icon: Paperclip, bg: "bg-amber-500/10", fg: "text-amber-600 dark:text-amber-400" },
+  "project.tab.skills": { icon: Wand2, bg: "bg-pink-500/10", fg: "text-pink-600 dark:text-pink-400" },
+};
 
-/** Returns the localized label/note for a shortcut, falling back to the original text. */
-function getShortcutText(
-  input: { id: string; label: string; note?: string },
-  t: (key: string) => string
+/** Icon and color for each canvas shortcut. */
+const CANVAS_ICON_MAP: Record<string, { icon: LucideIcon; bg: string; fg: string }> = {
+  "canvas.select": { icon: MousePointer2, bg: "bg-slate-500/10", fg: "text-slate-600 dark:text-slate-400" },
+  "canvas.hand": { icon: Hand, bg: "bg-orange-500/10", fg: "text-orange-600 dark:text-orange-400" },
+  "canvas.pen": { icon: PenTool, bg: "bg-blue-500/10", fg: "text-blue-600 dark:text-blue-400" },
+  "canvas.highlighter": { icon: Highlighter, bg: "bg-yellow-500/10", fg: "text-yellow-600 dark:text-yellow-400" },
+  "canvas.eraser": { icon: Eraser, bg: "bg-rose-500/10", fg: "text-rose-600 dark:text-rose-400" },
+  "canvas.fitToScreen": { icon: Maximize2, bg: "bg-cyan-500/10", fg: "text-cyan-600 dark:text-cyan-400" },
+  "canvas.lock": { icon: Lock, bg: "bg-amber-500/10", fg: "text-amber-600 dark:text-amber-400" },
+  "canvas.autoLayout": { icon: LayoutDashboard, bg: "bg-indigo-500/10", fg: "text-indigo-600 dark:text-indigo-400" },
+  "canvas.undo": { icon: Undo2, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
+  "canvas.redo": { icon: Redo2, bg: "bg-teal-500/10", fg: "text-teal-600 dark:text-teal-400" },
+  "canvas.copy": { icon: Copy, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400" },
+  "canvas.cut": { icon: Scissors, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
+  "canvas.group": { icon: Group, bg: "bg-fuchsia-500/10", fg: "text-fuchsia-600 dark:text-fuchsia-400" },
+  "canvas.delete": { icon: Trash2, bg: "bg-red-500/10", fg: "text-red-600 dark:text-red-400" },
+};
+
+const DEFAULT_ICON = { icon: Sparkles, bg: "bg-slate-500/10", fg: "text-slate-600 dark:text-slate-400" };
+
+/** Returns the localized label for a shortcut, falling back to the original text. */
+function getShortcutLabel(
+  input: { id: string; label: string },
+  t: (key: string) => string,
 ) {
   const keyPath = SHORTCUT_KEYS_MAP[input.id];
-  const noteKeyPath = SHORTCUT_NOTE_KEYS_MAP[input.id];
-  return {
-    label: keyPath ? t(`keyboardShortcuts.${keyPath}`) : input.label,
-    note: noteKeyPath ? t(`keyboardShortcuts.${noteKeyPath}`) : input.note,
-  };
+  return keyPath ? t(`keyboardShortcuts.${keyPath}`) : input.label;
 }
 
 function useIsMac() {
@@ -135,23 +184,38 @@ export function KeyboardShortcuts() {
     { id: "project.tab.skills", label: t('keyboardShortcuts.projectTabSkills'), keys: "Alt+5" },
   ], [t]);
 
+  const CANVAS_SHORTCUTS = useMemo(() => [
+    { id: "canvas.select", label: t('keyboardShortcuts.canvasSelect'), keys: "A" },
+    { id: "canvas.hand", label: t('keyboardShortcuts.canvasHand'), keys: "W" },
+    { id: "canvas.pen", label: t('keyboardShortcuts.canvasPen'), keys: "P" },
+    { id: "canvas.highlighter", label: t('keyboardShortcuts.canvasHighlighter'), keys: "K" },
+    { id: "canvas.eraser", label: t('keyboardShortcuts.canvasEraser'), keys: "E" },
+    { id: "canvas.fitToScreen", label: t('keyboardShortcuts.canvasFitToScreen'), keys: "F" },
+    { id: "canvas.lock", label: t('keyboardShortcuts.canvasLock'), keys: "L" },
+    { id: "canvas.autoLayout", label: t('keyboardShortcuts.canvasAutoLayout'), keys: "Ctrl+Shift+L" },
+    { id: "canvas.undo", label: t('keyboardShortcuts.canvasUndo'), keys: "Mod+Z" },
+    { id: "canvas.redo", label: t('keyboardShortcuts.canvasRedo'), keys: "Mod+Y / Mod+Shift+Z" },
+    { id: "canvas.copy", label: t('keyboardShortcuts.canvasCopy'), keys: "Mod+C" },
+    { id: "canvas.cut", label: t('keyboardShortcuts.canvasCut'), keys: "Mod+X" },
+    { id: "canvas.group", label: t('keyboardShortcuts.canvasGroup'), keys: "Mod+G" },
+    { id: "canvas.delete", label: t('keyboardShortcuts.canvasDelete'), keys: "Delete / Backspace" },
+  ], [t]);
+
   return (
     <div className="space-y-6">
-      <OpenLoafSettingsGroup title={t('keyboardShortcuts.title')}>
+      <OpenLoafSettingsGroup title={t('keyboardShortcuts.globalShortcuts')}>
         <div className="divide-y divide-border/40">
           {GLOBAL_SHORTCUTS.map((shortcut) => {
-            const text = getShortcutText(shortcut, (key) => t(key));
+            const label = getShortcutLabel(shortcut, (key) => t(key));
+            const iconDef = SHORTCUT_ICON_MAP[shortcut.id] ?? DEFAULT_ICON;
             return (
               <div
                 key={shortcut.id}
                 className="flex flex-wrap items-center gap-2 py-3"
               >
-                <SettingIcon icon={Command} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
+                <SettingIcon icon={iconDef.icon} bg={iconDef.bg} fg={iconDef.fg} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{text.label}</div>
-                  {text.note ? (
-                    <div className="text-xs text-muted-foreground mt-1">{text.note}</div>
-                  ) : null}
+                  <div className="text-sm font-medium">{label}</div>
                 </div>
                 <OpenLoafSettingsField className="shrink-0">
                   <ShortcutKeys keys={shortcut.keys} isMac={isMac} />
@@ -163,20 +227,44 @@ export function KeyboardShortcuts() {
       </OpenLoafSettingsGroup>
       <OpenLoafSettingsGroup title={t('keyboardShortcuts.projectShortcuts')}>
         <div className="divide-y divide-border/40">
-          {PROJECT_SHORTCUTS.map((shortcut) => (
-            <div
-              key={shortcut.id}
-              className="flex flex-wrap items-center gap-2 py-3"
-            >
-              <SettingIcon icon={Folder} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{shortcut.label}</div>
+          {PROJECT_SHORTCUTS.map((shortcut) => {
+            const iconDef = PROJECT_ICON_MAP[shortcut.id] ?? DEFAULT_ICON;
+            return (
+              <div
+                key={shortcut.id}
+                className="flex flex-wrap items-center gap-2 py-3"
+              >
+                <SettingIcon icon={iconDef.icon} bg={iconDef.bg} fg={iconDef.fg} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">{shortcut.label}</div>
+                </div>
+                <OpenLoafSettingsField className="shrink-0">
+                  <ShortcutKeys keys={shortcut.keys} isMac={isMac} />
+                </OpenLoafSettingsField>
               </div>
-              <OpenLoafSettingsField className="shrink-0">
-                <ShortcutKeys keys={shortcut.keys} isMac={isMac} />
-              </OpenLoafSettingsField>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      </OpenLoafSettingsGroup>
+      <OpenLoafSettingsGroup title={t('keyboardShortcuts.canvasShortcuts')}>
+        <div className="divide-y divide-border/40">
+          {CANVAS_SHORTCUTS.map((shortcut) => {
+            const iconDef = CANVAS_ICON_MAP[shortcut.id] ?? DEFAULT_ICON;
+            return (
+              <div
+                key={shortcut.id}
+                className="flex flex-wrap items-center gap-2 py-3"
+              >
+                <SettingIcon icon={iconDef.icon} bg={iconDef.bg} fg={iconDef.fg} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">{shortcut.label}</div>
+                </div>
+                <OpenLoafSettingsField className="shrink-0">
+                  <ShortcutKeys keys={shortcut.keys} isMac={isMac} />
+                </OpenLoafSettingsField>
+              </div>
+            );
+          })}
         </div>
       </OpenLoafSettingsGroup>
     </div>

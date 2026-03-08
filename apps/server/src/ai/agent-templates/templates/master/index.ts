@@ -39,6 +39,14 @@ export const masterTemplate: AgentTemplate = {
     'shell-command',
     // web
     'open-url',
+    // browser automation
+    'browser-snapshot',
+    'browser-observe',
+    'browser-extract',
+    'browser-act',
+    'browser-wait',
+    'browser-screenshot',
+    'browser-download-image',
     // media
     'image-generate',
     'video-generate',
@@ -55,8 +63,10 @@ export const masterTemplate: AgentTemplate = {
     'project-mutate',
     // calendar
     'calendar-query',
+    'calendar-mutate',
     // email
     'email-query',
+    'email-mutate',
     // excel
     'excel-query',
     'excel-mutate',
@@ -73,6 +83,14 @@ export const masterTemplate: AgentTemplate = {
     'image-process',
     'video-convert',
     'doc-convert',
+    // document
+    'edit-document',
+    // widget
+    'generate-widget',
+    'widget-init',
+    'widget-list',
+    'widget-get',
+    'widget-check',
     // file info
     'file-info',
   ],

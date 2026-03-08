@@ -14,6 +14,7 @@ import sharp from "sharp";
 import type { UIMessage } from "ai";
 import type { OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
 import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { getProjectId, getWorkspaceId } from "@/ai/shared/context/requestContext";
 
 /** Max image edge length for chat. */
@@ -420,7 +421,7 @@ function parseScopedRelativePath(raw: string): { projectId?: string; relativePat
   const trimmed = raw.trim();
   if (!trimmed) return null;
   let normalized: string;
-  if (trimmed.startsWith("@[") && trimmed.endsWith("]")) {
+  if (trimmed.startsWith("@{") && trimmed.endsWith("}")) {
     normalized = trimmed.slice(2, -1);
   } else if (trimmed.startsWith("@")) {
     normalized = trimmed.slice(1);
@@ -820,6 +821,15 @@ export async function buildFilePartFromPath(input: {
   };
 }
 
+/** Resolve an absolute path if it falls under the OpenLoaf root directory. */
+function resolveAbsoluteOpenLoafPath(rawPath: string): { absPath: string; rootPath: string } | null {
+  if (!rawPath.startsWith("/")) return null;
+  const openloafRoot = path.resolve(getOpenLoafRootDir());
+  const resolved = path.resolve(rawPath);
+  if (resolved !== openloafRoot && !resolved.startsWith(openloafRoot + path.sep)) return null;
+  return { absPath: resolved, rootPath: openloafRoot };
+}
+
 /** Resolve preview content for supported attachments. */
 export async function getFilePreview(input: {
   /** File path. */
@@ -833,11 +843,15 @@ export async function getFilePreview(input: {
   /** Target byte size for preview compression. */
   maxBytes?: number;
 }): Promise<FilePreviewResult | null> {
-  const resolved = await resolveProjectFilePathWithRoot({
-    path: input.path,
-    projectId: input.projectId,
-    workspaceId: input.workspaceId,
-  });
+  // 绝对路径分支：仅允许 ~/.openloaf/ 目录下的文件。
+  const absoluteResolved = resolveAbsoluteOpenLoafPath(input.path);
+  const resolved = absoluteResolved
+    ? { absPath: absoluteResolved.absPath, rootPath: absoluteResolved.rootPath, relativePath: path.relative(absoluteResolved.rootPath, absoluteResolved.absPath) }
+    : await resolveProjectFilePathWithRoot({
+        path: input.path,
+        projectId: input.projectId,
+        workspaceId: input.workspaceId,
+      });
   if (!resolved) return null;
   const filePath = resolved.absPath;
   const lowerPath = filePath.toLowerCase();

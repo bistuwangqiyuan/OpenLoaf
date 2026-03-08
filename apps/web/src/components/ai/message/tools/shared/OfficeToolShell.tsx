@@ -46,6 +46,8 @@ interface OfficeToolShellProps {
   isMutate: boolean
   /** i18n key prefix for the "processing" / "operationFailed" / "confirmAction" messages */
   i18nPrefix?: string
+  /** Whether the content panel should be open by default. */
+  defaultOpen?: boolean
   children: (ctx: ShellContext) => React.ReactNode
 }
 
@@ -73,6 +75,7 @@ export default function OfficeToolShell({
   toolKind,
   isMutate,
   i18nPrefix = 'tool.office',
+  defaultOpen,
   children,
 }: OfficeToolShellProps) {
   const { t } = useTranslation('ai')
@@ -104,7 +107,7 @@ export default function OfficeToolShell({
         ? ('success' as const)
         : ('idle' as const)
 
-  const [isOpen, setIsOpen] = React.useState(isPending)
+  const [isOpen, setIsOpen] = React.useState(defaultOpen ?? isPending)
 
   React.useEffect(() => {
     if (isPending) setIsOpen(true)

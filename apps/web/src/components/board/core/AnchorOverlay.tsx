@@ -46,11 +46,11 @@ type AnchorOverlayProps = {
 export function AnchorOverlay({ snapshot }: AnchorOverlayProps) {
   const { t } = useTranslation('board');
   // 逻辑：视图变化时独立刷新锚点位置，避免全量快照重算。
+  const engine = useBoardEngine();
+  const viewState = useBoardViewState(engine);
   if (snapshot.selectedIds.length > 1) {
     return null;
   }
-  const engine = useBoardEngine();
-  const viewState = useBoardViewState(engine);
   const groupPadding = getGroupOutlinePadding(viewState.viewport.zoom);
   const resolveMindmapLayoutDirection = (nodeId: string) =>
     engine.getMindmapLayoutDirectionForNode(nodeId);

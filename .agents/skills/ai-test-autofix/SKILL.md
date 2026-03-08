@@ -46,7 +46,7 @@ description: AI Agent 行为测试自动诊断与修复知识库。提供输出 
             }
           ]
         },
-        // Provider 返回的 metadata（由 E2E Provider 设置）
+        // Provider 返回的 metadata（由统一 Provider 设置）
         "metadata": {
           "toolNames": ["project-query"],     // 调用的工具 ID 列表
           "toolCalls": [                      // 工具调用详情
@@ -58,6 +58,7 @@ description: AI Agent 行为测试自动诊断与修复知识库。提供输出 
           ],
           "toolCallCount": 1,
           "subAgentEvents": [...],            // 子 Agent 事件
+          "commandEvents": [...],             // 命令事件（如 /summary-title 触发的事件）
           "hasSubAgentDispatch": false,
           "finishReason": "stop",
           "sessionId": "e2e-xxx"
@@ -83,6 +84,7 @@ description: AI Agent 行为测试自动诊断与修复知识库。提供输出 
 | `r.gradingResult.componentResults[].assertion.type` | 断言类型 |
 | `r.metadata.toolNames` | 实际调用的工具列表 |
 | `r.metadata.toolCalls` | 工具调用详情（参数+结果） |
+| `r.metadata.commandEvents` | 命令事件列表（斜杠命令触发） |
 
 ## 失败分类决策树
 
@@ -95,6 +97,8 @@ r.error 存在?
     │   │   （期望工具未在 toolNames 中）
     │   ├── reason 包含 "不应使用" / "错误调用了" → FORBIDDEN_TOOL
     │   │   （禁止工具出现在 toolNames 中）
+    │   ├── reason 包含 "commandEvents" / "未触发" → COMMAND_FAIL
+    │   │   （期望的命令/事件未触发）
     │   └── toolNames 为空 → NO_TOOL
     │       （Agent 没有调用任何工具）
     ├── llm-rubric 断言失败?
@@ -109,6 +113,7 @@ r.error 存在?
 |------|------|--------|-----------|
 | WRONG_TOOL | 期望的工具没被调用，调了其他工具 | 高 | 是 |
 | FORBIDDEN_TOOL | 不该调用的工具被调用了 | 高 | 是 |
+| COMMAND_FAIL | 期望的命令/事件未触发 | 高 | 是 |
 | NO_TOOL | Agent 直接回复，没调用任何工具 | 高 | 是 |
 | OUTPUT_QUALITY | 工具选对了但回复质量不够 | 中 | 部分（prompt 调整） |
 | PROVIDER_ERROR | 超时、连接失败、模型拒绝 | - | 否（环境问题） |
@@ -120,6 +125,7 @@ r.error 存在?
 |----------|-------------|-------------|---------|
 | WRONG_TOOL | Master prompt 工具指引 | 工具描述 description | `prompt.zh.md` → `packages/api/src/types/tools/*.ts` |
 | FORBIDDEN_TOOL | Master prompt 禁止规则 | 工具描述（让其更具针对性） | `prompt.zh.md` |
+| COMMAND_FAIL | 命令解析逻辑 | Master prompt 命令指引 | `chatCommands` + `prompt.zh.md` |
 | NO_TOOL | Master toolIds 列表 | Master prompt 鼓励使用工具 | `master/index.ts` → `prompt.zh.md` |
 | OUTPUT_QUALITY | Master prompt 输出指引 | 工具描述 return value 说明 | `prompt.zh.md` |
 | PROVIDER_ERROR | 跳过 | - | - |
@@ -141,18 +147,40 @@ r.error 存在?
 2. **检查 prompt.zh.md**：是否有"面对 X 类请求，应主动使用工具"的指引
 3. **检查工具描述**：工具描述是否能让 LLM 知道何时该调用它
 
+#### COMMAND_FAIL（命令未触发）
+1. **检查命令解析逻辑**：`chatCommands` 中是否正确注册了该命令
+2. **检查 prompt.zh.md**：是否有明确的命令使用指引（何时触发、格式要求）
+3. **检查多轮对话设置**：命令测试通常需要 `vars.turns` 多轮模式
+
 #### OUTPUT_QUALITY（输出质量不足）
 1. **检查 prompt.zh.md**：添加输出格式或内容要求
 2. **通常不需要修改工具代码**：这类问题多是 prompt 引导不够
+
+### 工具描述消歧义模式
+
+当 WRONG_TOOL 发生且两个工具功能有交叉时，在**被错误调用**的工具 description 末尾添加排他说明：
+
+**模式**：`不适用：<场景描述>时改用 <正确工具>。`
+
+**实例**：`excel-mutate` 被错误用于 CSV→Excel 格式转换
+
+- Before：`excel-mutate` 的 description 没有排他说明，LLM 误将格式转换路由到此工具
+- After：添加 `不适用：仅需读取时改用 excel-query；格式转换（如 CSV→Excel、Excel→CSV/JSON）改用 doc-convert。`
+
+应用场景：
+- 两个工具名称或描述有语义重叠
+- 同一用户意图可能匹配多个工具
+- 修改 prompt 选择策略不如直接在工具 description 中消歧义更精准
 
 ## 关键文件速查表
 
 | 用途 | 路径 |
 |------|------|
-| 测试用例定义 | `apps/server/src/ai/__tests__/agent-behavior/promptfooconfig.yaml` |
+| 测试用例（按领域拆分） | `apps/server/src/ai/__tests__/agent-behavior/tests/<domain>/<domain>.yaml` |
+| 主配置 | `apps/server/src/ai/__tests__/agent-behavior/promptfooconfig.yaml` |
 | 测试运行脚本 | `apps/server/scripts/run-behavior-test.mjs` |
 | 测试输出文件 | `apps/server/.behavior-test-output.json` |
-| E2E Provider | `apps/server/src/ai/__tests__/agent-behavior/openloaf-e2e-provider.ts` |
+| 统一 Provider | `apps/server/src/ai/__tests__/agent-behavior/openloaf-universal-provider.ts` |
 | Master 模板定义 | `apps/server/src/ai/agent-templates/templates/master/index.ts` |
 | Master Prompt (中文) | `apps/server/src/ai/agent-templates/templates/master/prompt.zh.md` |
 | Master Prompt (英文) | `apps/server/src/ai/agent-templates/templates/master/prompt.en.md` |
@@ -203,10 +231,10 @@ r.error 存在?
 - 模型能力局限（如特定翻译习惯）→ 标记为 CANNOT_FIX，建议修改测试用例或换模型
 
 ### 禁止的修改
-- **不得修改 `promptfooconfig.yaml` 中的 `assert` 断言** — 测试用例是需求规格，不是可以被绕过的代码
+- **不得修改 `tests/*.yaml` 中的 `assert` 断言** — 测试用例是需求规格，不是可以被绕过的代码
 - **不得删除 master/index.ts 中已有的 toolIds** — 只能添加
 - **不得大幅重写 prompt.zh.md** — 增量修改，每次只添加/调整最小必要的部分
-- **不得修改 E2E Provider 或 Agent Provider** — 测试基础设施不在修复范围内
+- **不得修改 `openloaf-universal-provider.ts`** — 测试基础设施不在修复范围内
 - **不得修改 toolRegistry.ts 中的 TOOL_REGISTRY 结构** — 只能修改 TOOL_ALIASES
 
 ### 修改范围限制

@@ -426,7 +426,7 @@ agentFactory.ts → createMasterAgent()
 |------|------|
 | `buildSystemTagsMetaRule()` | 系统标签说明 — `<system-reminder>` 等 XML 标签的含义 |
 | `buildOutputFormatRules()` | 输出格式 — Markdown、`path:line` 引用、禁止 ANSI 转义码 |
-| `buildFileReferenceRules()` | 文件引用 — `@[path]` 语法说明 |
+| `buildFileReferenceRules()` | 文件引用 — `@{path}` 语法说明 |
 | `buildAgentsDynamicLoadingRules()` | AGENTS.md 动态加载 — 搜索到的目录若含 AGENTS.md 须读取 |
 | `buildAutoMemoryRules()` | Auto Memory — AI 自主管理 `.openloaf/memory/MEMORY.md` |
 | `buildCompletionCriteria()` | 完成条件 — 问题解决或给出可执行下一步 |

@@ -79,7 +79,7 @@ const hlsThumbnailTasks = new Map<string, Promise<string>>();
 
 export type HlsQuality = (typeof HLS_QUALITIES)[number];
 
-/** Scoped project path matcher like @[projectId]/path/to/file. */
+/** Scoped project path matcher like [projectId]/path/to/file (inner path after stripping @{...} wrapper). */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
 
 /** Normalize a relative path string. */

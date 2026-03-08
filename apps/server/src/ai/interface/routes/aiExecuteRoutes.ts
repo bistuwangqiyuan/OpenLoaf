@@ -9,6 +9,7 @@
  */
 import type { Context, Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { AiExecuteRequest, AiIntent, AiResponseMode } from "@/ai/services/chat/types";
 import { bootstrapAi } from "@/ai/bootstrap";
 import { logger } from "@/common/logger";
@@ -105,8 +106,14 @@ function parseAiExecuteRequest(body: unknown): { request?: AiExecuteRequest; err
       toolApprovalPayloads,
       chatModelId: toText(raw.chatModelId) || undefined,
       chatModelSource,
+      clientPlatform: normalizeClientPlatform(raw.clientPlatform),
     },
   };
+}
+
+/** Validate and normalize clientPlatform input. */
+function normalizeClientPlatform(value: unknown): ClientPlatform | undefined {
+  return value === "desktop" || value === "web" || value === "cli" ? value : undefined;
 }
 
 /** Normalize params input. */

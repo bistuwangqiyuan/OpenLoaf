@@ -29,6 +29,9 @@ import ExcelTool from "./ExcelTool";
 import WordTool from "./WordTool";
 import PptxTool from "./PptxTool";
 import PdfTool from "./PdfTool";
+import ImageProcessTool from "./ImageProcessTool";
+import BrowserSnapshotTool from "./BrowserSnapshotTool";
+import BrowserScreenshotTool from "./BrowserScreenshotTool";
 import TaskTool from "./TaskTool";
 import ClaudeCodeBashTool from "./ClaudeCodeBashTool";
 import ClaudeCodeReadTool from "./ClaudeCodeReadTool";
@@ -224,6 +227,18 @@ export default function MessageTool({
 
   if (toolKind === "pdf-query" || toolKind === "pdf-mutate") {
     return <PdfTool part={resolvedPart} className={className} />;
+  }
+
+  if (toolKind === "image-process") {
+    return <ImageProcessTool part={resolvedPart} className={className} />;
+  }
+
+  if (toolKind === "browser-snapshot" || toolKind === "browser-observe") {
+    return <BrowserSnapshotTool part={resolvedPart} className={className} />;
+  }
+
+  if (toolKind === "browser-screenshot") {
+    return <BrowserScreenshotTool part={resolvedPart} className={className} />;
   }
 
   if (toolKind === "task-manage" || toolKind === "create-task" || toolKind === "task-status") {

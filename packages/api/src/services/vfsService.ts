@@ -25,7 +25,7 @@ import {
 
 const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";
-/** Scoped project path matcher like @[projectId]/path/to/file. */
+/** Scoped project path matcher like [projectId]/path/to/file (inner path after stripping @{...} wrapper). */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
 
 /** Get the active workspace config. */
@@ -220,7 +220,7 @@ export function resolveScopedPath(input: {
     return path.resolve(raw);
   }
   // 中文注释：兼容 @<path> 作为当前项目根目录别名前缀。
-  if (raw.startsWith("@") && !raw.startsWith("@[")) {
+  if (raw.startsWith("@") && !raw.startsWith("@{")) {
     if (raw.startsWith("@/") || raw.startsWith("@\\")) {
       throw new Error("Path alias '@/' is not allowed.");
     }

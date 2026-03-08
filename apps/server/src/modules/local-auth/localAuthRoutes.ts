@@ -14,6 +14,7 @@ import {
   ensureLocalAuthSecret,
   getLocalAuthSnapshot,
   isLocalAuthConfigured,
+  setExternalAccessEnabled,
   setLocalAuthPassword,
   verifyLocalAuthPassword,
 } from "./localAuthStore";
@@ -36,11 +37,13 @@ type LocalAuthSessionResponse = {
   isLocal: boolean;
   /** Whether a local password is configured. */
   configured: boolean;
+  /** Whether external access is enabled. */
+  externalAccessEnabled: boolean;
   /** Whether current request has a valid session. */
   loggedIn: boolean;
   /** Whether remote access requires login. */
   requiresAuth: boolean;
-  /** Whether remote access is blocked due to missing password. */
+  /** Whether remote access is blocked (external access disabled or not configured). */
   blocked: boolean;
   /** Password updated timestamp. */
   updatedAt?: string;
@@ -101,11 +104,13 @@ export function registerLocalAuthRoutes(app: Hono): void {
         loggedIn = Boolean(payload && isSessionValid(payload));
       }
     }
-    const blocked = !isLocal && !configured;
-    const requiresAuth = !isLocal && configured && !loggedIn;
+    const externalAccessEnabled = snapshot.externalAccessEnabled;
+    const blocked = !isLocal && (!externalAccessEnabled || !configured);
+    const requiresAuth = !isLocal && externalAccessEnabled && configured && !loggedIn;
     const response: LocalAuthSessionResponse = {
       isLocal,
       configured,
+      externalAccessEnabled,
       loggedIn,
       requiresAuth,
       blocked,
@@ -166,6 +171,21 @@ export function registerLocalAuthRoutes(app: Hono): void {
       return c.json({ error: "local_auth_invalid" }, 401);
     }
     setLocalAuthPassword(password.trim());
+    return c.json({ ok: true });
+  });
+
+  app.post("/local-auth/toggle-external-access", async (c) => {
+    const conn = getConnInfo(c);
+    const isLocal = isLoopbackAddress(conn.remote?.address);
+    if (!isLocal) {
+      return c.json({ error: "local_only" }, 403);
+    }
+    const body = await c.req.json().catch(() => null);
+    const enabled = Boolean(body?.enabled);
+    if (enabled && !isLocalAuthConfigured()) {
+      return c.json({ error: "password_not_configured" }, 400);
+    }
+    setExternalAccessEnabled(enabled);
     return c.json({ ok: true });
   });
 }

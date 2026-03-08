@@ -24,7 +24,6 @@ import {
   Bot,
   Cpu,
   SlidersHorizontal,
-  Info,
   Keyboard,
   Building2,
   FlaskConical,
@@ -38,7 +37,7 @@ import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { Button } from "@openloaf/ui/button";
 
 import { BasicSettings } from "./menus/BasicSettings";
-import { AboutOpenLoaf } from "./menus/AboutOpenLoaf";
+
 import { ProviderManagement } from "./menus/ProviderManagement";
 import { ObjectStorageService } from "./menus/ObjectStorageService";
 import { AgentManagement } from "./menus/agent/AgentManagement";
@@ -57,7 +56,6 @@ import { cn } from "@/lib/utils";
 
 type SettingsMenuKey =
   | "basic"
-  | "about"
   | "keys"
   | "storage"
   | "agents"
@@ -79,7 +77,6 @@ const SETTINGS_MENU_ICON_COLOR = {
   auxiliaryModel: "text-[#0d9488] dark:text-teal-300",
   shortcuts: "text-[#f9ab00] dark:text-amber-300",
   projectTest: "text-[#f4511e] dark:text-orange-300",
-  about: "text-[#5f6368] dark:text-slate-300",
 } as const;
 
 /** Build a menu icon component with fixed email-style color tone. */
@@ -165,17 +162,11 @@ function buildMenu(t: (key: string) => string): Array<{
       Component: KeyboardShortcuts,
     },
     ...DEV_MENU,
-    {
-      key: "about",
-      label: t('settings:menu.about'),
-      Icon: createMenuIcon(Info, SETTINGS_MENU_ICON_COLOR.about),
-      Component: AboutOpenLoaf,
-    },
   ];
 }
 
 const ALL_MENU_KEYS: SettingsMenuKey[] = [
-  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'auxiliaryModel', 'shortcuts', 'about', 'projectTest',
+  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'auxiliaryModel', 'shortcuts', 'projectTest',
 ];
 const MENU_KEY_SET = new Set<SettingsMenuKey>(ALL_MENU_KEYS);
 const HIDDEN_MENU_KEYS = new Set<SettingsMenuKey>([]);
@@ -309,7 +300,6 @@ export default function SettingsPage({
       byKey.get("shortcuts"),
       byKey.get("projectTest"),
       byKey.get("thirdPartyTools"),
-      byKey.get("about"),
     ].filter(filterVisible);
     const group2 = [
       byKey.get("agents"),

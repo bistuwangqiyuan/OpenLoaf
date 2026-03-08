@@ -288,7 +288,7 @@
   },
   "localAuth": {
     "title": "Local Access Verification",
-    "blockedDesc": "This server has no local access password set. Remote access is blocked. Please open Settings on the local machine to configure a password.",
+    "blockedDesc": "External access is not enabled on this server. Remote access is blocked. Please open Settings on the local machine to enable external access.",
     "verifyError": "Unable to verify local access status",
     "lockedDesc": "Remote access requires a local access password.",
     "passwordLabel": "Access Password",
