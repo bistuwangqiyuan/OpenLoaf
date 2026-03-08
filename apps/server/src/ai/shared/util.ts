@@ -108,7 +108,7 @@ function sanitizeChatCompletionStream(url: string, response: Response): Response
 function toHeaderRecord(headers?: HeadersInit): Record<string, string> {
   if (!headers) return {};
   if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
+    return Object.fromEntries((headers as any).entries());
   }
   if (Array.isArray(headers)) {
     return Object.fromEntries(headers.map(([key, value]) => [key, String(value)]));
@@ -140,7 +140,7 @@ export function buildAiDebugFetch(): typeof fetch {
           : input.url;
     const fallbackHeaders =
       typeof input === "string" ? undefined : input instanceof Request ? input.headers : undefined;
-    const headerRecord = toHeaderRecord(init?.headers ?? fallbackHeaders);
+    const headerRecord = toHeaderRecord((init?.headers ?? fallbackHeaders) as HeadersInit | undefined);
     if (enabled) {
       log({ url, headers: headerRecord }, "[ai-debug] request headers");
       // 输出完整请求体（含 messages / tools）

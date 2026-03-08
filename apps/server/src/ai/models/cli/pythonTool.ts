@@ -145,7 +145,7 @@ export async function downloadPythonInstaller(): Promise<string> {
     if (!response.ok || !response.body) {
       throw new Error(`Download failed: ${response.status}`);
     }
-    const stream = Readable.fromWeb(response.body);
+    const stream = Readable.fromWeb(response.body as import("stream/web").ReadableStream);
     await pipeline(stream, createWriteStream(targetPath));
   }
   const buffer = await readFile(targetPath);

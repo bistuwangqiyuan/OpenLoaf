@@ -191,7 +191,7 @@ async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
         iconUrl: buildFallbackIcon(url),
       };
     }
-    const html = await readTextWithLimit(response, MAX_HTML_BYTES);
+    const html = await readTextWithLimit(response as any, MAX_HTML_BYTES);
     const baseHref = extractBaseHref(html);
     let baseUrl = url;
     if (baseHref) {

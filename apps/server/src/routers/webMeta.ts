@@ -77,7 +77,7 @@ async function fetchWebMetadata(url: string): Promise<WebMetadata> {
         iconUrl: "",
       };
     }
-    const html = await readTextWithLimit(response, MAX_HTML_BYTES);
+    const html = await readTextWithLimit(response as any, MAX_HTML_BYTES);
     return parseWebMetadataFromHtml(html, url);
   } catch {
     // 中文注释：捕获网络异常，保持返回结构完整。
