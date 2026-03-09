@@ -173,7 +173,7 @@ export class CanvasEngine {
   /** Active connector style for new links. */
   private connectorStyle: CanvasConnectorStyle = "curve";
   /** Whether new connectors use dashed strokes. */
-  private connectorDashed = false;
+  private connectorDashed = true;
   /** Active mindmap layout direction. */
   private mindmapLayoutDirection: MindmapLayoutDirection = "right";
   /** Last toast timestamp for cycle warning. */
@@ -240,12 +240,12 @@ export class CanvasEngine {
   private strokeSettings: StrokeSettingsState = {
     penSettings: {
       size: 6,
-      color: "#111827",
+      color: "#ef4444",
       opacity: 1,
     },
     highlighterSettings: {
-      size: 6,
-      color: "#111827",
+      size: 10,
+      color: "#16a34a",
       opacity: 0.35,
     },
   };
@@ -1316,13 +1316,11 @@ export class CanvasEngine {
     nudgeSelection(this.getSelectionDeps(), nodeIds, dx, dy);
   }
 
-  /** Auto layout selected nodes in a simple row or column. */
-  layoutSelection(direction: "row" | "column" = "row"): void {
+  /** Auto layout selected nodes using graph-aware Sugiyama algorithm. */
+  layoutSelection(): void {
     layoutSelection(
       this.getSelectionDeps(),
       this.getSelectedNodeElements(),
-      LAYOUT_GAP,
-      direction
     );
   }
 
@@ -1616,7 +1614,10 @@ export class CanvasEngine {
       ? MINDMAP_NODE_HORIZONTAL_SPACING
       : MINDMAP_FIRST_LEVEL_HORIZONTAL_SPACING;
     const [x, y, w] = parent.xywh;
-    const [defaultW, defaultH] = DEFAULT_NODE_SIZE;
+    const textDef = this.nodes.getDefinition("text");
+    const minSize = textDef?.capabilities?.minSize;
+    const defaultW = minSize?.w ?? DEFAULT_NODE_SIZE[0];
+    const defaultH = minSize?.h ?? DEFAULT_NODE_SIZE[1];
     const parentDirection = this.getMindmapLayoutDirectionForNode(parentId);
     const offsetX =
       parentDirection === "left"
@@ -1663,12 +1664,15 @@ export class CanvasEngine {
     const inbound = this.getMindmapInboundConnectors(nodeId);
     if (inbound.length === 0) {
       const [x, y, , h] = element.xywh;
-      const [defaultW, defaultH] = DEFAULT_NODE_SIZE;
+      const sibTextDef = this.nodes.getDefinition("text");
+      const sibMinSize = sibTextDef?.capabilities?.minSize;
+      const sibDefaultW = sibMinSize?.w ?? DEFAULT_NODE_SIZE[0];
+      const sibDefaultH = sibMinSize?.h ?? DEFAULT_NODE_SIZE[1];
       const nextXYWH: [number, number, number, number] = [
         x,
         y + h + MINDMAP_NODE_VERTICAL_SPACING,
-        defaultW,
-        defaultH,
+        sibDefaultW,
+        sibDefaultH,
       ];
       const siblingId = this.addNodeElement(
         "text",

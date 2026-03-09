@@ -54,6 +54,17 @@
     "imageGenerate": "圖片生成",
     "videoGenerate": "生成影片"
   },
+  "textToolTip": {
+    "title": "文字工具",
+    "desc": "新增文字到畫布，支援富文本編輯",
+    "mindmapHint": "按下 Tab 鍵即可建立子節點，快速建構思維導圖",
+    "mindmapExample": {
+      "root": "主題",
+      "child1": "想法 A",
+      "child2": "想法 B",
+      "grandchild": "細節"
+    }
+  },
   "descriptions": {
     "note": "快速筆記卡片",
     "image": "圖片區塊",
@@ -414,6 +425,7 @@
     "screenshot": "截圖畫布"
   },
   "aiToolbar": {
+    "aiAssistant": "AI小助手",
     "imagePromptGenerate": "圖片理解",
     "imageGenerate": "圖片生成",
     "videoGenerate": "生成影片"

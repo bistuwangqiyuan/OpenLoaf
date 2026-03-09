@@ -20,7 +20,7 @@
 
 /** Glass-effect toolbar container (canvas-specific exception). */
 export const BOARD_TOOLBAR_SURFACE_CLASS =
-  "bg-card/90 ring-1 ring-border/70 shadow-[0_10px_26px_rgba(15,23,42,0.18)] backdrop-blur-md cursor-default [&_*]:!cursor-default";
+  "bg-card/90 dark:bg-sidebar ring-1 ring-border/70 shadow-[0_10px_26px_rgba(15,23,42,0.18)] backdrop-blur-md cursor-default [&_*]:!cursor-default";
 
 /** Icon button active state — blue selection following design system. */
 export const BOARD_ICON_BTN_ACTIVE =
@@ -193,6 +193,28 @@ export const BOARD_GENERATE_DOT_PROMPT = "bg-[#f9ab00] dark:bg-amber-400";
 /** Flat input field for generation nodes. */
 export const BOARD_GENERATE_INPUT =
   "border-transparent bg-[#edf2fa] text-[#202124] placeholder:text-[#5f6368] focus-visible:border-[#d2e3fc] focus-visible:ring-1 focus-visible:ring-[rgba(26,115,232,0.22)] dark:bg-[hsl(var(--muted)/0.38)] dark:text-slate-100 dark:placeholder:text-slate-400";
+
+/** Node base — chat node (teal tinted). */
+export const BOARD_GENERATE_NODE_BASE_CHAT =
+  "bg-[#f0faf5]/95 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-lg dark:bg-[hsl(160_40%_8%/0.92)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.4)]";
+
+/** Semantic border — chat node (teal). */
+export const BOARD_GENERATE_BORDER_CHAT = "border-[#b7e4cf] dark:border-teal-800/60";
+
+/** Selected state — chat node. */
+export const BOARD_GENERATE_SELECTED_CHAT =
+  "border-[#188038] ring-1 ring-[#188038]/20 dark:border-emerald-400 dark:ring-emerald-400/20";
+
+/** Primary button — chat node (teal). */
+export const BOARD_GENERATE_BTN_CHAT =
+  "bg-[#e6f4ea] text-[#188038] hover:bg-[#ceead6] dark:bg-emerald-900/50 dark:text-emerald-200 dark:hover:bg-emerald-900/70";
+
+/** Status pill — chat node. */
+export const BOARD_GENERATE_PILL_CHAT =
+  "bg-[#e6f4ea] text-[#188038] dark:bg-emerald-900/40 dark:text-emerald-300";
+
+/** Semantic dot — chat node. */
+export const BOARD_GENERATE_DOT_CHAT = "bg-[#188038] dark:bg-emerald-400";
 
 /** Inset area for results / nested content. */
 export const BOARD_GENERATE_INSET =

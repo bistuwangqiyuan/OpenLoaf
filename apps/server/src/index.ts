@@ -17,6 +17,7 @@ import { initFfmpegPaths } from "@/common/ffmpegPaths";
 // 导致 SaaS 请求（Cloudflare 双栈域名）因 ConnectTimeoutError 失败。
 dns.setDefaultResultOrder("ipv4first");
 import { startServer } from "@/bootstrap/startServer";
+import { flushBoardDocuments } from "@/modules/board/boardCollabWebSocket";
 import { installHttpProxy } from "@/modules/proxy/httpProxy";
 import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
 import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
@@ -62,15 +63,19 @@ const { app } = startServer();
 // 暂停启动时自动总结调度，避免无 workspace/project 上下文触发总结流程。
 // void initSummaryScheduler();
 
-// 响应 SIGINT/SIGTERM，确保 turbo/pnpm/Electron 发送终止信号时 server 能正确退出
-process.on("SIGINT", () => process.exit(0));
-process.on("SIGTERM", () => process.exit(0));
+// 响应 SIGINT/SIGTERM，退出前先刷盘画布文档，防止热重载丢失未持久化的 Yjs 数据。
+async function gracefulShutdown() {
+  await flushBoardDocuments();
+  process.exit(0);
+}
+process.on("SIGINT", () => void gracefulShutdown());
+process.on("SIGTERM", () => void gracefulShutdown());
 
 // 通过 IPC channel 检测父进程退出（Electron desktop 场景）：
 // 当父进程崩溃或退出时 disconnect 会触发，防止成为僵尸进程。
 // 需要 spawn 时 stdio 包含 'ipc'（如 ['ignore', 'pipe', 'pipe', 'ipc']）。
 if (typeof process.send === "function") {
-  process.on("disconnect", () => process.exit(0));
+  process.on("disconnect", () => void gracefulShutdown());
 }
 
 export default app;

@@ -7,10 +7,10 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { z } from "zod";
+import { z } from 'zod'
 
 /** WebSocket path for board collaboration. */
-export const BOARD_COLLAB_WS_PATH = "/board/ws";
+export const BOARD_COLLAB_WS_PATH = '/board/ws'
 
 /** Board collaboration query payload schema. */
 export const boardCollabQuerySchema = z
@@ -27,40 +27,44 @@ export const boardCollabQuerySchema = z
     docId: z.string().min(1),
   })
   .refine((data) => Boolean(data.boardFileUri || data.boardFolderUri), {
-    message: "boardFileUri or boardFolderUri is required",
-  });
+    message: 'boardFileUri or boardFolderUri is required',
+  })
 
-export type BoardCollabQuery = z.infer<typeof boardCollabQuerySchema>;
+export type BoardCollabQuery = z.infer<typeof boardCollabQuerySchema>
 
 export type BoardJsonNode = {
   /** Node id. */
-  id: string;
+  id: string
   /** Node kind. */
-  kind: "node";
+  kind: 'node'
   /** Node type identifier. */
-  type: string;
+  type: string
   /** Node props payload. */
-  props?: Record<string, unknown>;
-};
+  props?: Record<string, unknown>
+  /** Position and size [x, y, w, h]. */
+  xywh?: [number, number, number, number]
+}
 
 export type BoardJsonConnector = {
   /** Connector id. */
-  id: string;
+  id: string
   /** Connector kind. */
-  kind: "connector";
+  kind: 'connector'
   /** Connector type identifier. */
-  type: string;
+  type: string
   /** Connector source endpoint. */
-  source?: Record<string, unknown>;
+  source?: Record<string, unknown>
   /** Connector target endpoint. */
-  target?: Record<string, unknown>;
+  target?: Record<string, unknown>
   /** Connector style identifier. */
-  style?: string;
-};
+  style?: string
+  /** Position and size [x, y, w, h]. */
+  xywh?: [number, number, number, number]
+}
 
 export type BoardJsonSnapshot = {
   /** Simplified nodes for debug snapshot. */
-  nodes: BoardJsonNode[];
+  nodes: BoardJsonNode[]
   /** Simplified connectors for debug snapshot. */
-  connectors: BoardJsonConnector[];
-};
+  connectors: BoardJsonConnector[]
+}

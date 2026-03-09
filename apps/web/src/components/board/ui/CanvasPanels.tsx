@@ -76,7 +76,7 @@ function ConnectorActionPanel({
   // 逻辑：工具栏上移，避免遮挡水平连线。
   const offsetScreenY = 26;
   const currentStyle = connector.style ?? snapshot.connectorStyle;
-  const currentDashed = connector.dashed ?? false;
+  const currentDashed = connector.dashed ?? snapshot.connectorDashed;
 
   return (
     <div

@@ -15,16 +15,20 @@ import type { CanvasInsertRequest, CanvasPoint } from "../engine/types";
 import { IMAGE_GENERATE_NODE_TYPE } from "../nodes/imageGenerate/constants";
 import { VIDEO_GENERATE_NODE_TYPE } from "../nodes/videoGenerate/constants";
 import { IMAGE_PROMPT_GENERATE_NODE_TYPE } from "../nodes/imagePromptGenerate/constants";
+import { CHAT_INPUT_NODE_TYPE } from "../nodes/chatInput";
 import {
   BOARD_GENERATE_NODE_BASE_IMAGE,
   BOARD_GENERATE_NODE_BASE_VIDEO,
   BOARD_GENERATE_NODE_BASE_PROMPT,
+  BOARD_GENERATE_NODE_BASE_CHAT,
   BOARD_GENERATE_BORDER_IMAGE,
   BOARD_GENERATE_BORDER_VIDEO,
   BOARD_GENERATE_BORDER_PROMPT,
+  BOARD_GENERATE_BORDER_CHAT,
   BOARD_GENERATE_BTN_IMAGE,
   BOARD_GENERATE_BTN_VIDEO,
   BOARD_GENERATE_BTN_PROMPT,
+  BOARD_GENERATE_BTN_CHAT,
   BOARD_GENERATE_PILL_IMAGE,
   BOARD_GENERATE_PILL_VIDEO,
 } from "../ui/board-style-system";
@@ -34,6 +38,7 @@ export const PENDING_INSERT_DOM_TYPES = new Set([
   IMAGE_GENERATE_NODE_TYPE,
   VIDEO_GENERATE_NODE_TYPE,
   IMAGE_PROMPT_GENERATE_NODE_TYPE,
+  CHAT_INPUT_NODE_TYPE,
   "text",
   "file-attachment",
   "audio",
@@ -86,6 +91,16 @@ const NODE_PREVIEW_MAP: Record<string, NodePreviewConfig> = {
     titleKey: "imagePromptGenerate.title",
     btnKey: "imagePromptGenerate.run",
     showPrompt: false,
+  },
+  [CHAT_INPUT_NODE_TYPE]: {
+    base: BOARD_GENERATE_NODE_BASE_CHAT,
+    border: BOARD_GENERATE_BORDER_CHAT,
+    btnClass: BOARD_GENERATE_BTN_CHAT,
+    iconColor: "text-[#188038] dark:text-emerald-400",
+    icon: Sparkles,
+    titleKey: "aiToolbar.aiAssistant",
+    btnKey: "imagePromptGenerate.run",
+    showPrompt: true,
   },
 };
 

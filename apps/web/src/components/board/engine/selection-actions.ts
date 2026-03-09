@@ -22,6 +22,7 @@ import {
   getNodeGroupId,
   isGroupNodeType,
 } from "./grouping";
+import { computeAutoLayoutUpdates } from "./auto-layout";
 
 type SelectionDeps = {
   /** Document model for element updates. */
@@ -275,30 +276,33 @@ function nudgeSelection(
   deps.commitHistory();
 }
 
-/** Auto layout selected nodes in a simple row or column. */
+/** Auto layout selected nodes using the same Sugiyama graph algorithm as full-board auto layout. */
 function layoutSelection(
   deps: SelectionDeps,
   nodes: CanvasNodeElement[],
-  gap: number,
-  direction: "row" | "column" = "row"
 ): void {
   if (deps.isLocked()) return;
   if (nodes.length < 2) return;
 
-  const sorted = [...nodes].sort((a, b) =>
-    direction === "row" ? a.xywh[0] - b.xywh[0] : a.xywh[1] - b.xywh[1]
+  // 逻辑：收集选中节点及其内部连线，使用图布局算法排列。
+  const selectedNodeIds = new Set(nodes.map(node => node.id));
+  const allElements = deps.doc.getElements();
+  const internalConnectors = allElements.filter(
+    (element): element is CanvasConnectorElement =>
+      element.kind === "connector" &&
+      "elementId" in element.source &&
+      "elementId" in element.target &&
+      selectedNodeIds.has(element.source.elementId) &&
+      selectedNodeIds.has(element.target.elementId)
   );
-  const bounds = computeNodeBounds(sorted);
-  let cursor = direction === "row" ? bounds.x : bounds.y;
 
-  // 逻辑：多选节点按指定方向排列，保持宽高不变。
+  const elements: CanvasElement[] = [...nodes, ...internalConnectors];
+  const updates = computeAutoLayoutUpdates(elements);
+  if (updates.length === 0) return;
+
   deps.doc.transact(() => {
-    sorted.forEach(node => {
-      const [, , w, h] = node.xywh;
-      const nextX = direction === "row" ? cursor : bounds.x;
-      const nextY = direction === "row" ? bounds.y : cursor;
-      deps.doc.updateElement(node.id, { xywh: [nextX, nextY, w, h] });
-      cursor += (direction === "row" ? w : h) + gap;
+    updates.forEach(update => {
+      deps.doc.updateElement(update.id, { xywh: update.xywh });
     });
   });
   deps.commitHistory();

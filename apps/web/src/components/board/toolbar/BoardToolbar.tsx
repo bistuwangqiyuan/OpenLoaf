@@ -314,6 +314,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const { t } = useTranslation('board');
   // 悬停展开的组 id（用字符串常量标识）
   const [hoverGroup, setHoverGroup] = useState<string | null>(null);
+  const [hoverInsertId, setHoverInsertId] = useState<string | null>(null);
   const hoverCloseTimer = useRef<number | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
@@ -332,10 +333,10 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const isEraserTool = snapshot.activeToolId === "eraser";
   const isLocked = snapshot.locked;
   const pendingInsert = snapshot.pendingInsert;
-  const brushPanelOpen = !isLocked && (hoverGroup === "pen" || isBrushTool);
-  const highlighterPanelOpen = !isLocked && (hoverGroup === "highlighter" || isHighlighterTool);
+  const brushPanelOpen = !isLocked && (hoverGroup === "pen" || (isBrushTool && hoverGroup !== "highlighter"));
+  const highlighterPanelOpen = !isLocked && (hoverGroup === "highlighter" || (isHighlighterTool && hoverGroup !== "pen"));
   const [penSize, setPenSize] = useState<number>(6);
-  const [penColor, setPenColor] = useState<string>("#f59e0b");
+  const [penColor, setPenColor] = useState<string>("#ef4444");
   const [hlSize, setHlSize] = useState<number>(10);
   const [hlColor, setHlColor] = useState<string>("#16a34a");
   const selectTitle = buildToolTitle(t('tools.select'), TOOL_SHORTCUTS.select);
@@ -1142,7 +1143,10 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 }
               }}
             >
-              <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2"
+                onPointerDownCapture={() => { if (!isLocked && !isBrushTool) handleToolChange("pen", { keepPanel: true }); }}
+              >
                 <div className="flex items-center gap-2">
                   {PEN_SIZES.map(size => (
                     <button
@@ -1156,7 +1160,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                       className={cn(
                         "inline-flex h-7 w-7 items-center justify-center rounded-full",
                         penSize === size
-                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-background"
+                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-white"
                           : "hover:bg-accent/60"
                       )}
                       aria-label={`Pen size ${size}`}
@@ -1231,7 +1235,10 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 }
               }}
             >
-              <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2"
+                onPointerDownCapture={() => { if (!isLocked && !isHighlighterTool) handleToolChange("highlighter", { keepPanel: true }); }}
+              >
                 <div className="flex items-center gap-2">
                   {PEN_SIZES.map(size => (
                     <button
@@ -1245,7 +1252,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                       className={cn(
                         "inline-flex h-7 w-7 items-center justify-center rounded-full",
                         hlSize === size
-                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-background"
+                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-white"
                           : "hover:bg-accent/60"
                       )}
                       aria-label={`Pen size ${size}`}
@@ -1316,10 +1323,51 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               title: item.title,
             };
             return (
-              <div key={item.id} className="flex flex-col items-center select-none" draggable={false} onDragStart={e => e.preventDefault()}>
+              <div
+                key={item.id}
+                className="relative flex flex-col items-center select-none"
+                draggable={false}
+                onDragStart={e => e.preventDefault()}
+                onPointerEnter={() => setHoverInsertId(item.id)}
+                onPointerLeave={() => setHoverInsertId(null)}
+              >
+                {item.id === "note" ? (
+                  <HoverPanel open={hoverInsertId === "note" && !isActive} className="w-56 p-3">
+                    <div className="flex flex-col gap-2">
+                      <div className="text-[12px] font-semibold text-foreground">{t('textToolTip.title')}</div>
+                      <div className="text-[11px] leading-relaxed text-muted-foreground">{t('textToolTip.desc')}</div>
+                      {/* Mindmap illustration */}
+                      <div className="mt-1 rounded-lg bg-muted/50 dark:bg-muted/30 px-3 py-2.5">
+                        <div className="flex items-start gap-0">
+                          <div className="flex flex-col items-center">
+                            <span className="inline-flex items-center rounded-md bg-primary/10 dark:bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">{t('textToolTip.mindmapExample.root')}</span>
+                            <span className="h-2 w-px bg-border" />
+                          </div>
+                        </div>
+                        <div className="flex gap-4 pl-2">
+                          <div className="flex flex-col items-center">
+                            <span className="h-px w-3 bg-border" />
+                            <span className="inline-flex items-center rounded-md bg-blue-500/10 dark:bg-blue-400/15 px-1.5 py-0.5 text-[9px] text-blue-600 dark:text-blue-400">{t('textToolTip.mindmapExample.child1')}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="h-px w-3 bg-border" />
+                            <span className="inline-flex items-center rounded-md bg-amber-500/10 dark:bg-amber-400/15 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-400">{t('textToolTip.mindmapExample.child2')}</span>
+                            <span className="h-1.5 w-px bg-border" />
+                            <span className="inline-flex items-center rounded-md bg-emerald-500/10 dark:bg-emerald-400/15 px-1.5 py-0.5 text-[9px] text-emerald-600 dark:text-emerald-400">{t('textToolTip.mindmapExample.grandchild')}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 text-[9px] font-mono font-medium">Tab</kbd>
+                        <span>{t('textToolTip.mindmapHint')}</span>
+                      </div>
+                    </div>
+                  </HoverPanel>
+                ) : null}
                 <IconBtn
                   title={item.title}
                   active={isActive}
+                  showTooltip={item.id !== "note"}
                   onPointerDown={event => {
                     event.preventDefault();
                     if (isLocked) return;

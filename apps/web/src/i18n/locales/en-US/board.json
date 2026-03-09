@@ -54,6 +54,17 @@
     "imageGenerate": "Image Generation",
     "videoGenerate": "Video Generation"
   },
+  "textToolTip": {
+    "title": "Text Tool",
+    "desc": "Add text to canvas with rich text editing",
+    "mindmapHint": "Press Tab to create child nodes and quickly build mind maps",
+    "mindmapExample": {
+      "root": "Topic",
+      "child1": "Idea A",
+      "child2": "Idea B",
+      "grandchild": "Detail"
+    }
+  },
   "descriptions": {
     "note": "Quick note card",
     "image": "Image block",
@@ -414,6 +425,7 @@
     "screenshot": "Screenshot Canvas"
   },
   "aiToolbar": {
+    "aiAssistant": "AI Assistant",
     "imagePromptGenerate": "Image Analysis",
     "imageGenerate": "Image Generation",
     "videoGenerate": "Video Generation"

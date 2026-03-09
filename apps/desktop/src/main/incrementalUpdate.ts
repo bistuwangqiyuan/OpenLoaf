@@ -69,11 +69,21 @@ type LocalComponentState = {
   appliedAt: string
 }
 
+type PendingComponentState = {
+  version: string
+  preparedAt: string
+}
+
 type LocalManifest = {
   server?: LocalComponentState
   web?: LocalComponentState
   /** Server versions that crashed after incremental update; skip these during update checks. */
   crashedServerVersions?: string[]
+  /** Components downloaded but not yet applied (swap deferred to next restart). */
+  pending?: {
+    server?: PendingComponentState
+    web?: PendingComponentState
+  }
 }
 
 type ComponentInfo = {
@@ -444,16 +454,78 @@ function atomicSwap(pendingDir: string, currentDir: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// 清理残留
+// 启动时应用 pending 更新
 // ---------------------------------------------------------------------------
 
-function cleanPending(): void {
-  const serverPending = path.join(updatesRoot(), 'server', 'pending')
-  const webPending = path.join(updatesRoot(), 'web', 'pending')
-  for (const dir of [serverPending, webPending]) {
-    if (fs.existsSync(dir)) {
-      fs.rmSync(dir, { recursive: true, force: true })
+/**
+ * 在服务器进程启动前调用。
+ * 检查 pending/ 目录，如果有有效的待应用更新（匹配 local manifest），
+ * 执行 atomicSwap 将其激活。此时服务器尚未启动，不存在文件锁定问题。
+ */
+export function applyPendingSwaps(log: Logger): void {
+  const root = updatesRoot()
+  const local = readLocalManifest()
+  let changed = false
+
+  for (const component of ['server', 'web'] as const) {
+    const pendingDir = path.join(root, component, 'pending')
+    const currentDir = path.join(root, component, 'current')
+
+    if (!fs.existsSync(pendingDir)) continue
+
+    const pendingInfo = local.pending?.[component]
+
+    if (!pendingInfo) {
+      // 孤立的 pending 目录（无 manifest 记录），清理
+      log(`[incremental-update] Cleaning orphaned ${component} pending dir.`)
+      try {
+        fs.rmSync(pendingDir, { recursive: true, force: true })
+      } catch { /* ignore */ }
+      continue
     }
+
+    // server 更新前备份数据库
+    if (component === 'server') {
+      backupDatabase(log)
+    }
+
+    log(`[incremental-update] Applying pending ${component} v${pendingInfo.version}...`)
+    try {
+      atomicSwap(pendingDir, currentDir)
+
+      // 更新 manifest：pending → active
+      local[component] = {
+        version: pendingInfo.version,
+        appliedAt: new Date().toISOString(),
+      }
+      if (local.pending) {
+        delete local.pending[component]
+        if (!local.pending.server && !local.pending.web) {
+          delete local.pending
+        }
+      }
+      changed = true
+
+      log(`[incremental-update] ${component} v${pendingInfo.version} applied successfully.`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log(`[incremental-update] Failed to apply pending ${component}: ${msg}`)
+      // 清理失败的 pending
+      try {
+        fs.rmSync(pendingDir, { recursive: true, force: true })
+      } catch { /* ignore */ }
+      if (local.pending) {
+        delete local.pending[component]
+        if (!local.pending.server && !local.pending.web) {
+          delete local.pending
+        }
+      }
+      changed = true
+    }
+  }
+
+  if (changed) {
+    writeLocalManifest(local)
   }
 }
 
@@ -468,7 +540,6 @@ async function updateComponent(
 ): Promise<void> {
   const root = updatesRoot()
   const pendingDir = path.join(root, component, 'pending')
-  const currentDir = path.join(root, component, 'current')
 
   // 清理旧的 pending
   if (fs.existsSync(pendingDir)) {
@@ -518,19 +589,16 @@ async function updateComponent(
     fs.rmSync(downloadPath, { force: true })
   }
 
-  // 原子替换
-  log(`[incremental-update] Applying ${component} v${manifest.version}...`)
-  atomicSwap(pendingDir, currentDir)
-
-  // 更新本地清单
+  // 标记为待应用（下次启动时在服务器进程启动前执行替换，避免 Windows 文件锁定 EPERM）
   const localManifest = readLocalManifest()
-  localManifest[component] = {
+  localManifest.pending = localManifest.pending ?? {}
+  localManifest.pending[component] = {
     version: manifest.version,
-    appliedAt: new Date().toISOString(),
+    preparedAt: new Date().toISOString(),
   }
   writeLocalManifest(localManifest)
 
-  log(`[incremental-update] ${component} updated to v${manifest.version}.`)
+  log(`[incremental-update] ${component} v${manifest.version} downloaded. Will apply on next restart.`)
 }
 
 // ---------------------------------------------------------------------------
@@ -695,12 +763,17 @@ export async function checkForIncrementalUpdates(
     const currentWebVersion = resolveCurrentVersion('web', local)
     let hasUpdate = false
 
-    // 检查 server 更新（跳过黑名单中的崩溃版本）
+    // 检查 server 更新（跳过黑名单和已 pending 的版本）
     if (remote.server && isRemoteNewer(currentServerVersion, remote.server.version)) {
       const blacklist = local.crashedServerVersions ?? []
       if (blacklist.includes(remote.server.version)) {
         log(
           `[incremental-update] Server v${remote.server.version} is in crash blacklist. Skipping.`
+        )
+        remote = { ...remote, server: undefined }
+      } else if (local.pending?.server?.version === remote.server.version) {
+        log(
+          `[incremental-update] Server v${remote.server.version} already pending. Will apply on next restart.`
         )
         remote = { ...remote, server: undefined }
       } else {
@@ -711,22 +784,51 @@ export async function checkForIncrementalUpdates(
       }
     }
 
-    // 检查 web 更新
+    // 检查 web 更新（跳过已 pending 的版本）
     if (remote.web && isRemoteNewer(currentWebVersion, remote.web.version)) {
-      log(
-        `[incremental-update] Web update available: ${currentWebVersion ?? 'unknown'} → ${remote.web.version}`
-      )
-      hasUpdate = true
+      if (local.pending?.web?.version === remote.web.version) {
+        log(
+          `[incremental-update] Web v${remote.web.version} already pending. Will apply on next restart.`
+        )
+        remote = { ...remote, web: undefined }
+      } else {
+        log(
+          `[incremental-update] Web update available: ${currentWebVersion ?? 'unknown'} → ${remote.web.version}`
+        )
+        hasUpdate = true
+      }
     }
 
     if (!hasUpdate) {
-      log(`[incremental-update] No updates available.`)
-      emitStatus({
-        state: 'idle',
-        error: undefined,
-        progress: undefined,
-        lastCheckedAt: Date.now(),
-      })
+      // 如果有 pending 更新等待重启，仍然发出 ready 状态
+      const hasPending = local.pending?.server || local.pending?.web
+      if (hasPending) {
+        log('[incremental-update] No new updates, but pending updates await restart.')
+        const serverInfo = getComponentInfo('server')
+        const webInfo = getComponentInfo('web')
+        if (local.pending?.server) {
+          serverInfo.newVersion = local.pending.server.version
+        }
+        if (local.pending?.web) {
+          webInfo.newVersion = local.pending.web.version
+        }
+        emitStatus({
+          state: 'ready',
+          server: serverInfo,
+          web: webInfo,
+          error: undefined,
+          progress: undefined,
+          lastCheckedAt: Date.now(),
+        })
+      } else {
+        log('[incremental-update] No updates available.')
+        emitStatus({
+          state: 'idle',
+          error: undefined,
+          progress: undefined,
+          lastCheckedAt: Date.now(),
+        })
+      }
       return { ok: true }
     }
 
@@ -735,12 +837,7 @@ export async function checkForIncrementalUpdates(
     const preUpdateServerVersion = resolveCurrentVersion('server', preUpdateLocal)
     const preUpdateWebVersion = resolveCurrentVersion('web', preUpdateLocal)
 
-    // server 更新前备份数据库（新 server 可能包含 schema 迁移）
-    if (remote.server && isRemoteNewer(currentServerVersion, remote.server.version)) {
-      backupDatabase(log)
-    }
-
-    // 下载并应用更新
+    // 下载到 pending（下次启动时应用）
     if (remote.server) {
       if (isRemoteNewer(currentServerVersion, remote.server.version)) {
         await updateComponent('server', remote.server, log)
@@ -777,7 +874,7 @@ export async function checkForIncrementalUpdates(
       lastCheckedAt: Date.now(),
     })
 
-    cachedLog?.(`[incremental-update] Updates ready. Will apply on next restart.`)
+    cachedLog?.('[incremental-update] Updates ready. Will apply on next restart.')
     return { ok: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -857,12 +954,11 @@ async function preDownloadForDesktopUpdate(nextDesktopVersion: string): Promise<
           log(`[incremental-update] Pre-download: server ${remoteComponent.version} in crash blacklist. Skip.`)
           continue
         }
-        backupDatabase(log)
       }
 
       log(`[incremental-update] Pre-download: downloading ${component} ${remoteComponent.version}...`)
       await updateComponent(component, remoteComponent, log)
-      log(`[incremental-update] Pre-download: ${component} ${remoteComponent.version} applied.`)
+      log(`[incremental-update] Pre-download: ${component} ${remoteComponent.version} downloaded (pending).`)
     }
 
     log('[incremental-update] Pre-download complete.')
@@ -956,7 +1052,7 @@ function restoreDatabase(log: Logger): void {
         fs.rmSync(walPath, { force: true })
       }
     }
-    log(`[incremental-update] Database restored from backup.`)
+    log('[incremental-update] Database restored from backup.')
 
     // 清理备份文件
     fs.rmSync(backupPath, { force: true })
@@ -1038,9 +1134,6 @@ export function installIncrementalUpdate(options: { log: Logger }): void {
     return
   }
   installed = true
-
-  // 启动时清理残留的 pending 目录
-  cleanPending()
 
   // 启动时清理比打包版本更旧的增量更新
   pruneOutdatedUpdates(log)

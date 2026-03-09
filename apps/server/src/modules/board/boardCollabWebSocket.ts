@@ -50,6 +50,31 @@ type BoardCollabContext = {
 
 type BoardDocument = Y.Doc & { boardCollabContext?: BoardCollabContext };
 
+/** Module-level Hocuspocus reference for shutdown flushing. */
+let hocuspocusInstance: Hocuspocus | null = null;
+
+/** Flush all in-memory board documents to disk before process exit. */
+export async function flushBoardDocuments(): Promise<void> {
+  if (!hocuspocusInstance) return;
+  // 逻辑：遍历所有活跃文档，逐一强制刷盘，防止热重载/进程退出丢数据。
+  const documents = (hocuspocusInstance as any).documents as Map<string, Y.Doc> | undefined;
+  if (!documents || documents.size === 0) return;
+  const tasks: Promise<void>[] = [];
+  for (const [name, doc] of documents) {
+    const boardDoc = doc as BoardDocument;
+    if (!boardDoc.boardCollabContext) continue;
+    tasks.push(
+      storeBoardDocument(boardDoc).catch((error) => {
+        logger.error({ err: error, docName: name }, "[board] flush document failed");
+      }),
+    );
+  }
+  if (tasks.length > 0) {
+    await Promise.all(tasks);
+    logger.info({ count: tasks.length }, "[board] flushed documents before shutdown");
+  }
+}
+
 /** Parse websocket upgrade URL. */
 function parseUpgradeUrl(req: IncomingMessage): URL | null {
   const rawUrl = req.url;
@@ -170,7 +195,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-/** Build the simplified json snapshot for debug. */
+/** Parse a [x, y, w, h] tuple from an unknown value. */
+function parseXywh(value: unknown): [number, number, number, number] | undefined {
+  if (!Array.isArray(value) || value.length < 4) return undefined;
+  const nums = value.slice(0, 4).map(Number);
+  if (nums.some(Number.isNaN)) return undefined;
+  return nums as [number, number, number, number];
+}
+
+/** Build the json snapshot including xywh positions. */
 function buildBoardJsonSnapshot(payload: {
   nodes: unknown[];
   connectors: unknown[];
@@ -186,6 +219,7 @@ function buildBoardJsonSnapshot(payload: {
         kind: "node" as const,
         type,
         props: isRecord(node.props) ? node.props : undefined,
+        xywh: parseXywh(node.xywh),
       };
     })
     .filter(Boolean) as BoardJsonSnapshot["nodes"];
@@ -202,6 +236,7 @@ function buildBoardJsonSnapshot(payload: {
         source: isRecord(connector.source) ? connector.source : undefined,
         target: isRecord(connector.target) ? connector.target : undefined,
         style: typeof connector.style === "string" ? connector.style : undefined,
+        xywh: parseXywh(connector.xywh),
       };
     })
     .filter(Boolean) as BoardJsonSnapshot["connectors"];
@@ -242,15 +277,91 @@ async function ensureBoardDbRecord(ctx: BoardCollabContext): Promise<void> {
   }
 }
 
+/** Read and parse a board JSON snapshot from disk. */
+async function readBoardJsonSnapshot(filePath: string): Promise<BoardJsonSnapshot | null> {
+  try {
+    const raw = await readFile(filePath, "utf-8");
+    if (!raw || !raw.trim()) return null;
+    const parsed = JSON.parse(raw) as BoardJsonSnapshot;
+    if (!Array.isArray(parsed.nodes) && !Array.isArray(parsed.connectors)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Default node size used when recovering from JSON without xywh. */
+const RECOVER_W = 280;
+const RECOVER_H = 180;
+const RECOVER_GAP = 24;
+const RECOVER_COLS = 4;
+
+/** Recover board Yjs document from a JSON snapshot fallback. */
+function recoverBoardFromJson(doc: Y.Doc, snapshot: BoardJsonSnapshot): void {
+  const nodes: unknown[] = [];
+  const connectors: unknown[] = [];
+  let col = 0;
+  let row = 0;
+  for (const node of snapshot.nodes ?? []) {
+    if (!node.id || !node.type) continue;
+    const xywh = node.xywh ?? [
+      col * (RECOVER_W + RECOVER_GAP),
+      row * (RECOVER_H + RECOVER_GAP),
+      RECOVER_W,
+      RECOVER_H,
+    ];
+    nodes.push({
+      id: node.id,
+      type: node.type,
+      kind: "node",
+      xywh,
+      props: node.props ?? {},
+    });
+    if (!node.xywh) {
+      col++;
+      if (col >= RECOVER_COLS) {
+        col = 0;
+        row++;
+      }
+    }
+  }
+  for (const connector of snapshot.connectors ?? []) {
+    if (!connector.id) continue;
+    connectors.push({
+      id: connector.id,
+      type: connector.type || "connector",
+      kind: "connector",
+      xywh: connector.xywh ?? [0, 0, 0, 0],
+      source: connector.source ?? {},
+      target: connector.target ?? {},
+      style: connector.style,
+    });
+  }
+  if (nodes.length === 0 && connectors.length === 0) return;
+  doc.transact(() => {
+    const map = doc.getMap<unknown>(BOARD_DOC_KEY);
+    map.set(BOARD_DOC_NODES_KEY, nodes);
+    map.set(BOARD_DOC_CONNECTORS_KEY, connectors);
+  });
+}
+
 /** Persist the board document into snapshot and json files. */
 async function storeBoardDocument(document: BoardDocument): Promise<void> {
   const boardContext = document.boardCollabContext;
   if (!boardContext) return;
-  const update = Y.encodeStateAsUpdate(document);
-  await writeBoardSnapshot(boardContext.boardFilePath, update);
-  const payload = readBoardDocPayload(document);
-  const jsonSnapshot = buildBoardJsonSnapshot(payload);
-  await writeBoardJsonSnapshot(boardContext.boardJsonPath, jsonSnapshot);
+  try {
+    const update = Y.encodeStateAsUpdate(document);
+    await writeBoardSnapshot(boardContext.boardFilePath, update);
+  } catch (error) {
+    logger.error({ err: error, path: boardContext.boardFilePath }, "[board] failed to write binary snapshot");
+  }
+  try {
+    const payload = readBoardDocPayload(document);
+    const jsonSnapshot = buildBoardJsonSnapshot(payload);
+    await writeBoardJsonSnapshot(boardContext.boardJsonPath, jsonSnapshot);
+  } catch (error) {
+    logger.error({ err: error, path: boardContext.boardJsonPath }, "[board] failed to write json snapshot");
+  }
   await ensureBoardDbRecord(boardContext);
 }
 
@@ -277,10 +388,29 @@ export function attachBoardCollabWebSocket(server: ServerType): void {
       }
       (document as BoardDocument).boardCollabContext = boardContext;
       const snapshot = await readBoardSnapshot(boardContext.boardFilePath);
-      if (!snapshot) return null;
-      // 逻辑：在当前文档上应用快照，保持上下文与持久化路径一致。
-      Y.applyUpdate(document, snapshot);
-      return document;
+      if (snapshot) {
+        // 逻辑：在当前文档上应用快照，保持上下文与持久化路径一致。
+        Y.applyUpdate(document, snapshot);
+        return document;
+      }
+      // 逻辑：二进制快照缺失时从 JSON 快照恢复，避免画布空白。
+      const jsonSnapshot = await readBoardJsonSnapshot(boardContext.boardJsonPath);
+      if (jsonSnapshot && ((jsonSnapshot.nodes?.length ?? 0) > 0 || (jsonSnapshot.connectors?.length ?? 0) > 0)) {
+        logger.info(
+          { path: boardContext.boardJsonPath, nodes: jsonSnapshot.nodes?.length, connectors: jsonSnapshot.connectors?.length },
+          "[board] recovering from json snapshot (binary missing)",
+        );
+        recoverBoardFromJson(document, jsonSnapshot);
+        // 逻辑：恢复后立即写入二进制快照，避免下次再走恢复。
+        try {
+          const update = Y.encodeStateAsUpdate(document);
+          await writeBoardSnapshot(boardContext.boardFilePath, update);
+        } catch (error) {
+          logger.error({ err: error }, "[board] failed to persist recovered snapshot");
+        }
+        return document;
+      }
+      return null;
     },
     onStoreDocument: async ({ document }) => {
       await storeBoardDocument(document as BoardDocument);
@@ -291,6 +421,7 @@ export function attachBoardCollabWebSocket(server: ServerType): void {
       return null;
     },
   });
+  hocuspocusInstance = hocuspocus;
 
   httpServer.on("upgrade", (req: IncomingMessage, socket: Socket, head: Buffer) => {
     const url = parseUpgradeUrl(req);

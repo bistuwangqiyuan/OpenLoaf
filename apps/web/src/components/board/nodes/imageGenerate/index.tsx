@@ -194,6 +194,24 @@ export function ImageGenerateNodeView({
           ? ((source.props as any).resultText as string)
           : "";
       if (rawText.trim()) inputTextSegments.push(rawText.trim());
+      continue;
+    }
+    if (source.type === "chat_message") {
+      const urls = (source.props as any)?.resolvedImageUrls;
+      if (Array.isArray(urls)) {
+        for (const url of urls) {
+          if (typeof url === "string" && url.trim()) {
+            inputImageNodes.push({
+              originalSrc: url,
+              previewSrc: url,
+              mimeType: "image/png",
+              fileName: url.split("/").pop() || "image.png",
+              naturalWidth: 0,
+              naturalHeight: 0,
+            });
+          }
+        }
+      }
     }
   }
 

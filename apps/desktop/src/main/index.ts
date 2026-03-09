@@ -13,7 +13,7 @@ import Module from 'node:module';
 import path from 'path';
 import { fixPath } from './fixPath';
 import { installAutoUpdate } from './autoUpdate';
-import { getComponentInfo, installIncrementalUpdate } from './incrementalUpdate';
+import { applyPendingSwaps, getComponentInfo, installIncrementalUpdate } from './incrementalUpdate';
 import { resolveUpdateChannel, switchUpdateChannel } from './updateConfig';
 
 // 中文注释：在最早期修复 PATH，确保后续 spawn 的进程能找到用户级命令（npm global、homebrew 等）。
@@ -485,6 +485,11 @@ async function boot() {
     registerAppProtocol(log);
     // 覆盖 web URL，让后续所有代码使用 app:// 协议。
     process.env.OPENLOAF_WEB_URL = 'app://localhost';
+  }
+
+  // 在服务进程启动前应用 pending 的增量更新（避免 Windows 文件锁定 EPERM）。
+  if (app.isPackaged) {
+    applyPendingSwaps(log)
   }
 
   // service manager 统一管理：dev 下的子进程（server/web），prod 下的本地静态服务 + server 进程。

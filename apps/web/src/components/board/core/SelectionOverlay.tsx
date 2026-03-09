@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { Columns2, LayoutGrid, Layers, ArrowDown, ArrowUp, Copy, Lock, Rows2, Trash2, Unlock, Maximize2 } from "lucide-react";
+import { LayoutGrid, Layers, ArrowDown, ArrowUp, Copy, Lock, Trash2, Unlock, Maximize2 } from "lucide-react";
 import {
   BOARD_TOOLBAR_ITEM_BLUE,
   BOARD_TOOLBAR_ITEM_AMBER,
@@ -158,8 +158,6 @@ type MultiSelectionToolbarProps = {
   onInspect: (elementId: string) => void;
 };
 
-/** Tolerance in px when checking layout spacing/alignment. */
-const LAYOUT_SPACING_TOLERANCE = 2;
 type MindmapLayoutDirection = "right" | "left" | "balanced";
 /** Render the mindmap right layout icon. */
 function RightLayoutIcon(props: SVGProps<SVGSVGElement>) {
@@ -319,28 +317,8 @@ export function MultiSelectionToolbar({
     })
     : [];
 
-  const layoutAxis = getSelectionLayoutAxis(selectedNodes);
-  const isUniformRow =
-    layoutAxis === "row"
-    && hasUniformSpacing(selectedNodes, "row", LAYOUT_SPACING_TOLERANCE);
-  const isUniformColumn =
-    layoutAxis === "column"
-    && hasUniformSpacing(selectedNodes, "column", LAYOUT_SPACING_TOLERANCE);
-  const layoutLabel = isUniformRow
-    ? t('selection.toolbar.layoutVertical')
-    : isUniformColumn
-      ? t('selection.toolbar.layoutHorizontal')
-      : t('selection.toolbar.autoLayout');
-  const layoutDirection = isUniformRow
-    ? "column"
-    : isUniformColumn
-      ? "row"
-      : resolveAutoLayoutDirection(selectedNodes, layoutAxis, snapshot.viewport.zoom);
-  const layoutIcon = isUniformRow
-    ? <Rows2 size={14} />
-    : isUniformColumn
-      ? <Columns2 size={14} />
-      : <LayoutGrid size={14} />;
+  const layoutLabel = t('selection.toolbar.autoLayout');
+  const layoutIcon = <LayoutGrid size={14} />;
   const bounds = computeSelectionBounds(selectedNodes, snapshot.viewport.zoom);
 
   return (
@@ -373,7 +351,7 @@ export function MultiSelectionToolbar({
               label: layoutLabel,
               icon: layoutIcon,
               className: BOARD_TOOLBAR_ITEM_BLUE,
-              onSelect: () => engine.layoutSelection(layoutDirection),
+              onSelect: () => engine.layoutSelection(),
             },
             {
               id: "delete",
@@ -970,75 +948,6 @@ function resolveSelectionBounds(element: CanvasElement, zoom: number): CanvasRec
     w: w + padding * 2,
     h: h + padding * 2,
   };
-}
-
-type LayoutAxis = "row" | "column" | "mixed";
-
-/** Detect the layout axis for a list of nodes. */
-function getSelectionLayoutAxis(nodes: CanvasNodeElement[]): LayoutAxis {
-  if (nodes.length < 2) return "mixed";
-
-  let maxLeft = Number.NEGATIVE_INFINITY;
-  let minRight = Number.POSITIVE_INFINITY;
-  let maxTop = Number.NEGATIVE_INFINITY;
-  let minBottom = Number.POSITIVE_INFINITY;
-  nodes.forEach(node => {
-    const [x, y, w, h] = node.xywh;
-    maxLeft = Math.max(maxLeft, x);
-    minRight = Math.min(minRight, x + w);
-    maxTop = Math.max(maxTop, y);
-    minBottom = Math.min(minBottom, y + h);
-  });
-  // 逻辑：通过横纵向重叠关系判断布局方向。
-  const overlapX = maxLeft <= minRight + LAYOUT_SPACING_TOLERANCE;
-  const overlapY = maxTop <= minBottom + LAYOUT_SPACING_TOLERANCE;
-  if (overlapY && !overlapX) return "row";
-  if (overlapX && !overlapY) return "column";
-  return "mixed";
-}
-
-/** Resolve which layout direction to apply when auto layout is requested. */
-function resolveAutoLayoutDirection(
-  nodes: CanvasNodeElement[],
-  axis: LayoutAxis,
-  zoom: number
-): "row" | "column" {
-  if (axis === "row" || axis === "column") return axis;
-  const bounds = computeSelectionBounds(nodes, zoom);
-  return bounds.w >= bounds.h ? "row" : "column";
-}
-
-/** Check whether nodes are aligned and evenly spaced along the given axis. */
-function hasUniformSpacing(
-  nodes: CanvasNodeElement[],
-  axis: "row" | "column",
-  tolerance: number
-): boolean {
-  if (nodes.length < 2) return false;
-  const sorted = [...nodes].sort((a, b) =>
-    axis === "row" ? a.xywh[0] - b.xywh[0] : a.xywh[1] - b.xywh[1]
-  );
-
-  let minGap = Number.POSITIVE_INFINITY;
-  let maxGap = Number.NEGATIVE_INFINITY;
-  for (let index = 1; index < sorted.length; index += 1) {
-    const previous = sorted[index - 1];
-    const current = sorted[index];
-    const gap = axis === "row"
-      ? current.xywh[0] - (previous.xywh[0] + previous.xywh[2])
-      : current.xywh[1] - (previous.xywh[1] + previous.xywh[3]);
-    if (gap < -tolerance) return false;
-    minGap = Math.min(minGap, gap);
-    maxGap = Math.max(maxGap, gap);
-  }
-
-  const crossPositions = nodes.map(node => (axis === "row" ? node.xywh[1] : node.xywh[0]));
-  const minCross = Math.min(...crossPositions);
-  const maxCross = Math.max(...crossPositions);
-
-  // 逻辑：需要主轴间距一致且交叉轴对齐。
-  if (maxCross - minCross > tolerance) return false;
-  return maxGap - minGap <= tolerance;
 }
 
 /** Build mindmap layout controls for root nodes. */

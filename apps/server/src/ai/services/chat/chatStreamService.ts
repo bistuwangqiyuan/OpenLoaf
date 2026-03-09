@@ -978,6 +978,7 @@ async function generateImageModelResult(input: ImageModelRequest): Promise<Image
     const saved = await saveChatImageAttachment({
       workspaceId,
       projectId: projectId || undefined,
+      boardId: input.boardId || undefined,
       sessionId: input.sessionId,
       fileName,
       mediaType: downloaded.mediaType,

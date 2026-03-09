@@ -28,6 +28,7 @@ import {
   getUiWriter,
   getWorkspaceId,
   getProjectId,
+  getBoardId,
 } from '@/ai/shared/context/requestContext'
 import {
   submitMediaTask,
@@ -164,6 +165,7 @@ async function downloadAndSaveImage(input: {
   sessionId: string
   workspaceId: string
   projectId?: string
+  boardId?: string
   abortSignal: AbortSignal
   fileName?: string
   index?: number
@@ -179,6 +181,7 @@ async function downloadAndSaveImage(input: {
   return saveChatImageAttachment({
     workspaceId: input.workspaceId,
     projectId: input.projectId,
+    boardId: input.boardId,
     sessionId: input.sessionId,
     fileName,
     mediaType,
@@ -192,6 +195,7 @@ async function downloadAndSaveVideo(input: {
   sessionId: string
   workspaceId: string
   projectId?: string
+  boardId?: string
   abortSignal: AbortSignal
   fileName?: string
   index?: number
@@ -206,12 +210,15 @@ async function downloadAndSaveVideo(input: {
   const fileName = buildFileName(ext, input.fileName, input.index, input.total)
   const rootPath = getWorkspaceRootPathById(input.workspaceId)
   if (!rootPath) throw new Error('workspace not found')
-  const dir = path.join(rootPath, '.openloaf', 'chat-history', input.sessionId)
+  const chatHistorySegment = input.boardId
+    ? path.join('.openloaf', 'boards', input.boardId)
+    : path.join('.openloaf', 'chat-history', input.sessionId)
+  const dir = path.join(rootPath, chatHistorySegment, 'asset')
   await fs.mkdir(dir, { recursive: true })
   const filePath = path.join(dir, fileName)
   const stream = Readable.fromWeb(response.body as any)
   await pipeline(stream, createWriteStream(filePath))
-  return { url: path.posix.join('.openloaf', 'chat-history', input.sessionId, fileName) }
+  return { url: path.posix.join(chatHistorySegment.split(path.sep).join('/'), 'asset', fileName) }
 }
 
 /** Simplify media model list for AI decision making — only keep fields the AI needs. */
@@ -310,6 +317,7 @@ async function executeMediaGenerate(input: {
   const sessionId = getSessionId()
   const workspaceId = getWorkspaceId()
   const projectId = getProjectId()
+  const boardId = getBoardId()
   const abortSignal = getAbortSignal()
 
   // 逻辑：校验前置条件。
@@ -400,6 +408,7 @@ async function executeMediaGenerate(input: {
             sessionId,
             workspaceId,
             projectId,
+            boardId,
             abortSignal: signal,
             fileName: input.fileName,
             index: i,
@@ -423,6 +432,7 @@ async function executeMediaGenerate(input: {
             sessionId,
             workspaceId,
             projectId,
+            boardId,
             abortSignal: signal,
             fileName: input.fileName,
             index: i,

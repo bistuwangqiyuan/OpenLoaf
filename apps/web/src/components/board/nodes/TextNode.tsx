@@ -929,14 +929,16 @@ export function TextNodeView({
   );
 
   const containerStyle = backgroundColor ? { backgroundColor } : undefined;
+  const defaultBg = backgroundColor
+    ? ""
+    : "bg-[#f5f5f5] dark:bg-neutral-800/60";
   const containerClasses = [
-    "relative h-full w-full rounded-lg box-border p-2.5",
+    "relative h-full w-full rounded-xl box-border p-2.5 flex flex-col justify-center",
     isEditing && !backgroundColor
-      ? "bg-white/90 dark:bg-slate-900/80"
-      : "bg-transparent",
-    "text-slate-900 dark:text-slate-100",
+      ? "bg-white dark:bg-neutral-900/90"
+      : defaultBg,
+    "text-neutral-800 dark:text-neutral-100",
     isEditing ? "cursor-text overflow-visible" : "cursor-default overflow-hidden",
-    !isEditing && isEmpty ? "outline outline-1 outline-dashed outline-slate-300 dark:outline-slate-600" : "",
   ].join(" ");
   if (isGhost) {
     return (

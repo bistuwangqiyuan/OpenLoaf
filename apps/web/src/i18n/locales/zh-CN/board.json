@@ -54,6 +54,17 @@
     "imageGenerate": "图片生成",
     "videoGenerate": "生成视频"
   },
+  "textToolTip": {
+    "title": "文字工具",
+    "desc": "添加文字到画布，支持富文本编辑",
+    "mindmapHint": "按下 Tab 键即可创建子节点，快速构建思维导图",
+    "mindmapExample": {
+      "root": "主题",
+      "child1": "想法 A",
+      "child2": "想法 B",
+      "grandchild": "细节"
+    }
+  },
   "descriptions": {
     "note": "快速笔记卡片",
     "image": "图片块",
@@ -414,6 +425,7 @@
     "screenshot": "截图画布"
   },
   "aiToolbar": {
+    "aiAssistant": "AI小助手",
     "imagePromptGenerate": "图片理解",
     "imageGenerate": "图片生成",
     "videoGenerate": "生成视频"

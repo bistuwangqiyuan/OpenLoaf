@@ -471,7 +471,6 @@ export class SelectTool implements CanvasTool {
       ctx.engine.setDraggingElementId(null);
       ctx.engine.setConnectorHover(null);
       ctx.engine.commitHistory();
-      ctx.engine.autoLayoutMindmap();
       this.connectorDragId = null;
       this.connectorDragRole = null;
       return;

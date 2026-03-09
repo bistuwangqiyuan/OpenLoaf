@@ -9,15 +9,16 @@
  */
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import type { ComponentType } from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import {
-  Scan as PhScan,
-  Sparkle as PhSparkle,
+  Eye as PhEye,
+  ImageSquare as PhImageSquare,
   FilmSlate as PhFilmSlate,
 } from "@phosphor-icons/react";
+import { Sparkles } from "lucide-react";
 import { cn } from "@udecode/cn";
 
 import type { CanvasEngine } from "../engine/CanvasEngine";
@@ -25,21 +26,26 @@ import type { CanvasSnapshot } from "../engine/types";
 import { IMAGE_PROMPT_GENERATE_NODE_TYPE } from "../nodes/imagePromptGenerate";
 import { IMAGE_GENERATE_NODE_TYPE } from "../nodes/imageGenerate";
 import { VIDEO_GENERATE_NODE_TYPE } from "../nodes/videoGenerate";
+import { CHAT_INPUT_NODE_TYPE } from "../nodes/chatInput";
 import {
   BOARD_TOOLBAR_SURFACE_CLASS,
   BOARD_GENERATE_BTN_PROMPT,
   BOARD_GENERATE_BTN_IMAGE,
   BOARD_GENERATE_BTN_VIDEO,
+  BOARD_GENERATE_BTN_CHAT,
   BOARD_GENERATE_SELECTED_PROMPT,
   BOARD_GENERATE_SELECTED_IMAGE,
   BOARD_GENERATE_SELECTED_VIDEO,
+  BOARD_GENERATE_SELECTED_CHAT,
 } from "../ui/board-style-system";
 
 type AIToolItem = {
   id: string;
   icon: ComponentType<IconProps>;
+  renderIcon?: (active: boolean) => ReactNode;
   label: string;
   nodeType: string;
+  props?: Record<string, unknown>;
   size: [number, number];
   /** Idle style — semantic colored background + text. */
   colorClass: string;
@@ -63,8 +69,19 @@ const AIGenerateToolbar = memo(function AIGenerateToolbar({
 
   const aiTools = useMemo<AIToolItem[]>(() => [
     {
+      id: CHAT_INPUT_NODE_TYPE,
+      icon: PhEye,
+      renderIcon: (active: boolean) => <Sparkles size={20} strokeWidth={active ? 2.5 : 2} />,
+      label: t('aiToolbar.aiAssistant'),
+      nodeType: CHAT_INPUT_NODE_TYPE,
+      props: { autoFocus: true, status: "idle" },
+      size: [360, 200],
+      colorClass: BOARD_GENERATE_BTN_CHAT,
+      activeClass: BOARD_GENERATE_SELECTED_CHAT,
+    },
+    {
       id: IMAGE_PROMPT_GENERATE_NODE_TYPE,
-      icon: PhScan,
+      icon: PhEye,
       label: t('aiToolbar.imagePromptGenerate'),
       nodeType: IMAGE_PROMPT_GENERATE_NODE_TYPE,
       size: [320, 220],
@@ -73,7 +90,7 @@ const AIGenerateToolbar = memo(function AIGenerateToolbar({
     },
     {
       id: IMAGE_GENERATE_NODE_TYPE,
-      icon: PhSparkle,
+      icon: PhImageSquare,
       label: t('aiToolbar.imageGenerate'),
       nodeType: IMAGE_GENERATE_NODE_TYPE,
       size: [320, 260],
@@ -119,7 +136,7 @@ const AIGenerateToolbar = memo(function AIGenerateToolbar({
               engine.setPendingInsert({
                 id: item.id,
                 type: item.nodeType,
-                props: {},
+                props: item.props ?? {},
                 size: item.size,
               });
             }}
@@ -130,7 +147,7 @@ const AIGenerateToolbar = memo(function AIGenerateToolbar({
                 : cn(item.colorClass, "border border-transparent"),
             )}
           >
-            <Icon size={20} weight={isActive ? "fill" : "duotone"} />
+            {item.renderIcon ? item.renderIcon(isActive) : <Icon size={20} weight={isActive ? "fill" : "duotone"} />}
             <span className="text-[10px] leading-tight text-center font-medium">
               {item.label}
             </span>
