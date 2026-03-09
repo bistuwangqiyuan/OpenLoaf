@@ -175,7 +175,7 @@ export default function FilePreviewDialog() {
       >
         <DialogTitle className="sr-only">文件预览</DialogTitle>
         <DialogDescription className="sr-only">文件预览弹窗</DialogDescription>
-        <div className="relative h-full w-full">
+        <div className="absolute inset-0 overflow-hidden">
           {payload.viewer === "image" ? (
             <ImageViewer
               uri={currentItem.uri}
@@ -183,6 +183,7 @@ export default function FilePreviewDialog() {
               saveName={currentItem.saveName}
               mediaType={currentItem.mediaType}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               showHeader
               showSave={payload.showSave}
               enableEdit={payload.enableEdit}
@@ -202,6 +203,7 @@ export default function FilePreviewDialog() {
               ext={currentItem.ext}
               rootUri={currentItem.rootUri}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               readOnly={payload.readOnly}
             />
           ) : null}
@@ -213,6 +215,7 @@ export default function FilePreviewDialog() {
               ext={currentItem.ext}
               rootUri={currentItem.rootUri}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               readOnly={payload.readOnly}
             />
           ) : null}
@@ -235,6 +238,7 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
               readOnly={payload.readOnly ?? true}
             />
@@ -247,6 +251,7 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
               readOnly={payload.readOnly ?? true}
             />
@@ -274,6 +279,7 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
             />
           ) : null}

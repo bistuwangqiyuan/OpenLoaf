@@ -60,6 +60,15 @@ export const PageTitle = () => {
     if (viewType === 'scheduled-tasks') return { title: t('panelTitle.scheduled-tasks-page'), icon: <Clock className="h-4 w-4 text-blue-700/70 dark:text-blue-300/70" /> };
     if (viewType === 'canvas-list') return { title: t('canvas'), icon: <Palette className="h-4 w-4 text-teal-700/70 dark:text-teal-300/70" /> };
     if (viewType === 'ai-assistant') return { title: t('aiAssistant'), icon: <Sparkles className="h-4 w-4 text-violet-700/70 dark:text-violet-300/70" /> };
+
+    // 兜底：当 viewType 未及时更新时，从 base component 推断标题
+    const baseComponent = activeTab?.base?.component;
+    if (baseComponent === 'canvas-list-page') return { title: t('canvas'), icon: <Palette className="h-4 w-4 text-teal-700/70 dark:text-teal-300/70" /> };
+    if (baseComponent === 'workspace-desktop') return { title: t('workbench'), icon: <LayoutDashboard className="h-4 w-4 text-amber-700/70 dark:text-amber-300/70" /> };
+    if (baseComponent === 'calendar-page') return { title: t('calendar'), icon: <CalendarDays className="h-4 w-4 text-rose-700/70 dark:text-rose-300/70" /> };
+    if (baseComponent === 'email-page') return { title: t('email'), icon: <Mail className="h-4 w-4 text-emerald-700/70 dark:text-emerald-300/70" /> };
+    if (baseComponent === 'scheduled-tasks-page') return { title: t('panelTitle.scheduled-tasks-page'), icon: <Clock className="h-4 w-4 text-blue-700/70 dark:text-blue-300/70" /> };
+
     return { title: '', icon: null };
   }, [viewType, activeTab, isBoardViewer, t]);
 

@@ -377,6 +377,9 @@ export type CanvasToolbarContext<P> = {
   selected: boolean;
   /** File scope metadata for board nodes. */
   fileContext?: BoardFileContext;
+  /** Canvas engine reference for advanced operations. */
+  // biome-ignore lint: engine type kept loose to avoid circular imports
+  engine: any;
   /** Open the node inspector panel. */
   openInspector: (elementId: string) => void;
   /** Update node props and commit to history. */

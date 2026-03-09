@@ -228,6 +228,7 @@
     "openAi": "Open Workbench",
     "settingsOpen": "Open Settings",
     "refreshDisable": "Disable Refresh",
+    "feedbackOpen": "Feedback",
     "projectShortcuts": "Project Shortcuts",
     "projectTabIndex": "Home",
     "projectTabCanvas": "Canvas",

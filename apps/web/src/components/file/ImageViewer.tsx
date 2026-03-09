@@ -43,6 +43,8 @@ interface ImageViewerProps {
   name?: string;
   ext?: string;
   projectId?: string;
+  /** Workspace id for file queries (overrides useWorkspace). */
+  workspaceId?: string;
   /** Optional thumbnail placeholder to show before full image loads. */
   thumbnailSrc?: string;
   /** Optional header title for modal usage. */
@@ -198,6 +200,7 @@ export default function ImageViewer({
   name,
   ext,
   projectId: projectIdProp,
+  workspaceId: workspaceIdProp,
   thumbnailSrc,
   title,
   saveName,
@@ -247,7 +250,7 @@ export default function ImageViewer({
   const [canRedo, setCanRedo] = React.useState(false);
   const appliedRef = React.useRef<string>("");
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const workspaceId = workspaceIdProp || workspace?.id || "";
   const shouldUseBinary =
     Boolean(uri) && Boolean(workspaceId) && (shouldUseFs || isRelative);
   const chat = useOptionalChatOptions();

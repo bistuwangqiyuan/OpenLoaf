@@ -466,7 +466,8 @@
     "hiddenPart": "Hidden content",
     "show": "Show",
     "continueChatLabel": "Continue Chat",
-    "continueChatDesc": "Continue conversation from here"
+    "continueChatDesc": "Continue conversation from here",
+    "edit": "Edit"
   },
   "styles": {
     "realistic": "Realistic",

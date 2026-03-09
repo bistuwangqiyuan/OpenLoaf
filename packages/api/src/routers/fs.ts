@@ -571,6 +571,7 @@ export const fsRouter = t.router({
     } catch (error) {
       // 中文注释：文件不存在时返回空内容，便于前端自行初始化。
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        console.warn(`[fs.readBinary] file not found: ${fullPath} (uri: ${input.uri})`);
         return { contentBase64: "", mime: getMimeByExt(ext) };
       }
       throw error;

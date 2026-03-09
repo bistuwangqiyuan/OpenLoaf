@@ -43,6 +43,7 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
     keys: "F5 / Mod+R",
     note: "Production only",
   },
+  { id: "feedback.open", label: "意见反馈", keys: "Mod+Shift+U" },
 ];
 
 type ProjectSettingsDialogState = {
@@ -59,6 +60,8 @@ type GlobalOverlayState = {
   settingsOpen: boolean;
   settingsMenu: string | undefined;
   setSettingsOpen: (open: boolean, menu?: string) => void;
+  feedbackOpen: boolean;
+  setFeedbackOpen: (open: boolean) => void;
 } & ProjectSettingsDialogState;
 
 export const useGlobalOverlay = create<GlobalOverlayState>((set) => ({
@@ -69,6 +72,8 @@ export const useGlobalOverlay = create<GlobalOverlayState>((set) => ({
   settingsMenu: undefined,
   setSettingsOpen: (open, menu) =>
     set({ settingsOpen: open, settingsMenu: open ? menu : undefined }),
+  feedbackOpen: false,
+  setFeedbackOpen: (open) => set({ feedbackOpen: open }),
   projectSettingsOpen: false,
   projectSettingsProjectId: undefined,
   projectSettingsRootUri: undefined,
@@ -221,6 +226,13 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
       }
       return;
     }
+  }
+
+  // Mod+Shift+U：打开意见反馈（全局快捷键）。
+  if (keyLower === "u" && withMod && event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    overlay.setFeedbackOpen(!overlay.feedbackOpen);
+    return;
   }
 
   if (keyLower === "f" && withMod && !event.shiftKey && !event.altKey) {

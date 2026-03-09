@@ -111,7 +111,7 @@ export function useSidebarNavigation(workspaceId: string) {
     })
 
     setActiveWorkspaceChat(null)
-    setActiveView('canvas' as any)
+    setActiveView('canvas-list')
   }, [workspace, workspaceId, addTab, setActiveView, setActiveWorkspaceChat])
 
   return { openChat, openTempChat, openTempCanvas }

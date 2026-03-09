@@ -10,9 +10,9 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, Play, VideoIcon } from "lucide-react";
+import { ImageIcon, Play, RotateCcw, VideoIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useChatTools, useChatSession } from "../../context";
+import { useChatTools, useChatSession, useChatActions } from "../../context";
 import type { AnyToolPart } from "./shared/tool-utils";
 import { getToolOutputState } from "./shared/tool-utils";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
@@ -25,6 +25,44 @@ import {
 } from "@/components/ai-elements/attachments";
 import { PromptInputButton } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { useSaasAuth } from "@/hooks/use-saas-auth";
+
+/** Parse raw errorText into a clean errorCode + user-friendly display text. */
+function parseMediaErrorInfo(
+  rawErrorText: string,
+  fallbackCode: string,
+  kindLabel: string,
+): { errorCode: string; displayText: string } {
+  if (!rawErrorText) return { errorCode: fallbackCode, displayText: "" };
+
+  // Pattern: [TOOL_ERROR] tool-name: message\n[RECOVERY_HINT]...\n[RETRY_SUGGESTED]
+  const toolErrorMatch = rawErrorText.match(
+    /\[TOOL_ERROR\]\s*\S+:\s*([\s\S]+?)(?:\n\[RECOVERY_HINT\]|\n\[RETRY_SUGGESTED\]|$)/,
+  );
+  if (toolErrorMatch) {
+    const msg = toolErrorMatch[1].trim();
+    if (/登录|login/i.test(msg)) {
+      return { errorCode: "login_required", displayText: msg };
+    }
+    if (/积分|credit/i.test(msg)) {
+      return { errorCode: "insufficient_credits", displayText: msg };
+    }
+    if (/未选择|no.*model/i.test(msg)) {
+      return { errorCode: "no_model", displayText: msg };
+    }
+    return { errorCode: fallbackCode, displayText: msg };
+  }
+
+  // Pattern: Invalid input / Type validation failed (schema validation errors)
+  if (/Invalid input for tool|Type validation failed/i.test(rawErrorText)) {
+    return {
+      errorCode: "invalid_input",
+      displayText: `${kindLabel}生成参数异常，请重试`,
+    };
+  }
+
+  return { errorCode: fallbackCode, displayText: rawErrorText };
+}
 
 // 逻辑：相对路径通过预览端点加载，绝对 URL 保持不变。
 function resolveMediaUrl(
@@ -42,7 +80,7 @@ type MediaGenerateToolProps = {
 
 type GeneratedMediaKind = "image" | "video";
 
-export default function MediaGenerateTool({ part }: MediaGenerateToolProps) {
+export default function MediaGenerateTool({ part, messageId }: MediaGenerateToolProps) {
   const { toolParts } = useChatTools();
   const { workspaceId, projectId } = useChatSession();
   const previewCtx = React.useMemo(
@@ -64,11 +102,17 @@ export default function MediaGenerateTool({ part }: MediaGenerateToolProps) {
 
   // 逻辑：错误状态优先渲染（hasErrorText 独立判断，避免 toolSnapshot 中残留的 mg 遮盖错误）。
   if (mg?.status === "error" || hasErrorText) {
+    const parsed = parseMediaErrorInfo(
+      errorText,
+      mg?.errorCode ?? "generation_failed",
+      kindLabel,
+    );
     return (
       <MediaGenerateError
-        errorCode={mg?.errorCode ?? "generation_failed"}
-        errorText={errorText || `${kindLabel}生成失败`}
+        errorCode={parsed.errorCode}
+        errorText={parsed.displayText || `${kindLabel}生成失败`}
         kindLabel={kindLabel}
+        messageId={messageId}
       />
     );
   }
@@ -292,36 +336,56 @@ function MediaGenerateError({
   errorCode,
   errorText,
   kindLabel,
+  messageId,
 }: {
   errorCode: string;
   errorText: string;
   kindLabel: string;
+  messageId?: string;
 }) {
   const [loginOpen, setLoginOpen] = React.useState(false);
+  const loggedIn = useSaasAuth((s) => s.loggedIn);
+  const { retryAssistantMessage } = useChatActions();
 
   if (errorCode === "login_required") {
+    const canRetry = loggedIn && messageId;
     return (
       <>
-        <div className="flex w-full items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-          <span className="text-xs text-amber-700 dark:text-amber-300">
-            {errorText || `需要登录才能生成${kindLabel}`}
+        <div className="flex max-w-sm items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+          <span className="flex-1 text-xs text-amber-700 dark:text-amber-300">
+            {canRetry
+              ? `已登录，可重新生成${kindLabel}`
+              : errorText || `需要登录才能生成${kindLabel}`}
           </span>
-          <PromptInputButton
-            size="sm"
-            variant="outline"
-            onClick={() => setLoginOpen(true)}
-          >
-            登录
-          </PromptInputButton>
+          {canRetry ? (
+            <PromptInputButton
+              size="sm"
+              variant="outline"
+              onClick={() => retryAssistantMessage(messageId)}
+            >
+              <RotateCcw className="size-3" />
+              重试
+            </PromptInputButton>
+          ) : (
+            <PromptInputButton
+              size="sm"
+              variant="outline"
+              onClick={() => setLoginOpen(true)}
+            >
+              登录
+            </PromptInputButton>
+          )}
         </div>
-        <SaasLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+        {!canRetry && (
+          <SaasLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+        )}
       </>
     );
   }
 
   if (errorCode === "insufficient_credits") {
     return (
-      <div className="w-full rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+      <div className="max-w-sm rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
         <span className="text-xs text-destructive">{errorText || "积分不足"}</span>
       </div>
     );
@@ -329,9 +393,19 @@ function MediaGenerateError({
 
   if (errorCode === "no_model") {
     return (
-      <div className="w-full rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+      <div className="max-w-sm rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
         <span className="text-xs text-amber-700 dark:text-amber-300">
           {errorText || `未选择${kindLabel}生成模型`}
+        </span>
+      </div>
+    );
+  }
+
+  if (errorCode === "invalid_input") {
+    return (
+      <div className="max-w-sm rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+        <span className="text-xs text-amber-700 dark:text-amber-300">
+          {errorText || `${kindLabel}生成参数异常，请重试`}
         </span>
       </div>
     );

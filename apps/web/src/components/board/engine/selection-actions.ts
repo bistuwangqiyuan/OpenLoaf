@@ -22,7 +22,7 @@ import {
   getNodeGroupId,
   isGroupNodeType,
 } from "./grouping";
-import { computeAutoLayoutUpdates } from "./auto-layout";
+import { computePartialLayoutUpdates, computeAutoLayoutUpdates } from "./auto-layout";
 
 type SelectionDeps = {
   /** Document model for element updates. */
@@ -276,7 +276,7 @@ function nudgeSelection(
   deps.commitHistory();
 }
 
-/** Auto layout selected nodes using the same Sugiyama graph algorithm as full-board auto layout. */
+/** Auto layout selected nodes with context awareness (collision avoidance with non-selected nodes). */
 function layoutSelection(
   deps: SelectionDeps,
   nodes: CanvasNodeElement[],
@@ -284,20 +284,10 @@ function layoutSelection(
   if (deps.isLocked()) return;
   if (nodes.length < 2) return;
 
-  // 逻辑：收集选中节点及其内部连线，使用图布局算法排列。
+  // 逻辑：使用上下文感知的局部布局算法，避免与未选中节点重叠。
   const selectedNodeIds = new Set(nodes.map(node => node.id));
   const allElements = deps.doc.getElements();
-  const internalConnectors = allElements.filter(
-    (element): element is CanvasConnectorElement =>
-      element.kind === "connector" &&
-      "elementId" in element.source &&
-      "elementId" in element.target &&
-      selectedNodeIds.has(element.source.elementId) &&
-      selectedNodeIds.has(element.target.elementId)
-  );
-
-  const elements: CanvasElement[] = [...nodes, ...internalConnectors];
-  const updates = computeAutoLayoutUpdates(elements);
+  const updates = computePartialLayoutUpdates(allElements, selectedNodeIds);
   if (updates.length === 0) return;
 
   deps.doc.transact(() => {

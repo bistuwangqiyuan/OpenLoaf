@@ -7,9 +7,15 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import type { CanvasNodeDefinition, CanvasNodeViewProps } from "../../engine/types";
+import type {
+  CanvasNodeDefinition,
+  CanvasNodeViewProps,
+  CanvasToolbarContext,
+  CanvasToolbarItem,
+} from "../../engine/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Send, AlertCircle, RotateCcw } from "lucide-react";
+import i18next from "i18next";
+import { MessageSquare, Send, AlertCircle, RotateCcw, Pencil } from "lucide-react";
 import { generateId } from "ai";
 import { useTranslation } from "react-i18next";
 import { cn } from "@udecode/cn";
@@ -40,6 +46,7 @@ import {
   BOARD_GENERATE_SELECTED_CHAT,
   BOARD_GENERATE_ERROR,
   BOARD_GENERATE_BTN_CHAT,
+  BOARD_TOOLBAR_ITEM_AMBER,
 } from "../../ui/board-style-system";
 
 export { CHAT_INPUT_NODE_TYPE };
@@ -429,6 +436,50 @@ export function ChatInputNodeView({
   );
 }
 
+/** Build toolbar items for ChatInputNode. Only shows "Edit" when sent. */
+function createChatInputToolbarItems(
+  ctx: CanvasToolbarContext<ChatInputNodeProps>,
+): CanvasToolbarItem[] {
+  if (ctx.element.props.status !== "sent") return [];
+  const engine = ctx.engine;
+  const nodeId = ctx.element.id;
+  return [
+    {
+      id: "edit-copy",
+      label: i18next.t("board:chatMessage.edit"),
+      icon: <Pencil size={14} />,
+      className: BOARD_TOOLBAR_ITEM_AMBER,
+      onSelect: () => {
+        const el = engine.doc.getElementById(nodeId);
+        if (!el) return;
+        const [x, y, w, h] = el.xywh;
+        const inputText = ctx.element.props.inputText ?? "";
+        const newId = engine.addNodeElement(
+          CHAT_INPUT_NODE_TYPE,
+          { status: "idle", inputText, autoFocus: true },
+          [x, y + h + OUTPUT_STACK_GAP, w, CHAT_INPUT_DEFAULT_HEIGHT],
+        );
+        if (newId) {
+          // Connect from the upstream of this node (not from this node itself)
+          // so the new node shares the same conversation context
+          for (const item of engine.doc.getElements()) {
+            if (item.kind !== "connector") continue;
+            if (!item.target || !("elementId" in item.target)) continue;
+            if (item.target.elementId !== nodeId) continue;
+            if (!item.source || !("elementId" in item.source)) continue;
+            engine.addConnectorElement({
+              source: item.source,
+              target: { elementId: newId },
+              style: engine.getConnectorStyle(),
+            });
+            break;
+          }
+        }
+      },
+    },
+  ];
+}
+
 /** ChatInputNode definition. */
 export const ChatInputNodeDefinition: CanvasNodeDefinition<ChatInputNodeProps> = {
   type: CHAT_INPUT_NODE_TYPE,
@@ -438,6 +489,7 @@ export const ChatInputNodeDefinition: CanvasNodeDefinition<ChatInputNodeProps> =
     status: "idle",
   },
   view: ChatInputNodeView,
+  toolbar: ctx => createChatInputToolbarItems(ctx),
   capabilities: {
     resizable: false,
     connectable: "auto",

@@ -54,6 +54,8 @@ interface CodeViewerProps {
   ext?: string;
   rootUri?: string;
   projectId?: string;
+  /** Workspace id for file queries (overrides useWorkspace). */
+  workspaceId?: string;
   /** Whether the viewer should be read-only. */
   readOnly?: boolean;
   /** Viewer mode for Monaco. */
@@ -168,6 +170,7 @@ export default function CodeViewer({
   ext,
   rootUri,
   projectId,
+  workspaceId: workspaceIdProp,
   readOnly,
   mode,
   visible = true,
@@ -176,7 +179,7 @@ export default function CodeViewer({
 }: CodeViewerProps) {
   const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const workspaceId = workspaceIdProp || workspace?.id || "";
   /** File content query. */
   const fileQuery = useQuery(
     trpc.fs.readFile.queryOptions(

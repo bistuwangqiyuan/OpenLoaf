@@ -65,6 +65,7 @@ const SHORTCUT_KEYS_MAP: Record<string, string> = {
   "open.ai": "openAi",
   "settings.open": "settingsOpen",
   "refresh.disable": "refreshDisable",
+  "feedback.open": "feedbackOpen",
 };
 
 /** Icon and color for each global shortcut. */
@@ -77,6 +78,7 @@ const SHORTCUT_ICON_MAP: Record<string, { icon: LucideIcon; bg: string; fg: stri
   "open.ai-assistant": { icon: Bot, bg: "bg-violet-500/10", fg: "text-violet-600 dark:text-violet-400" },
   "settings.open": { icon: Settings, bg: "bg-zinc-500/10", fg: "text-zinc-600 dark:text-zinc-400" },
   "refresh.disable": { icon: ShieldOff, bg: "bg-red-500/10", fg: "text-red-600 dark:text-red-400" },
+  "feedback.open": { icon: MessageSquare, bg: "bg-sky-500/10", fg: "text-sky-600 dark:text-sky-400" },
 };
 
 /** Icon and color for each project shortcut. */

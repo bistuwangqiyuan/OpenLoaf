@@ -41,6 +41,8 @@ interface ExcelViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
+  /** Workspace id for file queries (overrides useWorkspace). */
+  workspaceId?: string;
   /** Root uri for external open. */
   rootUri?: string;
   /** Stack panel key for close handling. */
@@ -177,6 +179,7 @@ export default function ExcelViewer({
   name,
   ext,
   projectId,
+  workspaceId: workspaceIdProp,
   rootUri,
   panelKey,
   tabId,
@@ -190,7 +193,7 @@ export default function ExcelViewer({
   const [isEditing, setIsEditing] = useState(false);
   const isReadOnly = !canEdit || !isEditing;
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const workspaceId = workspaceIdProp || workspace?.id || "";
   /** Tracks the current loading status. */
   const [status, setStatus] = useState<ExcelViewerStatus>("idle");
   /** Track whether the workbook has unsaved changes. */
@@ -246,9 +249,11 @@ export default function ExcelViewer({
       setStatus("error");
       return;
     }
+    // 逻辑：等查询真正返回结果后再判断 payload，避免 disabled 状态误判为文件不存在。
+    if (!fileQuery.isSuccess) return;
     const payload = fileQuery.data?.contentBase64;
     if (!payload) {
-      console.error("[ExcelViewer] empty payload");
+      console.error("[ExcelViewer] file not found or empty");
       setStatus("error");
       return;
     }
@@ -265,7 +270,7 @@ export default function ExcelViewer({
       console.error("[ExcelViewer] parse failed", error);
       setStatus("error");
     }
-  }, [fileQuery.data?.contentBase64, fileQuery.error, fileQuery.isError, fileQuery.isLoading, shouldUseFs]);
+  }, [fileQuery.data?.contentBase64, fileQuery.error, fileQuery.isError, fileQuery.isLoading, fileQuery.isSuccess, shouldUseFs]);
 
   useEffect(() => {
     if (activeSheetIndex < sheets.length) return;

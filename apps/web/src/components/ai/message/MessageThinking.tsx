@@ -23,7 +23,7 @@ export default function MessageThinking() {
   return (
     <Message from="assistant" className="max-w-[80%] mt-2">
       <MessageContent className="gap-0">
-        <Reasoning isStreaming defaultOpen={false} className="mb-0">
+        <Reasoning isStreaming defaultOpen={false} className="mb-0 px-1">
           <ReasoningTrigger
             getThinkingMessage={() => <Shimmer>{t("tool.thinkingStreaming")}</Shimmer>}
           />

@@ -49,6 +49,8 @@ interface MarkdownViewerProps {
   tabId?: string;
   rootUri?: string;
   projectId?: string;
+  /** Workspace id for file queries (overrides useWorkspace). */
+  workspaceId?: string;
   /** Whether the viewer is read-only. */
   readOnly?: boolean;
   /** Chat session id for resolving chat history folder. */
@@ -374,13 +376,14 @@ export default function MarkdownViewer({
   tabId,
   rootUri,
   projectId,
+  workspaceId: workspaceIdProp,
   readOnly,
   __chatHistorySessionId,
   __chatHistoryJsonlPath,
 }: MarkdownViewerProps) {
   const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const workspaceId = workspaceIdProp || workspace?.id || "";
   const workspaceRootUri = workspace?.rootUri ?? "";
   const hasInlineContent = typeof inlineContent === "string";
   const chatHistorySessionId =

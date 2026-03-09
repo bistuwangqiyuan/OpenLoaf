@@ -94,6 +94,7 @@ export function SingleSelectionToolbar({
     element,
     selected: true,
     fileContext,
+    engine,
     openInspector: onInspect,
     updateNodeProps: patch => {
       engine.doc.updateNodeProps(element.id, patch);
@@ -326,6 +327,7 @@ export function MultiSelectionToolbar({
       element: firstNode,
       selected: true,
       fileContext,
+      engine,
       openInspector: onInspect,
       updateNodeProps: patch => {
         engine.doc.transact(() => {
@@ -863,6 +865,12 @@ function getGroupScaleLimits(
   return { minX, minY, maxX, maxY };
 }
 
+/** Node types that should not show the duplicate button. */
+const DUPLICATE_EXCLUDED_TYPES = new Set([
+  "chat_input",
+  "chat_message",
+]);
+
 /** Build shared toolbar items for every node. */
 function buildCommonToolbarItems(
   t: TFunction,
@@ -876,17 +884,21 @@ function buildCommonToolbarItems(
   };
   const isLocked = element.locked === true;
   const items = [
-    {
-      id: 'duplicate',
-      label: t('selection.toolbar.copy'),
-      icon: <Copy size={14} />,
-      className: BOARD_TOOLBAR_ITEM_BLUE,
-      onSelect: () => {
-        focusSelection();
-        engine.copySelection();
-        engine.pasteClipboard();
-      },
-    },
+    ...(!DUPLICATE_EXCLUDED_TYPES.has(element.type)
+      ? [
+          {
+            id: 'duplicate',
+            label: t('selection.toolbar.copy'),
+            icon: <Copy size={14} />,
+            className: BOARD_TOOLBAR_ITEM_BLUE,
+            onSelect: () => {
+              focusSelection();
+              engine.copySelection();
+              engine.pasteClipboard();
+            },
+          },
+        ]
+      : []),
     ...(options?.showBringToFront
       ? [
           {
@@ -986,6 +998,8 @@ const MINDMAP_LAYOUT_EXCLUDED_TYPES = new Set([
   "image_generate",
   "video_generate",
   "image_prompt_generate",
+  "chat_input",
+  "chat_message",
 ]);
 
 function buildMindmapLayoutItems(

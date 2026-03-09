@@ -466,7 +466,8 @@
     "hiddenPart": "已隐藏的内容",
     "show": "显示",
     "continueChatLabel": "继续对话",
-    "continueChatDesc": "从此处继续对话"
+    "continueChatDesc": "从此处继续对话",
+    "edit": "修改"
   },
   "styles": {
     "realistic": "写实",

@@ -66,6 +66,8 @@ interface DocViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
+  /** Workspace id for file queries (overrides useWorkspace). */
+  workspaceId?: string;
   /** Root uri for system open. */
   rootUri?: string;
   /** Stack panel key. */
@@ -166,6 +168,7 @@ export default function DocViewer({
   openUri,
   name,
   projectId,
+  workspaceId: workspaceIdProp,
   rootUri,
   panelKey,
   tabId,
@@ -173,7 +176,7 @@ export default function DocViewer({
 }: DocViewerProps) {
   const { t } = useTranslation('common');
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const workspaceId = workspaceIdProp || workspace?.id || "";
   /** Current viewer status. */
   const [status, setStatus] = useState<DocViewerStatus>("idle");
   /** Track whether content has been edited. */
@@ -251,12 +254,15 @@ export default function DocViewer({
       initializingRef.current = false;
       return;
     }
+    // 逻辑：等查询真正返回结果后再判断 payload，避免 disabled 状态误判为文件不存在。
+    if (!fileQuery.isSuccess) return;
     const payload = fileQuery.data?.contentBase64;
     if (!payload) {
-      console.error("[DocViewer] empty docx payload", {
+      console.error("[DocViewer] file not found or empty", {
         uri,
         readUri,
         projectId,
+        workspaceId,
       });
       setStatus("error");
       initializingRef.current = false;
@@ -289,7 +295,7 @@ export default function DocViewer({
     return () => {
       canceled = true;
     };
-  }, [editor, fileQuery.data?.contentBase64, fileQuery.isError, fileQuery.isLoading, shouldUseFs]);
+  }, [editor, fileQuery.data?.contentBase64, fileQuery.isError, fileQuery.isLoading, fileQuery.isSuccess, shouldUseFs]);
 
   const canEdit = readOnly !== true && shouldUseFs;
   const isEditMode = canEdit && mode === "edit";

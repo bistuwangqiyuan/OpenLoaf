@@ -62,6 +62,7 @@ import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { isElectronEnv } from "@/utils/is-electron-env";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
 
 /** Feedback category values supported by SaaS. */
 type FeedbackType = "ui" | "performance" | "bug" | "feature" | "other";
@@ -117,8 +118,9 @@ export const SidebarWorkspace = () => {
   };
   // Workspace create dialog open state.
   const [createOpen, setCreateOpen] = React.useState(false);
-  // Feedback dialog open state.
-  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
+  // Feedback dialog open state (global, allows shortcut trigger).
+  const feedbackOpen = useGlobalOverlay((s) => s.feedbackOpen);
+  const setFeedbackOpen = useGlobalOverlay((s) => s.setFeedbackOpen);
   // Workspace name input value.
   const [newWorkspaceName, setNewWorkspaceName] = React.useState("");
   // Workspace root path input value.
@@ -129,10 +131,10 @@ export const SidebarWorkspace = () => {
   const [workspaceOpen, setWorkspaceOpen] = React.useState(false);
 
   // Feedback form state.
-  const [feedbackType, setFeedbackType] = React.useState<FeedbackType>("other");
+  const [feedbackType, setFeedbackType] = React.useState<FeedbackType>("bug");
   const [feedbackContent, setFeedbackContent] = React.useState("");
   const [feedbackEmail, setFeedbackEmail] = React.useState("");
-  const [feedbackIncludeLogs, setFeedbackIncludeLogs] = React.useState(false);
+  const [feedbackIncludeLogs, setFeedbackIncludeLogs] = React.useState(true);
   const [feedbackSubmitting, setFeedbackSubmitting] = React.useState(false);
   const {
     loggedIn: authLoggedIn,
@@ -375,8 +377,8 @@ export const SidebarWorkspace = () => {
       toast.success(tNav('sidebar.feedback.success'));
       setFeedbackContent("");
       setFeedbackEmail("");
-      setFeedbackType("other");
-      setFeedbackIncludeLogs(false);
+      setFeedbackType("bug");
+      setFeedbackIncludeLogs(true);
       setFeedbackOpen(false);
     } catch (error) {
       if (error instanceof SaaSHttpError) {
@@ -396,8 +398,8 @@ export const SidebarWorkspace = () => {
     if (!open) {
       setFeedbackContent("");
       setFeedbackEmail("");
-      setFeedbackType("other");
-      setFeedbackIncludeLogs(false);
+      setFeedbackType("bug");
+      setFeedbackIncludeLogs(true);
     }
   };
 

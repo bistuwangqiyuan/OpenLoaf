@@ -8,13 +8,11 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type {
-  CanvasConnectorTemplateDefinition,
   CanvasNodeDefinition,
   CanvasNodeViewProps,
 } from "../../engine/types";
-import { useCallback, useEffect, useMemo } from "react";
-import i18next from "i18next";
-import { Bot, Square, RotateCcw, Copy, Image as ImageIcon, Eye, EyeOff, Sparkles, Play } from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { Bot, Square, RotateCcw, Copy, Eye, EyeOff, Sparkles, Play, MessageSquarePlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@udecode/cn";
 import { toast } from "sonner";
@@ -24,6 +22,7 @@ import { useBoardChatStore } from "../../hooks/boardChatStore";
 import { useBoardChatMessage } from "../../hooks/useBoardChatMessage";
 import { NodeFrame } from "../NodeFrame";
 import { useAutoResizeNode } from "../lib/use-auto-resize-node";
+import { resolveRightStackPlacement } from "../../utils/output-placement";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { getPreviewEndpoint } from "@/lib/image/uri";
 import {
@@ -31,6 +30,7 @@ import {
   ChatMessageNodeSchema,
   type ChatMessageNodeProps,
 } from "./types";
+import { CHAT_INPUT_NODE_TYPE } from "../chatInput/types";
 import { IMAGE_GENERATE_NODE_TYPE, VIDEO_GENERATE_NODE_TYPE } from "../node-config";
 import {
   BOARD_GENERATE_NODE_BASE_CHAT,
@@ -44,8 +44,8 @@ import {
 
 export { CHAT_MESSAGE_NODE_TYPE };
 
-/** Fixed Y-offset for left/right anchors (center of header bar). Used by chatInput. */
-const CHAT_INPUT_ANCHOR_Y_OFFSET = 18;
+const OUTPUT_SIDE_GAP = 60;
+const OUTPUT_STACK_GAP = 16;
 
 /** Extract text content from message parts. */
 function extractTextFromParts(parts: unknown[]): string {
@@ -168,6 +168,42 @@ export function ChatMessageNodeView({
         : [...current, index],
     });
   }, [element.props.hiddenPartIndices, onUpdate]);
+
+  const handleCreateConnectedNode = useCallback(
+    (type: string, props: Record<string, unknown>, size: [number, number]) => {
+      const el = engine.doc.getElementById(nodeId);
+      if (!el) return;
+      const existingOutputs: [number, number, number, number][] = [];
+      for (const item of engine.doc.getElements()) {
+        if (item.kind !== "connector") continue;
+        if (!item.source || !("elementId" in item.source)) continue;
+        if (item.source.elementId !== nodeId) continue;
+        if (!item.target || !("elementId" in item.target)) continue;
+        const targetEl = engine.doc.getElementById(item.target.elementId);
+        if (targetEl) existingOutputs.push(targetEl.xywh);
+      }
+      const placement = resolveRightStackPlacement(el.xywh, existingOutputs, {
+        sideGap: OUTPUT_SIDE_GAP,
+        stackGap: OUTPUT_STACK_GAP,
+        outputHeights: [size[1]],
+      });
+      if (!placement) return;
+      const newId = engine.addNodeElement(type, props, [
+        placement.baseX,
+        placement.startY,
+        size[0],
+        size[1],
+      ]);
+      if (newId) {
+        engine.addConnectorElement({
+          source: { elementId: nodeId },
+          target: { elementId: newId },
+          style: engine.getConnectorStyle(),
+        });
+      }
+    },
+    [engine, nodeId],
+  );
 
   const isStreaming = status === "streaming";
   const isComplete = status === "complete";
@@ -351,6 +387,71 @@ export function ChatMessageNodeView({
           )}
         </div>
       </div>
+
+      {/* Right-side quick actions (visible when selected + complete) */}
+      {selected && isComplete && (
+        <div
+          data-node-toolbar
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+8px)] flex flex-col gap-1.5 z-10"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className={cn(
+              "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-sm border transition-colors",
+              "bg-background/95 border-border/50 hover:bg-accent hover:text-accent-foreground",
+            )}
+            onClick={() =>
+              handleCreateConnectedNode(
+                CHAT_INPUT_NODE_TYPE,
+                { status: "idle", autoFocus: true },
+                [360, 200],
+              )
+            }
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5 text-[#188038] dark:text-emerald-400" />
+            {t("chatMessage.continueChatLabel")}
+          </button>
+          {element.props.resolvedImageUrls?.length ? (
+            <>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-sm border transition-colors",
+                  "bg-background/95 border-border/50 hover:bg-accent hover:text-accent-foreground",
+                )}
+                onClick={() =>
+                  handleCreateConnectedNode(
+                    IMAGE_GENERATE_NODE_TYPE,
+                    {},
+                    [320, 260],
+                  )
+                }
+              >
+                <Sparkles className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />
+                {t("connector.imageGenerate")}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-sm border transition-colors",
+                  "bg-background/95 border-border/50 hover:bg-accent hover:text-accent-foreground",
+                )}
+                onClick={() =>
+                  handleCreateConnectedNode(
+                    VIDEO_GENERATE_NODE_TYPE,
+                    {},
+                    [360, 280],
+                  )
+                }
+              >
+                <Play className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                {t("connector.videoGenerate")}
+              </button>
+            </>
+          ) : null}
+        </div>
+      )}
     </NodeFrame>
   );
 }
@@ -372,50 +473,5 @@ export const ChatMessageNodeDefinition: CanvasNodeDefinition<ChatMessageNodeProp
     { id: "left", point: [bounds.x, bounds.y + bounds.h / 2] },
     { id: "right", point: [bounds.x + bounds.w, bounds.y + bounds.h / 2] },
   ],
-  connectorTemplates: (element) => {
-    if (element.props.status !== "complete") return [];
-    const templates: CanvasConnectorTemplateDefinition[] = [
-      {
-        id: "continue-chat",
-        label: i18next.t("board:chatMessage.continueChatLabel"),
-        description: i18next.t("board:chatMessage.continueChatDesc"),
-        size: [360, 200],
-        icon: null,
-        createNode: () => ({
-          type: "chat_input",
-          props: {
-            status: "idle",
-            autoFocus: true,
-          },
-        }),
-      },
-    ];
-    if (element.props.resolvedImageUrls?.length) {
-      templates.push(
-        {
-          id: IMAGE_GENERATE_NODE_TYPE,
-          label: i18next.t("board:connector.imageGenerate"),
-          description: i18next.t("board:connector.imageGenerateDesc"),
-          size: [320, 260],
-          icon: <Sparkles size={14} /> as any,
-          createNode: () => ({
-            type: IMAGE_GENERATE_NODE_TYPE,
-            props: {},
-          }),
-        },
-        {
-          id: VIDEO_GENERATE_NODE_TYPE,
-          label: i18next.t("board:connector.videoGenerate"),
-          description: i18next.t("board:connector.videoGenerateDesc"),
-          size: [360, 280],
-          icon: <Play size={14} /> as any,
-          createNode: () => ({
-            type: VIDEO_GENERATE_NODE_TYPE,
-            props: {},
-          }),
-        },
-      );
-    }
-    return templates;
-  },
+  connectorTemplates: () => [],
 };

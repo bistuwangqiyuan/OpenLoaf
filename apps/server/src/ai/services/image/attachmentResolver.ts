@@ -413,7 +413,7 @@ export async function saveChatBinaryAttachment(input: {
   }
   const ext = path.extname(input.fileName).toLowerCase().replace(/^\./, "") || "bin";
   const storedName = buildChatAttachmentFileName(ext);
-  const targetPath = path.join(root.chatHistoryDir, sessionId, storedName);
+  const targetPath = path.join(root.chatHistoryDir, sessionId, "asset", storedName);
   const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   // 逻辑：确保目录存在后再写入文件，避免落盘失败。
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -740,7 +740,7 @@ export async function saveChatImageAttachment(input: {
     throw new Error("Workspace or project not found");
   }
 
-  const targetPath = path.join(root.chatHistoryDir, input.sessionId, fileName);
+  const targetPath = path.join(root.chatHistoryDir, input.sessionId, "asset", fileName);
   const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   // 逻辑：PNG 写入 iTXt，其他格式仅写 sidecar。
@@ -801,7 +801,7 @@ export async function saveChatImageAttachmentFromPath(input: {
   if (!root) {
     throw new Error("Workspace or project not found");
   }
-  const targetPath = path.join(root.chatHistoryDir, input.sessionId, fileName);
+  const targetPath = path.join(root.chatHistoryDir, input.sessionId, "asset", fileName);
   const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   // 逻辑：PNG 写入 iTXt，其他格式仅写 sidecar。
