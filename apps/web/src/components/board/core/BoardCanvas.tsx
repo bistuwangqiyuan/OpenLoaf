@@ -11,12 +11,19 @@
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { FolderDown, Loader2, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { FolderDown, Loader2, MoreHorizontal, PencilLine, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@openloaf/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@openloaf/ui/dropdown-menu";
 import { Input } from "@openloaf/ui/input";
 import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
 import { useTabs } from "@/hooks/use-tabs";
@@ -42,12 +49,8 @@ import {
 } from "@/components/file/lib/file-preview-store";
 import {
   buildChildUri,
-  formatScopedProjectPath,
-  getRelativePathFromUri,
-  normalizeProjectRelativePath,
-  parseScopedProjectPath,
 } from "@/components/project/filesystem/utils/file-system-utils";
-import { trpc } from "@/utils/trpc";
+import { trpc, trpcClient } from "@/utils/trpc";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { getCachedAccessToken } from "@/lib/saas-auth";
@@ -120,8 +123,6 @@ class BoardErrorBoundary extends Component<
   }
 }
 
-/** Scheme matcher for absolute URIs. */
-const SCHEME_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 /** Board thumbnail file name. */
 const BOARD_THUMBNAIL_FILE_NAME = "index.png";
 /** Board thumbnail width in pixels. */
@@ -191,37 +192,20 @@ export function BoardCanvas({
 }: BoardCanvasProps) {
   const { workspace } = useWorkspace();
   const resolvedWorkspaceId = workspaceId ?? workspace?.id ?? "";
+  const queryClient = useQueryClient();
+  // 逻辑：提取画布文件夹名（末段路径），服务端通过 .openloaf/boards/<boardId>/ 前缀还原完整路径。
+  // decodeURIComponent 防止 URI 中已编码的中文被 URLSearchParams 双重编码。
   const resolvedBoardId = useMemo(() => {
-    if (boardFolderUri) {
-      if (!SCHEME_REGEX.test(boardFolderUri)) {
-        return normalizeProjectRelativePath(boardFolderUri);
-      }
-      if (rootUri) {
-        const relativePath = getRelativePathFromUri(rootUri, boardFolderUri);
-        if (relativePath) return normalizeProjectRelativePath(relativePath);
-      }
+    const source = boardFolderUri?.trim() || boardId?.trim() || "";
+    if (!source) return "";
+    const cleaned = source.replace(/\/+$/, "");
+    const segment = cleaned.split("/").pop() || "";
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
     }
-    const rawBoardId = boardId?.trim() ?? "";
-    if (rawBoardId) {
-      if (SCHEME_REGEX.test(rawBoardId)) {
-        if (rootUri) {
-          const relativePath = getRelativePathFromUri(rootUri, rawBoardId);
-          if (relativePath) return normalizeProjectRelativePath(relativePath);
-        }
-        return projectId ?? "";
-      }
-      const parsed = parseScopedProjectPath(rawBoardId);
-      if (!parsed) return rawBoardId;
-      const normalized = formatScopedProjectPath({
-        projectId: parsed.projectId,
-        currentProjectId: projectId,
-        relativePath: parsed.relativePath,
-        includeAt: true,
-      });
-      return normalized || parsed.relativePath;
-    }
-    return projectId ?? "";
-  }, [boardFolderUri, boardId, projectId, rootUri]);
+  }, [boardFolderUri, boardId]);
   /** Root container element for canvas interactions. */
   const containerRef = useRef<HTMLDivElement | null>(null);
   /** Latest canvas element reference used for exports. */
@@ -232,8 +216,11 @@ export function BoardCanvas({
     engineRef.current = externalEngine ?? new CanvasEngine();
   }
   const engine = externalEngine ?? engineRef.current;
+  /** Current board element count (kept in sync for thumbnail guard). */
+  const elementCountRef = useRef(0);
   /** Latest snapshot from the engine. */
   const snapshot = useBoardSnapshot(engine);
+  elementCountRef.current = snapshot.elements.length;
   const showUi = !uiHidden;
   /** Basic settings for UI toggles. */
   const { basic } = useBasicConfig();
@@ -335,6 +322,10 @@ export function BoardCanvas({
   const thumbnailQueueRef = useRef(Promise.resolve());
   /** Timer id for auto layout thumbnail capture. */
   const autoLayoutTimerRef = useRef<number | null>(null);
+  /** Whether the initial thumbnail check has been done. */
+  const thumbnailInitDoneRef = useRef(false);
+  /** Whether the board has been modified since last thumbnail capture. */
+  const boardModifiedRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -395,9 +386,11 @@ export function BoardCanvas({
 
   /** Capture and persist the current board thumbnail. */
   const saveBoardThumbnail = useCallback(
-    (reason: "close" | "autoLayout") => {
+    (reason: "close" | "autoLayout" | "init") => {
       if (!boardFolderUri) return;
       if (!resolvedWorkspaceId) return;
+      // 逻辑：空画布不截图，保持默认渐变预览。
+      if (elementCountRef.current === 0) return;
       // 逻辑：顺序执行截图任务，避免并发占用渲染资源。
       thumbnailQueueRef.current = thumbnailQueueRef.current
         .catch(() => undefined)
@@ -423,6 +416,9 @@ export function BoardCanvas({
               uri,
               contentBase64,
             });
+            boardModifiedRef.current = false;
+            // 逻辑：截图成功后让画布列表的缩略图缓存失效，返回时能看到最新预览。
+            queryClient.invalidateQueries({ queryKey: trpc.board.thumbnails.queryKey() });
           } catch (error) {
             console.error("Board thumbnail capture failed", reason, error);
           } finally {
@@ -430,7 +426,7 @@ export function BoardCanvas({
           }
         });
     },
-    [boardFolderUri, projectId, resolveExportTarget, resolvedWorkspaceId]
+    [boardFolderUri, projectId, resolveExportTarget, resolvedWorkspaceId, queryClient]
   );
 
   /** Schedule a thumbnail capture after auto layout. */
@@ -446,13 +442,48 @@ export function BoardCanvas({
     }, AUTO_LAYOUT_THUMBNAIL_DELAY);
   }, [boardFolderUri, resolvedWorkspaceId, saveBoardThumbnail]);
 
+  /** Track board modifications via engine subscription. */
+  useEffect(() => {
+    const unsubscribe = engine.subscribe(() => {
+      boardModifiedRef.current = true;
+    });
+    return unsubscribe;
+  }, [engine]);
+
+  /** Initial thumbnail capture: when collab syncs, check if thumbnail exists, if not, capture one. */
+  useEffect(() => {
+    if (!syncLogState.canSyncLog) return;
+    if (thumbnailInitDoneRef.current) return;
+    if (!boardFolderUri || !resolvedWorkspaceId) return;
+    thumbnailInitDoneRef.current = true;
+    let cancelled = false;
+    const thumbnailUri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
+    // 逻辑：协作同步完成后检查缩略图是否存在，不存在则立即截取。
+    trpcClient.fs.stat
+      .query({
+        workspaceId: resolvedWorkspaceId,
+        projectId,
+        uri: thumbnailUri,
+      })
+      .catch(() => {
+        if (cancelled) return;
+        saveBoardThumbnail("init");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [syncLogState.canSyncLog, boardFolderUri, resolvedWorkspaceId, projectId, saveBoardThumbnail]);
+
+  /** On unmount (close/back): capture thumbnail if board was modified. */
   useEffect(() => {
     return () => {
       if (autoLayoutTimerRef.current) {
         window.clearTimeout(autoLayoutTimerRef.current);
         autoLayoutTimerRef.current = null;
       }
-      saveBoardThumbnail("close");
+      if (boardModifiedRef.current) {
+        saveBoardThumbnail("close");
+      }
     };
   }, [saveBoardThumbnail]);
 
@@ -460,18 +491,10 @@ export function BoardCanvas({
   return (
     <>
       {effectiveTarget && snapshot.elements.length > 0 && createPortal(
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end">
           <Popover open={renameOpen} onOpenChange={handleRenameOpen}>
             <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 rounded-full px-3 text-xs bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc] hover:text-[#1a73e8] dark:bg-sky-900/50 dark:text-sky-200 dark:hover:bg-sky-900/70 transition-colors duration-150"
-              >
-                <PencilLine className="size-3.5" />
-                {tBoard('board.renameCanvas')}
-              </Button>
+              <span className="sr-only" />
             </PopoverTrigger>
             <PopoverContent className="w-72 p-3" align="end">
               <div className="flex flex-col gap-2">
@@ -523,26 +546,37 @@ export function BoardCanvas({
               </div>
             </PopoverContent>
           </Popover>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 rounded-full px-3 text-xs text-[#5f6368] hover:bg-[#f1f3f4] dark:text-slate-400 dark:hover:bg-[hsl(var(--muted)/0.42)] transition-colors duration-150"
-            onClick={() => setSaveToProjectOpen(true)}
-          >
-            <FolderDown className="size-3.5" />
-            {tBoard('board.saveToProject')}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 rounded-full px-3 text-xs text-destructive hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors duration-150"
-            onClick={handleDeleteBoard}
-          >
-            <Trash2 className="size-3.5" />
-            {tBoard('board.deleteCanvas')}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 rounded-full px-2.5 text-xs"
+              >
+                <MoreHorizontal className="size-3.5" />
+                {tBoard('board.actions')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleRenameOpen(true)}>
+                <PencilLine className="mr-2 size-4" />
+                {tBoard('board.renameCanvas')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSaveToProjectOpen(true)}>
+                <FolderDown className="mr-2 size-4" />
+                {tBoard('board.saveToProject')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={handleDeleteBoard}
+              >
+                <Trash2 className="mr-2 size-4" />
+                {tBoard('board.deleteCanvas')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>,
         effectiveTarget
       )}

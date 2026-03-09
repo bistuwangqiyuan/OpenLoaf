@@ -29,7 +29,7 @@ import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
 import CodeViewer, { type CodeViewerActions, type CodeViewerStatus } from "@/components/file/CodeViewer";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { ReadFileErrorFallback } from "@/components/file/lib/read-file-error";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { stopFindShortcutPropagation } from "@/components/file/lib/viewer-shortcuts";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { toast } from "sonner";
@@ -517,24 +517,20 @@ export default function MarkdownViewer({
     stopFindShortcutPropagation(event);
   }, []);
 
-  const previewContent = !hasInlineContent && fileQuery.isLoading ? (
-    <div className="h-full w-full p-4 text-muted-foreground">{t('loading')}</div>
-  ) : !hasInlineContent && fileQuery.data?.tooLarge ? (
-    <ReadFileErrorFallback
+  const hasFileError = !hasInlineContent && (fileQuery.isLoading || fileQuery.data?.tooLarge || fileQuery.isError);
+  const previewContent = hasFileError ? (
+    <ViewerGuard
       uri={uri}
       name={displayTitle}
       projectId={projectId}
       rootUri={rootUri}
-      tooLarge
-    />
-  ) : !hasInlineContent && fileQuery.isError ? (
-    <ReadFileErrorFallback
-      uri={uri}
-      name={displayTitle}
-      projectId={projectId}
-      rootUri={rootUri}
-      error={fileQuery.error}
-    />
+      loading={fileQuery.isLoading}
+      tooLarge={fileQuery.data?.tooLarge}
+      error={fileQuery.isError}
+      errorDetail={fileQuery.error}
+    >
+      {null}
+    </ViewerGuard>
   ) : (
     <>
       {frontMatter ? (

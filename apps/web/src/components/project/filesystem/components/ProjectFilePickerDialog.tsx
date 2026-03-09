@@ -471,14 +471,25 @@ export function ProjectFilePickerDialog({
                 onSelectionChange={handleSelectionChange}
                 resolveSelectionMode={resolveSelectionMode}
                 isEntrySelectable={isEntrySelectable}
-                onOpenVideo={(entry) => handleConfirm(entry)}
+                onOpenEntry={(entry) => {
+                  if (entry.kind === "folder") {
+                    handleNavigate(entry.uri);
+                  } else {
+                    handleConfirm(entry);
+                  }
+                }}
               />
             </div>
           </div>
         </div>
         <DialogFooter className="flex w-full items-center justify-start gap-3">
           {shouldShowImportButton ? (
-            <Button type="button" variant="ghost" onClick={handleImportFromComputer}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full shadow-none transition-colors duration-150"
+              onClick={handleImportFromComputer}
+            >
               {t('workspace:filesystem.importFromComputer')}
             </Button>
           ) : (
@@ -486,9 +497,20 @@ export function ProjectFilePickerDialog({
           )}
           <div className="ml-auto flex items-center gap-2">
             <DialogClose asChild>
-              <Button type="button" variant="ghost">{t('workspace:filesystem.cancel')}</Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="rounded-full shadow-none transition-colors duration-150"
+              >
+                {t('workspace:filesystem.cancel')}
+              </Button>
             </DialogClose>
-            <Button type="button" disabled={confirmDisabled} onClick={() => handleConfirm()}>
+            <Button
+              type="button"
+              disabled={confirmDisabled}
+              className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+              onClick={() => handleConfirm()}
+            >
               {t('workspace:filesystem.selectConfirmLabel')}
             </Button>
           </div>

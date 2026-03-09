@@ -21,7 +21,7 @@ import { Plate, usePlateEditor } from 'platejs/react'
 import { EditorKit } from '@/components/editor/editor-kit'
 import { FixedToolbarKit } from '@/components/editor/plugins/fixed-toolbar-kit'
 import { FloatingToolbarKit } from '@/components/editor/plugins/floating-toolbar-kit'
-import { ReadFileErrorFallback } from '@/components/file/lib/read-file-error'
+import { ViewerGuard } from '@/components/file/lib/viewer-guard'
 import { StackHeader } from '@/components/layout/StackHeader'
 import { resolveFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { useWorkspace } from '@/components/workspace/workspaceContext'
@@ -235,36 +235,18 @@ export default function PlateDocViewer({
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {!shouldUseFs ? (
-          <ReadFileErrorFallback
-            uri={uri}
-            name={name}
-            projectId={projectId}
-            rootUri={rootUri}
-            message="暂不支持此地址"
-            description="请使用本地文件路径或下载后查看。"
-            className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm"
-          />
-        ) : null}
-        {(status === 'loading' || fileQuery.isLoading) ? (
-          <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            {t('loading')}
-          </div>
-        ) : null}
-        {(status === 'error' || fileQuery.isError) ? (
-          <ReadFileErrorFallback
-            uri={uri}
-            name={name}
-            projectId={projectId}
-            rootUri={rootUri}
-            error={fileQuery.error ?? undefined}
-            message={t('file.loadFailed')}
-            description="请检查文件格式或权限后重试。"
-            className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
-          />
-        ) : null}
-
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectId}
+        rootUri={rootUri}
+        notSupported={!shouldUseFs}
+        loading={status === 'loading' || fileQuery.isLoading}
+        error={status === 'error' || fileQuery.isError}
+        errorDetail={fileQuery.error ?? undefined}
+        errorMessage={t('file.loadFailed')}
+        errorDescription={t('file.checkFormatOrRetry')}
+      >
         <div className="min-h-0 flex-1 overflow-hidden">
           <Plate
             editor={editor}
@@ -275,7 +257,7 @@ export default function PlateDocViewer({
             </EditorContainer>
           </Plate>
         </div>
-      </div>
+      </ViewerGuard>
     </div>
   )
 }

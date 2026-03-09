@@ -132,6 +132,11 @@ body {
 .electron .electron-drag select,
 .electron .electron-drag [role="button"] {
   -webkit-app-region: no-drag;
+}
+
+.electron .electron-drag input,
+.electron .electron-drag textarea,
+.electron .electron-drag select {
   user-select: auto;
 }
 

@@ -14,10 +14,10 @@ prompts:
 
 providers:
   - id: file://openloaf-universal-provider.ts
-    label: "Kimi K2.5"
+    label: "Step 3.5"
     config:
-      label: "Kimi K2.5"
-      modelId: "79c0aa88-5366-4df0-bbf4-e9e9562335d2:kimi-k2.5"
+      label: "Step 3.5"
+      modelId: "cef4e784-32d6-4062-914d-f39b5534c20e:stepfun/step-3.5-flash:free"
   - id: file://openloaf-universal-provider.ts
     label: "Qwen3.5 Flash"
     config:

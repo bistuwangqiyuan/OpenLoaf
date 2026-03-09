@@ -6,10 +6,11 @@
     "edit": "编辑",
     "delete": "删除",
     "save": "保存",
-    "renameCanvas": "重命名画布",
+    "renameCanvas": "重命名",
     "renameCanvasPlaceholder": "输入画布名称",
     "saveToProject": "保存到项目",
-    "deleteCanvas": "删除画布",
+    "deleteCanvas": "删除",
+    "actions": "操作",
     "cancel": "取消",
     "download": "下载",
     "share": "分享",
@@ -45,8 +46,10 @@
   },
   "insertTools": {
     "note": "便签",
+    "text": "文本",
     "image": "图片",
     "video": "视频",
+    "file": "文件",
     "imagePromptGenerate": "视频图片理解",
     "imageGenerate": "图片生成",
     "videoGenerate": "生成视频"
@@ -55,6 +58,7 @@
     "note": "快速笔记卡片",
     "image": "图片块",
     "video": "视频块",
+    "file": "文件附件",
     "imagePromptGenerate": "分析图片/视频并生成描述",
     "imageGenerate": "输入图片与文字生成新图",
     "videoGenerate": "基于图片与提示词生成视频"
@@ -63,7 +67,9 @@
     "imageTitle": "选择图片文件",
     "imageHint": "非图片文件将置灰",
     "videoTitle": "选择视频文件",
-    "videoHint": "非视频文件将置灰"
+    "videoHint": "非视频文件将置灰",
+    "fileTitle": "选择文件",
+    "fileHint": "支持所有文件类型"
   },
   "emptyGuide": {
     "heading": "从模板开始创作",
@@ -93,7 +99,11 @@
     "maximize": "最大化视图",
     "autoLayout": "自动布局",
     "reload": "重新加载",
-    "paste": "粘贴"
+    "paste": "粘贴",
+    "insertText": "插入文字",
+    "insertFile": "插入文件",
+    "aiImageGenerate": "AI 图片生成",
+    "aiVideoGenerate": "AI 视频生成"
   },
   "controls": {
     "undo": "撤销",
@@ -332,9 +342,25 @@
     "toolbar": {
       "download": "下载",
       "detail": "详情"
-    }
+    },
+    "notFound": "图片未找到",
+    "loadFailed": "无法加载图片",
+    "replaceTitle": "选择图片",
+    "replaceHint": "选择一张图片替换当前节点"
   },
   "videoNode": {
+    "toolbar": {
+      "play": "播放",
+      "detail": "详情"
+    }
+  },
+  "audioNode": {
+    "toolbar": {
+      "detail": "详情"
+    },
+    "noSource": "无音频源"
+  },
+  "fileAttachmentNode": {
     "toolbar": {
       "detail": "详情"
     }

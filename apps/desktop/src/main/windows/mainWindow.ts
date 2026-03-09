@@ -73,6 +73,42 @@ async function showErrorOnLoadingPage(win: BrowserWindow, error: string): Promis
         wrapper.appendChild(btn);
         wrapper.appendChild(pre);
         container.appendChild(wrapper);
+
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:8px;margin-top:12px;justify-content:center;';
+
+        var downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Download Latest Version';
+        downloadBtn.style.cssText = 'padding:6px 16px;font-size:12px;color:#fafafa;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:16px;cursor:pointer;';
+        downloadBtn.onmouseenter = function() { downloadBtn.style.background = 'rgba(255,255,255,0.18)'; };
+        downloadBtn.onmouseleave = function() { downloadBtn.style.background = 'rgba(255,255,255,0.1)'; };
+        downloadBtn.onclick = function() {
+          downloadBtn.textContent = 'Fetching...';
+          downloadBtn.disabled = true;
+          window.openloafElectron.getLatestInstallerUrl().then(function(r) {
+            if (r && r.ok && r.url) {
+              window.openloafElectron.openExternal(r.url);
+              downloadBtn.textContent = 'Opening...';
+            } else {
+              downloadBtn.textContent = 'Failed';
+            }
+            setTimeout(function() { downloadBtn.textContent = 'Download Latest Version'; downloadBtn.disabled = false; }, 2000);
+          }).catch(function() {
+            downloadBtn.textContent = 'Failed';
+            setTimeout(function() { downloadBtn.textContent = 'Download Latest Version'; downloadBtn.disabled = false; }, 2000);
+          });
+        };
+
+        var restartBtn = document.createElement('button');
+        restartBtn.textContent = 'Restart';
+        restartBtn.style.cssText = 'padding:6px 16px;font-size:12px;color:#fafafa;background:#f97316;border:none;border-radius:16px;cursor:pointer;';
+        restartBtn.onmouseenter = function() { restartBtn.style.background = '#ea580c'; };
+        restartBtn.onmouseleave = function() { restartBtn.style.background = '#f97316'; };
+        restartBtn.onclick = function() { window.openloafElectron.relaunchApp(); };
+
+        btnRow.appendChild(downloadBtn);
+        btnRow.appendChild(restartBtn);
+        container.appendChild(btnRow);
       }
     })();
   `);

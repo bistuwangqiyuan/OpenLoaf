@@ -35,7 +35,10 @@ import ProjectFileSystem, {
   type ProjectBreadcrumbInfo,
 } from "./filesystem/components/ProjectFileSystem";
 import ProjectScheduledTasksPage from "./tasks/ProjectScheduledTasksPage";
+import { lazy, Suspense } from "react";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
+
+const LazyCanvasListPage = lazy(() => import("@/components/board/CanvasListPage"));
 
 interface ProjectPageProps {
   tabId?: string;
@@ -217,6 +220,7 @@ export default function ProjectPage({
   const shouldRenderFiles = activeTab === "files" || mountedTabs.has("files");
   const shouldRenderTasks = activeTab === "tasks" || mountedTabs.has("tasks");
   const shouldRenderScheduled = activeTab === "scheduled" || mountedTabs.has("scheduled");
+  const shouldRenderCanvas = activeTab === "canvas" || mountedTabs.has("canvas");
   // settings 已改为 dialog 模式，不再需要 tab panel 渲染。
 
   const updateProject = useMutation(
@@ -539,6 +543,27 @@ export default function ProjectPage({
                 >
                   {shouldRenderScheduled ? (
                     <ProjectScheduledTasksPage projectId={projectId} />
+                  ) : null}
+                </div>
+                <div
+                  id="project-panel-canvas"
+                  role="tabpanel"
+                  aria-labelledby="project-tab-canvas"
+                  className={`${panelBaseClass} ${
+                    activeTab === "canvas"
+                      ? "opacity-100 pointer-events-auto translate-y-0 scale-100"
+                      : "opacity-0 pointer-events-none translate-y-0.5 scale-[0.995]"
+                  }`}
+                  aria-hidden={activeTab !== "canvas"}
+                >
+                  {shouldRenderCanvas ? (
+                    <Suspense fallback={null}>
+                      <LazyCanvasListPage
+                        tabId={tabId ?? ""}
+                        panelKey="project-canvas"
+                        projectId={projectId}
+                      />
+                    </Suspense>
                   ) : null}
                 </div>
               </div>

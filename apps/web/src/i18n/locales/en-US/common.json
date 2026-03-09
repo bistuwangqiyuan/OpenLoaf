@@ -93,7 +93,10 @@
     "submittingFeedback": "Submitting…",
     "feedbackSuccess": "Bug report submitted. Thank you!",
     "feedbackFailed": "Failed to submit report. Please try again.",
-    "restart": "Restart app"
+    "restart": "Restart app",
+    "downloadLatest": "Download Latest",
+    "fetchingDownload": "Fetching download…",
+    "downloadFailed": "Failed to get download link"
   },
   "closeConfirm": {
     "title": "Close OpenLoaf",
@@ -155,7 +158,14 @@
     "fileDeleted": "File deleted",
     "loadingFile": "Loading file…",
     "newFile": "New file",
-    "changing": "Applying changes…"
+    "changing": "Applying changes…",
+    "noFile": "No file selected",
+    "notSupported": "This location is not supported",
+    "notSupportedDesc": "Please use a local file path or download and open.",
+    "pdfLoadFailed": "PDF preview failed",
+    "codeLoadFailed": "Code preview failed",
+    "previewFailed": "File preview failed",
+    "checkFormatOrRetry": "Please check the file format or permissions and try again."
   },
   "login": {
     "dialogTitle": "Sign in to cloud account",

@@ -113,6 +113,9 @@ function readTokensFromStorage(storage: Storage): StoredAuth | null {
   return { accessToken, refreshToken, storageType };
 }
 
+/** Log prefix for auth module. */
+const LOG_TAG = "[auth]";
+
 /** Resolve stored tokens across local/session storage. */
 function resolveStoredAuth(): StoredAuth | null {
   if (typeof window === "undefined") return null;
@@ -145,6 +148,7 @@ function persistTokens(input: {
 /** Clear stored tokens in both storages. */
 function clearStoredAuth(): void {
   if (typeof window === "undefined") return;
+  console.info(LOG_TAG, "clearing all stored tokens");
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
@@ -177,8 +181,14 @@ export function getStoredUser(): SaasAuthUser | null {
 /** Get cached access token without refresh. */
 export function getCachedAccessToken(): string | null {
   const stored = resolveStoredAuth();
-  if (!stored?.accessToken) return null;
-  if (isTokenExpired(stored.accessToken)) return null;
+  if (!stored?.accessToken) {
+    console.info(LOG_TAG, "no cached access token found");
+    return null;
+  }
+  if (isTokenExpired(stored.accessToken)) {
+    console.info(LOG_TAG, "cached access token expired");
+    return null;
+  }
   return stored.accessToken;
 }
 
@@ -196,10 +206,14 @@ export async function exchangeLoginCode(input: {
   loginCode: string;
   remember: boolean;
 }): Promise<SaasAuthUser | null> {
+  console.info(LOG_TAG, "exchanging login code", { remember: input.remember });
   try {
     const client = createSaasClient();
     const result = await client.auth.exchange(input.loginCode);
-    if (!result?.accessToken || !result?.refreshToken) return null;
+    if (!result?.accessToken || !result?.refreshToken) {
+      console.info(LOG_TAG, "exchange returned no tokens");
+      return null;
+    }
     const user: SaasAuthUser | undefined = result.user
       ? {
           name: result.user.name ?? undefined,
@@ -213,8 +227,10 @@ export async function exchangeLoginCode(input: {
       remember: input.remember,
       user,
     });
+    console.info(LOG_TAG, "exchange success", { email: user?.email });
     return user ?? null;
-  } catch {
+  } catch (error) {
+    console.info(LOG_TAG, "exchange failed", error);
     return null;
   }
 }
@@ -233,17 +249,31 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+/** Check whether an error indicates the refresh token is permanently invalid (not a transient network issue). */
+function isAuthRejection(error: unknown): boolean {
+  if (error && typeof error === "object") {
+    const status = (error as any).status ?? (error as any).statusCode;
+    if (status === 401 || status === 403) return true;
+    const response = (error as any).response;
+    if (response && (response.status === 401 || response.status === 403)) return true;
+  }
+  return false;
+}
+
 /** Internal refresh implementation. */
 async function doRefreshAccessToken(): Promise<string | null> {
   const stored = resolveStoredAuth();
   if (!stored?.refreshToken) {
+    console.info(LOG_TAG, "refresh skipped — no refresh token in storage");
     clearStoredAuth();
     return null;
   }
+  console.info(LOG_TAG, "refreshing access token", { storage: stored.storageType });
   try {
     const client = createSaasClient();
     const result = await client.auth.refresh(stored.refreshToken);
     if (!result || typeof (result as any).accessToken !== "string") {
+      console.info(LOG_TAG, "refresh returned invalid result, clearing tokens");
       clearStoredAuth();
       return null;
     }
@@ -262,9 +292,17 @@ async function doRefreshAccessToken(): Promise<string | null> {
       remember: stored.storageType === "local",
       user,
     });
+    console.info(LOG_TAG, "refresh success", { email: user?.email });
     return accessToken;
-  } catch {
-    clearStoredAuth();
+  } catch (error) {
+    // 仅在服务端明确拒绝（401/403）时才清除 token；
+    // 网络超时、代理未就绪等瞬态错误保留 token，下次可重试。
+    if (isAuthRejection(error)) {
+      console.info(LOG_TAG, "refresh rejected (401/403), clearing tokens", error);
+      clearStoredAuth();
+    } else {
+      console.info(LOG_TAG, "refresh failed (transient), keeping tokens for retry", error);
+    }
     return null;
   }
 }
@@ -321,6 +359,7 @@ export async function resolveAuthUser(): Promise<SaasAuthUser | null> {
 
 /** Logout from SaaS and clear stored tokens. */
 export function logout(): void {
+  console.info(LOG_TAG, "user logout");
   const stored = resolveStoredAuth();
   clearStoredAuth();
   // 后台静默通知 SaaS 后端吊销 token，不阻塞 UI

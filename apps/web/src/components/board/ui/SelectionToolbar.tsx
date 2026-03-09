@@ -104,7 +104,7 @@ function ToolbarGroup({ items, openPanelId, setOpenPanelId, showDivider }: Toolb
                 item.onSelect?.();
               }}
               showLabel={item.showLabel}
-              className={item.id === "delete" ? "text-destructive hover:bg-destructive/10" : ""}
+              className={item.className}
             >
               {item.icon}
             </PanelItem>

@@ -41,7 +41,7 @@ import { Label } from "@openloaf/ui/label";
 import { PageTreeMenu } from "./ProjectTree";
 import { toast } from "sonner";
 import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
-import { CheckCircle2, ClipboardCopy, FolderOpen, FolderPlus, GitBranch, RotateCw, Square } from "lucide-react";
+import { CheckCircle2, ClipboardCopy, FolderOpen, FolderPlus, GitBranch, Plus, RotateCw, Square } from "lucide-react";
 
 /** Project tree loading skeleton. */
 const ProjectTreeSkeleton = () => (
@@ -281,6 +281,18 @@ export const SidebarProject = () => {
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div className="flex h-full flex-col">
+              <div className="shrink-0 mt-2 border-t border-sidebar-border px-3 pt-2 pb-1 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{t('projectsSection')}</span>
+                <button
+                  type="button"
+                  className="flex items-center gap-0.5 rounded px-1 text-[11px] text-muted-foreground/60 hover:text-muted-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  onClick={() => openAddDialog()}
+                  title={t('sidebar.addProject')}
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>{t('sidebar.addNew')}</span>
+                </button>
+              </div>
               <SidebarGroup className="group pt-0 flex flex-col flex-1 min-h-0">
                       <div className="flex-1 overflow-y-auto min-h-0">
                     <SidebarMenu>

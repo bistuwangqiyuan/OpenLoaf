@@ -6,10 +6,11 @@
     "edit": "編輯",
     "delete": "刪除",
     "save": "儲存",
-    "renameCanvas": "重新命名畫布",
+    "renameCanvas": "重新命名",
     "renameCanvasPlaceholder": "輸入畫布名稱",
     "saveToProject": "儲存至專案",
-    "deleteCanvas": "刪除畫布",
+    "deleteCanvas": "刪除",
+    "actions": "操作",
     "cancel": "取消",
     "download": "下載",
     "share": "分享",
@@ -45,8 +46,10 @@
   },
   "insertTools": {
     "note": "便利貼",
+    "text": "文字",
     "image": "圖片",
     "video": "影片",
+    "file": "檔案",
     "imagePromptGenerate": "影片圖片理解",
     "imageGenerate": "圖片生成",
     "videoGenerate": "生成影片"
@@ -55,6 +58,7 @@
     "note": "快速筆記卡片",
     "image": "圖片區塊",
     "video": "影片區塊",
+    "file": "檔案附件",
     "imagePromptGenerate": "分析圖片/影片並生成描述",
     "imageGenerate": "輸入圖片與文字生成新圖",
     "videoGenerate": "基於圖片與提示詞生成影片"
@@ -63,7 +67,9 @@
     "imageTitle": "選擇圖片檔案",
     "imageHint": "非圖片檔案將置灰",
     "videoTitle": "選擇影片檔案",
-    "videoHint": "非影片檔案將置灰"
+    "videoHint": "非影片檔案將置灰",
+    "fileTitle": "選擇檔案",
+    "fileHint": "支援所有檔案類型"
   },
   "emptyGuide": {
     "heading": "從範本開始創作",
@@ -93,7 +99,11 @@
     "maximize": "最大化視圖",
     "autoLayout": "自動排版",
     "reload": "重新載入",
-    "paste": "貼上"
+    "paste": "貼上",
+    "insertText": "插入文字",
+    "insertFile": "插入檔案",
+    "aiImageGenerate": "AI 圖片生成",
+    "aiVideoGenerate": "AI 影片生成"
   },
   "controls": {
     "undo": "復原",
@@ -332,9 +342,25 @@
     "toolbar": {
       "download": "下載",
       "detail": "詳情"
-    }
+    },
+    "notFound": "圖片未找到",
+    "loadFailed": "無法載入圖片",
+    "replaceTitle": "選擇圖片",
+    "replaceHint": "選擇一張圖片替換當前節點"
   },
   "videoNode": {
+    "toolbar": {
+      "play": "播放",
+      "detail": "詳情"
+    }
+  },
+  "audioNode": {
+    "toolbar": {
+      "detail": "詳情"
+    },
+    "noSource": "無音訊來源"
+  },
+  "fileAttachmentNode": {
     "toolbar": {
       "detail": "詳情"
     }

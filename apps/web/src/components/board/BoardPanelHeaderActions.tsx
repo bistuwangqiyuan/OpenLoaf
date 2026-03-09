@@ -10,13 +10,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { Camera, Maximize2, Minimize2 } from "lucide-react";
+import { Camera, Maximize2, Minimize2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { DockItem } from "@openloaf/api/common";
 import { Button } from "@openloaf/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@openloaf/ui/dropdown-menu";
 import { useOptionalSidebar } from "@openloaf/ui/sidebar";
+
 import {
   getBoardDisplayName,
   getDisplayFileName,
@@ -220,37 +226,33 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     : rightChatCollapsed
       ? t('panelHeader.showAIPanel')
       : t('panelHeader.hideAIPanel');
-  const toggleTooltip = canToggleSidebar ? `${toggleLabel} (${shortcutLabel})` : toggleLabel;
   const exportLabel = t('panelHeader.screenshot');
+  const toggleShortcut = canToggleSidebar ? shortcutLabel : undefined;
 
   return (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={toggleLabel}
-            onClick={handleTogglePanels}
-          >
-            {isBoardFull ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">{toggleTooltip}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={exportLabel}
-            onClick={() => void handleExportBoard()}
-          >
-            <Camera className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">{exportLabel}</TooltipContent>
-      </Tooltip>
-    </>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="ghost" aria-label={t('panelHeader.menu')}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={handleTogglePanels}>
+          {isBoardFull ? (
+            <Minimize2 className="mr-2 h-4 w-4" />
+          ) : (
+            <Maximize2 className="mr-2 h-4 w-4" />
+          )}
+          {toggleLabel}
+          {toggleShortcut ? (
+            <span className="ml-auto pl-4 text-xs text-muted-foreground">{toggleShortcut}</span>
+          ) : null}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void handleExportBoard()}>
+          <Camera className="mr-2 h-4 w-4" />
+          {exportLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -183,7 +183,7 @@ cd OpenLoaf
 pnpm install
 
 # Initialize the database
-pnpm run db:push
+pnpm run db:migrate
 
 # Start the development environment (Web + Server)
 pnpm run dev

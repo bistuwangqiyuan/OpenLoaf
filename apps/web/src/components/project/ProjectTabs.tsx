@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { CalendarDays, Clock, Folder, LayoutDashboard, Settings } from "lucide-react";
+import { CalendarDays, Clock, Folder, LayoutDashboard, Palette, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -70,6 +70,12 @@ export const PROJECT_TABS = [
     icon: Clock,
     labelKey: "workspace:project.tabScheduled",
     tone: "amber",
+  },
+  {
+    value: "canvas",
+    icon: Palette,
+    labelKey: "workspace:project.tabCanvas",
+    tone: "teal",
   },
   {
     value: "settings",

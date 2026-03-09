@@ -6,10 +6,11 @@
     "edit": "Edit",
     "delete": "Delete",
     "save": "Save",
-    "renameCanvas": "Rename Canvas",
+    "renameCanvas": "Rename",
     "renameCanvasPlaceholder": "Enter canvas name",
     "saveToProject": "Save to Project",
-    "deleteCanvas": "Delete Canvas",
+    "deleteCanvas": "Delete",
+    "actions": "Actions",
     "cancel": "Cancel",
     "download": "Download",
     "share": "Share",
@@ -45,8 +46,10 @@
   },
   "insertTools": {
     "note": "Note",
+    "text": "Text",
     "image": "Image",
     "video": "Video",
+    "file": "File",
     "imagePromptGenerate": "Image/Video Analysis",
     "imageGenerate": "Image Generation",
     "videoGenerate": "Video Generation"
@@ -55,6 +58,7 @@
     "note": "Quick note card",
     "image": "Image block",
     "video": "Video block",
+    "file": "File attachment",
     "imagePromptGenerate": "Analyze images/videos and generate descriptions",
     "imageGenerate": "Generate new images from images and text",
     "videoGenerate": "Generate videos from images and prompts"
@@ -63,7 +67,9 @@
     "imageTitle": "Select Image File",
     "imageHint": "Non-image files will be dimmed",
     "videoTitle": "Select Video File",
-    "videoHint": "Non-video files will be dimmed"
+    "videoHint": "Non-video files will be dimmed",
+    "fileTitle": "Select File",
+    "fileHint": "All file types supported"
   },
   "emptyGuide": {
     "heading": "Start from a Template",
@@ -93,7 +99,11 @@
     "maximize": "Maximize View",
     "autoLayout": "Auto Layout",
     "reload": "Reload",
-    "paste": "Paste"
+    "paste": "Paste",
+    "insertText": "Insert Text",
+    "insertFile": "Insert File",
+    "aiImageGenerate": "AI Image Generation",
+    "aiVideoGenerate": "AI Video Generation"
   },
   "controls": {
     "undo": "Undo",
@@ -332,9 +342,25 @@
     "toolbar": {
       "download": "Download",
       "detail": "Details"
-    }
+    },
+    "notFound": "Image not found",
+    "loadFailed": "Failed to load image",
+    "replaceTitle": "Select Image",
+    "replaceHint": "Select an image to replace the current node"
   },
   "videoNode": {
+    "toolbar": {
+      "play": "Play",
+      "detail": "Details"
+    }
+  },
+  "audioNode": {
+    "toolbar": {
+      "detail": "Details"
+    },
+    "noSource": "No audio source"
+  },
+  "fileAttachmentNode": {
     "toolbar": {
       "detail": "Details"
     }

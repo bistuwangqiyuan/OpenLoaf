@@ -216,7 +216,15 @@ export function VideoGenerateNodeView({
   }, [effectiveModelId, hasSelectedModel, onUpdate]);
 
   const errorText = element.props.errorText ?? "";
-  const localPromptText = normalizeTextValue(element.props.promptText);
+  const propsPromptText = normalizeTextValue(element.props.promptText);
+  const composingRef = useRef(false);
+  const [localPromptText, setLocalPromptText] = useState(propsPromptText);
+  // Sync from props when not composing (e.g. undo/redo, external updates)
+  useEffect(() => {
+    if (!composingRef.current) {
+      setLocalPromptText(propsPromptText);
+    }
+  }, [propsPromptText]);
   const negativePromptText = normalizeTextValue(element.props.negativePrompt);
   const styleText = normalizeTextValue(element.props.style);
   const styleTags = useMemo(
@@ -827,6 +835,16 @@ export function VideoGenerateNodeView({
                   placeholder={t('videoGenerate.promptPlaceholder')}
                   onChange={(event) => {
                     const next = event.target.value.slice(0, 500);
+                    setLocalPromptText(next);
+                    if (!composingRef.current) {
+                      onUpdate({ promptText: next });
+                    }
+                  }}
+                  onCompositionStart={() => { composingRef.current = true; }}
+                  onCompositionEnd={(event) => {
+                    composingRef.current = false;
+                    const next = (event.target as HTMLTextAreaElement).value.slice(0, 500);
+                    setLocalPromptText(next);
                     onUpdate({ promptText: next });
                   }}
                   data-board-scroll

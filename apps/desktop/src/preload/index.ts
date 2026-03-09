@@ -220,6 +220,10 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   // 设置"关闭时最小化到托盘"偏好。
   setMinimizeToTray: (value: boolean): Promise<{ ok: true }> =>
     ipcRenderer.invoke('openloaf:app:set-minimize-to-tray', { value }),
+  // 获取最新安装包下载 URL（兜底恢复用）。
+  getLatestInstallerUrl: (): Promise<
+    { ok: true; url: string; version: string } | { ok: false; reason: string }
+  > => ipcRenderer.invoke('openloaf:app:get-latest-installer-url'),
   // Resolve local file path from a File object.
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   // System calendar access.

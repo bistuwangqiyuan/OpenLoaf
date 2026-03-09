@@ -25,6 +25,7 @@ export type NavigationViewType =
   | "calendar"
   | "email"
   | "scheduled-tasks"
+  | "canvas-list"
   | "project"
   | "workspace-chat"
   | "ai-assistant"
@@ -38,6 +39,7 @@ export type ActiveView =
   | { type: "calendar" }
   | { type: "email" }
   | { type: "scheduled-tasks" }
+  | { type: "canvas-list" }
   | { type: "ai-assistant" };
 
 /** 视图运行时状态（布局尺寸、折叠状态等） */
@@ -134,6 +136,8 @@ function buildActiveView(
       return { type: "email" };
     case "scheduled-tasks":
       return { type: "scheduled-tasks" };
+    case "canvas-list":
+      return { type: "canvas-list" };
     case "ai-assistant":
       return { type: "ai-assistant" };
     default:

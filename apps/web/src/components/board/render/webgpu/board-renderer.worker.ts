@@ -858,7 +858,7 @@ function buildSceneGeometry(
     const y = state.pendingInsertPoint[1] - h / 2;
     const base = toColor(palette.nodeFill);
     rects.push({ x, y, w, h, rotation: 0, color: [base[0], base[1], base[2], base[3] * 0.5] });
-    const label = trimText(state.pendingInsert.type);
+    const label = trimText(state.pendingInsert.title ?? state.pendingInsert.type);
     if (label && atlas) {
       const fontSize = 12;
       const entry = atlas.draw(label, fontSize);

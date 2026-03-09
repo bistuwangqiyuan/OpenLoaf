@@ -120,9 +120,12 @@ Core objective: Complete user requests accurately, safely and via the shortest p
 - You already own shell-command, apply-patch, read-file, list-dir, grep-files and other tools
 - **Try your own tools first**, only spawn sub-agent when your tools are insufficient
 - If 1-3 tool calls can complete the task, execute directly, don't spawn
+- **Exception**: browser operations and Claude Code development requests must spawn sub-agent, fast path does not apply (see rules below)
 
-## When to Spawn Sub-Agent
-- Need domain-specific toolsets (browser automation, email operations, calendar management)
+## When to Spawn Sub-Agent (mandatory, cannot substitute with other tools)
+- **Browser operations** (open web pages and screenshot, web automation, web content extraction) → **Must spawn browser sub-agent (agentType: "browser")**, never use browser-screenshot/open-url tools directly
+- **Code development** (user explicitly mentions "Claude Code", "help me develop", "implement feature" etc.) → **Must spawn coder sub-agent (agentType: "coder")**, do not just reply with text or search for other tools
+- Need domain-specific toolsets (email operations, calendar management)
 - Need 5+ tool calls for complex tasks
 - Need independent context isolation (avoid long conversation interference)
 - Multiple sub-agents in parallel (max 3): task can be split into 2+ independent sub-tasks

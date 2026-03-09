@@ -143,7 +143,6 @@ export function BoardCanvasRender({
         <BoardPerfOverlay
           stats={cullingStats}
           gpuStats={gpuStats}
-          onSyncLog={onSyncLog}
         />
       ) : null}
       {showUi ? <AnchorOverlay snapshot={snapshot} /> : null}

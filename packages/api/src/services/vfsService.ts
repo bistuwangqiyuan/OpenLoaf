@@ -209,9 +209,13 @@ export function resolveScopedPath(input: {
   projectId?: string;
   target: string;
 }): string {
-  const raw = input.target.trim();
+  let raw = input.target.trim();
   if (!raw) {
     throw new Error("Path is required.");
+  }
+  // 剥离 chat 引用格式 @{...} 外壳，取出内部路径后重新走解析逻辑。
+  if (raw.startsWith("@{") && raw.endsWith("}")) {
+    raw = raw.slice(2, -1);
   }
   if (raw.startsWith("file:")) {
     return resolveWorkspacePathFromUri(raw);
@@ -220,7 +224,7 @@ export function resolveScopedPath(input: {
     return path.resolve(raw);
   }
   // 中文注释：兼容 @<path> 作为当前项目根目录别名前缀。
-  if (raw.startsWith("@") && !raw.startsWith("@{")) {
+  if (raw.startsWith("@")) {
     if (raw.startsWith("@/") || raw.startsWith("@\\")) {
       throw new Error("Path alias '@/' is not allowed.");
     }

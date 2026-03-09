@@ -55,9 +55,25 @@ function isJpegOrPng(file: File): boolean {
   return ext === "png" || ext === "jpg" || ext === "jpeg";
 }
 
+/** Check whether a file is SVG. */
+function isSvg(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const ext = getFileExtension(file.name);
+  return type === "image/svg+xml" || ext === "svg";
+}
+
+/** Check whether a mime type is SVG. */
+function isSvgMime(mimeType: string): boolean {
+  return mimeType.toLowerCase() === "image/svg+xml";
+}
+
+/** Default dimension used for SVGs without explicit width/height. */
+const SVG_DEFAULT_DIMENSION = 300;
+
 /** Decide whether a file should be converted to PNG before insertion. */
 export function shouldConvertImageToPng(file: File): boolean {
-  return !isJpegOrPng(file);
+  if (isJpegOrPng(file) || isSvg(file)) return false;
+  return true;
 }
 
 /** Check whether a file is HEIC/HEIF. */
@@ -130,7 +146,7 @@ async function convertImageFileToPng(file: File): Promise<File> {
 export async function convertImageFileToPngIfNeeded(
   file: File
 ): Promise<{ file: File; converted: boolean }> {
-  if (isJpegOrPng(file)) {
+  if (isJpegOrPng(file) || isSvg(file)) {
     return { file, converted: false };
   }
   if (isHeicLike(file)) {
@@ -168,6 +184,13 @@ async function buildPreviewDataUrl(
   mimeType: string,
   options: { maxDimension: number; quality: number }
 ): Promise<{ previewSrc: string; previewWidth: number; previewHeight: number }> {
+  // SVG 直接使用原始 data URL 作为预览，跳过 canvas 渲染。
+  if (isSvgMime(mimeType)) {
+    const w = image.naturalWidth || SVG_DEFAULT_DIMENSION;
+    const h = image.naturalHeight || SVG_DEFAULT_DIMENSION;
+    const [previewWidth, previewHeight] = fitSize(w, h, options.maxDimension);
+    return { previewSrc: image.src, previewWidth, previewHeight };
+  }
   const [previewWidth, previewHeight] = fitSize(
     image.naturalWidth,
     image.naturalHeight,
@@ -213,8 +236,9 @@ export async function buildImageNodePayloadFromFile(
 ): Promise<ImageNodePayload> {
   const originalSrc = await readBlobAsDataUrl(file);
   const image = await decodeImage(originalSrc);
-  const naturalWidth = image.naturalWidth || 1;
-  const naturalHeight = image.naturalHeight || 1;
+  const svgFallback = isSvg(file) ? SVG_DEFAULT_DIMENSION : 1;
+  const naturalWidth = image.naturalWidth || svgFallback;
+  const naturalHeight = image.naturalHeight || svgFallback;
   const { previewSrc } = await buildPreviewDataUrl(image, file.type, {
     maxDimension: options?.maxPreviewDimension ?? IMAGE_PREVIEW_MAX_DIMENSION,
     quality: options?.quality ?? IMAGE_PREVIEW_QUALITY,
@@ -268,9 +292,10 @@ export async function buildImageNodePayloadFromUri(
     previewMode === "none"
       ? await loadImageFromBlob(blob)
       : await decodeImage(await readBlobAsDataUrl(blob));
-  const naturalWidth = image.naturalWidth || 1;
-  const naturalHeight = image.naturalHeight || 1;
   const mimeType = blob.type || "image/png";
+  const svgFallback = isSvgMime(mimeType) ? SVG_DEFAULT_DIMENSION : 1;
+  const naturalWidth = image.naturalWidth || svgFallback;
+  const naturalHeight = image.naturalHeight || svgFallback;
   const previewSrc =
     previewMode === "none"
       ? ""

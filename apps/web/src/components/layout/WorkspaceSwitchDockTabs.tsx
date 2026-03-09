@@ -16,11 +16,11 @@ import {
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabs } from "@/hooks/use-tabs";
 import { WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
-import { CalendarDays, Clock, LayoutDashboard, Mail } from "lucide-react";
+import { CalendarDays, Clock, LayoutDashboard, Mail, Palette } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-type WorkspaceSwitchTabId = "calendar" | "email" | "workbench" | "scheduled";
+type WorkspaceSwitchTabId = "calendar" | "email" | "workbench" | "scheduled" | "canvas";
 
 type WorkspaceSwitchTarget = DockTabItem & {
   /** Tab id for workspace quick switcher. */
@@ -77,6 +77,16 @@ function buildWorkspaceSwitchTabs(t: (key: string) => string): WorkspaceSwitchTa
       title: t('nav:tasks'),
       tabIcon: "⏰",
     },
+    {
+      id: "canvas",
+      label: t('nav:canvas'),
+      icon: Palette,
+      tone: "violet",
+      baseId: "base:canvas-list",
+      component: "canvas-list-page",
+      title: t('nav:canvas'),
+      tabIcon: "🎨",
+    },
   ];
 }
 
@@ -85,6 +95,7 @@ const COMPONENT_TO_TAB_ID: Record<string, WorkspaceSwitchTabId> = {
   "email-page": "email",
   "scheduled-tasks-page": "scheduled",
   "workspace-desktop": "workbench",
+  "canvas-list-page": "canvas",
 };
 
 /** Render bottom quick switcher for workspace entry pages. */
@@ -130,7 +141,7 @@ export default function WorkspaceSwitchDockTabs({ tabId }: { tabId: string }) {
         onChange={handleChange}
         size="md"
         active={isActive}
-        expandedWidth={520}
+        expandedWidth={600}
         inputPlaceholder={t('ai:input.defaultPlaceholder')}
       />
     </div>

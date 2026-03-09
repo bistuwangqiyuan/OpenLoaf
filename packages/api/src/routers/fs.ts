@@ -19,7 +19,9 @@ import { resolveFilePathFromUri, resolveScopedPath, resolveScopedRootPath, toRel
 import { readWorkspaceProjectTrees } from "../services/projectTreeService";
 
 /** Board folder prefix for server-side sorting. */
-const BOARD_FOLDER_PREFIX = "tnboard_";
+const BOARD_FOLDER_PREFIX = "board_";
+/** Legacy board folder prefix for backward compatibility. */
+const BOARD_FOLDER_PREFIX_LEGACY = "tnboard_";
 /** Board thumbnail file name inside a board folder. */
 const BOARD_THUMBNAIL_FILE_NAME = "index.png";
 /** Directory names ignored by search when hidden entries are excluded. */
@@ -296,13 +298,18 @@ function isImageExt(ext: string): boolean {
   return getMimeByExt(ext).startsWith("image/");
 }
 
-/** Return true when the folder name follows the board prefix. */
+/** Return true when the folder name follows a board prefix (new or legacy). */
 function isBoardFolderName(name: string): boolean {
-  return name.toLowerCase().startsWith(BOARD_FOLDER_PREFIX);
+  const lower = name.toLowerCase();
+  return lower.startsWith(BOARD_FOLDER_PREFIX) || lower.startsWith(BOARD_FOLDER_PREFIX_LEGACY);
 }
 
 /** Resolve board folder display name. */
 function getBoardDisplayName(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.startsWith(BOARD_FOLDER_PREFIX_LEGACY)) {
+    return name.slice(BOARD_FOLDER_PREFIX_LEGACY.length) || name;
+  }
   return name.slice(BOARD_FOLDER_PREFIX.length) || name;
 }
 

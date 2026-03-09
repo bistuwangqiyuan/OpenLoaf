@@ -326,6 +326,12 @@ async function main() {
   const version = pkg.version
   console.log(`📦 Electron version: ${version}`)
 
+  // 读取 web/server 版本，写入 manifest 的 bundledVersions 字段
+  const serverPkg = JSON.parse(readFileSync(path.resolve(electronRoot, '..', 'server', 'package.json'), 'utf-8'))
+  const webPkg = JSON.parse(readFileSync(path.resolve(electronRoot, '..', 'web', 'package.json'), 'utf-8'))
+  const bundledVersions = { server: serverPkg.version, web: webPkg.version }
+  console.log(`📦 Bundled versions: server=${bundledVersions.server}, web=${bundledVersions.web}`)
+
   const isBeta = version.includes('-beta')
   const channel = isBeta ? 'beta' : 'stable'
   console.log(`📡 Channel: ${channel}`)
@@ -373,6 +379,7 @@ async function main() {
     // 写 desktop/{version}/manifest.json（合并后的最终版本）
     const versionManifest = {
       version,
+      bundledVersions,
       publishedAt: new Date().toISOString(),
       channel,
       platforms: mergedPlatforms,
@@ -542,6 +549,7 @@ async function main() {
 
     const versionManifest = {
       version,
+      bundledVersions,
       publishedAt: new Date().toISOString(),
       channel,
       platforms: mergedPlatforms,
@@ -575,6 +583,7 @@ async function main() {
   // 写 desktop/{version}/manifest.json
   const versionManifest = {
     version,
+    bundledVersions,
     publishedAt: new Date().toISOString(),
     channel,
     platforms,

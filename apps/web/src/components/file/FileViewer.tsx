@@ -12,7 +12,7 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { ReadFileErrorFallback } from "@/components/file/lib/read-file-error";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface FileViewerProps {
   uri?: string;
@@ -133,49 +133,24 @@ export default function FileViewer({ uri, name, ext, projectId, rootUri }: FileV
     )
   );
 
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择文件</div>;
-  }
-
-  if (fileQuery.isLoading) {
-    return <div className="h-full w-full p-4 text-muted-foreground">加载中…</div>;
-  }
-
-  if (fileQuery.data?.tooLarge) {
+  if (!uri || fileQuery.isLoading || fileQuery.data?.tooLarge || isBinaryFallback || fileQuery.isError) {
     return (
-      <ReadFileErrorFallback
+      <ViewerGuard
         uri={uri}
         name={name}
         projectId={projectId}
         rootUri={rootUri}
-        tooLarge
-      />
-    );
-  }
-
-  if (isBinaryFallback) {
-    return (
-      <ReadFileErrorFallback
-        uri={uri}
-        name={name}
-        projectId={projectId}
-        rootUri={rootUri}
-        forceAction
-        message="当前程序不支持该文件类型"
-        description="建议使用系统程序打开或下载后查看。"
-      />
-    );
-  }
-
-  if (fileQuery.isError) {
-    return (
-      <ReadFileErrorFallback
-        uri={uri}
-        name={name}
-        projectId={projectId}
-        rootUri={rootUri}
-        error={fileQuery.error}
-      />
+        loading={fileQuery.isLoading}
+        tooLarge={fileQuery.data?.tooLarge}
+        notSupported={isBinaryFallback}
+        forceAction={isBinaryFallback}
+        error={fileQuery.isError}
+        errorDetail={fileQuery.error}
+        errorMessage={isBinaryFallback ? "当前程序不支持该文件类型" : undefined}
+        errorDescription={isBinaryFallback ? "建议使用系统程序打开或下载后查看。" : undefined}
+      >
+        {null}
+      </ViewerGuard>
     );
   }
 

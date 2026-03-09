@@ -76,6 +76,13 @@ const DOC_EXTS = new Set(['.docx', '.doc'])
 
 type FileType = 'image' | 'video' | 'audio' | 'pdf' | 'spreadsheet' | 'document' | 'other'
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
 function detectFileType(ext: string): FileType {
   if (IMAGE_EXTS.has(ext)) return 'image'
   if (VIDEO_EXTS.has(ext)) return 'video'
@@ -147,6 +154,7 @@ export const fileInfoTool = tool({
       fileName: path.basename(absPath),
       filePath: absPath,
       fileSize: stat.size,
+      formattedSize: formatFileSize(stat.size),
       mimeType: MIME_MAP[ext] ?? 'application/octet-stream',
       extension: ext,
       createdAt: stat.birthtime.toISOString(),

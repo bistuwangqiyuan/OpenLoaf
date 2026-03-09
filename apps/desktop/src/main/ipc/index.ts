@@ -15,10 +15,13 @@ import type { Logger } from '../logging/startupLogger';
 import { checkForUpdates, getAutoUpdateStatus, restartForUpdates } from '../autoUpdate';
 import {
   checkForIncrementalUpdates,
+  fetchJson,
   getIncrementalUpdateStatus,
   resetToBuiltinVersion,
+  resolveDesktopVersionManifest,
 } from '../incrementalUpdate';
 import {
+  resolveUpdateBaseUrl,
   resolveUpdateChannel,
   switchUpdateChannel,
   type UpdateChannel,
@@ -905,6 +908,37 @@ export function registerIpcHandlers(args: { log: Logger }) {
   ipcMain.handle('openloaf:app:set-minimize-to-tray', async (_event, payload: { value: boolean }) => {
     setMinimizeToTray(payload?.value === true);
     return { ok: true as const };
+  });
+
+  // 获取最新安装包下载 URL（兜底恢复用）。
+  ipcMain.handle('openloaf:app:get-latest-installer-url', async () => {
+    try {
+      const baseUrl = resolveUpdateBaseUrl();
+      const channel = resolveUpdateChannel();
+
+      // 1. 读取渠道 manifest → 获取最新 desktop 版本号
+      const channelManifest = (await fetchJson(`${baseUrl}/${channel}/manifest.json`)) as {
+        desktop?: { version?: string };
+      };
+      const desktopVersion = channelManifest?.desktop?.version;
+      if (!desktopVersion) return { ok: false as const, reason: 'no-desktop-version' };
+
+      // 2. 读取版本 manifest → 获取平台下载 URL
+      const versionManifest = (await resolveDesktopVersionManifest(baseUrl, desktopVersion)) as {
+        platforms?: Record<string, { url?: string }>;
+      };
+      const platforms = versionManifest?.platforms;
+      if (!platforms) return { ok: false as const, reason: 'no-platforms' };
+
+      // 3. 根据当前平台+架构选择下载链接
+      const platformKey = `${process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'win' : 'linux'}-${process.arch}`;
+      const platformInfo = platforms[platformKey];
+      if (!platformInfo?.url) return { ok: false as const, reason: 'no-platform-match' };
+
+      return { ok: true as const, url: platformInfo.url, version: desktopVersion };
+    } catch (error) {
+      return { ok: false as const, reason: String(error) };
+    }
   });
 
   args.log('IPC handlers registered');

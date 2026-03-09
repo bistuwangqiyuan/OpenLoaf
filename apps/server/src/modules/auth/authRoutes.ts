@@ -30,6 +30,7 @@ export function registerAuthRoutes(app: Hono): void {
     const loginCode = c.req.query("code");
     const returnTo = c.req.query("returnTo");
     if (!loginCode) {
+      logger.warn("[auth] callback missing login code");
       return c.html(
         renderAuthCallbackPage({
           message: "OpenLoaf 登录失败，缺少回调参数",
@@ -40,7 +41,7 @@ export function registerAuthRoutes(app: Hono): void {
     const state = extractLoginState(returnTo);
     // 逻辑：login_code 缓存供本地 Web 轮询消费。
     storeLoginCode(state, loginCode);
-    logger.info({ state: state ?? "default" }, "SaaS login code received");
+    logger.info({ state: state ?? "default" }, "[auth] login code received and stored");
     return c.html(
       renderAuthCallbackPage({
         message: "已成功登录 OpenLoaf",
@@ -52,6 +53,9 @@ export function registerAuthRoutes(app: Hono): void {
   app.get("/auth/login-code", (c) => {
     const state = c.req.query("state");
     const code = consumeLoginCode(state);
+    if (code) {
+      logger.info({ state: state ?? "default" }, "[auth] login code consumed by frontend");
+    }
     return c.json({ code: code ?? null });
   });
 }

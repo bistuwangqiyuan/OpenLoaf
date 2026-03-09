@@ -258,7 +258,9 @@ export default function FilePreviewDialog() {
               openUri={currentItem.openUri}
               name={currentItem.name}
               projectId={currentItem.projectId}
+              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
+              boardId={currentItem.boardId}
               thumbnailSrc={currentItem.thumbnailSrc}
               width={currentItem.width}
               height={currentItem.height}

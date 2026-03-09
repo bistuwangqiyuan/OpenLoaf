@@ -14,7 +14,7 @@ import { create } from "zustand";
 import i18next from "i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { AI_ASSISTANT_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
+import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 
 export type GlobalShortcutDefinition = {
   id: string;
@@ -30,6 +30,7 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
   { id: "open.calendar", label: "打开日历", keys: "Mod+L" },
   { id: "open.workbench", label: "打开工作台", keys: "Mod+T" },
   { id: "open.ai-assistant", label: "打开 AI 助手", keys: "Mod+I" },
+  { id: "open.canvas-list", label: "打开画布列表", keys: "Mod+K" },
   {
     id: "settings.open",
     label: "打开设置",
@@ -178,6 +179,20 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
       { closeSearch: true },
     );
     return;
+  }
+
+  // Cmd/Ctrl + K：打开画布列表（在输入框中不生效）。
+  if (ctx.workspaceId && keyLower === "k" && withMod && !event.shiftKey && !event.altKey) {
+    if (!isEditableTarget(event.target)) {
+      const quickOpenLeftWidthPercent = overlay.searchOpen ? 70 : 100;
+      event.preventDefault();
+      openSingletonTab(
+        ctx.workspaceId,
+        CANVAS_LIST_TAB_INPUT,
+        { leftWidthPercent: quickOpenLeftWidthPercent, closeSearch: true },
+      );
+      return;
+    }
   }
 
   if (process.env.NODE_ENV !== "development") {

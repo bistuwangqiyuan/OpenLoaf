@@ -10,7 +10,7 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import { AlertTriangle, RefreshCw, Send } from "lucide-react"
+import { AlertTriangle, Download, RefreshCw, Send } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { SaaSClient } from "@openloaf-saas/sdk"
@@ -27,6 +27,7 @@ export type CrashInfo = {
 export function ServerCrashScreen({ crashInfo }: { crashInfo: CrashInfo }) {
   const { t } = useTranslation("common")
   const [submitting, setSubmitting] = useState(false)
+  const [downloadingUrl, setDownloadingUrl] = useState(false)
 
   const handleSubmitFeedback = useCallback(async () => {
     const baseUrl = resolveSaasBaseUrl()
@@ -96,6 +97,23 @@ export function ServerCrashScreen({ crashInfo }: { crashInfo: CrashInfo }) {
     }
   }, [crashInfo, t])
 
+  const handleDownloadLatest = useCallback(async () => {
+    if (!isElectronEnv()) return
+    setDownloadingUrl(true)
+    try {
+      const result = await window.openloafElectron?.getLatestInstallerUrl?.()
+      if (result?.ok && result.url) {
+        await window.openloafElectron?.openExternal?.(result.url)
+      } else {
+        toast.error(t("crashScreen.downloadFailed"))
+      }
+    } catch {
+      toast.error(t("crashScreen.downloadFailed"))
+    } finally {
+      setDownloadingUrl(false)
+    }
+  }, [t])
+
   const handleRestart = useCallback(async () => {
     if (isElectronEnv()) {
       await window.openloafElectron?.relaunchApp?.()
@@ -144,6 +162,19 @@ export function ServerCrashScreen({ crashInfo }: { crashInfo: CrashInfo }) {
               ? t("crashScreen.submittingFeedback")
               : t("crashScreen.submitFeedback")}
           </button>
+          {isElectronEnv() ? (
+            <button
+              type="button"
+              onClick={handleDownloadLatest}
+              disabled={downloadingUrl}
+              className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted/80 disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              {downloadingUrl
+                ? t("crashScreen.fetchingDownload")
+                : t("crashScreen.downloadLatest")}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleRestart}

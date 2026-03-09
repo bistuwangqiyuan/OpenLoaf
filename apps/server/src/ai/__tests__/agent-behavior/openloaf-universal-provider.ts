@@ -51,7 +51,6 @@ import {
   setChatModel,
   setAbortSignal,
   setupE2eTestEnv,
-  setE2eAgentModel,
 } from '../helpers/testEnv'
 
 installHttpProxy()
@@ -153,16 +152,14 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
   }
 
   /**
-   * 临时设置模型 ID（用于多模型对比测试）。
-   * 同时写入 agent.json（E2E 路径读取）和环境变量（子 Agent 路径读取）。
-   * 返回还原函数。--max-concurrency 1 保证无并发冲突。
+   * 临时设置模型 ID（用于子 Agent 路径的模型对比测试）。
+   * E2E 路径现在通过 request.chatModelId 直传，无需全局状态。
+   * 子 Agent 路径仍需环境变量（resolveTestModel 读取）。
    */
   private applyModelOverride(): () => void {
     if (!this.modelId) return () => {}
     const prev = process.env.OPENLOAF_TEST_CHAT_MODEL_ID
     process.env.OPENLOAF_TEST_CHAT_MODEL_ID = this.modelId
-    // E2E 路径通过 chatStreamService → resolveAgentModelIds → agent.json 读取模型
-    setE2eAgentModel(this.modelId)
     return () => {
       if (prev === undefined) delete process.env.OPENLOAF_TEST_CHAT_MODEL_ID
       else process.env.OPENLOAF_TEST_CHAT_MODEL_ID = prev
@@ -235,6 +232,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
         intent: 'chat',
         responseMode: 'stream',
         timezone: 'Asia/Shanghai',
+        chatModelId: this.modelId,
       },
       cookies: {},
       requestSignal: ac.signal,
@@ -244,7 +242,10 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
 
     const parsed = await consumeSseResponse(response)
     // Expose args alias for test assertions (sseParser stores as 'input')
-    const toolCalls = parsed.toolCalls.map((tc) => ({ ...tc, args: tc.input }))
+    const toolCalls = parsed.toolCalls.map((tc) => ({
+      toolCallId: tc.toolCallId, toolName: tc.toolName,
+      args: tc.input, input: tc.input, output: tc.output,
+    }))
     return {
       output: parsed.textOutput,
       metadata: {
@@ -364,6 +365,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
           intent: 'chat',
           responseMode: 'stream',
           timezone: 'Asia/Shanghai',
+          chatModelId: this.modelId,
         },
         cookies: {},
         requestSignal: ac.signal,
@@ -371,7 +373,10 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
         autoApproveTools: true,
       })
       lastParsed = await consumeSseResponse(response)
-      allToolCalls.push(...lastParsed.toolCalls.map((tc) => ({ ...tc, args: tc.input })))
+      allToolCalls.push(...lastParsed.toolCalls.map((tc) => ({
+        toolCallId: tc.toolCallId, toolName: tc.toolName,
+        args: tc.input, input: tc.input, output: tc.output,
+      })))
       allCommandEvents.push(...lastParsed.commandEvents)
     }
 

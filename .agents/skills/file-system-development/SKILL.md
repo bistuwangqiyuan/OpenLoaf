@@ -50,6 +50,7 @@ openFilePreview() — 统一入口
 | [file-operations.md](file-operations.md) | Model API、CRUD、拖拽、历史、选择、重命名 | 文件操作功能开发 |
 | [preview-system.md](preview-system.md) | Store、打开模式、类型路由、最近打开 | 预览/打开逻辑修改 |
 | [backend-api.md](backend-api.md) | tRPC fs 路由 API 速查 | 后端文件操作开发 |
+| [path-conventions.md](path-conventions.md) | 文件路径规范、作用域隔离、安全原则、各模块路径处理 | 涉及文件路径传递/解析的所有开发 |
 
 ## Key Files Map
 
@@ -74,7 +75,8 @@ apps/web/src/components/file/
     ├── file-viewer-target.ts    ← 扩展名→Viewer 映射
     ├── open-file.ts             ← 文件打开入口 (483行)
     ├── open-file-preview.tsx    ← 嵌入式预览渲染
-    ├── read-file-error.tsx      ← 错误 fallback UI
+    ├── viewer-guard.tsx         ← 标准化兜底组件（所有 Viewer 必须使用）
+    ├── read-file-error.tsx      ← 错误 fallback UI（由 viewer-guard 内部调用）
     ├── recent-open.ts           ← 最近打开管理
     ├── viewer-shortcuts.ts      ← 快捷键处理
     └── video-metadata.ts        ← 视频元数据提取
@@ -112,6 +114,7 @@ packages/api/src/routers/fs.ts  ← 后端 tRPC 路由 (~800行)
 | `open-file.ts` 打开逻辑变更 | preview-system.md |
 | `file-preview-store.ts` Store 变更 | preview-system.md |
 | `open-file-preview.tsx` 嵌入渲染变更 | viewer-development.md |
+| `viewer-guard.tsx` 兜底组件变更 | viewer-development.md |
 | `read-file-error.tsx` 错误处理变更 | viewer-development.md |
 | 新增 Viewer 组件 | viewer-development.md (现有 Viewer 参考表) |
 | `file-system-model.ts` Model 变更 | file-operations.md |
@@ -121,5 +124,9 @@ packages/api/src/routers/fs.ts  ← 后端 tRPC 路由 (~800行)
 | `use-file-system-drag.ts` / `use-file-system-selection.ts` 变更 | file-operations.md |
 | `packages/api/src/routers/fs.ts` 路由变更 | backend-api.md |
 | 新增 tRPC fs 操作 | backend-api.md |
+| `vfsService.ts` 路径解析变更 | path-conventions.md |
+| `workspaceConfig.ts` 配置变更 | path-conventions.md |
+| `hlsService.ts` 路径解析变更 | path-conventions.md |
+| 新增需要文件路径的 API 端点 | path-conventions.md |
 
 **同步规则**: 修改上述文件后，在提交前检查对应 skill 文件是否需要更新。保持 skill 与代码一致。

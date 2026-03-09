@@ -9,13 +9,25 @@
  */
 "use client";
 
-import { LayoutGrid, RotateCw, Clipboard, Maximize2, Minimize2, Scan } from "lucide-react";
+import {
+  LayoutGrid,
+  RotateCw,
+  Clipboard,
+  Maximize2,
+  Minimize2,
+  Scan,
+  Type,
+  FileText,
+  ImagePlus,
+  Film,
+} from "lucide-react";
 import type { ReactElement, MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@openloaf/ui/context-menu";
 
@@ -40,6 +52,16 @@ export type BoardContextMenuProps = {
   pasteAvailable: boolean;
   /** Whether paste action is disabled. */
   pasteDisabled?: boolean;
+  /** Insert text node handler. */
+  onInsertText?: () => void;
+  /** Insert file handler. */
+  onInsertFile?: () => void;
+  /** Insert AI image generate node handler. */
+  onInsertImageGenerate?: () => void;
+  /** Insert AI video generate node handler. */
+  onInsertVideoGenerate?: () => void;
+  /** Whether insert actions are disabled (e.g. locked). */
+  insertDisabled?: boolean;
   /** Context menu trigger handler. */
   onContextMenu?: (event: ReactMouseEvent) => void;
 };
@@ -55,6 +77,11 @@ export function BoardContextMenu({
   onPaste,
   pasteAvailable,
   pasteDisabled = false,
+  onInsertText,
+  onInsertFile,
+  onInsertImageGenerate,
+  onInsertVideoGenerate,
+  insertDisabled = false,
   isFullscreen,
   onContextMenu,
 }: BoardContextMenuProps) {
@@ -66,9 +93,61 @@ export function BoardContextMenu({
       </ContextMenuTrigger>
       <ContextMenuContent className="w-52">
         <ContextMenuItem
+          icon={Type}
+          disabled={insertDisabled}
+          onSelect={() => {
+            if (insertDisabled) return;
+            onInsertText?.();
+          }}
+        >
+          {t('contextMenu.insertText')}
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon={FileText}
+          disabled={insertDisabled}
+          onSelect={() => {
+            if (insertDisabled) return;
+            onInsertFile?.();
+          }}
+        >
+          {t('contextMenu.insertFile')}
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon={ImagePlus}
+          disabled={insertDisabled}
+          onSelect={() => {
+            if (insertDisabled) return;
+            onInsertImageGenerate?.();
+          }}
+        >
+          {t('contextMenu.aiImageGenerate')}
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon={Film}
+          disabled={insertDisabled}
+          onSelect={() => {
+            if (insertDisabled) return;
+            onInsertVideoGenerate?.();
+          }}
+        >
+          {t('contextMenu.aiVideoGenerate')}
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuItem
+          icon={Clipboard}
+          disabled={pasteDisabled || !pasteAvailable}
+          onSelect={() => {
+            if (pasteDisabled || !pasteAvailable) return;
+            onPaste();
+          }}
+        >
+          {t('contextMenu.paste')}
+        </ContextMenuItem>
+        <ContextMenuItem
           icon={isFullscreen ? Minimize2 : Maximize2}
           onSelect={() => {
-            // 逻辑：右键菜单内切换左右面板，进入/退出全屏。
             onToggleFullscreen();
           }}
         >
@@ -77,7 +156,6 @@ export function BoardContextMenu({
         <ContextMenuItem
           icon={Scan}
           onSelect={() => {
-            // 逻辑：右键菜单内最大化视图，仅调整画布视野。
             onFitView();
           }}
         >
@@ -86,7 +164,6 @@ export function BoardContextMenu({
         <ContextMenuItem
           icon={LayoutGrid}
           onSelect={() => {
-            // 逻辑：右键菜单内自动布局，保持与工具栏行为一致。
             onAutoLayout();
           }}
         >
@@ -95,22 +172,10 @@ export function BoardContextMenu({
         <ContextMenuItem
           icon={RotateCw}
           onSelect={() => {
-            // 逻辑：右键菜单内刷新视图，避免残留选区显示异常。
             onRefresh();
           }}
         >
           {t('contextMenu.reload')}
-        </ContextMenuItem>
-        <ContextMenuItem
-          icon={Clipboard}
-          disabled={pasteDisabled || !pasteAvailable}
-          onSelect={() => {
-            // 逻辑：优先走 ContextMenu 选择，避免被画布捕获 click。
-            if (pasteDisabled || !pasteAvailable) return;
-            onPaste();
-          }}
-        >
-          {t('contextMenu.paste')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

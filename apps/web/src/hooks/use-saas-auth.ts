@@ -101,11 +101,13 @@ export const useSaasAuth = create<SaasAuthState>((set, get) => ({
   refreshSession: async () => {
     if (refreshing) return;
     refreshing = true;
+    console.info("[auth] refreshSession start");
     try {
       const token = getCachedAccessToken();
       if (!token) {
         const ok = await isAuthenticated();
         const user = ok ? await resolveAuthUser() : null;
+        console.info("[auth] refreshSession done", { loggedIn: ok, email: user?.email });
         set({
           loggedIn: ok,
           loading: false,
@@ -114,6 +116,7 @@ export const useSaasAuth = create<SaasAuthState>((set, get) => ({
         return;
       }
       const user = await resolveAuthUser();
+      console.info("[auth] refreshSession done", { loggedIn: true, email: user?.email });
       set({
         loggedIn: true,
         loading: false,

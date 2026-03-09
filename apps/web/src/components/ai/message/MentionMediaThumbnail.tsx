@@ -103,10 +103,11 @@ export function MentionImageThumbnail({ path: filePath }: { path: string }) {
   const [objectUrl, setObjectUrl] = React.useState<string | null>(null)
   const [failed, setFailed] = React.useState(false)
   const handleClick = useFileOpen(filePath)
+  const { projectId } = useChatSession()
 
   React.useEffect(() => {
     let revoked = false
-    fetchBlobFromUri(filePath)
+    fetchBlobFromUri(filePath, { projectId: projectId ?? undefined })
       .then((blob) => {
         if (revoked) return
         const ext = getExtension(filePath)
@@ -127,7 +128,7 @@ export function MentionImageThumbnail({ path: filePath }: { path: string }) {
         return null
       })
     }
-  }, [filePath])
+  }, [filePath, projectId])
 
   if (failed) return <MentionFallbackChip filePath={filePath} />
 
@@ -160,10 +161,11 @@ export function MentionVideoThumbnail({ path: filePath }: { path: string }) {
   const [objectUrl, setObjectUrl] = React.useState<string | null>(null)
   const [failed, setFailed] = React.useState(false)
   const handleClick = useFileOpen(filePath)
+  const { projectId } = useChatSession()
 
   React.useEffect(() => {
     let revoked = false
-    fetchBlobFromUri(filePath)
+    fetchBlobFromUri(filePath, { projectId: projectId ?? undefined })
       .then((blob) => {
         if (revoked) return
         const url = URL.createObjectURL(blob)
@@ -179,7 +181,7 @@ export function MentionVideoThumbnail({ path: filePath }: { path: string }) {
         return null
       })
     }
-  }, [filePath])
+  }, [filePath, projectId])
 
   if (failed) return <MentionFallbackChip filePath={filePath} />
 

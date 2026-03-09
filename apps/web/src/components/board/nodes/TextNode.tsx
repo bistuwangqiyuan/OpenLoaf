@@ -37,6 +37,10 @@ import {
   Underline,
 } from "lucide-react";
 import { cn } from "@udecode/cn";
+import {
+  BOARD_TOOLBAR_ITEM_BLUE,
+  BOARD_TOOLBAR_ITEM_PURPLE,
+} from "../ui/board-style-system";
 import { useBoardContext } from "../core/BoardProvider";
 import { VIDEO_GENERATE_NODE_TYPE } from "./videoGenerate";
 import { MINDMAP_META } from "../engine/mindmap-layout";
@@ -85,9 +89,9 @@ const TEXT_CONTENT_CLASSNAME =
 const TEXT_VIEW_CLASSNAME = `${TEXT_CONTENT_CLASSNAME} whitespace-pre-wrap break-words`;
 /** Text styling for edit mode. */
 const TEXT_EDIT_CLASSNAME =
-  `${TEXT_CONTENT_CLASSNAME} h-full w-full resize-none bg-transparent outline-none`;
-/** Vertical padding used by the text node container. */
-const TEXT_NODE_VERTICAL_PADDING = 32;
+  `${TEXT_CONTENT_CLASSNAME} h-full w-full resize-none bg-transparent outline-none p-0`;
+/** Vertical padding used by the text node container (matches p-2.5 = 10px * 2). */
+const TEXT_NODE_VERTICAL_PADDING = 20;
 /** Ignore tiny resize deltas to avoid jitter. */
 const TEXT_NODE_RESIZE_EPSILON = 2;
 /** Default font size for text nodes. */
@@ -351,6 +355,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.fontSize'),
       showLabel: true,
       icon: <Type size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       panel: (
         <div className="flex items-center gap-1">
           {TEXT_NODE_FONT_SIZES.map(size => (
@@ -371,6 +376,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.fontWeight'),
       showLabel: true,
       icon: <Bold size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       panel: (
         <div className="flex items-center gap-1">
           {fontWeights.map(weight => (
@@ -391,6 +397,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.style'),
       showLabel: true,
       icon: <Italic size={14} />,
+      className: BOARD_TOOLBAR_ITEM_PURPLE,
       panel: (
         <div className="flex items-center gap-1">
           <TextToolbarPanelButton
@@ -436,6 +443,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.align'),
       showLabel: true,
       icon: <AlignLeft size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       panel: (
         <div className="flex items-center gap-1">
           <TextToolbarPanelButton
@@ -467,6 +475,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.textColor'),
       showLabel: true,
       icon: <Palette size={14} />,
+      className: BOARD_TOOLBAR_ITEM_PURPLE,
       panel: (
         <div className="grid grid-cols-4 gap-1">
           {colorPresets.map(color => {
@@ -514,6 +523,7 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
       label: t('board:textNode.toolbar.backgroundColor'),
       showLabel: true,
       icon: <PaintBucket size={14} />,
+      className: BOARD_TOOLBAR_ITEM_PURPLE,
       panel: (
         <div className="grid grid-cols-4 gap-1">
           {backgroundPresets.map(color => {
@@ -776,11 +786,13 @@ export function TextNodeView({
       resizeRafRef.current = null;
       if (!isEditingRef.current) return;
       const content = contentRef.current;
-      if (!content) return;
+      const container = containerRef.current;
+      if (!content || !container) return;
       if (engine.isLocked() || element.locked) return;
       const snapshot = engine.getSnapshot();
       if (snapshot.draggingId === element.id || snapshot.toolbarDragging) return;
       const contentHeight = Math.ceil(getContentScrollHeight(content));
+      const { y: paddingY } = getElementPadding(container);
       const [x, y, w, h] = element.xywh;
       const baseHeight =
         collapsedHeightRef.current ??
@@ -788,7 +800,7 @@ export function TextNodeView({
         element.xywh[3];
       const targetHeight = Math.max(
         baseHeight,
-        contentHeight + TEXT_NODE_VERTICAL_PADDING
+        contentHeight + paddingY
       );
       if (Math.abs(targetHeight - h) <= TEXT_NODE_RESIZE_EPSILON) return;
       // 逻辑：编辑时根据内容自动调整高度，确保完整可见。
@@ -924,6 +936,7 @@ export function TextNodeView({
       : "bg-transparent",
     "text-slate-900 dark:text-slate-100",
     isEditing ? "cursor-text overflow-visible" : "cursor-default overflow-hidden",
+    !isEditing && isEmpty ? "outline outline-1 outline-dashed outline-slate-300 dark:outline-slate-600" : "",
   ].join(" ");
   if (isGhost) {
     return (
@@ -956,6 +969,7 @@ export function TextNodeView({
           ref={setTextareaRef}
           className={TEXT_EDIT_CLASSNAME}
           style={textStyle}
+          rows={1}
           value={draftText}
           onChange={handleTextChange}
           onBlur={handleEditorBlur}

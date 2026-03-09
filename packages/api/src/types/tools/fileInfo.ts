@@ -21,8 +21,9 @@ export const fileInfoToolDef = {
     'PDF（pdf）→ 返回 pageCount, hasForm, formFieldCount, metadata（title/author/subject 等）；' +
     '电子表格（xlsx/xls/csv）→ 返回 sheetCount, sheets（名称/行列数）；' +
     '其他文件类型 → 仅返回基本信息。' +
-    '通用基本信息：fileName, fileSize, mimeType, createdAt, modifiedAt。' +
+    '通用基本信息：fileName, fileSize（字节），mimeType, createdAt, modifiedAt。' +
     '返回：{ ok, data: { fileType, base: {...}, details: {...} } }。' +
+    '展示文件大小时，务必将字节转换为人类可读单位（KB/MB/GB），不要直接输出字节数。' +
     '不适用：需要读取文件内容时不要使用，改用 read-file 或对应的 query 工具。',
   parameters: z.object({
     actionName: z

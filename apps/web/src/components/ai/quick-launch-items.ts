@@ -8,7 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 
-import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Settings } from "lucide-react"
+import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Palette, Settings } from "lucide-react"
 
 export const QUICK_LAUNCH_ITEMS = [
   {
@@ -54,6 +54,11 @@ export const PROJECT_QUICK_LAUNCH_ITEMS = [
     value: "scheduled", icon: Clock, labelKey: "project.tabScheduled", featureGated: false,
     iconColor: "text-amber-700/70 dark:text-amber-300/70 group-hover:text-amber-700 dark:group-hover:text-amber-200",
     bgColor: "bg-amber-500/10 dark:bg-amber-400/10 group-hover:bg-amber-500/20 dark:group-hover:bg-amber-400/20",
+  },
+  {
+    value: "canvas", icon: Palette, labelKey: "project.tabCanvas", featureGated: false,
+    iconColor: "text-teal-700/70 dark:text-teal-300/70 group-hover:text-teal-700 dark:group-hover:text-teal-200",
+    bgColor: "bg-teal-500/10 dark:bg-teal-400/10 group-hover:bg-teal-500/20 dark:group-hover:bg-teal-400/20",
   },
   {
     value: "settings", icon: Settings, labelKey: "project.tabSettings", featureGated: false,

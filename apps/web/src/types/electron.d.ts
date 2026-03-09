@@ -273,6 +273,10 @@ declare global {
       getMinimizeToTray?: () => Promise<{ ok: true; value: boolean }>;
       /** Set "minimize to tray on close" preference. */
       setMinimizeToTray?: (value: boolean) => Promise<{ ok: true }>;
+      /** Get latest installer download URL for fallback recovery. */
+      getLatestInstallerUrl?: () => Promise<
+        { ok: true; url: string; version: string } | { ok: false; reason: string }
+      >;
       /** Calendar API (system calendars). */
       calendar?: {
         /** Request calendar permission from OS. */

@@ -82,6 +82,13 @@ export const AI_ASSISTANT_TAB_INPUT = {
   icon: "sparkles",
 } as const;
 
+export const CANVAS_LIST_TAB_INPUT = {
+  baseId: "base:canvas-list",
+  component: "canvas-list-page",
+  titleKey: "nav:canvas",
+  icon: "🎨",
+} as const;
+
 export const DEFAULT_TAB_INFO = {
   titleKey: AI_ASSISTANT_TAB_INPUT.titleKey,
   icon: AI_ASSISTANT_TAB_INPUT.icon,

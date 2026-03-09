@@ -34,11 +34,19 @@ export const pdfQueryTool = tool({
   description: pdfQueryToolDef.description,
   inputSchema: zodSchema(pdfQueryToolDef.parameters),
   execute: async (input) => {
-    const { mode, filePath, pageRange } = input as {
+    const { mode: rawMode, filePath, pageRange } = input as {
       mode: string
       filePath: string
       pageRange?: string
     }
+
+    // 规范化 mode 别名（模型可能省略 "read-" 前缀）
+    const MODE_ALIASES: Record<string, string> = {
+      'form-fields': 'read-form-fields',
+      'structure': 'read-structure',
+      'text': 'read-text',
+    }
+    const mode = MODE_ALIASES[rawMode] ?? rawMode
 
     const absPath = await resolveOfficeFile(filePath, ['.pdf'])
 

@@ -242,9 +242,15 @@ export async function ensureDevServices(args: {
   const webHost = new URL(webUrl).hostname || '127.0.0.1';
   let webPort = Number(new URL(webUrl).port || 3001);
   if (!webOk && !(await isPortFree(webHost, webPort))) {
-    webPort = await getFreePort(webHost);
-    webUrl = `http://${webHost}:${webPort}`;
-    args.log(`Web port in use; switched to ${webUrl}`);
+    // 端口被占用但 HTTP 不健康 → 可能是上次残留的 stale web server，尝试清理。
+    killStaleServerOnPort(webHost, webPort, args.log);
+    await delay(500);
+    if (!(await isPortFree(webHost, webPort))) {
+      // 清理失败，换端口。
+      webPort = await getFreePort(webHost);
+      webUrl = `http://${webHost}:${webPort}`;
+      args.log(`Web port still in use; switched to ${webUrl}`);
+    }
   }
 
   let managedServer: ChildProcess | null = null;

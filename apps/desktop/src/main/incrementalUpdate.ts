@@ -8,6 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { app, BrowserWindow, net } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { execFile } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -283,7 +284,7 @@ function emitStatus(
 // 网络下载
 // ---------------------------------------------------------------------------
 
-function fetchJson(url: string): Promise<unknown> {
+export function fetchJson(url: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const request = net.request({
       url,
@@ -792,6 +793,86 @@ export async function checkForIncrementalUpdates(
 }
 
 // ---------------------------------------------------------------------------
+// Desktop 更新时预下载差量 web/server
+// ---------------------------------------------------------------------------
+
+/**
+ * Desktop 更新下载完成后调用。读取即将安装的 desktop 版本的
+ * bundledVersions，与云端最新版本对比，提前下载差量的 web/server。
+ *
+ * 静默操作 — 不改变 UI 状态（desktop 更新提示已处理重启流程）。
+ * 任何失败都优雅降级为当前的双重重启行为。
+ */
+async function preDownloadForDesktopUpdate(nextDesktopVersion: string): Promise<void> {
+  const log = cachedLog ?? (() => {})
+
+  try {
+    const baseUrl = resolveUpdateBaseUrl()
+    const channel = resolveUpdateChannel()
+
+    // 1. 读取即将安装的 desktop 版本的 bundledVersions
+    log(`[incremental-update] Pre-download: reading desktop/${nextDesktopVersion}/manifest.json...`)
+    const desktopManifest = (await resolveDesktopVersionManifest(baseUrl, nextDesktopVersion)) as {
+      bundledVersions?: { server?: string; web?: string }
+    }
+
+    const bundledVersions = desktopManifest?.bundledVersions
+    if (!bundledVersions) {
+      log('[incremental-update] Pre-download: no bundledVersions (old format). Skipping.')
+      return
+    }
+    log(`[incremental-update] Pre-download: next desktop bundles server=${bundledVersions.server}, web=${bundledVersions.web}`)
+
+    // 2. 获取渠道最新 manifest
+    const channelUrl = `${baseUrl}/${channel}/manifest.json`
+    const remote = (await fetchJson(channelUrl)) as RemoteManifest
+
+    // 3. 逐组件对比，下载差量
+    const components: Array<'server' | 'web'> = ['server', 'web']
+    for (const component of components) {
+      const remoteComponent = remote[component]
+      if (!remoteComponent) continue
+
+      const nextBundled = bundledVersions[component]
+      if (!nextBundled) continue
+
+      // 云端不比即将内嵌的版本更新 → 跳过
+      if (!isRemoteNewer(nextBundled, remoteComponent.version)) {
+        log(`[incremental-update] Pre-download: ${component} ${remoteComponent.version} <= next bundled ${nextBundled}. Skip.`)
+        continue
+      }
+
+      // 本地已有更新或相同版本 → 跳过
+      const local = readLocalManifest()
+      const currentVersion = resolveCurrentVersion(component, local)
+      if (!isRemoteNewer(currentVersion, remoteComponent.version)) {
+        log(`[incremental-update] Pre-download: ${component} ${remoteComponent.version} <= current ${currentVersion}. Skip.`)
+        continue
+      }
+
+      // Server 崩溃黑名单检查
+      if (component === 'server') {
+        const blacklist = local.crashedServerVersions ?? []
+        if (blacklist.includes(remoteComponent.version)) {
+          log(`[incremental-update] Pre-download: server ${remoteComponent.version} in crash blacklist. Skip.`)
+          continue
+        }
+        backupDatabase(log)
+      }
+
+      log(`[incremental-update] Pre-download: downloading ${component} ${remoteComponent.version}...`)
+      await updateComponent(component, remoteComponent, log)
+      log(`[incremental-update] Pre-download: ${component} ${remoteComponent.version} applied.`)
+    }
+
+    log('[incremental-update] Pre-download complete.')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    log(`[incremental-update] Pre-download failed (non-fatal): ${message}`)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 获取当前状态
 // ---------------------------------------------------------------------------
 
@@ -979,6 +1060,13 @@ export function installIncrementalUpdate(options: { log: Logger }): void {
       void checkForIncrementalUpdates('scheduled')
     }, CHECK_INTERVAL_MS)
   }
+
+  // Desktop 更新下载完成时，预下载差量的 web/server，避免二次重启。
+  autoUpdater.on('update-downloaded', (info) => {
+    if (info.version) {
+      void preDownloadForDesktopUpdate(info.version)
+    }
+  })
 
   log('[incremental-update] Initialized.')
 }

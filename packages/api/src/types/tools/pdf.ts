@@ -20,9 +20,9 @@ export const pdfQueryToolDef = {
       .min(1)
       .describe('由调用的 LLM 传入，用于说明本次工具调用目的，例如：读取 PDF 内容。'),
     mode: z
-      .enum(['read-structure', 'read-text', 'read-form-fields'])
+      .enum(['read-structure', 'read-text', 'read-form-fields', 'structure', 'text', 'form-fields'])
       .describe(
-        '查询模式：read-structure 获取页数、元数据和表单信息，read-text 提取纯文本内容，read-form-fields 获取表单字段列表',
+        '查询模式：read-structure 获取页数/元数据/表单信息，read-text 提取纯文本内容，read-form-fields 获取可填写表单字段列表',
       ),
     filePath: z
       .string()

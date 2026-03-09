@@ -7,7 +7,9 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
+import { AudioNodeDefinition } from "../nodes/AudioNode";
 import { CalendarNodeDefinition } from "../nodes/CalendarNode";
+import { FileAttachmentNodeDefinition } from "../nodes/FileAttachmentNode";
 import { GroupNodeDefinition, ImageGroupNodeDefinition } from "../nodes/GroupNode";
 import { ImageGenerateNodeDefinition } from "../nodes/imageGenerate";
 import { VideoGenerateNodeDefinition } from "../nodes/videoGenerate";
@@ -23,6 +25,8 @@ import { LoadingNodeDefinition } from "../nodes/LoadingNode";
 export const BOARD_NODE_DEFINITIONS = [
   ImageNodeDefinition,
   VideoNodeDefinition,
+  AudioNodeDefinition,
+  FileAttachmentNodeDefinition,
   CalendarNodeDefinition,
   LinkNodeDefinition,
   StrokeNodeDefinition,

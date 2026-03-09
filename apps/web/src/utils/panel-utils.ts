@@ -68,6 +68,7 @@ const LazyTaskDetailPanel = React.lazy(() =>
 const LazyPlateDocViewer = React.lazy(() => import("@/components/file/PlateDocViewer"));
 const LazyStreamingPlateViewer = React.lazy(() => import("@/components/file/StreamingPlateViewer"));
 const LazyProjectPage = React.lazy(() => import("@/components/project/Project"));
+const LazyCanvasListPage = React.lazy(() => import("@/components/board/CanvasListPage"));
 
 /** Stack wrapper that injects a "open in settings" button into the header slot. */
 function SettingsStackSlotButton({ settingsMenu }: { settingsMenu: string }) {
@@ -151,6 +152,7 @@ export const ComponentMap: Record<string, PanelComponent> = {
   "sub-agent-chat": LazySubAgentChatPanel,
   "ai-debug-viewer": LazyAiDebugViewer,
   "task-detail": LazyTaskDetailPanel,
+  "canvas-list-page": LazyCanvasListPage,
 };
 
 /**

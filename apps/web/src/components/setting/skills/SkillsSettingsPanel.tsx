@@ -35,6 +35,7 @@ import {
   buildUriFromRoot,
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { toast } from "sonner";
+import { useGlobalOverlay } from "@/lib/globalShortcuts";
 
 type SkillScope = "workspace" | "project" | "global";
 
@@ -185,6 +186,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
   const { data: projectData } = useProject(projectId);
   const activeTabId = useTabs((state) => state.activeTabId);
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
+  const setSettingsOpen = useGlobalOverlay((s) => s.setSettingsOpen);
   const workspaceId = workspace?.id ?? "";
 
   /** Filtered skills based on search query and filters. */
@@ -332,8 +334,10 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
           viewerRootUri: baseRootUri,
         },
       });
+      // 关闭设置对话框，避免对话框遮挡 stack 预览面板。
+      setSettingsOpen(false);
     },
-    [activeTabId, projectData?.project?.rootUri, projectId, pushStackItem, workspace?.rootUri],
+    [activeTabId, projectData?.project?.rootUri, projectId, pushStackItem, setSettingsOpen, workspace?.rootUri],
   );
 
   /** Toggle skill enable state for current scope. */

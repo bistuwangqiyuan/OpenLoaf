@@ -9,7 +9,7 @@
  */
 import { memo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ImagePlus, Film, ScanEye, Sparkles } from "lucide-react";
+import { ImagePlus, Film, ScanEye, Sparkles, FileText, Type } from "lucide-react";
 import type { CanvasEngine } from "../engine/CanvasEngine";
 import type { CanvasInsertRequest, CanvasPoint } from "../engine/types";
 import { IMAGE_GENERATE_NODE_TYPE } from "../nodes/imageGenerate/constants";
@@ -34,6 +34,9 @@ export const PENDING_INSERT_DOM_TYPES = new Set([
   IMAGE_GENERATE_NODE_TYPE,
   VIDEO_GENERATE_NODE_TYPE,
   IMAGE_PROMPT_GENERATE_NODE_TYPE,
+  "text",
+  "file-attachment",
+  "audio",
 ]);
 
 type NodePreviewConfig = {
@@ -86,13 +89,85 @@ const NODE_PREVIEW_MAP: Record<string, NodePreviewConfig> = {
   },
 };
 
+/** Extension badge color mapping (matches FileAttachmentNode). */
+function getExtBadgeColor(ext?: string): string {
+  const normalized = (ext ?? "").toLowerCase();
+  if (normalized === "pdf") return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+  if (normalized === "docx" || normalized === "doc")
+    return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+  if (normalized === "xlsx" || normalized === "xls" || normalized === "csv")
+    return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
+  if (normalized === "md" || normalized === "txt")
+    return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+  return "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300";
+}
+
 type PendingInsertPreviewProps = {
   engine: CanvasEngine;
   pendingInsert: CanvasInsertRequest;
   pendingInsertPoint: CanvasPoint;
 };
 
-/** Render a DOM-based preview for pending AI node insertion. */
+/** Render the text node preview. */
+function TextNodePreview({ t }: { t: (key: string) => string }) {
+  return (
+    <div
+      className={[
+        "flex h-full w-full items-center gap-1.5 rounded-sm outline outline-1 outline-dashed p-2.5",
+        "outline-slate-300 bg-white",
+        "dark:outline-slate-600 dark:bg-slate-900",
+      ].join(" ")}
+    >
+      <Type size={13} className="shrink-0 text-slate-400 dark:text-slate-500" />
+      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+        {t("textNode.placeholder")}
+      </span>
+    </div>
+  );
+}
+
+/** Render the file attachment node preview. */
+function FileNodePreview({
+  props,
+  t,
+}: {
+  props: Record<string, unknown>;
+  t: (key: string) => string;
+}) {
+  const fileName = (props.fileName as string) || t("insertTools.file");
+  const ext = (props.extension as string) || fileName.split(".").pop()?.toLowerCase() || "";
+  const badgeColor = getExtBadgeColor(ext);
+
+  return (
+    <div
+      className={[
+        "flex h-full w-full items-center gap-3 rounded-sm border box-border px-3",
+        "border-slate-200 bg-white text-slate-900",
+        "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+      ].join(" ")}
+    >
+      <div className="flex h-10 w-8 shrink-0 items-center justify-center">
+        <FileText size={28} className="text-slate-300 dark:text-slate-600" />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-[12px] font-medium leading-tight">
+          {fileName}
+        </span>
+        {ext ? (
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`inline-block rounded px-1 py-0.5 text-[9px] font-semibold uppercase leading-none ${badgeColor}`}
+            >
+              {ext}
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Render a DOM-based preview for pending node insertion. */
 function PendingInsertPreviewBase({
   engine,
   pendingInsert,
@@ -114,13 +189,50 @@ function PendingInsertPreviewBase({
     return unsubscribe;
   }, [engine, applyTransform]);
 
+  const [w, h] = pendingInsert.size ?? [320, 240];
+  const x = pendingInsertPoint[0] - w / 2;
+  const y = pendingInsertPoint[1] - h / 2;
+
+  // Text node preview
+  if (pendingInsert.type === "text") {
+    return (
+      <div
+        ref={layerRef}
+        className="pointer-events-none absolute inset-0 origin-top-left"
+      >
+        <div
+          className="absolute"
+          style={{ left: x, top: y, width: w, height: h, opacity: 0.75 }}
+        >
+          <TextNodePreview t={t} />
+        </div>
+      </div>
+    );
+  }
+
+  // File attachment / audio node preview
+  if (pendingInsert.type === "file-attachment" || pendingInsert.type === "audio") {
+    return (
+      <div
+        ref={layerRef}
+        className="pointer-events-none absolute inset-0 origin-top-left"
+      >
+        <div
+          className="absolute"
+          style={{ left: x, top: y, width: w, height: h, opacity: 0.75 }}
+        >
+          <FileNodePreview props={pendingInsert.props} t={t} />
+        </div>
+      </div>
+    );
+  }
+
+  // AI node previews
   const config = NODE_PREVIEW_MAP[pendingInsert.type];
   if (!config) return null;
 
-  const [w, h] = pendingInsert.size ?? [320, 240];
   const previewH = config.showPrompt ? h : undefined;
-  const x = pendingInsertPoint[0] - w / 2;
-  const y = pendingInsertPoint[1] - (previewH ?? h) / 2;
+  const adjustedY = pendingInsertPoint[1] - (previewH ?? h) / 2;
   const Icon = config.icon;
 
   return (
@@ -130,7 +242,7 @@ function PendingInsertPreviewBase({
     >
       <div
         className="absolute"
-        style={{ left: x, top: y, width: w, height: previewH, opacity: 0.82 }}
+        style={{ left: x, top: adjustedY, width: w, height: previewH, opacity: 0.82 }}
       >
         <div
           className={[

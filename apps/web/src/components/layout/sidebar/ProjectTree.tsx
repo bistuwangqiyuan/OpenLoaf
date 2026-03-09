@@ -89,6 +89,7 @@ import { cn } from "@/lib/utils";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
+import { SidebarHoverPanel } from "@/components/layout/sidebar/SidebarHoverPanel";
 
 type ProjectInfo = ProjectNode;
 
@@ -227,6 +228,8 @@ interface FileTreeNodeProps {
   ) => void;
   /** Callback fired on native contextmenu event to record timestamp early. */
   onNativeContextMenu?: () => void;
+  /** Whether to show the hover panel for project nodes (sidebar only). */
+  enableHoverPanel?: boolean;
 }
 
 function buildNextUri(uri: string, nextName: string) {
@@ -340,6 +343,7 @@ function FileTreeNode({
   onProjectDragEnd,
   onProjectPointerDown,
   onNativeContextMenu,
+  enableHoverPanel,
 }: FileTreeNodeProps) {
   const trpc = trpcContext;
   const { workspace } = useWorkspace();
@@ -406,7 +410,7 @@ function FileTreeNode({
     );
   }
 
-  return (
+  const collapsibleContent = (
     <CollapsiblePrimitive.Root
       key={nodeKey}
       asChild
@@ -521,6 +525,7 @@ function FileTreeNode({
                   onProjectDragEnd={onProjectDragEnd}
                   onProjectPointerDown={onProjectPointerDown}
                   onNativeContextMenu={onNativeContextMenu}
+                  enableHoverPanel={enableHoverPanel}
                 />
               ))}
             </SidebarMenuSub>
@@ -529,6 +534,20 @@ function FileTreeNode({
       </Item>
     </CollapsiblePrimitive.Root>
   );
+
+  if (enableHoverPanel && isProjectNode && node.projectId) {
+    return (
+      <SidebarHoverPanel
+        type="project-chats"
+        workspaceId={workspaceId}
+        projectId={node.projectId}
+      >
+        {collapsibleContent}
+      </SidebarHoverPanel>
+    );
+  }
+
+  return collapsibleContent;
 }
 
 export const PageTreeMenu = ({
@@ -1771,6 +1790,7 @@ export const PageTreeMenu = ({
       onProjectDragEnd={handleProjectDragEnd}
       onProjectPointerDown={handleProjectPointerDown}
       onNativeContextMenu={handleNativeContextMenu}
+      enableHoverPanel
     />
   );
 
@@ -1821,28 +1841,6 @@ export const PageTreeMenu = ({
           {normalProjects.map(renderProjectNode)}
         </>
       )}
-      {projects.length > 0 ? (
-        <SidebarMenuItem>
-          <div className="w-full px-2 pt-2">
-            <div className="border-t border-border/60" />
-          </div>
-        </SidebarMenuItem>
-      ) : null}
-      {/* 逻辑：项目列表末尾追加操作条入口，复用外层弹窗逻辑。 */}
-      <SidebarMenuItem>
-        <div className="w-full px-1 pt-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-full justify-start gap-1.5 text-[11px] text-muted-foreground/70 hover:bg-sidebar-accent/20 hover:text-muted-foreground"
-            onClick={() => onCreateProject?.()}
-          >
-            <FolderPlus className="h-3 w-3" />
-            <span>{t("nav:sidebar.addProject")}</span>
-          </Button>
-        </div>
-      </SidebarMenuItem>
       <SidebarMenuItem
         aria-hidden={!draggingProject}
         className={cn(!draggingProject && "h-0 overflow-hidden")}

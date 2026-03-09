@@ -24,6 +24,7 @@ import {
   type BoardJsonSnapshot,
   resolveScopedPath,
 } from "@openloaf/api";
+import { prisma } from "@openloaf/db";
 import { logger } from "@/common/logger";
 
 const BOARD_DOC_KEY = "board";
@@ -213,6 +214,34 @@ async function writeBoardJsonSnapshot(filePath: string, payload: BoardJsonSnapsh
   await writeFile(filePath, JSON.stringify(payload, null, 2));
 }
 
+/** Board folderUris for which we have already ensured a DB record in this process. */
+const ensuredBoardFolderUris = new Set<string>();
+
+/** Ensure a DB record exists for a board (create on first persist). */
+async function ensureBoardDbRecord(ctx: BoardCollabContext): Promise<void> {
+  const folderName = path.basename(ctx.boardFolderPath);
+  if (!folderName) return;
+  const folderUri = `.openloaf/boards/${folderName}/`;
+  if (ensuredBoardFolderUris.has(folderUri)) return;
+  ensuredBoardFolderUris.add(folderUri);
+  try {
+    // Look up by folderUri — the DB id may differ from folder name for legacy boards
+    const existing = await prisma.board.findFirst({ where: { folderUri } });
+    if (existing) return;
+    await prisma.board.create({
+      data: {
+        id: folderName,
+        title: "画布",
+        workspaceId: ctx.workspaceId,
+        projectId: ctx.projectId ?? null,
+        folderUri,
+      },
+    });
+  } catch {
+    // Ignore duplicate/constraint errors
+  }
+}
+
 /** Persist the board document into snapshot and json files. */
 async function storeBoardDocument(document: BoardDocument): Promise<void> {
   const boardContext = document.boardCollabContext;
@@ -222,6 +251,7 @@ async function storeBoardDocument(document: BoardDocument): Promise<void> {
   const payload = readBoardDocPayload(document);
   const jsonSnapshot = buildBoardJsonSnapshot(payload);
   await writeBoardJsonSnapshot(boardContext.boardJsonPath, jsonSnapshot);
+  await ensureBoardDbRecord(boardContext);
 }
 
 /** Handle websocket upgrade requests for board collaboration. */

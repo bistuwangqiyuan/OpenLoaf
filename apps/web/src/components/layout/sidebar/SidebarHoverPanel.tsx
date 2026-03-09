@@ -1,0 +1,626 @@
+/**
+ * Copyright (c) OpenLoaf. All rights reserved.
+ *
+ * This source code is licensed under the AGPLv3 license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Project: OpenLoaf
+ * Repository: https://github.com/OpenLoaf/OpenLoaf
+ */
+'use client'
+
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useQuery, useMutation, useQueryClient, skipToken } from '@tanstack/react-query'
+import { Edit2, Loader2, MoreHorizontal, Palette, Pin, Sparkles, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@openloaf/ui/hover-card'
+import { Button } from '@openloaf/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@openloaf/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@openloaf/ui/dialog'
+import { Input } from '@openloaf/ui/input'
+import { trpc } from '@/utils/trpc'
+import { useProjects } from '@/hooks/use-projects'
+import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation'
+import { useTabs } from '@/hooks/use-tabs'
+import { useTabRuntime } from '@/hooks/use-tab-runtime'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
+import { BOARD_META_FILE_NAME } from '@/lib/file-name'
+import type { ProjectNode } from '@openloaf/api/services/projectTreeService'
+
+interface SidebarHoverPanelProps {
+  type: 'all-chats' | 'project-chats'
+  workspaceId: string
+  projectId?: string
+  children: React.ReactNode
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  align?: 'start' | 'center' | 'end'
+}
+
+interface HistoryItem {
+  id: string
+  title: string
+  createdAt: string | Date
+  updatedAt: string | Date
+  isPin: boolean
+  projectId: string | null
+  kind: 'chat' | 'board'
+  folderUri?: string
+}
+
+interface HistoryGroup {
+  key: string
+  labelKey: string
+  items: HistoryItem[]
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function groupItemsByTime(items: HistoryItem[]): HistoryGroup[] {
+  const now = new Date()
+  const todayStart = startOfDay(now).getTime()
+  const oneDay = 24 * 60 * 60 * 1000
+
+  const sorted = [...items].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  )
+
+  const pinned: HistoryItem[] = []
+  const today: HistoryItem[] = []
+  const yesterday: HistoryItem[] = []
+  const within7: HistoryItem[] = []
+  const within30: HistoryItem[] = []
+  const byMonth = new Map<string, HistoryItem[]>()
+
+  for (const item of sorted) {
+    if (item.isPin) {
+      pinned.push(item)
+      continue
+    }
+    const t = new Date(item.updatedAt)
+    const diffDays = Math.floor((todayStart - startOfDay(t).getTime()) / oneDay)
+    if (diffDays === 0) today.push(item)
+    else if (diffDays === 1) yesterday.push(item)
+    else if (diffDays < 7) within7.push(item)
+    else if (diffDays < 30) within30.push(item)
+    else {
+      const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`
+      const list = byMonth.get(key) ?? []
+      list.push(item)
+      byMonth.set(key, list)
+    }
+  }
+
+  const groups: HistoryGroup[] = []
+  if (pinned.length)
+    groups.push({ key: 'pinned', labelKey: 'session.groupLabel.pinned', items: pinned })
+  if (today.length)
+    groups.push({ key: 'today', labelKey: 'session.groupLabel.today', items: today })
+  if (yesterday.length)
+    groups.push({ key: 'yesterday', labelKey: 'session.groupLabel.yesterday', items: yesterday })
+  if (within7.length)
+    groups.push({ key: 'within7', labelKey: 'session.groupLabel.within7', items: within7 })
+  if (within30.length)
+    groups.push({ key: 'within30', labelKey: 'session.groupLabel.within30', items: within30 })
+
+  for (const [key, list] of byMonth) {
+    groups.push({ key, labelKey: key, items: list })
+  }
+
+  return groups
+}
+
+const PROJECT_LABEL_COLORS = [
+  { bg: 'bg-sky-500/15 dark:bg-sky-500/20', text: 'text-sky-600 dark:text-sky-400' },
+  { bg: 'bg-violet-500/15 dark:bg-violet-500/20', text: 'text-violet-600 dark:text-violet-400' },
+  { bg: 'bg-amber-500/15 dark:bg-amber-500/20', text: 'text-amber-600 dark:text-amber-400' },
+  { bg: 'bg-emerald-500/15 dark:bg-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400' },
+  { bg: 'bg-rose-500/15 dark:bg-rose-500/20', text: 'text-rose-600 dark:text-rose-400' },
+  { bg: 'bg-indigo-500/15 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400' },
+  { bg: 'bg-teal-500/15 dark:bg-teal-500/20', text: 'text-teal-600 dark:text-teal-400' },
+  { bg: 'bg-orange-500/15 dark:bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
+]
+
+function hashString(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function getProjectColor(projectId: string) {
+  return PROJECT_LABEL_COLORS[hashString(projectId) % PROJECT_LABEL_COLORS.length]
+}
+
+function buildProjectNameMap(projects?: ProjectNode[]): Map<string, string> {
+  const map = new Map<string, string>()
+  const walk = (items?: ProjectNode[]) => {
+    items?.forEach((item) => {
+      if (item.projectId) map.set(item.projectId, item.title)
+      if (item.children?.length) walk(item.children)
+    })
+  }
+  walk(projects)
+  return map
+}
+
+export function SidebarHoverPanel({
+  type,
+  workspaceId,
+  projectId,
+  children,
+  side = 'right',
+  align = 'start',
+}: SidebarHoverPanelProps) {
+  const { t } = useTranslation('nav')
+  const { t: tAi } = useTranslation('ai')
+  const { t: tCommon } = useTranslation('common')
+  const nav = useSidebarNavigation(workspaceId)
+  const { workspace } = useWorkspace()
+  const rootUri = workspace?.rootUri
+  const { data: projects } = useProjects()
+  const projectNameMap = useMemo(() => buildProjectNameMap(projects), [projects])
+  const queryClient = useQueryClient()
+
+  const addTab = useTabs((s) => s.addTab)
+  const setActiveTab = useTabs((s) => s.setActiveTab)
+  const tabs = useTabs((s) => s.tabs)
+  const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId)
+  const setActiveView = useNavigation((s) => s.setActiveView)
+
+  // --- Controlled HoverCard: lock when menu/dialog is open ---
+  const [hoverOpen, setHoverOpen] = useState(false)
+  const lockCountRef = useRef(0)
+
+  const lockHover = useCallback(() => {
+    lockCountRef.current++
+  }, [])
+  const unlockHover = useCallback(() => {
+    lockCountRef.current = Math.max(0, lockCountRef.current - 1)
+    // If nothing is locking, allow the hover card to detect mouse leave naturally.
+    // We don't force-close here because the mouse may still be inside the card.
+  }, [])
+
+  const handleHoverOpenChange = useCallback((open: boolean) => {
+    if (!open && lockCountRef.current > 0) return
+    setHoverOpen(open)
+  }, [])
+
+  // --- Rename dialog state (for boards) ---
+  const [renameTarget, setRenameTarget] = useState<{
+    kind: 'chat' | 'board'
+    id: string
+    title: string
+    nextTitle: string
+  } | null>(null)
+  const [aiNaming, setAiNaming] = useState(false)
+
+  // --- Data queries ---
+  const chatQueryInput =
+    type === 'all-chats'
+      ? { workspaceId, projectId: undefined as string | null | undefined, limit: 50 }
+      : type === 'project-chats' && projectId
+        ? { workspaceId, projectId, limit: 50 }
+        : null
+
+  const chatQueryOpts = trpc.chat.listByWorkspace.queryOptions(
+    chatQueryInput ?? (skipToken as any),
+  )
+  const { data: chats, isLoading: chatsLoading } = useQuery({
+    ...chatQueryOpts,
+    staleTime: 30_000,
+  })
+
+  const boardQueryOpts = trpc.board.list.queryOptions(
+    type === 'all-chats' ? { workspaceId } : (skipToken as any),
+  )
+  const { data: boards, isLoading: boardsLoading } = useQuery({
+    ...boardQueryOpts,
+    staleTime: 30_000,
+  })
+
+  const isLoading = chatsLoading || (type === 'all-chats' && boardsLoading)
+
+  // --- Mutations ---
+  const chatUpdateMutation = useMutation(
+    trpc.chat.updateSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+      },
+    }),
+  )
+  const chatDeleteMutation = useMutation(
+    trpc.chat.deleteSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+      },
+    }),
+  )
+  const boardUpdateMutation = useMutation(
+    trpc.board.update.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() })
+        setRenameTarget(null)
+      },
+    }),
+  )
+  const boardDeleteMutation = useMutation(
+    trpc.board.delete.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() })
+      },
+    }),
+  )
+
+  // --- Merge chats + boards ---
+  const groups = useMemo(() => {
+    const items: HistoryItem[] = []
+    for (const chat of (chats ?? []) as any[]) {
+      items.push({
+        id: chat.id,
+        title: chat.title,
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt,
+        isPin: chat.isPin ?? false,
+        projectId: chat.projectId ?? null,
+        kind: 'chat',
+      })
+    }
+    if (type === 'all-chats') {
+      for (const board of boards ?? []) {
+        items.push({
+          id: board.id,
+          title: board.title,
+          createdAt: board.createdAt,
+          updatedAt: board.updatedAt,
+          isPin: board.isPin ?? false,
+          projectId: board.projectId ?? null,
+          kind: 'board',
+          folderUri: board.folderUri,
+        })
+      }
+    }
+    return groupItemsByTime(items)
+  }, [chats, boards, type])
+
+  // --- Click handlers ---
+  const handleChatClick = useCallback(
+    (chatId: string, chatTitle: string) => {
+      nav.openChat(chatId, chatTitle)
+    },
+    [nav],
+  )
+
+  const handleBoardClick = useCallback(
+    (item: HistoryItem) => {
+      if (!rootUri || !item.folderUri) return
+      const boardFolderUri = buildFileUriFromRoot(rootUri, item.folderUri)
+      const boardFileUri = buildFileUriFromRoot(
+        rootUri,
+        `${item.folderUri}${BOARD_META_FILE_NAME}`,
+      )
+      const baseId = `board:${boardFolderUri}`
+
+      const existingTab = tabs.find((tab) => {
+        if (tab.workspaceId !== workspaceId) return false
+        const base = runtimeByTabId[tab.id]?.base
+        return base?.id === baseId
+      })
+
+      if (existingTab) {
+        setActiveTab(existingTab.id)
+      } else {
+        addTab({
+          workspaceId,
+          createNew: true,
+          title: item.title || t('canvasList.untitled'),
+          icon: '🎨',
+          leftWidthPercent: 100,
+          base: {
+            id: baseId,
+            component: 'board-viewer',
+            params: { boardFolderUri, boardFileUri, boardId: item.id },
+          },
+        })
+      }
+      setActiveView('canvas-list')
+    },
+    [rootUri, workspaceId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
+  )
+
+  const handleItemClick = useCallback(
+    (item: HistoryItem) => {
+      if (item.kind === 'board') {
+        handleBoardClick(item)
+      } else {
+        handleChatClick(item.id, item.title)
+      }
+    },
+    [handleChatClick, handleBoardClick],
+  )
+
+  // --- Action handlers ---
+  const handleRename = useCallback(
+    (item: HistoryItem) => {
+      if (item.kind === 'chat') {
+        const newTitle = prompt(t('workspaceChatList.renamePrompt'), item.title)
+        if (newTitle && newTitle.trim() !== item.title) {
+          chatUpdateMutation.mutate({
+            sessionId: item.id,
+            title: newTitle.trim(),
+            isUserRename: true,
+          })
+        }
+      } else {
+        lockHover()
+        setRenameTarget({ kind: 'board', id: item.id, title: item.title, nextTitle: item.title })
+      }
+    },
+    [t, chatUpdateMutation, lockHover],
+  )
+
+  const handlePin = useCallback(
+    (item: HistoryItem) => {
+      const nextIsPin = !item.isPin
+      const onSuccess = () => {
+        toast.success(
+          nextIsPin ? tAi('session.pinSuccess') : tAi('session.unpinSuccess'),
+        )
+      }
+      const onError = (err: any) => {
+        toast.error(err?.message ?? tAi('session.pinFailed'))
+      }
+      if (item.kind === 'chat') {
+        chatUpdateMutation.mutate(
+          { sessionId: item.id, isPin: nextIsPin },
+          { onSuccess, onError },
+        )
+      } else {
+        boardUpdateMutation.mutate(
+          { boardId: item.id, isPin: nextIsPin },
+          { onSuccess, onError },
+        )
+      }
+    },
+    [chatUpdateMutation, boardUpdateMutation, tAi],
+  )
+
+  const handleDelete = useCallback(
+    (item: HistoryItem) => {
+      if (item.kind === 'chat') {
+        if (confirm(t('workspaceChatList.confirmDelete'))) {
+          chatDeleteMutation.mutate({ sessionId: item.id })
+        }
+      } else {
+        if (confirm(t('canvasList.confirmDelete'))) {
+          boardDeleteMutation.mutate({ boardId: item.id })
+        }
+      }
+    },
+    [t, chatDeleteMutation, boardDeleteMutation],
+  )
+
+  // --- Board rename dialog ---
+  const handleBoardRenameSave = useCallback(() => {
+    if (!renameTarget || !renameTarget.nextTitle.trim()) return
+    boardUpdateMutation.mutate({
+      boardId: renameTarget.id,
+      title: renameTarget.nextTitle.trim(),
+    })
+  }, [renameTarget, boardUpdateMutation])
+
+  const inferBoardNameMutation = useMutation(
+    trpc.settings.inferBoardName.mutationOptions(),
+  )
+
+  const handleAiName = useCallback(async () => {
+    if (!renameTarget) return
+    setAiNaming(true)
+    try {
+      const board = boards?.find((b) => b.id === renameTarget.id)
+      if (!board) return
+      const result = await inferBoardNameMutation.mutateAsync({
+        workspaceId,
+        boardFolderUri: board.folderUri,
+      })
+      if (result.title) {
+        setRenameTarget((prev) => (prev ? { ...prev, nextTitle: result.title } : prev))
+      } else {
+        toast.error(t('canvasList.aiNameEmpty'))
+      }
+    } catch {
+      toast.error(t('canvasList.aiNameFailed'))
+    } finally {
+      setAiNaming(false)
+    }
+  }, [renameTarget, workspaceId, boards, t])
+
+  const handleRenameDialogClose = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setRenameTarget(null)
+        unlockHover()
+      }
+    },
+    [unlockHover],
+  )
+
+  // --- Render ---
+  const title =
+    type === 'all-chats' ? t('header.chatHistory') : t('hoverPanel.projectChats')
+
+  const emptyText =
+    type === 'all-chats' ? t('hoverPanel.noHistory') : t('hoverPanel.noChats')
+
+  return (
+    <>
+      <HoverCard open={hoverOpen} onOpenChange={handleHoverOpenChange} openDelay={300} closeDelay={150}>
+        <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+        <HoverCardContent
+          side={side}
+          sideOffset={16}
+          align={align}
+          className="w-80 max-h-[40rem] flex flex-col rounded-lg border border-border bg-popover p-0 shadow-lg"
+        >
+          <div className="shrink-0 px-3 py-2.5 text-xs font-semibold text-foreground/80 border-b border-border">
+            {title}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="px-3 py-6 text-xs text-muted-foreground text-center">...</div>
+            ) : groups.length === 0 ? (
+              <div className="px-3 py-6 text-xs text-muted-foreground text-center">
+                {emptyText}
+              </div>
+            ) : (
+              <div className="py-1">
+                {groups.map((group) => (
+                  <div key={group.key}>
+                    <div className="px-3 py-1.5 text-[11px] font-medium text-muted-foreground/70">
+                      {tAi(group.labelKey, { defaultValue: group.labelKey })}
+                    </div>
+                    {group.items.map((item) => (
+                      <div
+                        key={`${item.kind}-${item.id}`}
+                        className="group/history-item flex w-full items-center gap-1 px-2 py-0.5 text-sm hover:bg-accent transition-colors duration-150"
+                      >
+                        <button
+                          type="button"
+                          className="flex flex-1 min-w-0 items-center gap-2 py-1 text-left"
+                          onClick={() => handleItemClick(item)}
+                        >
+                          {item.kind === 'board' ? (
+                            <Palette className="h-3.5 w-3.5 shrink-0 text-teal-600/70 dark:text-teal-400/70" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-700/70 dark:text-violet-300/70" />
+                          )}
+                          {type === 'all-chats' &&
+                            item.projectId &&
+                            projectNameMap.get(item.projectId) && (
+                              <span
+                                className={`shrink-0 max-w-20 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none ${getProjectColor(item.projectId).bg} ${getProjectColor(item.projectId).text}`}
+                              >
+                                {projectNameMap.get(item.projectId)}
+                              </span>
+                            )}
+                          <span className="flex-1 truncate min-w-0 text-foreground/90">
+                            {item.title}
+                          </span>
+                        </button>
+                        <DropdownMenu
+                          onOpenChange={(open) => {
+                            if (open) lockHover()
+                            else unlockHover()
+                          }}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0 opacity-0 group-hover/history-item:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" sideOffset={4}>
+                            <DropdownMenuItem
+                              onClick={() => handleRename(item)}
+                            >
+                              <Edit2 className="mr-2 h-4 w-4" />
+                              {t('workspaceChatList.contextMenu.rename')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handlePin(item)}
+                            >
+                              <Pin className="mr-2 h-4 w-4" />
+                              {tAi(item.isPin ? 'session.unpin' : 'session.pin')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(item)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('workspaceChatList.contextMenu.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+
+      {/* Board rename dialog (rendered outside HoverCard to avoid portal issues) */}
+      <Dialog open={!!renameTarget} onOpenChange={handleRenameDialogClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('canvasList.renameTitle')}</DialogTitle>
+            <DialogDescription>{t('canvasList.renameDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2">
+            <Input
+              value={renameTarget?.nextTitle ?? ''}
+              onChange={(e) =>
+                setRenameTarget((prev) =>
+                  prev ? { ...prev, nextTitle: e.target.value } : prev,
+                )
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleBoardRenameSave()
+              }}
+              className="flex-1"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              title={t('canvasList.aiName')}
+              disabled={aiNaming}
+              onClick={handleAiName}
+            >
+              {aiNaming ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{tCommon('cancel')}</Button>
+            </DialogClose>
+            <Button onClick={handleBoardRenameSave}>{tCommon('save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

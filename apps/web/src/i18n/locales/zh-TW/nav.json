@@ -1,6 +1,6 @@
 {
   "search": "搜尋",
-  "aiAssistant": "AI 助手",
+  "aiAssistant": "AI小助理",
   "smartCanvas": "智能畫布",
   "save": "儲存",
   "workbench": "工作台",
@@ -12,6 +12,7 @@
     "projectFolder": "專案列表",
     "refresh": "重新整理",
     "addProject": "新增專案",
+    "addNew": "新增",
     "addDialog": "新增專案",
     "newEmptyProject": "建立空白專案",
     "newEmptyProjectDescription": "在工作區中建立新資料夾",
@@ -167,7 +168,7 @@
     "newTab": "新建分頁 ({{shortcut}})",
     "closeAll": "關閉全部",
     "minimized": "（已最小化）",
-    "chatHistory": "聊天記錄",
+    "chatHistory": "歷史記錄",
     "sessionAlreadyOpen": "對話已開啟",
     "sessionAlreadyOpenDesc": "該對話已在其他分頁中開啟，是否切換到對應分頁？",
     "stayHere": "留在這裡",
@@ -208,6 +209,7 @@
     "streaming-plate-viewer": "編輯文稿",
     "sub-agent-chat": "子代理",
     "task-detail": "任務詳情",
+    "canvas-list-page": "畫布列表",
     "openInSettings": "在設定中開啟"
   },
   "project": "專案",
@@ -216,6 +218,14 @@
   "temporaryChat": "臨時對話",
   "canvas": "畫布",
   "temporaryCanvas": "臨時畫布",
+  "hoverPanel": {
+    "allChats": "所有對話",
+    "projectChats": "項目對話",
+    "noChats": "暫無對話",
+    "noHistory": "暫無歷史記錄",
+    "newChat": "新建對話"
+  },
+  "projectsSection": "項目",
   "canvasList": {
     "empty": "暫無畫布",
     "untitled": "未命名畫布",
@@ -232,6 +242,10 @@
     "selectProject": "選擇目標專案",
     "selectProjectDesc": "選擇要將畫布移動到的專案",
     "movedToProject": "已移動到專案",
-    "moveFailed": "移動失敗"
+    "moveFailed": "移動失敗",
+    "back": "返回",
+    "groupByTime": "按時間分組",
+    "allProjects": "全部專案",
+    "noProject": "未歸屬專案"
   }
 }

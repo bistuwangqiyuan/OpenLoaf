@@ -13,14 +13,14 @@ import type {
   CanvasNodeViewProps,
   CanvasToolbarContext,
 } from "../engine/types";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { z } from "zod";
-import { Play, Sparkles } from "lucide-react";
+import { Info, Play, Sparkles } from "lucide-react";
 import i18next from "i18next";
+import { BOARD_TOOLBAR_ITEM_BLUE, BOARD_TOOLBAR_ITEM_GREEN } from "../ui/board-style-system";
 import { IMAGE_PROMPT_GENERATE_NODE_TYPE } from "./imagePromptGenerate";
 import { openFilePreview } from "@/components/file/lib/file-preview-store";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useBoardContext, type BoardFileContext } from "../core/BoardProvider";
 import {
   resolveBoardFolderScope,
@@ -54,13 +54,56 @@ function resolveProjectRelativePath(path: string, fileContext?: BoardFileContext
   });
 }
 
+/** Open video in the file preview dialog (same as double-click). */
+async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileContext) {
+  const workspaceId = fileContext?.workspaceId ?? "";
+  const boardId = fileContext?.boardId ?? "";
+  const projectRelativePath = resolveProjectRelativePath(props.sourcePath, fileContext);
+  const resolvedPath = projectRelativePath || props.sourcePath;
+  const displayName = props.fileName || resolvedPath.split("/").pop() || "Video";
+
+  const metadata = await fetchVideoMetadata({
+    workspaceId,
+    projectId: fileContext?.projectId,
+    uri: projectRelativePath || props.sourcePath,
+  });
+  openFilePreview({
+    viewer: "video",
+    items: [
+      {
+        uri: props.sourcePath,
+        openUri: resolvedPath,
+        name: displayName,
+        title: displayName,
+        width: metadata?.width ?? props.naturalWidth,
+        height: metadata?.height ?? props.naturalHeight,
+        projectId: fileContext?.projectId,
+        workspaceId,
+        rootUri: fileContext?.rootUri,
+        boardId,
+      },
+    ],
+    activeIndex: 0,
+    showSave: false,
+    enableEdit: false,
+  });
+}
+
 /** Build toolbar items for video nodes. */
 function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
   return [
     {
+      id: 'play',
+      label: i18next.t('board:videoNode.toolbar.play'),
+      icon: <Play size={14} />,
+      className: BOARD_TOOLBAR_ITEM_GREEN,
+      onSelect: () => void openVideoPreview(ctx.element.props, ctx.fileContext),
+    },
+    {
       id: 'inspect',
       label: i18next.t('board:videoNode.toolbar.detail'),
-      icon: <Play size={14} />,
+      icon: <Info size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
@@ -71,60 +114,14 @@ export function VideoNodeView({
   element,
 }: CanvasNodeViewProps<VideoNodeProps>) {
   const { fileContext } = useBoardContext();
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
 
-  const projectRelativePath = useMemo(
-    () => resolveProjectRelativePath(element.props.sourcePath, fileContext),
+  const resolvedPath = useMemo(
+    () => resolveProjectRelativePath(element.props.sourcePath, fileContext) || element.props.sourcePath,
     [element.props.sourcePath, fileContext]
   );
-  const resolvedPath = projectRelativePath || element.props.sourcePath;
   const displayName = element.props.fileName || resolvedPath.split("/").pop() || "Video";
   // 逻辑：优先使用文件选择器缓存的缩略图，避免画布内加载播放器。
   const posterSrc = element.props.posterPath?.trim() || "";
-
-  const handleOpenPreview = useCallback(async () => {
-    if (!resolvedPath) return;
-    const metadata = await fetchVideoMetadata({
-      workspaceId,
-      projectId: fileContext?.projectId,
-      uri: projectRelativePath || element.props.sourcePath,
-    });
-    console.info("[VideoNode] preview metadata", {
-      resolvedPath,
-      sourcePath: element.props.sourcePath,
-      projectRelativePath,
-      workspaceId,
-      projectId: fileContext?.projectId,
-      metadata,
-    });
-    openFilePreview({
-      viewer: "video",
-      items: [
-        {
-          uri: resolvedPath,
-          openUri: resolvedPath,
-          name: displayName,
-          title: displayName,
-          width: metadata?.width,
-          height: metadata?.height,
-          projectId: fileContext?.projectId,
-          rootUri: fileContext?.rootUri,
-        },
-      ],
-      activeIndex: 0,
-      showSave: false,
-      enableEdit: false,
-    });
-  }, [
-    displayName,
-    element.props.sourcePath,
-    fileContext?.projectId,
-    fileContext?.rootUri,
-    projectRelativePath,
-    resolvedPath,
-    workspaceId,
-  ]);
 
   return (
     <NodeFrame>
@@ -136,7 +133,7 @@ export function VideoNodeView({
         ].join(" ")}
         onDoubleClick={(event) => {
           event.stopPropagation();
-          void handleOpenPreview();
+          void openVideoPreview(element.props, fileContext);
         }}
       >
         {posterSrc ? (

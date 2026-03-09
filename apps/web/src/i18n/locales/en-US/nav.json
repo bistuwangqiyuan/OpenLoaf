@@ -1,6 +1,6 @@
 {
   "search": "Search",
-  "aiAssistant": "AI Assistant",
+  "aiAssistant": "AI Helper",
   "smartCanvas": "Smart Canvas",
   "save": "Save",
   "workbench": "Workbench",
@@ -12,6 +12,7 @@
     "projectFolder": "Project List",
     "refresh": "Refresh",
     "addProject": "Add Project",
+    "addNew": "New",
     "addDialog": "Add Project",
     "newEmptyProject": "Create New Project",
     "newEmptyProjectDescription": "Create a new folder in the workspace",
@@ -167,7 +168,7 @@
     "newTab": "New Tab ({{shortcut}})",
     "closeAll": "Close All",
     "minimized": " (Minimized)",
-    "chatHistory": "Chat History",
+    "chatHistory": "History",
     "sessionAlreadyOpen": "Session Already Open",
     "sessionAlreadyOpenDesc": "This conversation is already open in another tab. Would you like to switch to it?",
     "stayHere": "Stay Here",
@@ -208,6 +209,7 @@
     "streaming-plate-viewer": "Edit Document",
     "sub-agent-chat": "Sub-agent",
     "task-detail": "Task Detail",
+    "canvas-list-page": "Canvas List",
     "openInSettings": "Open in Settings"
   },
   "project": "Project",
@@ -216,6 +218,14 @@
   "temporaryChat": "Temporary Chat",
   "canvas": "Canvas",
   "temporaryCanvas": "Temporary Canvas",
+  "hoverPanel": {
+    "allChats": "All Chats",
+    "projectChats": "Project Chats",
+    "noChats": "No chats yet",
+    "noHistory": "No history yet",
+    "newChat": "New Chat"
+  },
+  "projectsSection": "Projects",
   "canvasList": {
     "empty": "No canvases yet",
     "untitled": "Untitled Canvas",
@@ -232,6 +242,10 @@
     "selectProject": "Select Target Project",
     "selectProjectDesc": "Select the project to move this canvas to",
     "movedToProject": "Moved to project",
-    "moveFailed": "Move failed"
+    "moveFailed": "Move failed",
+    "back": "Back",
+    "groupByTime": "Group by Time",
+    "allProjects": "All Projects",
+    "noProject": "No Project"
   }
 }

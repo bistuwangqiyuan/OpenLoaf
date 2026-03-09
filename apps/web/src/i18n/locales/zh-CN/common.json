@@ -93,7 +93,10 @@
     "submittingFeedback": "提交中…",
     "feedbackSuccess": "反馈已提交，感谢！",
     "feedbackFailed": "提交失败，请稍后重试。",
-    "restart": "重启应用"
+    "restart": "重启应用",
+    "downloadLatest": "下载最新版本",
+    "fetchingDownload": "获取下载链接…",
+    "downloadFailed": "获取下载链接失败"
   },
   "closeConfirm": {
     "title": "关闭 OpenLoaf",
@@ -155,7 +158,14 @@
     "fileDeleted": "文件已删除",
     "loadingFile": "加载文件中…",
     "newFile": "新建文件",
-    "changing": "变更中…"
+    "changing": "变更中…",
+    "noFile": "未选择文件",
+    "notSupported": "暂不支持此地址",
+    "notSupportedDesc": "请使用本地文件路径或下载后查看。",
+    "pdfLoadFailed": "PDF 预览失败",
+    "codeLoadFailed": "代码预览失败",
+    "previewFailed": "文件预览失败",
+    "checkFormatOrRetry": "请检查文件格式或权限后重试。"
   },
   "login": {
     "dialogTitle": "登录云端账号",

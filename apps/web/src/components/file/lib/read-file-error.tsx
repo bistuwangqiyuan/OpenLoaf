@@ -13,7 +13,7 @@ import React, { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
-import { AlertTriangle, Download, ExternalLink } from "lucide-react";
+import { AlertTriangle, Copy, Download, ExternalLink } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { createFileEntryFromUri, openWithDefaultApp } from "./open-file";
@@ -150,7 +150,7 @@ export function ReadFileErrorFallback({
         "flex h-full w-full items-center justify-center p-6"
       }
     >
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         <div className="rounded-lg p-6 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <AlertTriangle className="h-5 w-5" />
@@ -161,6 +161,24 @@ export function ReadFileErrorFallback({
           <div className="mt-2 text-xs text-muted-foreground">
             {descriptionText}
           </div>
+          {uri ? (
+            <div className="mx-auto mt-3 flex max-w-full items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5">
+              <code className="min-w-0 flex-1 break-all text-left text-xs text-muted-foreground">
+                {uri}
+              </code>
+              <button
+                type="button"
+                className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="复制路径"
+                onClick={() => {
+                  void navigator.clipboard.writeText(uri);
+                  toast.success('已复制路径');
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
           {showFallbackAction ? (
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {isElectron ? (

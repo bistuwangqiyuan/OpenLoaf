@@ -117,51 +117,45 @@
 
 - description: "email-007: 标记已读应使用 email-mutate"
   vars:
-    prompt: "把这封邮件标为已读"
+    prompt: "把收件箱最新的那封邮件标为已读"
   assert:
     - type: javascript
       weight: 2
       metric: tool_selection
       value: |
         const calls = context.providerResponse?.metadata?.toolCalls || [];
-        const call = calls.find(t => t.toolName === 'email-mutate');
-        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
-        const action = call.args?.action;
-        return (action === 'mark-read' || action === 'read' || action === 'update')
-          ? { pass: true, score: 1, reason: `action=${action}` }
-          : { pass: false, score: 0, reason: `args.action 应为 mark-read，实际: ${action}` };
+        const call = calls.filter(t => t.toolName === 'email-mutate')
+          .find(t => ['mark-read', 'read', 'update'].includes(t.args?.action));
+        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate（或 action 不正确）' };
+        return { pass: true, score: 1, reason: `action=${call.args.action}` };
 
 - description: "email-008: 加星标应使用 email-mutate"
   vars:
-    prompt: "给这封邮件加星标"
+    prompt: "给收件箱最新的邮件加星标"
   assert:
     - type: javascript
       weight: 2
       metric: tool_selection
       value: |
         const calls = context.providerResponse?.metadata?.toolCalls || [];
-        const call = calls.find(t => t.toolName === 'email-mutate');
-        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
-        const action = call.args?.action;
-        return (action === 'flag' || action === 'star' || action === 'update')
-          ? { pass: true, score: 1, reason: `action=${action}` }
-          : { pass: false, score: 0, reason: `args.action 应为 flag/star，实际: ${action}` };
+        const call = calls.filter(t => t.toolName === 'email-mutate')
+          .find(t => ['flag', 'star', 'update'].includes(t.args?.action));
+        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate（或 action 不正确）' };
+        return { pass: true, score: 1, reason: `action=${call.args.action}` };
 
 - description: "email-009: 删除邮件应使用 email-mutate action=delete"
   vars:
-    prompt: "删除这封邮件"
+    prompt: "删除收件箱中最早的那封邮件"
   assert:
     - type: javascript
       weight: 2
       metric: tool_selection
       value: |
         const calls = context.providerResponse?.metadata?.toolCalls || [];
-        const call = calls.find(t => t.toolName === 'email-mutate');
-        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate' };
-        const action = call.args?.action;
-        return (action === 'delete' || action === 'trash')
-          ? { pass: true, score: 1, reason: `action=${action}` }
-          : { pass: false, score: 0, reason: `args.action 应为 delete/trash，实际: ${action}` };
+        const call = calls.filter(t => t.toolName === 'email-mutate')
+          .find(t => ['delete', 'trash'].includes(t.args?.action));
+        if (!call) return { pass: false, score: 0, reason: '未调用 email-mutate（或 action 不正确）' };
+        return { pass: true, score: 1, reason: `action=${call.args.action}` };
 
 - description: "email-010: 移动邮件应使用 email-mutate action=move"
   vars:

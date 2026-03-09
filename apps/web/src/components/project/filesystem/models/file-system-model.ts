@@ -24,7 +24,7 @@ import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/reac
 import { generateId } from "ai";
 import i18next from "i18next";
 import { toast } from "sonner";
-import { trpc } from "@/utils/trpc";
+import { trpc, trpcClient } from "@/utils/trpc";
 import {
   TERMINAL_WINDOW_COMPONENT,
   TERMINAL_WINDOW_PANEL_ID,
@@ -1344,52 +1344,33 @@ export function useProjectFileSystemModel({
     return { uri: docFolderUri, name: targetName };
   };
 
-  /** Create a new board folder in the current directory. */
+  /** Create a new board folder in the current directory via DB. */
   const handleCreateBoard = async () => {
     if (activeUri === null || !workspaceId) return;
-    const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
     const canvasLabel = i18next.t("nav:canvasList.defaultName");
-    const baseName = ensureBoardFolderName(`${canvasLabel}_${randomSuffix}`);
-    const targetName = getUniqueName(baseName, new Set(existingNames));
-    const boardFolderUri = buildChildUri(activeUri, targetName);
-    const boardFileUri = buildChildUri(boardFolderUri, BOARD_INDEX_FILE_NAME);
-    const assetsUri = buildChildUri(boardFolderUri, BOARD_ASSETS_DIR_NAME);
-    // 逻辑：画布采用文件夹结构，包含 index.tnboard 与 .asset 子目录。
-    await mkdirMutation.mutateAsync({
-      workspaceId,
-      projectId,
-      uri: boardFolderUri,
-      recursive: true,
-    });
-    await mkdirMutation.mutateAsync({
-      workspaceId,
-      projectId,
-      uri: assetsUri,
-      recursive: true,
-    });
-    await writeBinaryMutation.mutateAsync({
-      workspaceId,
-      projectId,
-      uri: boardFileUri,
-      contentBase64: "",
-    });
-    pushHistory({
-      kind: "batch",
-      actions: [
-        { kind: "mkdir", uri: boardFolderUri },
-        { kind: "mkdir", uri: assetsUri },
-        { kind: "create", uri: boardFileUri, contentBase64: "" },
-      ],
-    });
-    refreshList();
-    handleOpenBoard(
-      {
-        uri: boardFolderUri,
-        name: targetName,
-        kind: "folder",
-      },
-      { pendingRename: true }
-    );
+    try {
+      const board = await trpcClient.board.create.mutate({
+        workspaceId,
+        projectId: projectId ?? undefined,
+        title: canvasLabel,
+      });
+      refreshList();
+      const boardFolderUri = buildChildUri(
+        activeUri.includes(".openloaf/boards") ? activeUri : ".openloaf/boards",
+        board.id,
+      );
+      handleOpenBoard(
+        {
+          uri: boardFolderUri,
+          name: board.id,
+          kind: "folder",
+        },
+        { pendingRename: true }
+      );
+    } catch (error) {
+      console.warn("[handleCreateBoard] failed", error);
+      toast.error("创建画布失败");
+    }
   };
 
   /** Paste copied files into the current directory. */

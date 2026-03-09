@@ -137,11 +137,27 @@ const sessionDirCache = new Map<string, string>()
 
 /**
  * 解析 session 的 chat-history 根目录：
+ * - 有 boardId → <scopeRoot>/.openloaf/boards/<boardId>/chat-history/
  * - 有 projectId → <projectRoot>/.openloaf/chat-history/
  * - 无 projectId → <workspaceRoot>/.openloaf/chat-history/
  * - 都没有 → ~/.openloaf/chat-history/ (fallback)
  */
-function resolveChatHistoryRoot(workspaceId?: string | null, projectId?: string | null): string {
+function resolveChatHistoryRoot(
+  workspaceId?: string | null,
+  projectId?: string | null,
+  boardId?: string | null,
+): string {
+  // 画布内聊天：boardId + sessionId 同时存在时，文件存储在画布目录下
+  if (boardId) {
+    const scopeRoot = projectId
+      ? getProjectRootPath(projectId, workspaceId ?? undefined)
+      : workspaceId
+        ? getWorkspaceRootPathById(workspaceId)
+        : null
+    if (scopeRoot) {
+      return path.join(scopeRoot, '.openloaf', 'boards', boardId, CHAT_HISTORY_DIR)
+    }
+  }
   if (projectId) {
     const projectRoot = getProjectRootPath(projectId, workspaceId ?? undefined)
     if (projectRoot) {
@@ -161,24 +177,25 @@ async function resolveSessionDir(sessionId: string): Promise<string> {
   const cached = sessionDirCache.get(sessionId)
   if (cached) return cached
 
-  // 从数据库查 session 的 workspaceId/projectId
+  // 从数据库查 session 的 workspaceId/projectId/boardId
   const session = await prisma.chatSession.findUnique({
     where: { id: sessionId },
-    select: { workspaceId: true, projectId: true },
+    select: { workspaceId: true, projectId: true, boardId: true },
   })
-  const root = resolveChatHistoryRoot(session?.workspaceId, session?.projectId)
+  const root = resolveChatHistoryRoot(session?.workspaceId, session?.projectId, session?.boardId)
   const dir = path.join(root, sessionId)
   sessionDirCache.set(sessionId, dir)
   return dir
 }
 
-/** 注册 session 目录（写入时已知 workspaceId/projectId，避免 DB 查询） */
+/** 注册 session 目录（写入时已知 workspaceId/projectId/boardId，避免 DB 查询） */
 export function registerSessionDir(
   sessionId: string,
   workspaceId?: string | null,
   projectId?: string | null,
+  boardId?: string | null,
 ): void {
-  const root = resolveChatHistoryRoot(workspaceId, projectId)
+  const root = resolveChatHistoryRoot(workspaceId, projectId, boardId)
   sessionDirCache.set(sessionId, path.join(root, sessionId))
 }
 
@@ -929,10 +946,10 @@ export async function listAgentIds(sessionId: string): Promise<string[]> {
 export async function deleteAllChatFiles(): Promise<void> {
   // 逻辑：查询所有 session，逐个删除对应目录
   const sessions = await prisma.chatSession.findMany({
-    select: { id: true, workspaceId: true, projectId: true },
+    select: { id: true, workspaceId: true, projectId: true, boardId: true },
   })
   for (const session of sessions) {
-    registerSessionDir(session.id, session.workspaceId, session.projectId)
+    registerSessionDir(session.id, session.workspaceId, session.projectId, session.boardId)
     try {
       const dir = await resolveSessionDir(session.id)
       await fs.rm(dir, { recursive: true, force: true })

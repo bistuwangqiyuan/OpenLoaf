@@ -36,6 +36,7 @@
     "test:ai:redteam:generate": "cd src/ai/__tests__/agent-behavior && npx promptfoo@latest redteam generate -c promptfoo-redteam.yaml",
     "test:ai:redteam:view": "PROMPTFOO_LOG_LEVEL=error pnpm exec promptfoo view -y",
     "check:tool-coverage": "node scripts/check-tool-coverage.mjs",
+    "sync:email-fixture": "node --env-file=.env scripts/sync-email-fixture.mjs",
     "seed:showcase": "tsx scripts/seed-tool-showcase.ts"
   },
   "dependencies": {

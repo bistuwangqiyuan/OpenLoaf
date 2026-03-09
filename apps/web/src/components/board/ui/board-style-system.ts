@@ -104,6 +104,28 @@ export const BOARD_SETTINGS_DROPDOWN_HOVER =
 export const BOARD_SETTINGS_DROPDOWN_ITEM_ACTIVE =
   "bg-[#d3e3fd] text-[#1a73e8] dark:bg-sky-800/60 dark:text-sky-50";
 
+/* ── Toolbar Item Semantic Colors ── */
+
+/** Toolbar item — blue (primary / info actions). */
+export const BOARD_TOOLBAR_ITEM_BLUE =
+  "text-[#1a73e8] hover:bg-[#e8f0fe] dark:text-sky-300 dark:hover:bg-sky-900/40";
+
+/** Toolbar item — green (download / save actions). */
+export const BOARD_TOOLBAR_ITEM_GREEN =
+  "text-[#188038] hover:bg-[#e6f4ea] dark:text-emerald-300 dark:hover:bg-emerald-900/40";
+
+/** Toolbar item — amber (toggle / warning actions). */
+export const BOARD_TOOLBAR_ITEM_AMBER =
+  "text-[#e37400] hover:bg-[#fef7e0] dark:text-amber-300 dark:hover:bg-amber-900/40";
+
+/** Toolbar item — red (destructive actions). */
+export const BOARD_TOOLBAR_ITEM_RED =
+  "text-[#d93025] hover:bg-[#fce8e6] dark:text-rose-300 dark:hover:bg-rose-900/40";
+
+/** Toolbar item — purple (style / color actions). */
+export const BOARD_TOOLBAR_ITEM_PURPLE =
+  "text-[#9334e6] hover:bg-[#f3e8fd] dark:text-violet-300 dark:hover:bg-violet-900/40";
+
 /* ── Generation Node Style Constants ── */
 
 /** Glass container base for generation nodes (neutral fallback). */

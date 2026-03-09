@@ -32,7 +32,7 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { getRelativePathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { ReadFileErrorFallback } from "@/components/file/lib/read-file-error";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { stopFindShortcutPropagation } from "@/components/file/lib/viewer-shortcuts";
 
 export type CodeViewerActions = {
@@ -590,35 +590,22 @@ export default function CodeViewer({
     };
   }, []);
 
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择文件</div>;
-  }
-
-  if (fileQuery.isLoading) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t('loading')}</div>;
-  }
-
-  if (fileQuery.data?.tooLarge) {
+  if (!uri || fileQuery.isLoading || fileQuery.data?.tooLarge || fileQuery.isError) {
     return (
-      <ReadFileErrorFallback
+      <ViewerGuard
         uri={uri}
         name={name}
         projectId={projectId}
         rootUri={rootUri}
-        tooLarge
-      />
-    );
-  }
-
-  if (fileQuery.isError) {
-    return (
-      <ReadFileErrorFallback
-        uri={uri}
-        name={name}
-        projectId={projectId}
-        rootUri={rootUri}
-        error={fileQuery.error}
-      />
+        loading={fileQuery.isLoading}
+        tooLarge={fileQuery.data?.tooLarge}
+        error={fileQuery.isError}
+        errorDetail={fileQuery.error}
+        errorMessage={t('file.codeLoadFailed')}
+        errorDescription={t('file.checkFormatOrRetry')}
+      >
+        {null}
+      </ViewerGuard>
     );
   }
 

@@ -16,6 +16,10 @@ import { z } from "zod";
 import { Columns2, Layers, Maximize2, Rows2 } from "lucide-react";
 import { cn } from "@udecode/cn";
 import i18next from "i18next";
+import {
+  BOARD_TOOLBAR_ITEM_AMBER,
+  BOARD_TOOLBAR_ITEM_BLUE,
+} from "../ui/board-style-system";
 import { GROUP_NODE_TYPE, IMAGE_GROUP_NODE_TYPE } from "../engine/grouping";
 import { NodeFrame } from "./NodeFrame";
 
@@ -58,6 +62,7 @@ function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
       id: 'layout-column',
       label: t('board:groupNode.layoutVertical'),
       icon: <Rows2 size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.layoutGroup(groupId, "column"),
     });
   } else if (layoutAxis === "column") {
@@ -65,6 +70,7 @@ function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
       id: 'layout-row',
       label: t('board:groupNode.layoutHorizontal'),
       icon: <Columns2 size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.layoutGroup(groupId, "row"),
     });
   } else {
@@ -72,6 +78,7 @@ function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
       id: 'layout-row',
       label: t('board:groupNode.layoutHorizontal'),
       icon: <Columns2 size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.layoutGroup(groupId, "row"),
     });
   }
@@ -81,12 +88,14 @@ function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
       id: 'ungroup',
       label: t('board:groupNode.dissolve'),
       icon: <Layers size={14} />,
+      className: BOARD_TOOLBAR_ITEM_AMBER,
       onSelect: () => ctx.ungroupSelection(),
     },
     {
       id: 'uniform-size',
       label: t('board:groupNode.uniformSize'),
       icon: <Maximize2 size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.uniformGroupSize(groupId),
     },
     ...layoutItems,

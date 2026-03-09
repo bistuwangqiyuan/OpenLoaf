@@ -13,10 +13,11 @@ import type {
   CanvasNodeViewProps,
   CanvasToolbarContext,
 } from "../engine/types";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   Download,
+  ImageOff,
   Info,
   Play,
   Sparkles,
@@ -37,8 +38,17 @@ import {
 import { arrayBufferToBase64 } from "../utils/base64";
 import { getPreviewEndpoint } from "@/lib/image/uri";
 import { isProjectAbsolutePath } from "@/components/project/filesystem/utils/file-system-utils";
+import {
+  ProjectFilePickerDialog,
+  type ProjectFilePickerSelection,
+} from "@/components/project/filesystem/components/ProjectFilePickerDialog";
+import { IMAGE_EXTS } from "@/components/project/filesystem/components/FileSystemEntryVisual";
 import { IMAGE_NODE_MAX_SIZE, IMAGE_NODE_MIN_SIZE } from "./node-config";
 import i18next from "i18next";
+import {
+  BOARD_TOOLBAR_ITEM_BLUE,
+  BOARD_TOOLBAR_ITEM_GREEN,
+} from "../ui/board-style-system";
 
 /** Max bytes for image node preview fetches. */
 const IMAGE_NODE_PREVIEW_MAX_BYTES = 100 * 1024;
@@ -163,12 +173,14 @@ function createImageToolbarItems(ctx: CanvasToolbarContext<ImageNodeProps>) {
       id: "download",
       label: i18next.t('board:imageNode.toolbar.download'),
       icon: <Download size={14} />,
+      className: BOARD_TOOLBAR_ITEM_GREEN,
       onSelect: () => void downloadOriginalImage(ctx.element.props, ctx.fileContext),
     },
     {
       id: "inspect",
       label: i18next.t('board:imageNode.toolbar.detail'),
       icon: <Info size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
@@ -240,7 +252,17 @@ export function ImageNodeView({
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   /** Whether the img element is still loading. */
   const [isImageLoading, setIsImageLoading] = useState(() => Boolean(previewSrc));
+  /** Whether the img element failed to load. */
+  const [isImageError, setIsImageError] = useState(false);
   const lastPreviewRef = useRef<string>("");
+  /** Whether the image picker dialog is open for replacing a broken image. */
+  const [replacePickerOpen, setReplacePickerOpen] = useState(false);
+  /** Hidden file input for replacing a broken image from computer. */
+  const replaceInputRef = useRef<HTMLInputElement | null>(null);
+  const imageAcceptAttr = useMemo(
+    () => Array.from(IMAGE_EXTS).map((ext) => `.${ext}`).join(","),
+    [],
+  );
   /** Whether the node or canvas is locked. */
   const isLocked = engine.isLocked() || element.locked === true;
   /** Request opening the image preview on the canvas. */
@@ -265,6 +287,61 @@ export function ImageNodeView({
       mimeType: element.props.mimeType,
     });
   }, [actions, element.props.fileName, element.props.mimeType, previewSrc, resolvedOriginal]);
+
+  /** Open the project file picker dialog to replace a broken image. */
+  const requestReplaceImage = useCallback(() => {
+    setReplacePickerOpen(true);
+  }, []);
+
+  /** Apply a new image payload to the current node. */
+  const applyReplacePayload = useCallback(
+    (props: ImageNodeProps) => {
+      engine.doc.updateNodeProps(element.id, props);
+      setIsImageError(false);
+      hydrationRef.current = null;
+    },
+    [element.id, engine],
+  );
+
+  /** Handle image selected from the project file picker. */
+  const handleReplaceImageSelected = useCallback(
+    async (selection: ProjectFilePickerSelection | ProjectFilePickerSelection[]) => {
+      const item = Array.isArray(selection) ? selection[0] : selection;
+      if (!item) return;
+      try {
+        const payload = await buildImageNodePayloadFromUri(item.fileRef, {
+          projectId: item.projectId,
+        });
+        applyReplacePayload(payload.props as ImageNodeProps);
+      } catch {
+        // 逻辑：替换图片失败时保持当前错误状态。
+      }
+    },
+    [applyReplacePayload],
+  );
+
+  /** Handle image imported from computer via native file input. */
+  const handleReplaceFromComputer = useCallback(() => {
+    const input = replaceInputRef.current;
+    if (!input) return;
+    input.value = "";
+    input.click();
+  }, []);
+
+  /** Handle the file selection from the hidden input. */
+  const handleReplaceInputChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const payload = await engine.buildImagePayloadFromFile(file);
+        applyReplacePayload(payload.props as ImageNodeProps);
+      } catch {
+        // 逻辑：替换图片失败时保持当前错误状态。
+      }
+    },
+    [applyReplacePayload, engine],
+  );
 
   useEffect(() => {
     if (!selected || isLocked) {
@@ -378,11 +455,13 @@ export function ImageNodeView({
     if (!previewSrc) {
       lastPreviewRef.current = "";
       setIsImageLoading(false);
+      setIsImageError(false);
       return;
     }
     if (previewSrc !== lastPreviewRef.current) {
       lastPreviewRef.current = previewSrc;
       setIsImageLoading(true);
+      setIsImageError(false);
     }
   }, [previewSrc]);
 
@@ -400,10 +479,14 @@ export function ImageNodeView({
         }}
         onDoubleClick={event => {
           event.stopPropagation();
-          requestPreview();
+          if (isImageError || (!hasPreview && !isPreviewLoading && !isTranscoding)) {
+            requestReplaceImage();
+          } else {
+            requestPreview();
+          }
         }}
       >
-        {hasPreview ? (
+        {hasPreview && !isImageError ? (
           <>
             <img
               src={previewSrc}
@@ -414,7 +497,10 @@ export function ImageNodeView({
               ].join(" ")}
               draggable={false}
               onLoad={() => setIsImageLoading(false)}
-              onError={() => setIsImageLoading(false)}
+              onError={() => {
+                setIsImageLoading(false);
+                setIsImageError(true);
+              }}
             />
             {isImageLoading ? (
               <div className="absolute inset-0">
@@ -423,11 +509,18 @@ export function ImageNodeView({
             ) : null}
           </>
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
+          <div className="flex h-full w-full items-center justify-center rounded-sm border border-dashed border-border">
             {isPreviewLoading || isTranscoding ? (
               <ImageNodeSkeleton />
             ) : (
-              "Image"
+              <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
+                <ImageOff size={28} strokeWidth={1.5} />
+                <span className="text-xs">
+                  {isImageError
+                    ? i18next.t('board:imageNode.loadFailed')
+                    : i18next.t('board:imageNode.notFound')}
+                </span>
+              </div>
             )}
           </div>
         )}
@@ -459,6 +552,27 @@ export function ImageNodeView({
           />
         </div>
       ) : null}
+      <ProjectFilePickerDialog
+        open={replacePickerOpen}
+        onOpenChange={setReplacePickerOpen}
+        title={i18next.t('board:imageNode.replaceTitle')}
+        filterHint={i18next.t('board:imageNode.replaceHint')}
+        allowedExtensions={IMAGE_EXTS}
+        excludeBoardEntries
+        currentBoardFolderUri={fileContext?.boardFolderUri}
+        defaultRootUri={fileContext?.rootUri}
+        defaultActiveUri={fileContext?.boardFolderUri}
+        onSelectFile={handleReplaceImageSelected}
+        onSelectFiles={handleReplaceImageSelected}
+        onImportFromComputer={handleReplaceFromComputer}
+      />
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept={imageAcceptAttr}
+        className="hidden"
+        onChange={handleReplaceInputChange}
+      />
     </NodeFrame>
   );
 }

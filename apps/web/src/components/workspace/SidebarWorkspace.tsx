@@ -547,6 +547,15 @@ export const SidebarWorkspace = () => {
               )}
 
               <div className="space-y-1">
+                {!authLoggedIn && (
+                  <DropdownMenuItem
+                    onSelect={() => handleOpenLogin()}
+                    className="rounded-lg bg-sky-500/8 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 focus:bg-sky-500/15 focus:text-sky-600 dark:focus:bg-sky-500/15 dark:focus:text-sky-400"
+                  >
+                    <LogIn className="size-4 text-sky-600 dark:text-sky-400" />
+                    {t('loginAccount')}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onSelect={() => setFeedbackOpen(true)}
                   className="rounded-lg"
@@ -578,7 +587,7 @@ export const SidebarWorkspace = () => {
                     )}
                   </DropdownMenuItem>
                 )}
-                {authLoggedIn ? (
+                {authLoggedIn && (
                   <DropdownMenuItem
                     variant="destructive"
                     onSelect={() => void handleLogout()}
@@ -586,14 +595,6 @@ export const SidebarWorkspace = () => {
                   >
                     <LogOut className="size-4" />
                     {t('logout')}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onSelect={() => handleOpenLogin()}
-                    className="rounded-lg bg-sky-500/8 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 focus:bg-sky-500/15 focus:text-sky-600 dark:focus:bg-sky-500/15 dark:focus:text-sky-400"
-                  >
-                    <LogIn className="size-4 text-sky-600 dark:text-sky-400" />
-                    {t('loginAccount')}
                   </DropdownMenuItem>
                 )}
               </div>

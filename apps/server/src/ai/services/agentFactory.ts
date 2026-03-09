@@ -131,15 +131,17 @@ export function buildToolSearchGuidance(platform?: ClientPlatform): string {
 
   const scenarios: string[] = [
     '- 查询时间/日期 → select:time-now',
-    '- 创建/修改/删除日历事件（"明天开会"、"创建日程"、"创建提醒"、"修改会议时间"、"取消日程"、"标记完成"）→ select:calendar-mutate,time-now',
-    '- 用户提及未来时间+后台提醒（"3小时后提醒我"、"设闹钟"、"每天提醒"）→ 先 time-now 获取当前时间，再 task-manage 创建定时任务（必须包含 schedule 参数），不可仅文字确认',
+    '- 显式日历操作（含"创建/添加 + 会议/日程/提醒"：如"创建会议"、"创建日程"、"创建一个每天提醒我喝水的提醒"、"修改会议时间"、"取消提醒"、"标记完成/已完成"）→ select:calendar-query,calendar-mutate,time-now（修改/删除/标记完成前需先 calendar-query 查到 itemId）',
+    '- 陈述未来事件（"明天我要开会"、"下午有个电话会议"、"记一下下周三有客户拜访"）→ select:task-manage,time-now（用 task-manage 快速记录，必须传 schedule 参数，不反问确认）',
+    '- 请求后台提醒（"3小时后提醒我吃药"、"每天9点提醒我看报告"、"设闹钟"，注意区别：用户说"提醒我..."而非"创建提醒"）→ select:task-manage,time-now（必须传 schedule 参数，不反问确认）',
     '- 多个事件 → 每个事件各调用一次 task-manage',
     '- 查询待办/任务列表 → select:task-status',
-    '- 创建/修改/取消任务 → select:task-manage（取消前先 task-status 查询）',
+    '- 创建任务/修改任务/取消任务 → select:task-manage（取消前先 task-status 查询）',
     '- 查询日程安排 → select:calendar-query',
     '- 查询邮件/收件箱/搜索邮件 → select:email-query',
-    '- 发送/标记已读/加星标/删除/移动邮件 → select:email-mutate',
+    '- 邮件操作（标记已读/加星标/删除/移动/发送邮件）→ select:email-query,email-mutate（先 email-query 获取 messageId，再 email-mutate 执行操作；发送邮件可直接 email-mutate）',
     '- 文件/目录操作 → read-file, list-dir, grep-files, apply-patch',
+    '- 查看文件信息（文件大小、图片分辨率、视频时长、PDF 页数、Excel sheet 等元数据）→ select:file-info',
   ]
 
   // open-url — 需要 Electron，web/cli 排除
@@ -175,7 +177,12 @@ export function buildToolSearchGuidance(platform?: ClientPlatform): string {
 必须使用工具的场景（不可纯文本回答）：
 ${scenarios.join('\n')}
 
-重要：简单对话直接回答，不需要加载任何工具。
+重要规则：
+- 简单对话直接回答，不需要加载任何工具
+- 修改/删除/标记完成日历项 → 必须加载 calendar-mutate，不要只加载 calendar-query
+- 标记已读/加星标/删除/移动/发送邮件 → 必须加载 email-mutate，不要只加载 email-query
+- 浏览器操作（打开网页、截图、网页自动化）→ 不要搜索 browser 工具，直接用 sub-agent 派发 browser 子代理
+- 代码开发请求（提到 Claude Code、帮我开发）→ 不要搜索工具，直接用 sub-agent 派发 coder 子代理
 </tool-search-guidance>`
 }
 

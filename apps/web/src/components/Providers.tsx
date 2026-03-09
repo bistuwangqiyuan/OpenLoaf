@@ -30,6 +30,7 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 import { initOverlayDetector } from "@/lib/overlay-detector";
 import { initModelRegistry } from "@/lib/model-registry";
 import { resolveSaasBaseUrl } from "@/lib/saas-auth";
+import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { useLanguageSync } from "@/i18n/useLanguageSync";
 import CloseConfirmDialog from "@/components/layout/CloseConfirmDialog";
 import TrayNavigationListener from "@/components/layout/TrayNavigationListener";
@@ -362,6 +363,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <ThemeSettingsBootstrap />
         <FontSizeSettingsBootstrap />
         <AnimationSettingsBootstrap />
+        <SaasAuthBootstrap />
         <ModelRegistryBootstrap />
         <WindowsTitlebarSymbolColorBootstrap />
         <WindowsTitlebarHeightBootstrap />
@@ -390,6 +392,21 @@ function MotionSettingsBootstrap({ children }: { children: React.ReactNode }) {
       {children}
     </MotionConfig>
   );
+}
+
+/** Restore SaaS auth session from stored tokens on app boot. */
+function SaasAuthBootstrap() {
+  const initRef = useRef(false);
+
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+    const saasUrl = resolveSaasBaseUrl();
+    if (!saasUrl) return;
+    void useSaasAuth.getState().refreshSession();
+  }, []);
+
+  return null;
 }
 
 /** Initialize model registry from SaaS on app boot. */

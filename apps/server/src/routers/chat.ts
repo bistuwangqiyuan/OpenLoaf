@@ -441,7 +441,7 @@ export class ChatRouterImpl extends BaseChatRouter {
         .input(
           z.object({
             workspaceId: z.string().trim().min(1),
-            projectId: z.string().nullable(),
+            projectId: z.string().nullable().optional(),
             limit: z.number().optional(),
           }),
         )
@@ -450,7 +450,7 @@ export class ChatRouterImpl extends BaseChatRouter {
             where: {
               deletedAt: null,
               workspaceId: input.workspaceId,
-              projectId: input.projectId,
+              ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
             },
             orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
             take: input.limit,

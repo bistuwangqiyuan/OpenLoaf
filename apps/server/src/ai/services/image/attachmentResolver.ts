@@ -331,23 +331,36 @@ async function resolveImageMetadataText(filePath: string): Promise<string | null
     return null;
   }
 }
-/** Resolve root path for chat attachments. */
+/**
+ * Resolve root path and chat-history directory for chat attachments.
+ *
+ * - 普通聊天：`<scopeRoot>/.openloaf/chat-history/`
+ * - 画布内聊天（boardId 存在）：`<scopeRoot>/.openloaf/boards/<boardId>/chat-history/`
+ */
 async function resolveChatAttachmentRoot(input: {
   /** Project id. */
   projectId?: string;
   /** Workspace id. */
   workspaceId?: string;
-}): Promise<{ rootPath: string } | null> {
+  /** Optional board id — when present, chat files live under the board directory. */
+  boardId?: string;
+}): Promise<{ rootPath: string; chatHistoryDir: string } | null> {
   const projectId = input.projectId?.trim();
-  if (projectId) {
-    const projectRootPath = await getProjectRootPath(projectId);
-    if (projectRootPath) return { rootPath: projectRootPath };
-  }
   const workspaceId = input.workspaceId?.trim();
-  if (!workspaceId) return null;
-  const workspaceRootPath = getWorkspaceRootPathById(workspaceId);
-  if (!workspaceRootPath) return null;
-  return { rootPath: workspaceRootPath };
+  let scopeRoot: string | null = null;
+  if (projectId) {
+    scopeRoot = await getProjectRootPath(projectId, workspaceId);
+  }
+  if (!scopeRoot && workspaceId) {
+    scopeRoot = getWorkspaceRootPathById(workspaceId);
+  }
+  if (!scopeRoot) return null;
+  const boardId = input.boardId?.trim();
+  // 画布内聊天：chat-history 存储在 board 目录下
+  const chatHistoryDir = boardId
+    ? path.join(scopeRoot, ".openloaf", "boards", boardId, "chat-history")
+    : path.join(scopeRoot, ".openloaf", "chat-history");
+  return { rootPath: scopeRoot, chatHistoryDir };
 }
 
 type ChatBinaryAttachmentResult = {
@@ -369,6 +382,8 @@ export async function saveChatBinaryAttachment(input: {
   workspaceId?: string;
   /** Project id. */
   projectId?: string;
+  /** Optional board id — chat files stored under board directory when present. */
+  boardId?: string;
   /** Session id. */
   sessionId: string;
   /** Source file name. */
@@ -391,14 +406,15 @@ export async function saveChatBinaryAttachment(input: {
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!root) {
     throw new Error("Workspace or project not found");
   }
   const ext = path.extname(input.fileName).toLowerCase().replace(/^\./, "") || "bin";
   const storedName = buildChatAttachmentFileName(ext);
-  const relativePath = path.posix.join(".openloaf", "chat-history", sessionId, storedName);
-  const targetPath = path.join(root.rootPath, ".openloaf", "chat-history", sessionId, storedName);
+  const targetPath = path.join(root.chatHistoryDir, sessionId, storedName);
+  const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   // 逻辑：确保目录存在后再写入文件，避免落盘失败。
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.writeFile(targetPath, input.buffer);
@@ -694,6 +710,8 @@ export async function saveChatImageAttachment(input: {
   workspaceId: string;
   /** Project id. */
   projectId?: string;
+  /** Optional board id — chat files stored under board directory when present. */
+  boardId?: string;
   /** Session id. */
   sessionId: string;
   /** File name. */
@@ -713,16 +731,17 @@ export async function saveChatImageAttachment(input: {
   // 上传阶段即压缩并落盘，避免保存原图。
   const compressed = await compressImageBuffer(input.buffer, format);
   const fileName = buildChatAttachmentFileName(compressed.ext);
-  const relativePath = path.posix.join(".openloaf", "chat-history", input.sessionId, fileName);
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!root) {
     throw new Error("Workspace or project not found");
   }
 
-  const targetPath = path.join(root.rootPath, ".openloaf", "chat-history", input.sessionId, fileName);
+  const targetPath = path.join(root.chatHistoryDir, input.sessionId, fileName);
+  const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   // 逻辑：PNG 写入 iTXt，其他格式仅写 sidecar。
   const metadataPayload = input.metadata ? serializeImageMetadata(input.metadata) : null;
@@ -748,6 +767,8 @@ export async function saveChatImageAttachmentFromPath(input: {
   workspaceId: string;
   /** Project id. */
   projectId?: string;
+  /** Optional board id — chat files stored under board directory when present. */
+  boardId?: string;
   /** Session id. */
   sessionId: string;
   /** Source relative path. */
@@ -772,15 +793,16 @@ export async function saveChatImageAttachmentFromPath(input: {
   // 中文注释：相对路径来源仍需压缩转码，统一 chat 侧尺寸与质量。
   const compressed = await compressImageBuffer(buffer, format);
   const fileName = buildChatAttachmentFileName(compressed.ext);
-  const relativePath = path.posix.join(".openloaf", "chat-history", input.sessionId, fileName);
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!root) {
     throw new Error("Workspace or project not found");
   }
-  const targetPath = path.join(root.rootPath, ".openloaf", "chat-history", input.sessionId, fileName);
+  const targetPath = path.join(root.chatHistoryDir, input.sessionId, fileName);
+  const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   // 逻辑：PNG 写入 iTXt，其他格式仅写 sidecar。
   const metadataPayload = input.metadata ? serializeImageMetadata(input.metadata) : null;

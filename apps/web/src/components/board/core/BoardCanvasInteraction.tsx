@@ -37,7 +37,18 @@ import { FILE_DRAG_URI_MIME, FILE_DRAG_URIS_MIME } from "@openloaf/ui/openloaf/d
 import { fetchBlobFromUri, getPreviewEndpoint, resolveFileName } from "@/lib/image/uri";
 import { getStackedImageRect } from "../utils/image-insert";
 import type { ImagePreviewPayload } from "./BoardProvider";
+import { useBoardContext } from "./BoardProvider";
 import { useBoardViewState } from "./useBoardViewState";
+import {
+  fitSize,
+  isVideoFile,
+  isAudioFile,
+  isImageFile,
+  saveBoardAssetFile,
+  buildVideoPosterFromFile,
+  getAudioDuration,
+  resolveViewerType,
+} from "../utils/board-asset";
 import { NodePicker } from "./NodePicker";
 import { openLinkInStack as openLinkInStackAction, resolveLinkTitle } from "../nodes/lib/link-actions";
 import type { ImageNodeProps } from "../nodes/ImageNode";
@@ -48,8 +59,17 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { BoardContextMenu } from "./BoardContextMenu";
 import { useOptionalSidebar } from "@openloaf/ui/sidebar";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
+import { IMAGE_GENERATE_NODE_TYPE, VIDEO_GENERATE_NODE_TYPE } from "../nodes/node-config";
+import { TEXT_NODE_DEFAULT_HEIGHT } from "../nodes/TextNode";
 
 const EDITABLE_NODE_TYPES = new Set(["text", "image-generate", "image-prompt-generate"]);
+const DEFAULT_VIDEO_WIDTH = 16;
+const DEFAULT_VIDEO_HEIGHT = 9;
+const DEFAULT_VIDEO_NODE_MAX = 420;
+const DEFAULT_AUDIO_NODE_WIDTH = 280;
+const DEFAULT_AUDIO_NODE_HEIGHT = 100;
+const DEFAULT_FILE_NODE_WIDTH = 260;
+const DEFAULT_FILE_NODE_HEIGHT = 80;
 /** Cursor assets for board drawing tools. */
 const PEN_CURSOR_DOWN_URL = "/board/brush-cursor.svg";
 const PEN_CURSOR_UP_URL = "/board/brush-cursor-up.svg";
@@ -255,6 +275,7 @@ export function BoardCanvasInteraction({
   children,
   onOpenImagePreview,
 }: BoardCanvasInteractionProps) {
+  const { fileContext } = useBoardContext();
   const showUi = !uiHidden;
   const rightChatCollapsed = useTabRuntime(
     (state) => state.runtimeByTabId[tabId ?? ""]?.rightChatCollapsed ?? false,
@@ -621,6 +642,57 @@ export function BoardCanvasInteraction({
     engine.refreshView();
   };
 
+  /** Insert a text node at the last right-click position. */
+  const handleInsertTextFromContextMenu = useCallback(() => {
+    if (engine.isLocked()) return;
+    const point =
+      lastContextMenuWorldRef.current ??
+      lastPointerWorldRef.current ??
+      engine.getViewportCenterWorld();
+    const w = 200;
+    const h = TEXT_NODE_DEFAULT_HEIGHT;
+    engine.addNodeElement("text", { autoFocus: true }, [
+      point[0] - w / 2,
+      point[1] - h / 2,
+      w,
+      h,
+    ]);
+  }, [engine]);
+
+  /** Open the file picker via custom event (handled by BoardToolbar). */
+  const handleInsertFileFromContextMenu = useCallback(() => {
+    if (engine.isLocked()) return;
+    const container = engine.getContainer();
+    if (!container) return;
+    container.dispatchEvent(
+      new CustomEvent("openloaf:board-open-file-picker", { bubbles: true }),
+    );
+  }, [engine]);
+
+  /** Enter pending insert mode for an AI image generation node. */
+  const handleInsertImageGenerateFromContextMenu = useCallback(() => {
+    if (engine.isLocked()) return;
+    engine.getContainer()?.focus();
+    engine.setPendingInsert({
+      id: IMAGE_GENERATE_NODE_TYPE,
+      type: IMAGE_GENERATE_NODE_TYPE,
+      props: {},
+      size: [320, 260],
+    });
+  }, [engine]);
+
+  /** Enter pending insert mode for an AI video generation node. */
+  const handleInsertVideoGenerateFromContextMenu = useCallback(() => {
+    if (engine.isLocked()) return;
+    engine.getContainer()?.focus();
+    engine.setPendingInsert({
+      id: VIDEO_GENERATE_NODE_TYPE,
+      type: VIDEO_GENERATE_NODE_TYPE,
+      props: {},
+      size: [360, 280],
+    });
+  }, [engine]);
+
   const handleCanvasDragOver = (event: DragEvent<HTMLDivElement>) => {
     const types = event.dataTransfer?.types;
     if (!types) return;
@@ -630,6 +702,136 @@ export function BoardCanvasInteraction({
     if (!hasFiles && !hasUri && !readImageDragPayload(event.dataTransfer)) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
+  };
+
+  /** Insert video files at a canvas point: save to board assets, capture poster, add nodes. */
+  const insertVideoFilesAtPoint = async (files: File[], center: CanvasPoint) => {
+    const wsId = fileContext?.workspaceId;
+    const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
+    if (!wsId || !bfUri) return;
+    const videoFiles = files.filter(isVideoFile);
+    if (videoFiles.length === 0) return;
+    for (const [index, file] of videoFiles.entries()) {
+      try {
+        const relativePath = await saveBoardAssetFile({
+          file,
+          fallbackName: "video.mp4",
+          workspaceId: wsId,
+          projectId: fileContext?.projectId,
+          boardFolderUri: bfUri,
+        });
+        if (!relativePath) continue;
+        const poster = await buildVideoPosterFromFile(file);
+        const naturalWidth = poster?.width ?? DEFAULT_VIDEO_WIDTH;
+        const naturalHeight = poster?.height ?? DEFAULT_VIDEO_HEIGHT;
+        const [nodeWidth, nodeHeight] = fitSize(
+          naturalWidth,
+          naturalHeight,
+          DEFAULT_VIDEO_NODE_MAX,
+        );
+        // 逻辑：多视频拖放时依次偏移，避免完全重叠。
+        const offset = index * 20;
+        engine.addNodeElement(
+          "video",
+          {
+            sourcePath: relativePath,
+            fileName: file.name,
+            posterPath: poster?.posterSrc || undefined,
+            naturalWidth,
+            naturalHeight,
+          },
+          [
+            center[0] - nodeWidth / 2 + offset,
+            center[1] - nodeHeight / 2 + offset,
+            nodeWidth,
+            nodeHeight,
+          ],
+        );
+      } catch {
+        // 逻辑：单个视频保存失败不阻塞其他视频的插入。
+      }
+    }
+  };
+
+  /** Insert audio files at a canvas point: save to board assets, get duration, add nodes. */
+  const insertAudioFilesAtPoint = async (files: File[], center: CanvasPoint) => {
+    const wsId = fileContext?.workspaceId;
+    const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
+    if (!wsId || !bfUri) return;
+    const audioFiles = files.filter(isAudioFile);
+    if (audioFiles.length === 0) return;
+    for (const [index, file] of audioFiles.entries()) {
+      try {
+        const relativePath = await saveBoardAssetFile({
+          file,
+          fallbackName: "audio.mp3",
+          workspaceId: wsId,
+          projectId: fileContext?.projectId,
+          boardFolderUri: bfUri,
+        });
+        if (!relativePath) continue;
+        const duration = await getAudioDuration(file);
+        const offset = index * 20;
+        engine.addNodeElement(
+          "audio",
+          {
+            sourcePath: relativePath,
+            fileName: file.name,
+            duration: duration ?? undefined,
+            mimeType: file.type || undefined,
+          },
+          [
+            center[0] - DEFAULT_AUDIO_NODE_WIDTH / 2 + offset,
+            center[1] - DEFAULT_AUDIO_NODE_HEIGHT / 2 + offset,
+            DEFAULT_AUDIO_NODE_WIDTH,
+            DEFAULT_AUDIO_NODE_HEIGHT,
+          ],
+        );
+      } catch {
+        // 逻辑：单个音频保存失败不阻塞其他音频的插入。
+      }
+    }
+  };
+
+  /** Insert generic file attachments at a canvas point. */
+  const insertFileAttachmentsAtPoint = async (files: File[], center: CanvasPoint) => {
+    const wsId = fileContext?.workspaceId;
+    const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
+    if (!wsId || !bfUri) return;
+    if (files.length === 0) return;
+    for (const [index, file] of files.entries()) {
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        const relativePath = await saveBoardAssetFile({
+          file,
+          fallbackName: `file.${ext || "bin"}`,
+          workspaceId: wsId,
+          projectId: fileContext?.projectId,
+          boardFolderUri: bfUri,
+        });
+        if (!relativePath) continue;
+        const viewerType = resolveViewerType(ext);
+        const offset = index * 20;
+        engine.addNodeElement(
+          "file-attachment",
+          {
+            sourcePath: relativePath,
+            fileName: file.name,
+            extension: ext,
+            viewerType,
+            fileSize: file.size || undefined,
+          },
+          [
+            center[0] - DEFAULT_FILE_NODE_WIDTH / 2 + offset,
+            center[1] - DEFAULT_FILE_NODE_HEIGHT / 2 + offset,
+            DEFAULT_FILE_NODE_WIDTH,
+            DEFAULT_FILE_NODE_HEIGHT,
+          ],
+        );
+      } catch {
+        // 逻辑：单个文件保存失败不阻塞其他文件的插入。
+      }
+    }
   };
 
   const handleCanvasDrop = async (event: DragEvent<HTMLDivElement>) => {
@@ -647,7 +849,18 @@ export function BoardCanvasInteraction({
     const droppedFiles = Array.from(dataTransfer.files);
     const imageFiles = imagePayload
       ? []
-      : droppedFiles.filter((file) => file.type.startsWith("image/"));
+      : droppedFiles.filter(isImageFile);
+    const videoFiles = imagePayload
+      ? []
+      : droppedFiles.filter(isVideoFile);
+    const audioFiles = imagePayload
+      ? []
+      : droppedFiles.filter(isAudioFile);
+    const otherFiles = imagePayload
+      ? []
+      : droppedFiles.filter(
+          (file) => !isImageFile(file) && !isVideoFile(file) && !isAudioFile(file),
+        );
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     // 逻辑：将拖拽点转换为画布坐标，作为插入基准。
@@ -692,8 +905,11 @@ export function BoardCanvasInteraction({
         return;
       }
     }
-    if (imageFiles.length === 0) return;
-    await insertImageFilesAtPoint(imageFiles, dropPoint);
+    // 逻辑：按文件类型分别处理，各自独立插入。
+    if (imageFiles.length > 0) await insertImageFilesAtPoint(imageFiles, dropPoint);
+    if (videoFiles.length > 0) await insertVideoFilesAtPoint(videoFiles, dropPoint);
+    if (audioFiles.length > 0) await insertAudioFilesAtPoint(audioFiles, dropPoint);
+    if (otherFiles.length > 0) await insertFileAttachmentsAtPoint(otherFiles, dropPoint);
   };
 
   const resolveProjectRelativePath = (value: string) => {
@@ -824,6 +1040,11 @@ export function BoardCanvasInteraction({
         }}
         pasteAvailable={pasteAvailable}
         pasteDisabled={engine.isLocked()}
+        onInsertText={handleInsertTextFromContextMenu}
+        onInsertFile={handleInsertFileFromContextMenu}
+        onInsertImageGenerate={handleInsertImageGenerateFromContextMenu}
+        onInsertVideoGenerate={handleInsertVideoGenerateFromContextMenu}
+        insertDisabled={engine.isLocked()}
         onContextMenu={(event) => {
           if (!showUi) return;
           event.stopPropagation();

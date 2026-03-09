@@ -56,6 +56,7 @@ import {
   BaseScheduledTaskRouter,
   scheduledTaskSchemas,
 } from "./routers/absScheduledTask";
+import { boardRouter } from "./routers/board";
 
 export const appRouterDefine = {
   ...internalAppRouter._def.procedures,
@@ -74,6 +75,7 @@ export const appRouterDefine = {
   calendar: calendarRouter,
   dynamicWidget: dynamicWidgetRouter,
   scheduledTask: scheduledTaskRouter,
+  board: boardRouter,
 };
 
 export const appRouter = t.router({

@@ -93,7 +93,10 @@
     "submittingFeedback": "提交中…",
     "feedbackSuccess": "回饋已提交，感謝！",
     "feedbackFailed": "提交失敗，請稍後重試。",
-    "restart": "重新啟動應用程式"
+    "restart": "重新啟動應用程式",
+    "downloadLatest": "下載最新版本",
+    "fetchingDownload": "取得下載連結…",
+    "downloadFailed": "取得下載連結失敗"
   },
   "closeConfirm": {
     "title": "關閉 OpenLoaf",
@@ -155,7 +158,14 @@
     "fileDeleted": "檔案已刪除",
     "loadingFile": "載入檔案中…",
     "newFile": "新建檔案",
-    "changing": "變更中…"
+    "changing": "變更中…",
+    "noFile": "未選擇檔案",
+    "notSupported": "暫不支援此位置",
+    "notSupportedDesc": "請使用本地檔案路徑或下載後查看。",
+    "pdfLoadFailed": "PDF 預覽失敗",
+    "codeLoadFailed": "程式碼預覽失敗",
+    "previewFailed": "檔案預覽失敗",
+    "checkFormatOrRetry": "請檢查檔案格式或權限後重試。"
   },
   "login": {
     "dialogTitle": "登入雲端帳號",

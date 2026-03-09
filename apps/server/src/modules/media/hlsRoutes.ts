@@ -23,6 +23,7 @@ export function registerHlsRoutes(app: Hono) {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
     const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+    const boardId = c.req.query("boardId")?.trim() ?? "";
     const qualityRaw = c.req.query("quality")?.trim();
     const quality = qualityRaw ? qualityRaw.toLowerCase() : undefined;
     if (!path || (!projectId && !workspaceId)) {
@@ -36,6 +37,7 @@ export function registerHlsRoutes(app: Hono) {
       path,
       projectId: projectId || undefined,
       workspaceId: workspaceId || undefined,
+      boardId: boardId || undefined,
       quality: qualityValue,
     });
     if (!manifest) {
@@ -75,6 +77,7 @@ export function registerHlsRoutes(app: Hono) {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
     const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+    const boardId = c.req.query("boardId")?.trim() ?? "";
     const qualityRaw = c.req.query("quality")?.trim();
     const quality = qualityRaw ? qualityRaw.toLowerCase() : undefined;
     if (!path || !quality || (!projectId && !workspaceId)) {
@@ -87,6 +90,7 @@ export function registerHlsRoutes(app: Hono) {
       path,
       projectId: projectId || undefined,
       workspaceId: workspaceId || undefined,
+      boardId: boardId || undefined,
       quality,
     });
     if (!progress) {
@@ -101,6 +105,7 @@ export function registerHlsRoutes(app: Hono) {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
     const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+    const boardId = c.req.query("boardId")?.trim() ?? "";
     if (!path || (!projectId && !workspaceId)) {
       return c.json({ error: "Invalid thumbnails query" }, 400);
     }
@@ -108,6 +113,7 @@ export function registerHlsRoutes(app: Hono) {
       path,
       projectId: projectId || undefined,
       workspaceId: workspaceId || undefined,
+      boardId: boardId || undefined,
     });
     if (!thumbnails) {
       return c.json({ error: "Thumbnails not found" }, 404);

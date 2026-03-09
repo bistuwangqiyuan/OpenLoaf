@@ -280,9 +280,9 @@ export async function runChatStream(input: {
   let chatModelId = agentModelIds.chatModelId
   let chatModelSource = agentModelIds.chatModelSource
 
-  // board 节点明确指定了模型时，优先使用前端传入值。
-  if (trigger === "board-image-prompt") {
-    if (input.request.chatModelId) chatModelId = input.request.chatModelId
+  // 请求中明确指定了模型时，优先使用（支持 board 节点 + E2E 测试并发）。
+  if (input.request.chatModelId) {
+    chatModelId = input.request.chatModelId
     if (input.request.chatModelSource) chatModelSource = input.request.chatModelSource
   }
 

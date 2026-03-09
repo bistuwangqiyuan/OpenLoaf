@@ -123,17 +123,25 @@ function resolveScopedFilePath(input: {
   path: string;
   projectId?: string;
   workspaceId?: string;
+  /** Optional board id — server resolves to .openloaf/boards/<boardId>/ prefix. */
+  boardId?: string;
 }) {
   const rawPath = input.path.trim();
   if (!rawPath) return null;
+  // 逻辑：当提供 boardId 时，由服务端安全地拼接画布目录前缀，
+  // 使 board 内部资源可用相对路径引用，避免前端传路径导致越权。
+  const boardPrefix = input.boardId ? `.openloaf/boards/${input.boardId}` : "";
+  const effectivePath = boardPrefix
+    ? `${boardPrefix}/${normalizeRelativePath(rawPath)}`
+    : rawPath;
   const workspaceId = input.workspaceId?.trim();
-  const scopedMatch = rawPath.match(PROJECT_SCOPE_REGEX);
+  const scopedMatch = effectivePath.match(PROJECT_SCOPE_REGEX);
   let projectId = input.projectId?.trim() ?? "";
   if (scopedMatch?.[1]) {
     // 逻辑：路径自带项目范围时优先使用它解析根目录。
     projectId = scopedMatch[1].trim();
   }
-  const resolvedTarget = scopedMatch?.[2]?.trim() ? scopedMatch[2].trim() : rawPath;
+  const resolvedTarget = scopedMatch?.[2]?.trim() ? scopedMatch[2].trim() : effectivePath;
 
   if (!workspaceId) {
     if (!projectId) return null;
@@ -145,17 +153,17 @@ function resolveScopedFilePath(input: {
     absPath = resolveScopedPath({
       workspaceId,
       projectId: projectId || undefined,
-      target: rawPath,
+      target: effectivePath,
     });
   } catch {
     return null;
   }
 
-  const rootPath = projectId
+  const scopeRootPath = projectId
     ? getProjectRootPath(projectId, workspaceId)
     : getWorkspaceRootPathById(workspaceId);
-  if (!rootPath) return null;
-  const rootResolved = path.resolve(rootPath);
+  if (!scopeRootPath) return null;
+  const rootResolved = path.resolve(scopeRootPath);
   const absResolved = path.resolve(absPath);
   // 逻辑：确保解析结果仍然位于工作区/项目根目录内。
   if (absResolved !== rootResolved && !absResolved.startsWith(rootResolved + path.sep)) {
@@ -573,12 +581,14 @@ export async function getHlsManifest(input: {
   path: string;
   projectId?: string;
   workspaceId?: string;
+  boardId?: string;
   quality?: HlsQuality;
 }): Promise<HlsManifestStatus | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!resolved) return null;
   const sourceStat = await fs.stat(resolved.absPath).catch(() => null);
@@ -645,12 +655,14 @@ export async function getHlsProgress(input: {
   path: string;
   projectId?: string;
   workspaceId?: string;
+  boardId?: string;
   quality: HlsQuality;
 }): Promise<HlsProgressResult | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!resolved) return null;
   const sourceStat = await fs.stat(resolved.absPath).catch(() => null);
@@ -669,11 +681,13 @@ export async function getHlsThumbnails(input: {
   path: string;
   projectId?: string;
   workspaceId?: string;
+  boardId?: string;
 }): Promise<HlsThumbnailResult | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
     workspaceId: input.workspaceId,
+    boardId: input.boardId,
   });
   if (!resolved) return null;
   const sourceStat = await fs.stat(resolved.absPath).catch(() => null);

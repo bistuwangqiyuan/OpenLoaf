@@ -25,6 +25,7 @@ import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 import "react-data-grid/lib/styles.css";
 import "@/components/file/style/spreadsheet-viewer.css";
@@ -453,22 +454,18 @@ export default function ExcelViewer({
             : undefined
         }
       />
-      <div className="flex min-h-0 flex-1 flex-col">
-        {!shouldUseFs ? (
-          <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            暂不支持此地址
-          </div>
-        ) : null}
-        {status === "loading" || fileQuery.isLoading ? (
-          <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            {t('loading')}
-          </div>
-        ) : null}
-        {status === "error" || fileQuery.isError ? (
-          <div className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            {t('file.sheetLoadFailed')}
-          </div>
-        ) : null}
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectId}
+        rootUri={rootUri}
+        notSupported={!shouldUseFs}
+        loading={status === "loading" || fileQuery.isLoading}
+        error={status === "error" || fileQuery.isError}
+        errorDetail={fileQuery.error ?? undefined}
+        errorMessage={t('file.sheetLoadFailed')}
+        errorDescription={t('file.checkFormatOrRetry')}
+      >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="h-full min-h-0 flex-1 p-3">
             <DataGrid
@@ -509,7 +506,7 @@ export default function ExcelViewer({
             ) : null}
           </div>
         </div>
-      </div>
+      </ViewerGuard>
     </div>
   );
 }

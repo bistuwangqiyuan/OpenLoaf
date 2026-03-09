@@ -33,7 +33,7 @@ import { DocxExportKit } from "@/components/editor/plugins/docx-export-kit";
 import { ListKit } from "@/components/editor/plugins/list-kit";
 import { BaseEditorKit } from "@/components/editor/editor-base-kit";
 import { getBlockType, setBlockType } from "@/components/editor/transforms";
-import { ReadFileErrorFallback } from "@/components/file/lib/read-file-error";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { StackHeader } from "@/components/layout/StackHeader";
 import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
@@ -345,10 +345,6 @@ export default function DocViewer({
     }
   };
 
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择文档</div>;
-  }
-
   return (
     <div className="flex h-full w-full flex-col overflow-hidden" onKeyDown={handleFindShortcut}>
       {shouldRenderStackHeader ? (
@@ -404,36 +400,18 @@ export default function DocViewer({
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {!shouldUseFs ? (
-          <ReadFileErrorFallback
-            uri={uri}
-            name={name}
-            projectId={projectId}
-            rootUri={rootUri}
-            message="暂不支持此地址"
-            description="请使用本地文件路径或下载后查看。"
-            className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm"
-          />
-        ) : null}
-        {status === "loading" || fileQuery.isLoading ? (
-          <div className="mx-4 mt-3 rounded-md border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-            {t('loading')}
-          </div>
-        ) : null}
-        {status === "error" || fileQuery.isError ? (
-          <ReadFileErrorFallback
-            uri={uri}
-            name={name}
-            projectId={projectId}
-            rootUri={rootUri}
-            error={fileQuery.error ?? parseError ?? undefined}
-            message={t('file.docLoadFailed')}
-            description="请检查文件格式或权限后重试。"
-            className="mx-4 mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
-          />
-        ) : null}
-
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectId}
+        rootUri={rootUri}
+        notSupported={!shouldUseFs}
+        loading={status === "loading" || fileQuery.isLoading}
+        error={status === "error" || fileQuery.isError}
+        errorDetail={fileQuery.error ?? parseError ?? undefined}
+        errorMessage={t('file.docLoadFailed')}
+        errorDescription={t('file.checkFormatOrRetry')}
+      >
         <div className="min-h-0 flex-1 overflow-hidden">
           <Plate
             editor={editor}
@@ -477,7 +455,7 @@ export default function DocViewer({
             </EditorContainer>
           </Plate>
         </div>
-      </div>
+      </ViewerGuard>
     </div>
   );
 }

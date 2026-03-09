@@ -10,7 +10,9 @@
 /** File extension for board documents. */
 export const BOARD_FILE_EXT = "tnboard";
 /** Folder prefix for board containers. */
-export const BOARD_FOLDER_PREFIX = "tnboard_";
+export const BOARD_FOLDER_PREFIX = "board_";
+/** Legacy folder prefix for old board containers. */
+export const BOARD_FOLDER_PREFIX_LEGACY = "tnboard_";
 /** Board snapshot file name stored inside board folders. */
 export const BOARD_INDEX_FILE_NAME = `index.${BOARD_FILE_EXT}`;
 /** Board json file name stored inside board folders. */
@@ -45,25 +47,41 @@ export function ensureBoardFileName(baseName: string): string {
   return `${normalized}.${BOARD_FILE_EXT}`;
 }
 
-/** Return true when the folder name follows the board prefix. */
+/** Return true when the folder name follows a board prefix (new or legacy). */
 export function isBoardFolderName(name: string): boolean {
-  return name.toLowerCase().startsWith(BOARD_FOLDER_PREFIX.toLowerCase());
+  const lower = name.toLowerCase();
+  return (
+    lower.startsWith(BOARD_FOLDER_PREFIX.toLowerCase()) ||
+    lower.startsWith(BOARD_FOLDER_PREFIX_LEGACY.toLowerCase())
+  );
 }
 
 /** Return a display name for a board folder by removing the prefix. */
 export function getBoardDisplayName(name: string): string {
   if (!isBoardFolderName(name)) return name;
+  const lower = name.toLowerCase();
+  if (lower.startsWith(BOARD_FOLDER_PREFIX_LEGACY.toLowerCase())) {
+    return name.slice(BOARD_FOLDER_PREFIX_LEGACY.length) || name;
+  }
   return name.slice(BOARD_FOLDER_PREFIX.length) || name;
+}
+
+/** Create a board folder name from a board ID (the ID itself starts with board_). */
+export function createBoardFolderName(boardId: string): string {
+  return boardId;
 }
 
 /** Ensure a folder name follows the board prefix convention. */
 export function ensureBoardFolderName(baseName: string): string {
   const trimmed = baseName.trim();
-  const normalized = isBoardFolderName(trimmed)
-    ? trimmed.slice(BOARD_FOLDER_PREFIX.length)
-    : trimmed;
+  const lower = trimmed.toLowerCase();
+  let normalized = trimmed;
+  if (lower.startsWith(BOARD_FOLDER_PREFIX_LEGACY.toLowerCase())) {
+    normalized = trimmed.slice(BOARD_FOLDER_PREFIX_LEGACY.length);
+  } else if (lower.startsWith(BOARD_FOLDER_PREFIX.toLowerCase())) {
+    normalized = trimmed.slice(BOARD_FOLDER_PREFIX.length);
+  }
   const safeName = normalized || "board";
-  // 中文注释：统一在前缀后拼接名称，避免用户手动删除前缀。
   return `${BOARD_FOLDER_PREFIX}${safeName}`;
 }
 

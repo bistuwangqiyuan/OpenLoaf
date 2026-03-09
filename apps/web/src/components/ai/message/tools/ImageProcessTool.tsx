@@ -46,6 +46,15 @@ function ResultEntries({ entries }: { entries: ResultEntry[] }) {
   )
 }
 
+/** Convert an absolute filesystem path to a project-relative path when possible. */
+function toRelativePath(absPath: string, rootUri?: string): string {
+  if (!rootUri || !absPath.startsWith('/')) return absPath
+  const rootPath = rootUri.startsWith('file://') ? rootUri.slice(7) : rootUri
+  const normalized = rootPath.endsWith('/') ? rootPath : `${rootPath}/`
+  if (absPath.startsWith(normalized)) return absPath.slice(normalized.length)
+  return absPath
+}
+
 function ImagePreview({ filePath }: { filePath: string }) {
   const [objectUrl, setObjectUrl] = React.useState<string | null>(null)
   const { projectId, tabId } = useChatSession()
@@ -66,7 +75,8 @@ function ImagePreview({ filePath }: { filePath: string }) {
 
   React.useEffect(() => {
     let revoked = false
-    fetchBlobFromUri(filePath)
+    const resolvedPath = toRelativePath(filePath, projectRootUri)
+    fetchBlobFromUri(resolvedPath, { projectId: projectId ?? undefined })
       .then((blob) => {
         if (revoked) return
         setObjectUrl(URL.createObjectURL(blob))
@@ -79,7 +89,7 @@ function ImagePreview({ filePath }: { filePath: string }) {
         return null
       })
     }
-  }, [filePath])
+  }, [filePath, projectId, projectRootUri])
 
   if (!objectUrl) return null
   return (

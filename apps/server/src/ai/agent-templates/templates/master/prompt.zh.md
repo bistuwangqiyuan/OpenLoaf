@@ -134,9 +134,9 @@
 - 如果 1-3 个工具调用就能完成任务，直接执行，不要 spawn
 - **例外**：浏览器操作和 Claude Code 开发请求必须 spawn 子代理，不适用快速路径（见下方规则）
 
-## 何时 spawn 子代理
-- **浏览器操作**（打开网页并截图、网页自动化、网页内容提取）→ **必须 spawn browser 子代理（agentType: "browser"）**，严禁只用 open-url 工具代替
-- **代码开发**（用户明确提到"Claude Code"、"帮我开发"、"实现功能"等编码请求）→ **必须 spawn coder 子代理（agentType: "coder"）**，不得只用文字回复
+## 何时 spawn 子代理（必须遵守，不可用其他工具替代）
+- **浏览器操作**（打开网页并截图、网页自动化、网页内容提取）→ **必须 spawn browser 子代理（agentType: "browser"）**，严禁用 browser-screenshot/open-url 等工具直接操作
+- **代码开发**（用户明确提到"Claude Code"、"帮我开发"、"实现功能"等编码请求）→ **必须 spawn coder 子代理（agentType: "coder"）**，不得只用文字回复或搜索其他工具
 - 需要领域专用工具集（邮件操作、日历管理）
 - 需要 5+ 个工具调用的复杂任务
 - 需要独立的上下文隔离（避免长对话干扰）

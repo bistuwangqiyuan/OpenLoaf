@@ -36,6 +36,7 @@ import { fetchBlobFromUri, loadImageFromUri } from "@/lib/image/uri";
 import { resolveMaskFileName } from "@/lib/image/mask";
 import { supportsImageInput } from "@/lib/model-capabilities";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface ImageViewerProps {
   uri?: string;
@@ -882,37 +883,28 @@ export default function ImageViewer({
     onClose,
     setBasic,
   ]);
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择图片</div>;
-  }
+  const imageLoading =
+    (isRelative && !shouldUseBinary && (!preview || preview.status === "loading")) ||
+    (shouldUseBinary && imageQuery.isLoading && !placeholderSrc);
+  const imageError =
+    (isRelative && !shouldUseBinary && preview?.status === "error") ||
+    (shouldUseBinary && imageQuery.isError && !placeholderSrc);
 
-  if (isRelative && !shouldUseBinary && (!preview || preview.status === "loading")) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t("loading")}</div>;
-  }
-
-  if (shouldUseBinary && imageQuery.isLoading && !placeholderSrc) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t("loading")}</div>;
-  }
-
-  if (isRelative && !shouldUseBinary && preview?.status === "error") {
+  if (!uri || imageLoading || imageError) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
-        <AlertTriangle className="h-8 w-8 text-destructive/70" />
-        <div className="text-base font-medium text-destructive">图片预览失败</div>
-        <div className="text-xs text-muted-foreground">请检查文件路径或稍后重试</div>
-      </div>
-    );
-  }
-
-  if (shouldUseBinary && imageQuery.isError && !placeholderSrc) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
-        <AlertTriangle className="h-8 w-8 text-destructive/70" />
-        <div className="text-base font-medium text-destructive">{t("file.imageLoadFailed")}</div>
-        <div className="text-xs text-muted-foreground">
-          {imageQuery.error?.message ?? "读取失败"}
-        </div>
-      </div>
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectId}
+        rootUri={undefined}
+        loading={imageLoading}
+        error={imageError}
+        errorDetail={imageQuery.error}
+        errorMessage={t("file.imageLoadFailed")}
+        errorDescription="请检查文件路径或稍后重试。"
+      >
+        {null}
+      </ViewerGuard>
     );
   }
 

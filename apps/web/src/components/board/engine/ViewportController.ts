@@ -16,7 +16,7 @@ function clamp(value: number, min: number, max: number): number {
 
 export class ViewportController {
   /** Minimum zoom value for the viewport. */
-  private readonly minZoom = 0.5;
+  private readonly minZoom = 0.3;
   /** Maximum zoom value for the viewport. */
   private readonly maxZoom = 1.2;
   /** Current zoom level. */

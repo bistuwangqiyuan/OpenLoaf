@@ -10,7 +10,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { PanelLeft, PanelRight, Settings, Sparkles, Search } from "lucide-react";
+import { History, PanelLeft, PanelRight, Settings, Sparkles, Search } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { useSidebar } from "@openloaf/ui/sidebar";
@@ -29,6 +29,7 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 import { PageTitle } from "./PageTitle";
 import { ModeToggle } from "./ModeToggle";
 import { Search as SearchDialog } from "@/components/search/Search";
+import { SidebarHoverPanel } from "@/components/layout/sidebar/SidebarHoverPanel";
 
 /** Format a shortcut string for tooltip display. */
 function formatShortcutLabel(shortcut: string, isMac: boolean): string {
@@ -204,6 +205,20 @@ export const Header = () => {
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">
         {hasActions && <div className="mx-1 h-5 w-px bg-foreground/20" />}
+        {workspaceId && (
+          <SidebarHoverPanel type="all-chats" workspaceId={workspaceId} side="bottom" align="end">
+            <div data-no-drag="true">
+              <Button
+                className="h-8 shrink-0 gap-1 px-2 text-violet-700/70 hover:text-violet-700 dark:text-violet-300/70 dark:hover:text-violet-200"
+                variant="ghost"
+                size="sm"
+              >
+                <History className="h-4 w-4" />
+                <span className="text-xs">{t('header.chatHistory')}</span>
+              </Button>
+            </div>
+          </SidebarHoverPanel>
+        )}
         <div data-no-drag="true">
           <ModeToggle />
         </div>

@@ -1086,15 +1086,13 @@ export default function ChatCoreProvider({
         // 中文注释：首条用户消息完成后刷新会话列表，展示标题。
         pendingInitialTitleRefreshRef.current = true;
 
-        // sidebar 联动：根据是否有项目上下文切换 sidebar tab
+        // sidebar 联动：根据是否有项目上下文更新导航状态
         const nav = useNavigation.getState();
         const currentProjectId = paramsRef.current?.projectId;
 
         if (typeof currentProjectId === "string" && currentProjectId.trim()) {
-          nav.setSidebarTab("project");
           nav.setActiveProject(currentProjectId.trim());
         } else {
-          nav.setSidebarTab("chat");
           nav.setActiveWorkspaceChat(sessionIdRef.current);
         }
 

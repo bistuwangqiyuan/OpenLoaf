@@ -11,16 +11,16 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, MoreHorizontal, Trash2, Edit2, FolderInput, PenTool, Sparkles, Loader2, ClipboardCopy } from "lucide-react";
-import { useQuery, useMutation, useQueryClient, skipToken } from "@tanstack/react-query";
+import { MessageSquare, MoreHorizontal, Trash2, Edit2, FolderInput, Palette, Sparkles, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
-import { buildFileUriFromRoot, getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
-import { BOARD_META_FILE_NAME, getBoardDisplayName, ensureBoardFolderName } from "@/lib/file-name";
+import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
+import { BOARD_META_FILE_NAME } from "@/lib/file-name";
 import { Button } from "@openloaf/ui/button";
 import {
   Dialog,
@@ -39,16 +39,13 @@ import {
   DropdownMenuTrigger,
 } from "@openloaf/ui/dropdown-menu";
 import { ConvertChatToProjectDialog } from "./ConvertChatToProjectDialog";
-import { PageTreePicker } from "./ProjectTree";
-import { useProjects } from "@/hooks/use-projects";
-import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { getCachedAccessToken } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 
 type MixedItem =
   | { kind: "chat"; id: string; title: string; updatedAt: string; isPin?: boolean; raw: any }
-  | { kind: "canvas"; uri: string; name: string; updatedAt: string; raw: any };
+  | { kind: "canvas"; boardId: string; title: string; folderUri: string; updatedAt: string; raw: any };
 
 interface WorkspaceMixedListProps {
   workspaceId: string;
@@ -62,15 +59,13 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   const [expanded, setExpanded] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [canvasRenameTarget, setCanvasRenameTarget] = useState<{
-    uri: string;
-    name: string;
-    nextName: string;
+  const [renameTarget, setRenameTarget] = useState<{
+    boardId: string;
+    title: string;
+    nextTitle: string;
   } | null>(null);
   const [aiNaming, setAiNaming] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [moveTarget, setMoveTarget] = useState<{ uri: string; name: string } | null>(null);
-  const [moveSelectedProjectId, setMoveSelectedProjectId] = useState<string | null>(null);
   const { loggedIn: saasLoggedIn } = useSaasAuth();
 
   const queryClient = useQueryClient();
@@ -82,11 +77,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat);
   const activeWorkspaceChatSessionId = useNavigation((s) => s.activeWorkspaceChatSessionId);
 
-
-  const boardsDirUri = rootUri
-    ? buildFileUriFromRoot(rootUri, ".openloaf/boards")
-    : "";
-
   // Fetch chats
   const { data: chats, refetch: refetchChats } = useQuery(
     trpc.chat.listByWorkspace.queryOptions({
@@ -96,21 +86,12 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
     })
   );
 
-  // Fetch boards
-  const { data: boardsData } = useQuery(
-    trpc.fs.list.queryOptions(
-      boardsDirUri
-        ? {
-            workspaceId,
-            uri: ".openloaf/boards",
-            includeHidden: true,
-            sort: { field: "mtime", order: "desc" },
-          }
-        : skipToken,
+  // Fetch boards from DB
+  const { data: boards } = useQuery(
+    trpc.board.list.queryOptions(
+      workspaceId ? { workspaceId } : ({ workspaceId: "" } as any),
     ),
   );
-
-  const boards = (boardsData?.entries ?? []).filter((e: any) => e.kind === "folder");
 
   const deleteMutation = useMutation(
     trpc.chat.deleteSession.mutationOptions({
@@ -141,15 +122,17 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
       }
     }
 
-    for (const board of boards) {
-      const displayName = getBoardDisplayName(board.name) || t("canvasList.untitled");
-      items.push({
-        kind: "canvas",
-        uri: board.uri,
-        name: displayName,
-        updatedAt: board.updatedAt,
-        raw: board,
-      });
+    if (boards) {
+      for (const board of boards) {
+        items.push({
+          kind: "canvas",
+          boardId: board.id,
+          title: board.title || t("canvasList.untitled"),
+          folderUri: board.folderUri,
+          updatedAt: board.updatedAt as unknown as string,
+          raw: board,
+        });
+      }
     }
 
     // Pinned chats first, then sort by updatedAt desc
@@ -193,12 +176,12 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
 
   // Board click handler
   const handleBoardClick = useCallback(
-    (board: { uri: string; name: string }) => {
+    (board: { boardId: string; title: string; folderUri: string }) => {
       if (!rootUri) return;
-      const boardFolderUri = buildFileUriFromRoot(rootUri, board.uri);
+      const boardFolderUri = buildFileUriFromRoot(rootUri, board.folderUri);
       const boardFileUri = buildFileUriFromRoot(
         rootUri,
-        `${board.uri}/${BOARD_META_FILE_NAME}`,
+        `${board.folderUri}${BOARD_META_FILE_NAME}`,
       );
       const baseId = `board:${boardFolderUri}`;
 
@@ -211,17 +194,20 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
       if (existingTab) {
         setActiveTab(existingTab.id);
       } else {
-        const displayName = getBoardDisplayName(board.name) || t("canvasList.untitled");
         addTab({
           workspaceId,
           createNew: true,
-          title: displayName,
+          title: board.title || t("canvasList.untitled"),
           icon: "\uD83C\uDFA8",
           leftWidthPercent: 100,
           base: {
             id: baseId,
             component: "board-viewer",
-            params: { boardFolderUri, boardFileUri },
+            params: {
+              boardFolderUri,
+              boardFileUri,
+              boardId: board.boardId,
+            },
           },
         });
       }
@@ -259,137 +245,71 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
     setConvertDialogOpen(true);
   }, []);
 
-  const renameBoardMutation = useMutation(
-    trpc.fs.rename.mutationOptions({
+  // Board rename via DB
+  const boardUpdateMutation = useMutation(
+    trpc.board.update.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.fs.list.queryKey() });
-        setCanvasRenameTarget(null);
+        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
+        setRenameTarget(null);
       },
     }),
   );
 
-  const deleteBoardMutation = useMutation(
-    trpc.fs.delete.mutationOptions({
+  // Board soft delete via DB
+  const boardDeleteMutation = useMutation(
+    trpc.board.delete.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.fs.list.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
       },
     }),
   );
 
   const handleCanvasRename = useCallback(
-    (uri: string, displayName: string) => {
-      setCanvasRenameTarget({ uri, name: displayName, nextName: displayName });
+    (boardId: string, title: string) => {
+      setRenameTarget({ boardId, title, nextTitle: title });
     },
     [],
   );
 
   const handleCanvasDelete = useCallback(
-    (uri: string) => {
+    (boardId: string) => {
       if (confirm(t("canvasList.confirmDelete"))) {
-        deleteBoardMutation.mutate({ workspaceId, uri });
+        boardDeleteMutation.mutate({ boardId });
       }
     },
-    [deleteBoardMutation, workspaceId, t],
+    [boardDeleteMutation, t],
   );
-
-  const handleCopyCanvasPath = useCallback(
-    async (uri: string) => {
-      if (!rootUri) return;
-      const fullUri = buildFileUriFromRoot(rootUri, uri);
-      const displayPath = getDisplayPathFromUri(fullUri);
-      await navigator.clipboard.writeText(displayPath);
-      toast.success(t("canvasList.pathCopied"));
-    },
-    [rootUri, t],
-  );
-
-  const projectListQuery = useProjects();
-  const projectTree = useMemo(() => {
-    const walk = (items?: ProjectNode[]): ProjectNode[] =>
-      (items ?? [])
-        .filter((item) => Boolean(item.projectId))
-        .map((item) => ({
-          ...item,
-          children: item.children?.length ? walk(item.children) : [],
-        }));
-    return walk(projectListQuery.data);
-  }, [projectListQuery.data]);
-
-  const projectIdByRootUri = useMemo(() => {
-    const map = new Map<string, string>();
-    const walk = (items?: ProjectNode[]) => {
-      items?.forEach((item) => {
-        if (item.projectId) map.set(item.rootUri, item.projectId);
-        if (item.children?.length) walk(item.children);
-      });
-    };
-    walk(projectListQuery.data);
-    return map;
-  }, [projectListQuery.data]);
-
-  const handleMoveToProject = useCallback(
-    (uri: string, name: string) => {
-      setMoveTarget({ uri, name });
-      setMoveSelectedProjectId(null);
-    },
-    [],
-  );
-
-  const moveBoardMutation = useMutation(
-    trpc.fs.rename.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.fs.list.queryKey() });
-        setMoveTarget(null);
-        toast.success(t("canvasList.movedToProject"));
-      },
-      onError: (error: any) => {
-        toast.error(error?.message ?? t("canvasList.moveFailed"));
-      },
-    }),
-  );
-
-  const handleConfirmMove = useCallback(() => {
-    if (!moveTarget || !moveSelectedProjectId) return;
-    const folderName = moveTarget.uri.split("/").pop() ?? "";
-    moveBoardMutation.mutate({
-      workspaceId,
-      from: moveTarget.uri,
-      to: `@{${moveSelectedProjectId}}/.openloaf/boards/${folderName}`,
-    });
-  }, [moveTarget, moveSelectedProjectId, moveBoardMutation, workspaceId]);
 
   const handleCanvasRenameSave = useCallback(() => {
-    if (!canvasRenameTarget || !canvasRenameTarget.nextName.trim()) return;
-    const newFolderName = ensureBoardFolderName(canvasRenameTarget.nextName);
-    const parentUri = canvasRenameTarget.uri.split("/").slice(0, -1).join("/");
-    const newUri = parentUri ? `${parentUri}/${newFolderName}` : newFolderName;
-    renameBoardMutation.mutate({
-      workspaceId,
-      from: canvasRenameTarget.uri,
-      to: newUri,
+    if (!renameTarget || !renameTarget.nextTitle.trim()) return;
+    boardUpdateMutation.mutate({
+      boardId: renameTarget.boardId,
+      title: renameTarget.nextTitle.trim(),
     });
-  }, [canvasRenameTarget, renameBoardMutation, workspaceId]);
+  }, [renameTarget, boardUpdateMutation]);
 
   const inferBoardNameMutation = useMutation(
     trpc.settings.inferBoardName.mutationOptions(),
   );
 
   const handleAiName = useCallback(async () => {
-    if (!canvasRenameTarget) return;
+    if (!renameTarget) return;
     if (!saasLoggedIn) {
       setLoginOpen(true);
       return;
     }
     setAiNaming(true);
     try {
+      const board = boards?.find((b) => b.id === renameTarget.boardId);
+      if (!board) return;
       const result = await inferBoardNameMutation.mutateAsync({
         workspaceId,
-        boardFolderUri: canvasRenameTarget.uri,
+        boardFolderUri: board.folderUri,
         saasAccessToken: getCachedAccessToken() ?? undefined,
       });
       if (result.title) {
-        setCanvasRenameTarget((prev) =>
-          prev ? { ...prev, nextName: result.title } : prev,
+        setRenameTarget((prev) =>
+          prev ? { ...prev, nextTitle: result.title } : prev,
         );
       } else {
         toast.error(t("canvasList.aiNameEmpty"));
@@ -399,7 +319,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
     } finally {
       setAiNaming(false);
     }
-  }, [canvasRenameTarget, workspaceId, saasLoggedIn, t]);
+  }, [renameTarget, workspaceId, saasLoggedIn, boards, t]);
 
   // Auto-close login dialog on successful login
   useEffect(() => {
@@ -468,25 +388,25 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
             );
           }
 
-          // Canvas item
+          // Canvas item from DB
           const boardFolderUri = rootUri
-            ? buildFileUriFromRoot(rootUri, item.uri)
+            ? buildFileUriFromRoot(rootUri, item.folderUri)
             : "";
           const baseId = `board:${boardFolderUri}`;
           const isActive = activeBoardBaseId === baseId;
 
           return (
             <div
-              key={`canvas:${item.uri}`}
+              key={`canvas:${item.boardId}`}
               className={`group/canvas-item flex h-8 items-center gap-2 rounded-lg px-2 text-sm hover:bg-[var(--sidebar-project-accent)] dark:hover:bg-[var(--sidebar-project-accent)] cursor-pointer ${
                 isActive
                   ? "bg-[var(--sidebar-project-accent)] dark:bg-[var(--sidebar-project-accent)]"
                   : ""
               }`}
-              onClick={() => handleBoardClick(item.raw)}
+              onClick={() => handleBoardClick(item)}
             >
-              <PenTool className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate min-w-0">{item.name}</span>
+              <Palette className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="flex-1 truncate min-w-0">{item.title}</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -499,22 +419,12 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleCanvasRename(item.uri, item.name)}>
+                  <DropdownMenuItem onClick={() => handleCanvasRename(item.boardId, item.title)}>
                     <Edit2 className="mr-2 h-4 w-4" />
                     {t("workspaceChatList.contextMenu.rename")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void handleCopyCanvasPath(item.uri)}>
-                    <ClipboardCopy className="mr-2 h-4 w-4" />
-                    {t("canvasList.copyPath")}
-                  </DropdownMenuItem>
-                  {item.uri.startsWith(".openloaf/boards") && (
-                    <DropdownMenuItem onClick={() => handleMoveToProject(item.uri, item.name)}>
-                      <FolderInput className="mr-2 h-4 w-4" />
-                      {t("canvasList.moveToProject")}
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem
-                    onClick={() => handleCanvasDelete(item.uri)}
+                    onClick={() => handleCanvasDelete(item.boardId)}
                     className="text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -552,9 +462,9 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
       )}
       <SaasLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
       <Dialog
-        open={!!canvasRenameTarget}
+        open={!!renameTarget}
         onOpenChange={(open) => {
-          if (!open) setCanvasRenameTarget(null);
+          if (!open) setRenameTarget(null);
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -564,10 +474,10 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
           </DialogHeader>
           <div className="flex items-center gap-2">
             <Input
-              value={canvasRenameTarget?.nextName ?? ""}
+              value={renameTarget?.nextTitle ?? ""}
               onChange={(e) =>
-                setCanvasRenameTarget((prev) =>
-                  prev ? { ...prev, nextName: e.target.value } : prev,
+                setRenameTarget((prev) =>
+                  prev ? { ...prev, nextTitle: e.target.value } : prev,
                 )
               }
               onKeyDown={(e) => {
@@ -602,46 +512,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
             </DialogClose>
             <Button onClick={handleCanvasRenameSave}>
               {t("save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={!!moveTarget}
-        onOpenChange={(open) => {
-          if (!open) setMoveTarget(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("canvasList.selectProject")}</DialogTitle>
-            <DialogDescription>{t("canvasList.selectProjectDesc")}</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-64 overflow-y-auto -mx-2">
-            <PageTreePicker
-              projects={projectTree}
-              activeUri={
-                moveSelectedProjectId
-                  ? projectTree.find(
-                      (p) => p.projectId === moveSelectedProjectId,
-                    )?.rootUri ?? null
-                  : null
-              }
-              onSelect={(uri) => {
-                const projectId = projectIdByRootUri.get(uri);
-                if (projectId) setMoveSelectedProjectId(projectId);
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">{t("cancel")}</Button>
-            </DialogClose>
-            <Button
-              onClick={handleConfirmMove}
-              disabled={!moveSelectedProjectId || moveBoardMutation.isPending}
-            >
-              {t("canvasList.moveToProject")}
             </Button>
           </DialogFooter>
         </DialogContent>

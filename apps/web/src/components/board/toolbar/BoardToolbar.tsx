@@ -22,6 +22,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { ComponentType, CSSProperties, ForwardRefExoticComponent } from "react";
 import type { LucideProps } from "lucide-react";
+
 import { cn } from "@udecode/cn";
 
 import type { CanvasEngine } from "../engine/CanvasEngine";
@@ -29,8 +30,8 @@ import type { CanvasInsertRequest, CanvasSnapshot } from "../engine/types";
 import { HoverPanel, IconBtn, PanelItem, toolbarSurfaceClassName } from "../ui/ToolbarParts";
 import { TEXT_NODE_DEFAULT_HEIGHT } from "../nodes/TextNode";
 import { useBoardContext } from "../core/BoardProvider";
-import { fileToBase64 } from "../utils/base64";
 import {
+  AUDIO_EXTS,
   IMAGE_EXTS,
   VIDEO_EXTS,
 } from "@/components/project/filesystem/components/FileSystemEntryVisual";
@@ -44,11 +45,17 @@ import {
 import {
   getParentRelativePath,
   getRelativePathFromUri,
-  buildChildUri,
-  getUniqueName,
 } from "@/components/project/filesystem/utils/file-system-utils";
-import { BOARD_ASSETS_DIR_NAME } from "@/lib/file-name";
-import { trpcClient } from "@/utils/trpc";
+import {
+  fitSize as fitSizeShared,
+  saveBoardAssetFile as saveBoardAssetFileUtil,
+  buildVideoPosterFromFile,
+  getAudioDuration,
+  isAudioFile,
+  isImageFile,
+  isVideoFile,
+  resolveViewerType,
+} from "../utils/board-asset";
 
 export interface BoardToolbarProps {
   /** Canvas engine instance. */
@@ -101,9 +108,15 @@ const DRAG_SVG_SRC = "/board/drag-svgrepo-com.svg";
 const NOTE_SVG_SRC = "/board/notes-note-svgrepo-com.svg";
 const PICTURE_SVG_SRC = "/board/picture-photo-svgrepo-com.svg";
 const VIDEO_SVG_SRC = "/board/video-player-movie-svgrepo.svg";
+const FILE_SVG_SRC = "/board/file-svgrepo-com.svg";
+const TEXT_SVG_SRC = "/board/text-style-format-svgrepo-com.svg";
 const DEFAULT_VIDEO_WIDTH = 16;
 const DEFAULT_VIDEO_HEIGHT = 9;
 const DEFAULT_VIDEO_NODE_MAX = 420;
+const DEFAULT_AUDIO_NODE_WIDTH = 280;
+const DEFAULT_AUDIO_NODE_HEIGHT = 100;
+const DEFAULT_FILE_NODE_WIDTH = 260;
+const DEFAULT_FILE_NODE_HEIGHT = 80;
 
 type PendingInsertStackItem = {
   type: string;
@@ -111,15 +124,8 @@ type PendingInsertStackItem = {
   size?: [number, number];
 };
 
-/** Compute a fitted size that preserves the original aspect ratio. */
-const fitSize = (width: number, height: number, maxDimension: number): [number, number] => {
-  const maxSide = Math.max(width, height);
-  if (maxSide <= maxDimension) {
-    return [Math.max(1, Math.round(width)), Math.max(1, Math.round(height))];
-  }
-  const scale = maxDimension / maxSide;
-  return [Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale))];
-};
+/** Re-export for local usage. */
+const fitSize = fitSizeShared;
 
 const prefixSvgIds = (svg: string, prefix: string) => {
   const safePrefix = prefix.replace(/:/g, "");
@@ -154,6 +160,7 @@ function InlineSvg(props: {
       className={cn("inline-flex", className)}
       style={style}
       aria-hidden="true"
+      draggable={false}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -262,6 +269,26 @@ function PageIcon({ size = 20, className }: IconProps) {
   );
 }
 
+function TextIcon({ size = 20, className }: IconProps) {
+  return (
+    <InlineSvgFile
+      src={TEXT_SVG_SRC}
+      className={className}
+      style={{ width: size, height: size, userSelect: "none", flexShrink: 0 }}
+    />
+  );
+}
+
+function FileIcon({ size = 20, className }: IconProps) {
+  return (
+    <InlineSvgFile
+      src={FILE_SVG_SRC}
+      className={className}
+      style={{ width: size, height: size, userSelect: "none", flexShrink: 0 }}
+    />
+  );
+}
+
 function BrushToolIcon({ className, style }: { className?: string; style?: CSSProperties }) {
   return <InlineSvgFile src={BRUSH_SVG_SRC} className={className} style={style} />;
 }
@@ -287,25 +314,30 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const { t } = useTranslation('board');
   // 悬停展开的组 id（用字符串常量标识）
   const [hoverGroup, setHoverGroup] = useState<string | null>(null);
+  const hoverCloseTimer = useRef<number | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const { fileContext } = useBoardContext();
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
   const [videoPickerOpen, setVideoPickerOpen] = useState(false);
+  const [filePickerOpen, setFilePickerOpen] = useState(false);
   const imageImportInputRef = useRef<HTMLInputElement | null>(null);
   const videoImportInputRef = useRef<HTMLInputElement | null>(null);
+  const fileImportInputRef = useRef<HTMLInputElement | null>(null);
   const isSelectTool = snapshot.activeToolId === "select";
   const isHandTool = snapshot.activeToolId === "hand";
-  const isPenTool = snapshot.activeToolId === "pen" || snapshot.activeToolId === "highlighter";
+  const isBrushTool = snapshot.activeToolId === "pen";
+  const isHighlighterTool = snapshot.activeToolId === "highlighter";
   const isEraserTool = snapshot.activeToolId === "eraser";
   const isLocked = snapshot.locked;
   const pendingInsert = snapshot.pendingInsert;
-  const penPanelOpen = !isLocked && (hoverGroup === "pen" || isPenTool);
-
-  const [penVariant, setPenVariant] = useState<"pen" | "highlighter">("pen");
+  const brushPanelOpen = !isLocked && (hoverGroup === "pen" || isBrushTool);
+  const highlighterPanelOpen = !isLocked && (hoverGroup === "highlighter" || isHighlighterTool);
   const [penSize, setPenSize] = useState<number>(6);
   const [penColor, setPenColor] = useState<string>("#f59e0b");
+  const [hlSize, setHlSize] = useState<number>(10);
+  const [hlColor, setHlColor] = useState<string>("#16a34a");
   const selectTitle = buildToolTitle(t('tools.select'), TOOL_SHORTCUTS.select);
   const handTitle = buildToolTitle(t('tools.hand'), TOOL_SHORTCUTS.hand);
   const penTitle = buildToolTitle(t('tools.pen'), TOOL_SHORTCUTS.pen);
@@ -318,27 +350,19 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const INSERT_ITEMS = useMemo<InsertItem[]>(() => [
     {
       id: "note",
-      title: t('insertTools.note'),
+      title: t('insertTools.text'),
       description: t('descriptions.note'),
-      icon: PageIcon,
+      icon: TextIcon,
       nodeType: "text",
       props: { autoFocus: true },
       size: [200, TEXT_NODE_DEFAULT_HEIGHT],
     },
     {
-      id: "image",
-      title: t('insertTools.image'),
-      description: t('descriptions.image'),
-      icon: ImageIcon,
-      size: [320, 220],
-      opensPicker: true,
-    },
-    {
-      id: "video",
-      title: t('insertTools.video'),
-      description: t('descriptions.video'),
-      icon: VideoIcon,
-      size: [360, 240],
+      id: "file",
+      title: t('insertTools.file'),
+      description: t('descriptions.file'),
+      icon: FileIcon,
+      size: [260, 80],
       opensPicker: true,
     },
   ], [t]);
@@ -361,22 +385,31 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   useEffect(() => {
     // 逻辑：同步画笔配置到画布引擎，保持绘制体验一致。
     engine.setPenSettings({ size: penSize, color: penColor, opacity: 1 });
-    engine.setHighlighterSettings({ size: penSize, color: penColor, opacity: 0.35 });
   }, [engine, penColor, penSize]);
 
   useEffect(() => {
-    if (snapshot.activeToolId === "pen") {
-      setPenVariant("pen");
-    } else if (snapshot.activeToolId === "highlighter") {
-      setPenVariant("highlighter");
-    }
-  }, [snapshot.activeToolId]);
+    // 逻辑：同步荧光笔配置到画布引擎，独立于画笔设置。
+    engine.setHighlighterSettings({ size: hlSize, color: hlColor, opacity: 0.35 });
+  }, [engine, hlColor, hlSize]);
 
   useEffect(() => {
     if (!isLocked) return;
     // 逻辑：锁定画布时关闭悬浮面板，避免残留交互入口。
     setHoverGroup(null);
   }, [isLocked]);
+
+  useEffect(() => {
+    const container = engine.getContainer();
+    if (!container) return;
+    const handleOpenFilePicker = () => {
+      if (isLocked) return;
+      setFilePickerOpen(true);
+    };
+    container.addEventListener("openloaf:board-open-file-picker", handleOpenFilePicker);
+    return () => {
+      container.removeEventListener("openloaf:board-open-file-picker", handleOpenFilePicker);
+    };
+  }, [engine, isLocked]);
 
   useEffect(() => {
     if (!hoverGroup) return;
@@ -386,14 +419,15 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
       if (!container || !target) return;
       // 逻辑：点击工具条外部时关闭子面板。
       if (container.contains(target)) return;
-      if (hoverGroup === "pen" && isPenTool) return;
+      if (hoverGroup === "pen" && isBrushTool) return;
+      if (hoverGroup === "highlighter" && isHighlighterTool) return;
       setHoverGroup(null);
     };
     document.addEventListener("pointerdown", handlePointerDown, { capture: true });
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown, { capture: true });
     };
-  }, [hoverGroup, isPenTool]);
+  }, [hoverGroup, isBrushTool, isHighlighterTool]);
 
   const handleToolChange = useCallback(
     (tool: ToolMode, options?: { keepPanel?: boolean }) => {
@@ -401,9 +435,6 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         return;
       }
       engine.setActiveTool(tool);
-      if (tool === "pen" || tool === "highlighter") {
-        setPenVariant(tool);
-      }
       if (!options?.keepPanel) {
         setHoverGroup(null);
       }
@@ -430,82 +461,18 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const saveBoardAssetFile = useCallback(
     async (file: File, fallbackName: string) => {
       if (!workspaceId || !fileContext?.boardFolderUri) return "";
-      const assetsFolderUri = buildChildUri(
-        fileContext.boardFolderUri,
-        BOARD_ASSETS_DIR_NAME
-      );
-      await trpcClient.fs.mkdir.mutate({
+      return saveBoardAssetFileUtil({
+        file,
+        fallbackName,
         workspaceId,
         projectId: fileContext?.projectId,
-        uri: assetsFolderUri,
-        recursive: true,
+        boardFolderUri: fileContext.boardFolderUri,
       });
-      const existing = await trpcClient.fs.list.query({
-        workspaceId,
-        projectId: fileContext?.projectId,
-        uri: assetsFolderUri,
-      });
-      const existingNames = new Set((existing.entries ?? []).map((entry) => entry.name));
-      const safeName = (file.name || fallbackName).replace(/[\\/]/g, "-") || fallbackName;
-      const uniqueName = getUniqueName(safeName, existingNames);
-      const targetUri = buildChildUri(assetsFolderUri, uniqueName);
-      const contentBase64 = await fileToBase64(file);
-      await trpcClient.fs.writeBinary.mutate({
-        workspaceId,
-        projectId: fileContext?.projectId,
-        uri: targetUri,
-        contentBase64,
-      });
-      return `${BOARD_ASSETS_DIR_NAME}/${uniqueName}`;
     },
     [fileContext?.boardFolderUri, fileContext?.projectId, workspaceId]
   );
 
-  /** Build a preview poster from a local video file. */
-  const buildVideoPosterFromFile = useCallback(async (file: File) => {
-    if (typeof document === "undefined") return null;
-    return await new Promise<{ posterSrc: string; width: number; height: number } | null>(
-      (resolve) => {
-        const video = document.createElement("video");
-        const url = URL.createObjectURL(file);
-        const cleanup = () => {
-          URL.revokeObjectURL(url);
-          video.removeAttribute("src");
-          video.load();
-        };
-        const capture = () => {
-          const width = video.videoWidth || 0;
-          const height = video.videoHeight || 0;
-          if (!width || !height) {
-            cleanup();
-            resolve(null);
-            return;
-          }
-          // 逻辑：限制预览尺寸，避免超大视频导致内存飙升。
-          const [previewWidth, previewHeight] = fitSize(width, height, 640);
-          const canvas = document.createElement("canvas");
-          canvas.width = previewWidth;
-          canvas.height = previewHeight;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, previewWidth, previewHeight);
-          }
-          const posterSrc = ctx ? canvas.toDataURL("image/jpeg", 0.82) : "";
-          cleanup();
-          resolve({ posterSrc, width, height });
-        };
-        video.preload = "metadata";
-        video.muted = true;
-        video.playsInline = true;
-        video.onloadeddata = capture;
-        video.onerror = () => {
-          cleanup();
-          resolve(null);
-        };
-        video.src = url;
-      }
-    );
-  }, []);
+  // buildVideoPosterFromFile is now imported from board-asset.ts
 
   /** Trigger the hidden file input. */
   const openImportDialog = useCallback((inputRef: React.RefObject<HTMLInputElement | null>) => {
@@ -726,7 +693,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         size: [maxWidth, maxHeight],
       });
     },
-    [buildVideoPosterFromFile, handleInsertRequest, saveBoardAssetFile]
+    [handleInsertRequest, saveBoardAssetFile]
   );
 
   const handleImportImageInputChange = useCallback(
@@ -745,6 +712,105 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
       await handleImportVideoFiles(files);
     },
     [handleImportVideoFiles]
+  );
+
+  const handleImportFileFromComputer = useCallback(() => {
+    if (isLocked) return;
+    openImportDialog(fileImportInputRef);
+  }, [isLocked, openImportDialog]);
+
+  /** Insert files into the canvas via toolbar, auto-routing by type. */
+  const handleImportFileFiles = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      // 按文件类型分流到对应的处理器
+      const imageFiles: File[] = [];
+      const videoFiles: File[] = [];
+      const otherFiles: File[] = [];
+      for (const file of files) {
+        if (isImageFile(file)) {
+          imageFiles.push(file);
+        } else if (isVideoFile(file)) {
+          videoFiles.push(file);
+        } else {
+          otherFiles.push(file);
+        }
+      }
+      // 图片/视频走已有的专用处理器
+      if (imageFiles.length > 0) await handleImportImageFiles(imageFiles);
+      if (videoFiles.length > 0) await handleImportVideoFiles(videoFiles);
+      // 音频和其他文件走通用处理
+      if (otherFiles.length === 0) return;
+      const items: PendingInsertStackItem[] = [];
+      for (const file of otherFiles) {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        if (isAudioFile(file)) {
+          const relativePath = await saveBoardAssetFile(file, "audio.mp3");
+          if (!relativePath) continue;
+          const duration = await getAudioDuration(file);
+          items.push({
+            type: "audio",
+            props: {
+              sourcePath: relativePath,
+              fileName: file.name,
+              duration: duration ?? undefined,
+              mimeType: file.type || undefined,
+            },
+            size: [DEFAULT_AUDIO_NODE_WIDTH, DEFAULT_AUDIO_NODE_HEIGHT],
+          });
+        } else {
+          const relativePath = await saveBoardAssetFile(file, `file.${ext || "bin"}`);
+          if (!relativePath) continue;
+          const viewerType = resolveViewerType(ext);
+          items.push({
+            type: "file-attachment",
+            props: {
+              sourcePath: relativePath,
+              fileName: file.name,
+              extension: ext,
+              viewerType,
+              fileSize: file.size || undefined,
+            },
+            size: [DEFAULT_FILE_NODE_WIDTH, DEFAULT_FILE_NODE_HEIGHT],
+          });
+        }
+      }
+      if (items.length === 0) return;
+      if (items.length === 1) {
+        const item = items[0]!;
+        handleInsertRequest({
+          id: "file",
+          type: item.type,
+          props: item.props,
+          size: item.size,
+        });
+        return;
+      }
+      const stackItems = items;
+      const [maxWidth, maxHeight] = items.reduce<[number, number]>(
+        (acc, item) => [
+          Math.max(acc[0], item.size?.[0] ?? 0),
+          Math.max(acc[1], item.size?.[1] ?? 0),
+        ],
+        [0, 0],
+      );
+      handleInsertRequest({
+        id: "file",
+        type: items[0]!.type,
+        props: { stackItems },
+        size: [maxWidth, maxHeight],
+      });
+    },
+    [handleImportImageFiles, handleImportVideoFiles, handleInsertRequest, saveBoardAssetFile],
+  );
+
+  const handleImportFileInputChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files ?? []);
+      if (files.length === 0) return;
+      await handleImportFileFiles(files);
+    },
+    [handleImportFileFiles],
   );
 
   /** Handle inserting selected image entries. */
@@ -874,6 +940,91 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
     [engine, workspaceId]
   );
 
+  /** Open the project file picker for generic files. */
+  const handlePickFile = useCallback(() => {
+    if (isLocked) return;
+    setFilePickerOpen(true);
+  }, [isLocked]);
+
+  /** Handle inserting selected file entries, auto-routing by type. */
+  const handleFileSelected = useCallback(
+    async (selection: ProjectFilePickerSelection | ProjectFilePickerSelection[]) => {
+      const selections = Array.isArray(selection) ? selection : [selection];
+      if (selections.length === 0) return;
+      // 按文件类型分流到对应的处理器
+      const imageSelections: ProjectFilePickerSelection[] = [];
+      const videoSelections: ProjectFilePickerSelection[] = [];
+      const otherSelections: ProjectFilePickerSelection[] = [];
+      for (const item of selections) {
+        const ext = item.entry.name.split(".").pop()?.toLowerCase() ?? "";
+        if (IMAGE_EXTS.has(ext)) {
+          imageSelections.push(item);
+        } else if (VIDEO_EXTS.has(ext)) {
+          videoSelections.push(item);
+        } else {
+          otherSelections.push(item);
+        }
+      }
+      // 图片/视频走已有的专用处理器
+      if (imageSelections.length > 0) await handleImageSelected(imageSelections);
+      if (videoSelections.length > 0) await handleVideoSelected(videoSelections);
+      // 音频和其他文件走通用处理
+      if (otherSelections.length === 0) return;
+      const items: PendingInsertStackItem[] = [];
+      for (const item of otherSelections) {
+        const ext = item.entry.name.split(".").pop()?.toLowerCase() ?? "";
+        if (AUDIO_EXTS.has(ext)) {
+          items.push({
+            type: "audio",
+            props: {
+              sourcePath: item.fileRef,
+              fileName: item.entry.name,
+              mimeType: `audio/${ext}`,
+            },
+            size: [DEFAULT_AUDIO_NODE_WIDTH, DEFAULT_AUDIO_NODE_HEIGHT],
+          });
+        } else {
+          const viewerType = resolveViewerType(ext);
+          items.push({
+            type: "file-attachment",
+            props: {
+              sourcePath: item.fileRef,
+              fileName: item.entry.name,
+              extension: ext,
+              viewerType,
+            },
+            size: [DEFAULT_FILE_NODE_WIDTH, DEFAULT_FILE_NODE_HEIGHT],
+          });
+        }
+      }
+      if (items.length === 0) return;
+      if (items.length === 1) {
+        const item = items[0]!;
+        handleInsertRequest({
+          id: "file",
+          type: item.type,
+          props: item.props,
+          size: item.size,
+        });
+        return;
+      }
+      const [maxWidth, maxHeight] = items.reduce<[number, number]>(
+        (acc, item) => [
+          Math.max(acc[0], item.size?.[0] ?? 0),
+          Math.max(acc[1], item.size?.[1] ?? 0),
+        ],
+        [0, 0],
+      );
+      handleInsertRequest({
+        id: "file",
+        type: items[0]!.type,
+        props: { stackItems: items },
+        size: [maxWidth, maxHeight],
+      });
+    },
+    [handleImageSelected, handleVideoSelected, handleInsertRequest],
+  );
+
   const defaultPickerActiveUri = useMemo(() => {
     const rootUri = fileContext?.rootUri?.trim() ?? "";
     const boardFolderUri = fileContext?.boardFolderUri?.trim() ?? "";
@@ -908,91 +1059,90 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
       }}
       className={cn(
         "pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2",
-        "h-12 rounded-[14px] px-2",
+        "h-16 rounded-[14px] px-2",
         toolbarSurfaceClassName
       )}
     >
       <div className="relative flex h-full items-center gap-2">
         {/* 左侧：持久工具 */}
         <div className="flex items-center gap-2">
-          <IconBtn
-            title={selectTitle}
-            active={isSelectTool}
-            onPointerDown={() => handleToolChange("select")}
-            className="group h-8 w-8"
-          >
-            <SelectIcon
-              size={toolbarIconSize}
-              className={cn(toolbarIconClassName, isSelectTool && "dark:text-foreground")}
-            />
-          </IconBtn>
-          <IconBtn
-            title={handTitle}
-            active={isHandTool}
-            onPointerDown={() => handleToolChange("hand")}
-            className="group h-8 w-8"
-          >
-            <HandIcon
-              size={toolbarIconSize}
-              className={cn(toolbarIconClassName, isHandTool && "dark:text-foreground")}
-            />
-          </IconBtn>
-          <span className="h-8 w-px bg-border/80" />
-          <div className="relative">
+          <div className="flex flex-col items-center">
             <IconBtn
-              title={penVariant === "highlighter" ? highlighterTitle : penTitle}
-              active={isPenTool || hoverGroup === "pen"}
+              title={selectTitle}
+              active={isSelectTool}
+              onPointerDown={() => handleToolChange("select")}
+              className="group h-10 w-9 overflow-hidden"
+            >
+              <SelectIcon
+                size={toolbarIconSize}
+                className={cn(
+                  "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
+                  isSelectTool ? "translate-y-0" : "translate-y-2"
+                )}
+              />
+            </IconBtn>
+            <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{t('tools.select')}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <IconBtn
+              title={handTitle}
+              active={isHandTool}
+              onPointerDown={() => handleToolChange("hand")}
+              className="group h-10 w-9 overflow-hidden"
+            >
+              <HandIcon
+                size={toolbarIconSize}
+                className={cn(
+                  "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
+                  isHandTool ? "translate-y-0" : "translate-y-2"
+                )}
+              />
+            </IconBtn>
+            <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{t('tools.hand')}</span>
+          </div>
+          <span className="h-8 w-px bg-border/80" />
+          <div
+            className="relative flex flex-col items-center"
+            onPointerEnter={() => {
+              if (hoverCloseTimer.current) { window.clearTimeout(hoverCloseTimer.current); hoverCloseTimer.current = null; }
+              if (!isLocked) setHoverGroup("pen");
+            }}
+            onPointerLeave={() => {
+              if (hoverGroup === "pen" && !isBrushTool) {
+                hoverCloseTimer.current = window.setTimeout(() => { setHoverGroup(null); hoverCloseTimer.current = null; }, 150);
+              }
+            }}
+          >
+            <IconBtn
+              title={penTitle}
+              active={isBrushTool}
               onPointerDown={() => {
                 if (isLocked) return;
                 setHoverGroup("pen");
-                handleToolChange(penVariant, { keepPanel: true });
+                handleToolChange("pen", { keepPanel: true });
               }}
               className="group h-10 w-9 overflow-hidden"
               disabled={isLocked}
             >
-              <span className="relative">
-                {penVariant === "highlighter" ? (
-                  <HighlighterToolIcon
-                    className={cn(
-                      "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
-                      isPenTool ? "translate-y-0" : "translate-y-2"
-                    )}
-                    style={{ color: penColor }}
-                  />
-                ) : (
-                  <BrushToolIcon
-                    className={cn(
-                      "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
-                      isPenTool ? "translate-y-0" : "translate-y-2"
-                    )}
-                    style={{ color: penColor }}
-                  />
+              <BrushToolIcon
+                className={cn(
+                  "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
+                  isBrushTool ? "translate-y-0" : "translate-y-2"
                 )}
-              </span>
+                style={{ color: penColor }}
+              />
             </IconBtn>
-            <HoverPanel open={penPanelOpen} className="w-max">
+            <HoverPanel
+              open={brushPanelOpen}
+              className="w-max"
+              onMouseEnter={() => { if (hoverCloseTimer.current) { window.clearTimeout(hoverCloseTimer.current); hoverCloseTimer.current = null; } }}
+              onMouseLeave={() => {
+                if (hoverGroup === "pen" && !isBrushTool) {
+                  hoverCloseTimer.current = window.setTimeout(() => { setHoverGroup(null); hoverCloseTimer.current = null; }, 150);
+                }
+              }}
+            >
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <PanelItem
-                    title={penTitle}
-                    active={snapshot.activeToolId === "pen"}
-                    onPointerDown={() => handleToolChange("pen")}
-                    size="sm"
-                    showLabel={false}
-                  >
-                    <BrushToolIcon className="h-8 w-4" style={{ color: penColor }} />
-                  </PanelItem>
-                  <PanelItem
-                    title={highlighterTitle}
-                    active={snapshot.activeToolId === "highlighter"}
-                    onPointerDown={() => handleToolChange("highlighter")}
-                    size="sm"
-                    showLabel={false}
-                  >
-                    <HighlighterToolIcon className="h-8 w-4" style={{ color: penColor }} />
-                  </PanelItem>
-                </div>
-                <span className="h-6 w-px bg-border/70" />
                 <div className="flex items-center gap-2">
                   {PEN_SIZES.map(size => (
                     <button
@@ -1003,12 +1153,12 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                         if (isLocked) return;
                         setPenSize(size);
                       }}
-                        className={cn(
-                          "inline-flex h-7 w-7 items-center justify-center rounded-full",
-                          penSize === size
-                            ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-background"
-                            : "hover:bg-accent/60"
-                        )}
+                      className={cn(
+                        "inline-flex h-7 w-7 items-center justify-center rounded-full",
+                        penSize === size
+                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-background"
+                          : "hover:bg-accent/60"
+                      )}
                       aria-label={`Pen size ${size}`}
                     >
                       <span className="rounded-full bg-current" style={{ width: size, height: size }} />
@@ -1038,25 +1188,120 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 </div>
               </div>
             </HoverPanel>
+            <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{t('tools.pen')}</span>
           </div>
-          <IconBtn
-            title={eraserTitle}
-            active={isEraserTool}
-            onPointerDown={() => {
-              if (isLocked) return;
-              handleToolChange("eraser");
+          <div
+            className="relative flex flex-col items-center"
+            onPointerEnter={() => {
+              if (hoverCloseTimer.current) { window.clearTimeout(hoverCloseTimer.current); hoverCloseTimer.current = null; }
+              if (!isLocked) setHoverGroup("highlighter");
             }}
-            className="group h-10 w-9 overflow-hidden"
-            disabled={isLocked}
+            onPointerLeave={() => {
+              if (hoverGroup === "highlighter" && !isHighlighterTool) {
+                hoverCloseTimer.current = window.setTimeout(() => { setHoverGroup(null); hoverCloseTimer.current = null; }, 150);
+              }
+            }}
           >
-            <EraserToolIcon
-              className={cn(
-                "h-10 w-8 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
-                isEraserTool ? "translate-y-0" : "translate-y-2"
-              )}
-            />
-          </IconBtn>
+            <IconBtn
+              title={highlighterTitle}
+              active={isHighlighterTool}
+              onPointerDown={() => {
+                if (isLocked) return;
+                setHoverGroup("highlighter");
+                handleToolChange("highlighter", { keepPanel: true });
+              }}
+              className="group h-10 w-9 overflow-hidden"
+              disabled={isLocked}
+            >
+              <HighlighterToolIcon
+                className={cn(
+                  "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0.5",
+                  isHighlighterTool ? "translate-y-0.5" : "translate-y-3"
+                )}
+                style={{ color: hlColor }}
+              />
+            </IconBtn>
+            <HoverPanel
+              open={highlighterPanelOpen}
+              className="w-max"
+              onMouseEnter={() => { if (hoverCloseTimer.current) { window.clearTimeout(hoverCloseTimer.current); hoverCloseTimer.current = null; } }}
+              onMouseLeave={() => {
+                if (hoverGroup === "highlighter" && !isHighlighterTool) {
+                  hoverCloseTimer.current = window.setTimeout(() => { setHoverGroup(null); hoverCloseTimer.current = null; }, 150);
+                }
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  {PEN_SIZES.map(size => (
+                    <button
+                      key={`hl-size-${size}`}
+                      type="button"
+                      onPointerDown={event => {
+                        event.stopPropagation();
+                        if (isLocked) return;
+                        setHlSize(size);
+                      }}
+                      className={cn(
+                        "inline-flex h-7 w-7 items-center justify-center rounded-full",
+                        hlSize === size
+                          ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-background"
+                          : "hover:bg-accent/60"
+                      )}
+                      aria-label={`Pen size ${size}`}
+                    >
+                      <span className="rounded-full bg-current" style={{ width: size, height: size }} />
+                    </button>
+                  ))}
+                </div>
+                <span className="h-6 w-px bg-border/70" />
+                <div className="flex items-center gap-1.5">
+                  {PEN_COLORS.map(color => (
+                    <button
+                      key={`hl-color-${color}`}
+                      type="button"
+                      onPointerDown={event => {
+                        event.stopPropagation();
+                        if (isLocked) return;
+                        setHlColor(color);
+                      }}
+                      className={cn(
+                        "h-6 w-6 rounded-full ring-1 ring-border",
+                        hlColor === color &&
+                          "ring-2 ring-foreground ring-offset-2 ring-offset-background shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
+                      )}
+                      style={{ backgroundColor: color }}
+                      aria-label={`Pen color ${color}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </HoverPanel>
+            <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{t('tools.highlighter')}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <IconBtn
+              title={eraserTitle}
+              active={isEraserTool}
+              onPointerDown={() => {
+                if (isLocked) return;
+                handleToolChange("eraser");
+              }}
+              className="group h-10 w-9 overflow-hidden"
+              disabled={isLocked}
+            >
+              <EraserToolIcon
+                className={cn(
+                  "h-10 w-8 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
+                  isEraserTool ? "translate-y-0" : "translate-y-2"
+                )}
+              />
+            </IconBtn>
+            <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{t('tools.eraser')}</span>
+          </div>
         </div>
+
+        <div className="mx-1 h-6 w-px bg-border/50" />
 
         {/* 右侧：一次性插入 */}
         <div className="flex items-center gap-2">
@@ -1068,53 +1313,67 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               type: item.nodeType ?? "text",
               props: item.props ?? {},
               size: item.size,
+              title: item.title,
             };
             return (
-              <IconBtn
-                key={item.id}
-                title={item.title}
-                active={isActive}
-                onPointerDown={event => {
-                  if (isLocked) return;
-                  if (item.id === "note") {
-                    engine.getContainer()?.focus();
-                    if (pendingInsert?.id === item.id) {
-                      engine.setPendingInsert(null);
-                      engine.setToolbarDragging(false);
+              <div key={item.id} className="flex flex-col items-center select-none" draggable={false} onDragStart={e => e.preventDefault()}>
+                <IconBtn
+                  title={item.title}
+                  active={isActive}
+                  onPointerDown={event => {
+                    event.preventDefault();
+                    if (isLocked) return;
+                    if (item.id === "note") {
+                      engine.getContainer()?.focus();
+                      if (pendingInsert?.id === item.id) {
+                        engine.setPendingInsert(null);
+                        engine.setToolbarDragging(false);
+                        return;
+                      }
+                      engine.setSelectionBox(null);
+                      engine.setAlignmentGuides([]);
+                      engine.setPendingInsert(request);
+                      const worldPoint = getWorldPointFromEvent(event);
+                      if (worldPoint) {
+                        engine.setPendingInsertPoint(worldPoint);
+                      }
+                      toolbarDragRef.current = {
+                        request,
+                        startX: event.clientX,
+                        startY: event.clientY,
+                        moved: false,
+                      };
+                      setToolbarDragging(true);
+                      engine.setToolbarDragging(true);
                       return;
                     }
-                    engine.setSelectionBox(null);
-                    engine.setAlignmentGuides([]);
-                    engine.setPendingInsert(request);
-                    const worldPoint = getWorldPointFromEvent(event);
-                    if (worldPoint) {
-                      engine.setPendingInsertPoint(worldPoint);
-                    }
-                    toolbarDragRef.current = {
-                      request,
-                      startX: event.clientX,
-                      startY: event.clientY,
-                      moved: false,
-                    };
-                    setToolbarDragging(true);
-                    engine.setToolbarDragging(true);
-                    return;
-                  }
-                  if (item.opensPicker) {
-                    if (item.id === "video") {
-                      handlePickVideo();
+                    if (item.opensPicker) {
+                      if (item.id === "video") {
+                        handlePickVideo();
+                        return;
+                      }
+                      if (item.id === "file") {
+                        handlePickFile();
+                        return;
+                      }
+                      handlePickImage();
                       return;
                     }
-                    handlePickImage();
-                    return;
-                  }
-                  handleInsertRequest(request);
-                }}
-                disabled={isLocked}
-                className="group h-8 w-8"
-              >
-                <Icon size={insertIconSize} className={insertIconClassName} />
-              </IconBtn>
+                    handleInsertRequest(request);
+                  }}
+                  disabled={isLocked}
+                  className="group h-10 w-9 overflow-hidden"
+                >
+                  <Icon
+                    size={insertIconSize}
+                    className={cn(
+                      "h-10 w-5 transition-transform duration-300 ease-in-out group-hover:translate-y-0",
+                      isActive ? "translate-y-0" : "translate-y-2"
+                    )}
+                  />
+                </IconBtn>
+                <span className="pointer-events-none mt-1 select-none text-[9px] leading-none text-muted-foreground/70">{item.title}</span>
+              </div>
             );
           })}
         </div>
@@ -1161,6 +1420,27 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
           multiple
           className="hidden"
           onChange={handleImportVideoInputChange}
+        />
+        <ProjectFilePickerDialog
+          open={filePickerOpen}
+          onOpenChange={setFilePickerOpen}
+          title={t('picker.fileTitle')}
+          filterHint={t('picker.fileHint')}
+          excludeBoardEntries
+          currentBoardFolderUri={fileContext?.boardFolderUri}
+          defaultRootUri={fileContext?.rootUri}
+          defaultActiveUri={defaultPickerActiveUri ?? fileContext?.boardFolderUri}
+          onSelectFile={handleFileSelected}
+          onSelectFiles={handleFileSelected}
+          onImportFromComputer={handleImportFileFromComputer}
+        />
+        <input
+          ref={fileImportInputRef}
+          type="file"
+          accept="*/*"
+          multiple
+          className="hidden"
+          onChange={handleImportFileInputChange}
         />
       </div>
     </div>

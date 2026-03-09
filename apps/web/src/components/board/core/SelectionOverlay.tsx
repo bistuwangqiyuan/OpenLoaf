@@ -8,6 +8,11 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { Columns2, LayoutGrid, Layers, ArrowDown, ArrowUp, Copy, Lock, Rows2, Trash2, Unlock, Maximize2 } from "lucide-react";
+import {
+  BOARD_TOOLBAR_ITEM_BLUE,
+  BOARD_TOOLBAR_ITEM_AMBER,
+  BOARD_TOOLBAR_ITEM_RED,
+} from "../ui/board-style-system";
 import { useEffect, useRef, useState, type ReactNode, type SVGProps } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -360,18 +365,21 @@ export function MultiSelectionToolbar({
               id: "group",
               label: t('selection.toolbar.group'),
               icon: <Layers size={14} />,
+              className: BOARD_TOOLBAR_ITEM_BLUE,
               onSelect: () => engine.groupSelection(),
             },
             {
               id: "layout",
               label: layoutLabel,
               icon: layoutIcon,
+              className: BOARD_TOOLBAR_ITEM_BLUE,
               onSelect: () => engine.layoutSelection(layoutDirection),
             },
             {
               id: "delete",
               label: t('selection.toolbar.delete'),
               icon: <Trash2 size={14} />,
+              className: BOARD_TOOLBAR_ITEM_RED,
               onSelect: () => engine.deleteSelection(),
             },
           ]}
@@ -457,8 +465,6 @@ type ResizeCorner = "top-left" | "top-right" | "bottom-right" | "bottom-left";
 
 /** Corner handle size in screen pixels. */
 const SINGLE_SELECTION_HANDLE_SIZE = 10;
-/** Drag scale used by node visuals while moving. */
-const DRAGGING_OUTLINE_SCALE = 1.02;
 /** Corner handle metadata for single selection resizing. */
 const SINGLE_SELECTION_CORNERS: Array<{ id: ResizeCorner; cursorClass: string }> = [
   { id: "top-left", cursorClass: "cursor-nwse-resize" },
@@ -512,14 +518,6 @@ export function SingleSelectionOutline({
   const width = bounds.w * zoom;
   const height = bounds.h * zoom;
   const allowHandles = canResize && !snapshot.locked && !element.locked;
-  const isDragging = snapshot.draggingId === element.id;
-  const dragScale = isDragging ? DRAGGING_OUTLINE_SCALE : 1;
-  const centerX = left + width / 2;
-  const centerY = top + height / 2;
-  const scaledLeft = centerX + (left - centerX) * dragScale;
-  const scaledTop = centerY + (top - centerY) * dragScale;
-  const scaledWidth = width * dragScale;
-  const scaledHeight = height * dragScale;
 
   const handlePointerDown = (corner: ResizeCorner) => {
     return (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -662,10 +660,10 @@ export function SingleSelectionOutline({
   };
 
   const cornerPoints: Record<ResizeCorner, { x: number; y: number }> = {
-    "top-left": { x: scaledLeft, y: scaledTop },
-    "top-right": { x: scaledLeft + scaledWidth, y: scaledTop },
-    "bottom-right": { x: scaledLeft + scaledWidth, y: scaledTop + scaledHeight },
-    "bottom-left": { x: scaledLeft, y: scaledTop + scaledHeight },
+    "top-left": { x: left, y: top },
+    "top-right": { x: left + width, y: top },
+    "bottom-right": { x: left + width, y: top + height },
+    "bottom-left": { x: left, y: top + height },
   };
 
   return (
@@ -673,7 +671,7 @@ export function SingleSelectionOutline({
       <div
         data-board-selection-outline
         className="pointer-events-none absolute z-10 box-border rounded-none border-2 border-[#1E96EB]"
-        style={{ left: scaledLeft, top: scaledTop, width: scaledWidth, height: scaledHeight }}
+        style={{ left, top, width, height }}
       />
       {allowHandles
         ? SINGLE_SELECTION_CORNERS.map((corner) => {
@@ -875,6 +873,7 @@ function buildCommonToolbarItems(
       id: 'duplicate',
       label: t('selection.toolbar.copy'),
       icon: <Copy size={14} />,
+      className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => {
         focusSelection();
         engine.copySelection();
@@ -887,6 +886,7 @@ function buildCommonToolbarItems(
             id: 'bring-to-front',
             label: t('selection.toolbar.bringToFront'),
             icon: <ArrowUp size={14} />,
+            className: BOARD_TOOLBAR_ITEM_BLUE,
             onSelect: () => {
               focusSelection();
               engine.bringNodeToFront(element.id);
@@ -900,6 +900,7 @@ function buildCommonToolbarItems(
             id: 'send-to-back',
             label: t('selection.toolbar.sendToBack'),
             icon: <ArrowDown size={14} />,
+            className: BOARD_TOOLBAR_ITEM_BLUE,
             onSelect: () => {
               focusSelection();
               engine.sendNodeToBack(element.id);
@@ -911,6 +912,7 @@ function buildCommonToolbarItems(
       id: 'lock',
       label: isLocked ? t('selection.toolbar.unlock') : t('selection.toolbar.lock'),
       icon: isLocked ? <Unlock size={14} /> : <Lock size={14} />,
+      className: BOARD_TOOLBAR_ITEM_AMBER,
       onSelect: () => {
         focusSelection();
         engine.setElementLocked(element.id, !isLocked);
@@ -922,6 +924,7 @@ function buildCommonToolbarItems(
             id: 'delete',
             label: t('selection.toolbar.delete'),
             icon: <Trash2 size={14} />,
+            className: BOARD_TOOLBAR_ITEM_RED,
             onSelect: () => {
               focusSelection();
               engine.deleteSelection();
@@ -1041,6 +1044,7 @@ function hasUniformSpacing(
 /** Build mindmap layout controls for root nodes. */
 /** Node types that should never show mindmap layout controls. */
 const MINDMAP_LAYOUT_EXCLUDED_TYPES = new Set([
+  "video",
   "image_generate",
   "video_generate",
   "image_prompt_generate",

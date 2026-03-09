@@ -18,10 +18,8 @@ import { StackHeader } from "@/components/layout/StackHeader";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { fetchBlobFromUri, isPreviewTooLargeError } from "@/lib/image/uri";
-import {
-  formatSize,
-  resolveFileUriFromRoot,
-} from "@/components/project/filesystem/utils/file-system-utils";
+import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -182,49 +180,20 @@ export default function PdfViewer({
     />
   );
 
-  if (!uri) {
-    return (
-      <div className="flex h-full w-full flex-col overflow-hidden">
-        {stackHeader}
-        <div className="flex-1 p-4 text-muted-foreground">未选择PDF</div>
-      </div>
-    );
-  }
-
-  if (status === "loading") {
-    return (
-      <div className="flex h-full w-full flex-col overflow-hidden">
-        {stackHeader}
-        <div className="flex-1 p-4 text-muted-foreground">加载中…</div>
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <div className="flex h-full w-full flex-col overflow-hidden">
-        {stackHeader}
-        <div className="flex-1 p-4">
-          {previewError?.kind === "too-large" ? (
-            <div className="flex flex-col items-start gap-3 text-sm text-muted-foreground">
-              <div>文件过大（{formatSize(previewError.sizeBytes)}），请使用系统工具打开</div>
-              {openUri ? (
-                <Button type="button" size="sm" variant="outline" onClick={handleOpenWithSystem}>
-                  系统打开
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="text-destructive">PDF 预览失败</div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {stackHeader}
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectId}
+        rootUri={rootUri}
+        loading={status === "loading"}
+        error={status === "error"}
+        tooLarge={previewError?.kind === "too-large"}
+        errorMessage="PDF 预览失败"
+        errorDescription="请检查文件格式或权限后重试。"
+      >
       <div
         className="flex-1 overflow-auto p-4"
         onWheel={(event) => {
@@ -265,6 +234,7 @@ export default function PdfViewer({
           <div className="text-sm text-muted-foreground">无法预览该文件</div>
         )}
       </div>
+      </ViewerGuard>
     </div>
   );
 }

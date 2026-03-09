@@ -205,6 +205,8 @@ export type CanvasInsertRequest = {
   props: Record<string, unknown>;
   /** Optional default size for the inserted node. */
   size?: [number, number];
+  /** Optional display title for preview label. */
+  title?: string;
 };
 
 /** Template entry shown when dragging a connector from a node anchor. */
@@ -355,6 +357,8 @@ export type CanvasToolbarItem = {
   icon: ReactNode;
   /** Toolbar action handler. */
   onSelect?: () => void;
+  /** Optional className for the toolbar item button. */
+  className?: string;
   /** Optional panel content for secondary toolbar controls. */
   panel?: ReactNode | ((ctx: { closePanel: () => void }) => ReactNode);
   /** Optional className for the panel container. */

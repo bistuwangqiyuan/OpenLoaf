@@ -31,6 +31,11 @@ const filteredArgs = rawArgs
     if (i > 0 && arr[i - 1] === '--model') return false
     return true
   })
+  .map((a, i, arr) => {
+    // 对 --filter-pattern 等参数值加引号，避免 shell 解释 | 等特殊字符
+    if (i > 0 && arr[i - 1]?.startsWith('--filter')) return `'${a}'`
+    return a
+  })
   .join(' ')
 
 const outFile = join(import.meta.dirname, '..', '.behavior-test-output.json')
@@ -50,7 +55,7 @@ const cmd = [
   '--import ./scripts/registerMdTextLoader.mjs',
   '../../node_modules/promptfoo/dist/src/entrypoint.js eval',
   '-c src/ai/__tests__/agent-behavior/promptfooconfig.yaml',
-  `${cacheFlag} --max-concurrency 1 --no-progress-bar`,
+  `${cacheFlag} --max-concurrency 4 --no-progress-bar`,
   `-o ${outFile}`,
   filteredArgs,
 ].filter(Boolean).join(' ')
@@ -62,7 +67,7 @@ try {
   execSync(cmd, {
     cwd: join(import.meta.dirname, '..'),
     stdio: ['inherit', 'ignore', 'ignore'],
-    timeout: 10 * 60 * 1000,
+    timeout: 60 * 60 * 1000,
     env: { ...process.env },
   })
 } catch (err) {

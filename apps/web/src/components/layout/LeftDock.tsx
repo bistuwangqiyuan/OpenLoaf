@@ -58,6 +58,7 @@ const WORKSPACE_SWITCH_COMPONENTS = new Set([
   "email-page",
   "scheduled-tasks-page",
   "workspace-desktop",
+  "canvas-list-page",
 ]);
 
 /** Returns true when the event target is an editable element. */
@@ -513,7 +514,7 @@ export function LeftDock({ tabId }: { tabId: string }) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>重命名画布</DialogTitle>
+            <DialogTitle>重命名</DialogTitle>
             <DialogDescription>请输入新的画布名称。</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -559,7 +560,7 @@ export function LeftDock({ tabId }: { tabId: string }) {
                   className="text-destructive hover:text-destructive"
                   onClick={() => setConfirmingDelete(true)}
                 >
-                  删除画布
+                  删除
                 </Button>
                 <div className="flex gap-2">
                   <DialogClose asChild>

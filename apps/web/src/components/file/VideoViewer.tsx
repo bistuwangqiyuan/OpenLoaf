@@ -21,6 +21,7 @@ import {
   normalizeProjectRelativePath,
   parseScopedProjectPath,
 } from "@/components/project/filesystem/utils/file-system-utils";
+import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface VideoViewerProps {
   uri?: string;
@@ -29,6 +30,8 @@ interface VideoViewerProps {
   projectId?: string;
   workspaceId?: string;
   rootUri?: string;
+  /** Board id for resolving board-relative assets on the server. */
+  boardId?: string;
   thumbnailSrc?: string;
   width?: number;
   height?: number;
@@ -38,11 +41,12 @@ interface VideoViewerProps {
   tabId?: string;
 }
 
-type HlsUrlInput = { path: string; projectId?: string; workspaceId?: string };
+type HlsUrlInput = { path: string; projectId?: string; workspaceId?: string; boardId?: string };
 
 function applyIdParams(query: URLSearchParams, input: HlsUrlInput) {
   if (input.projectId) query.set("projectId", input.projectId);
   if (input.workspaceId) query.set("workspaceId", input.workspaceId);
+  if (input.boardId) query.set("boardId", input.boardId);
 }
 
 /** Build an HLS manifest URL for the backend endpoint. */
@@ -89,6 +93,7 @@ export default function VideoViewer({
   projectId: projectIdProp,
   workspaceId: workspaceIdProp,
   rootUri,
+  boardId: boardIdProp,
   thumbnailSrc,
   width,
   height,
@@ -134,7 +139,12 @@ export default function VideoViewer({
     if (!relativePath) return null;
 
     const quality = "720p";
-    const ids = { projectId: resolvedProjectId, workspaceId: workspaceIdProp };
+    // 逻辑：boardId 传给 HLS 端点，让服务端通过 .openloaf/boards/<boardId>/ 解析画布内相对资源。
+    const ids = {
+      projectId: resolvedProjectId,
+      workspaceId: workspaceIdProp,
+      boardId: boardIdProp || undefined,
+    };
     const masterUrl = buildManifestUrl({
       path: relativePath,
       ...ids,
@@ -173,7 +183,7 @@ export default function VideoViewer({
       projectId: resolvedProjectId,
       relativePath,
     };
-  }, [projectIdProp, workspaceIdProp, rootUri, uri]);
+  }, [boardIdProp, projectIdProp, workspaceIdProp, rootUri, uri]);
 
   useEffect(() => {
     if (thumbnailSrc) {
@@ -369,23 +379,22 @@ export default function VideoViewer({
 
   const canClose = Boolean(tabId && panelKey);
 
-  if (!uri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">未选择视频</div>;
-  }
+  const videoError = !uri ? false : Boolean(buildError) || (Boolean(uri) && !manifest?.url);
 
-  if (!manifest?.url || !manifest?.buildUrl) {
+  if (!uri || videoError) {
     return (
-      <div className="h-full w-full p-4 text-muted-foreground">
-        无法解析视频路径
-      </div>
-    );
-  }
-
-  if (buildError) {
-    return (
-      <div className="h-full w-full p-4 text-muted-foreground">
-        {t("file.videoLoadFailed", { error: buildError })}
-      </div>
+      <ViewerGuard
+        uri={uri}
+        name={name}
+        projectId={projectIdProp}
+        rootUri={rootUri}
+        error={videoError}
+        errorDetail={buildError}
+        errorMessage={buildError ? t("file.videoLoadFailed", { error: buildError }) : "无法解析视频路径"}
+        errorDescription="请检查文件路径或格式后重试。"
+      >
+        {null}
+      </ViewerGuard>
     );
   }
 
@@ -454,7 +463,7 @@ export default function VideoViewer({
           <VideoPlayer
             src={playbackUrl}
             poster={thumbnailSrc ?? previewBackground ?? undefined}
-            thumbnails={manifest.thumbnails}
+            thumbnails={manifest?.thumbnails}
             title={displayTitle}
             smallLayoutWhen={forceLargeLayout ? false : undefined}
             className={cn(
