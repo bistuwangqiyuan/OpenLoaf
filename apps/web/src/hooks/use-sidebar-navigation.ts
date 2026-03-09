@@ -16,7 +16,7 @@ import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
-import { BOARD_META_FILE_NAME } from '@/lib/file-name'
+import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
 import { useWorkspace } from '@/components/workspace/workspaceContext'
 
 export function useSidebarNavigation(workspaceId: string) {
@@ -96,7 +96,7 @@ export function useSidebarNavigation(workspaceId: string) {
     const canvasLabel = i18next.t('nav:canvasList.defaultName')
     const boardName = `tnboard_${canvasLabel}_${randomSuffix}`
     const boardFolderUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}`)
-    const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_META_FILE_NAME}`)
+    const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_INDEX_FILE_NAME}`)
     addTab({
       workspaceId,
       createNew: true,

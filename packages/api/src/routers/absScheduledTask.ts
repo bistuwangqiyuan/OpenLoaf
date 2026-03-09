@@ -76,6 +76,7 @@ const taskConfigSchema = z.object({
   createdBy: z.enum(['user', 'agent']),
   scope: z.enum(['workspace', 'project']),
   filePath: z.string(),
+  projectId: z.string().optional(),
 })
 
 const runLogSchema = z.object({

@@ -118,6 +118,7 @@ export type TaskConfig = {
   createdBy: 'user' | 'agent'
   scope: TaskScope
   filePath: string
+  projectId?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -190,6 +191,24 @@ export function listTasks(
     for (const root of roots) {
       tasks.push(...scanTasks(root, 'project'))
     }
+  }
+  tasks.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
+  return tasks
+}
+
+/** List tasks from workspace + all projects, attaching projectId to each project task. */
+export function listTasksWithProjectMapping(
+  workspaceRoot: string,
+  projectRootMapping: Map<string, string>,
+): TaskConfig[] {
+  const tasks: TaskConfig[] = []
+  tasks.push(...scanTasks(workspaceRoot, 'workspace'))
+  for (const [rootPath, projectId] of projectRootMapping) {
+    const projectTasks = scanTasks(rootPath, 'project')
+    for (const task of projectTasks) {
+      task.projectId = projectId
+    }
+    tasks.push(...projectTasks)
   }
   tasks.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
   return tasks

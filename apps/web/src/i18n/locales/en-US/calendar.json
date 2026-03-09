@@ -32,5 +32,7 @@
   "errUpdateEvent": "Failed to update calendar event.",
   "errDeleteEvent": "Failed to delete calendar event.",
   "errUpdateReminder": "Failed to update reminder.",
-  "errEventIdNotFound": "System event ID not found."
+  "errEventIdNotFound": "System event ID not found.",
+  "tasks": "Tasks",
+  "taskCount": "Show {{count}} tasks"
 }

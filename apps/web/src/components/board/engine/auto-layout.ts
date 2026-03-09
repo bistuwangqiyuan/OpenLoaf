@@ -52,9 +52,9 @@ const NODE_GAP = 80
 const COMPONENT_GAP = 160
 const DIRECTION_THRESHOLD = 1.3
 const BARYCENTER_PASSES = 6
-const GRID_ASPECT_RATIO = 1.6
 const PARTIAL_FIT_PADDING = 40
 const GRID_SNAP = 16
+const UNLINKED_NODE_GAP = 12
 const UNLINKED_CLUSTER_PADDING = 200
 
 // ─── Node Filtering ────────────────────────────────────────────────
@@ -613,257 +613,88 @@ type ComponentEntry = {
   locked: boolean
 }
 
-/** Arrange components using 2D skyline bin packing. */
-function skylineBinPack(
-  entries: ComponentEntry[],
-  componentRects: Map<string, RectTuple>,
-  layoutNodes: Map<string, LayoutNode>,
-  layoutPositions: Map<string, [number, number]>,
-): void {
-  const movable = entries
-    .filter((entry) => !entry.locked)
-    .map((entry) => ({
-      ...entry,
-      rect: componentRects.get(entry.id),
-    }))
-    .filter(
-      (entry): entry is ComponentEntry & { rect: RectTuple } => Boolean(entry.rect),
-    )
+// ─── Grid-Aware Alignment for Unlinked Node Clusters ──────────────
 
-  if (movable.length === 0) return
+type GridItem = { id: string; cx: number; cy: number; w: number; h: number }
 
-  // Record original centroid of all movable components
-  let origCx = 0
-  let origCy = 0
-  let totalArea = 0
-  movable.forEach((entry) => {
-    const [rx, ry, rw, rh] = entry.rect
-    const area = rw * rh
-    origCx += (rx + rw / 2) * area
-    origCy += (ry + rh / 2) * area
-    totalArea += area
-  })
-  if (totalArea > 0) {
-    origCx /= totalArea
-    origCy /= totalArea
-  }
-
-  // Sort by area descending (largest first)
-  movable.sort((a, b) => {
-    const areaA = a.rect[2] * a.rect[3]
-    const areaB = b.rect[2] * b.rect[3]
-    return areaB - areaA
-  })
-
-  // Collect locked rects as obstacles
-  const obstacles: RectTuple[] = []
-  entries.forEach((entry) => {
-    if (!entry.locked) return
-    const rect = componentRects.get(entry.id)
-    if (rect) obstacles.push(rect)
-  })
-
-  // Build skyline: an array of {x, y, width} segments representing the top boundary
-  type SkylineSegment = { x: number; y: number; width: number }
-  const totalWidth = Math.max(
-    Math.sqrt(totalArea) * GRID_ASPECT_RATIO,
-    movable.reduce((max, entry) => Math.max(max, entry.rect[2]), 0) + COMPONENT_GAP,
-  )
-
-  const skyline: SkylineSegment[] = [{ x: 0, y: 0, width: totalWidth }]
-
-  const findBestPosition = (
-    w: number,
-    h: number,
-  ): { x: number; y: number; skylineIdx: number } => {
-    let bestY = Infinity
-    let bestX = 0
-    let bestIdx = 0
-
-    for (let i = 0; i < skyline.length; i += 1) {
-      // Try fitting at each skyline position
-      let fitWidth = 0
-      let maxY = 0
-      let valid = true
-
-      for (let j = i; j < skyline.length && fitWidth < w; j += 1) {
-        maxY = Math.max(maxY, skyline[j].y)
-        fitWidth += skyline[j].width
-        if (maxY + h > bestY) {
-          valid = false
-          break
-        }
-      }
-
-      if (valid && fitWidth >= w && maxY + h < bestY) {
-        bestY = maxY + h
-        bestX = skyline[i].x
-        bestIdx = i
-      }
-    }
-
-    return {
-      x: bestX,
-      y: bestY - h,
-      skylineIdx: bestIdx,
-    }
-  }
-
-  const updateSkyline = (px: number, py: number, w: number, h: number): void => {
-    const newTop = py + h + COMPONENT_GAP
-    const newSegment: SkylineSegment = { x: px, y: newTop, width: w }
-
-    // Remove/trim segments covered by the new rect
-    const newSkyline: SkylineSegment[] = []
-    let inserted = false
-
-    for (const seg of skyline) {
-      const segEnd = seg.x + seg.width
-      const newEnd = px + w
-
-      if (segEnd <= px || seg.x >= newEnd) {
-        // No overlap
-        newSkyline.push(seg)
-      } else {
-        // Partial overlap
-        if (seg.x < px) {
-          newSkyline.push({ x: seg.x, y: seg.y, width: px - seg.x })
-        }
-        if (!inserted) {
-          newSkyline.push(newSegment)
-          inserted = true
-        }
-        if (segEnd > newEnd) {
-          newSkyline.push({ x: newEnd, y: seg.y, width: segEnd - newEnd })
-        }
-      }
-    }
-
-    if (!inserted) {
-      newSkyline.push(newSegment)
-    }
-
-    skyline.length = 0
-    skyline.push(...newSkyline)
-  }
-
-  // Place each component
-  const placements = new Map<string, { x: number; y: number }>()
-
-  movable.forEach((entry) => {
-    const [, , w, h] = entry.rect
-    const pos = findBestPosition(w + COMPONENT_GAP, h + COMPONENT_GAP)
-    placements.set(entry.id, { x: pos.x, y: pos.y })
-    updateSkyline(pos.x, pos.y, w + COMPONENT_GAP, h)
-  })
-
-  // Compute new centroid
-  let newCx = 0
-  let newCy = 0
-  let newTotalArea = 0
-  movable.forEach((entry) => {
-    const [, , rw, rh] = entry.rect
-    const pos = placements.get(entry.id)
-    if (!pos) return
-    const area = rw * rh
-    newCx += (pos.x + rw / 2) * area
-    newCy += (pos.y + rh / 2) * area
-    newTotalArea += area
-  })
-  if (newTotalArea > 0) {
-    newCx /= newTotalArea
-    newCy /= newTotalArea
-  }
-
-  // Translate to original centroid
-  const translateX = origCx - newCx
-  const translateY = origCy - newCy
-
-  movable.forEach((entry) => {
-    const pos = placements.get(entry.id)
-    if (!pos) return
-    const rect = entry.rect
-    const deltaX = pos.x + translateX - rect[0]
-    const deltaY = pos.y + translateY - rect[1]
-    if (Math.abs(deltaX) < 0.1 && Math.abs(deltaY) < 0.1) return
-
-    entry.nodeIds.forEach((nodeId) => {
-      const node = layoutNodes.get(nodeId)
-      if (!node) return
-      const prevPos = layoutPositions.get(nodeId)
-      const [x, y, w, h] = node.xywh
-      const px = prevPos ? prevPos[0] : x
-      const py = prevPos ? prevPos[1] : y
-      layoutPositions.set(nodeId, [px + deltaX, py + deltaY])
-    })
-
-    componentRects.set(entry.id, [
-      rect[0] + deltaX,
-      rect[1] + deltaY,
-      rect[2],
-      rect[3],
-    ])
-  })
-}
-
-// ─── Shelf Packing for Unlinked Node Clusters ─────────────────────
-
-/** Layout multi-node unlinked clusters using shelf packing. */
-function shelfPackCluster(
+/**
+ * Detect existing row/column structure from node positions and snap to a clean grid.
+ * A 2×2 arrangement stays 2×2; a 3×1 row stays a row, etc.
+ */
+function gridAlignCluster(
   clusterIds: string[],
   layoutNodes: Map<string, LayoutNode>,
   layoutPositions: Map<string, [number, number]>,
 ): void {
   if (clusterIds.length < 2) return
 
-  // Compute original center
-  let origCx = 0
-  let origCy = 0
-  let count = 0
-  let totalArea = 0
+  const items: GridItem[] = []
   clusterIds.forEach((id) => {
     const node = layoutNodes.get(id)
     if (!node || node.locked) return
     const [x, y, w, h] = node.xywh
-    origCx += x + w / 2
-    origCy += y + h / 2
-    totalArea += w * h
-    count += 1
+    items.push({ id, cx: x + w / 2, cy: y + h / 2, w, h })
   })
-  if (count === 0) return
-  origCx /= count
-  origCy /= count
+  if (items.length < 2) return
 
-  // Sort by height descending for shelf packing
-  const movable = clusterIds
-    .map((id) => ({ id, node: layoutNodes.get(id)! }))
-    .filter((item) => item.node && !item.node.locked)
-    .sort((a, b) => b.node.xywh[3] - a.node.xywh[3])
+  // Original center
+  let origCx = 0
+  let origCy = 0
+  items.forEach((item) => {
+    origCx += item.cx
+    origCy += item.cy
+  })
+  origCx /= items.length
+  origCy /= items.length
 
-  const targetWidth = Math.max(
-    Math.sqrt(totalArea) * GRID_ASPECT_RATIO,
-    movable.reduce((max, item) => Math.max(max, item.node.xywh[2]), 0) + NODE_GAP,
-  )
+  // Detect rows by clustering Y centers
+  const sortedByY = [...items].sort((a, b) => a.cy - b.cy)
+  const heights = items.map((i) => i.h)
+  heights.sort((a, b) => a - b)
+  const medianH = heights[Math.floor(heights.length / 2)]
+  const rowThreshold = medianH * 0.6
 
-  let cursorX = 0
-  let cursorY = 0
-  let shelfHeight = 0
-
-  movable.forEach((item) => {
-    const [, , w, h] = item.node.xywh
-    if (cursorX > 0 && cursorX + w > targetWidth) {
-      cursorX = 0
-      cursorY += shelfHeight + NODE_GAP
-      shelfHeight = 0
+  const rows: GridItem[][] = [[sortedByY[0]]]
+  for (let i = 1; i < sortedByY.length; i += 1) {
+    const lastRow = rows[rows.length - 1]
+    const lastRowAvgY = lastRow.reduce((s, item) => s + item.cy, 0) / lastRow.length
+    if (Math.abs(sortedByY[i].cy - lastRowAvgY) > rowThreshold) {
+      rows.push([sortedByY[i]])
+    } else {
+      lastRow.push(sortedByY[i])
     }
-    layoutPositions.set(item.id, [cursorX, cursorY])
-    shelfHeight = Math.max(shelfHeight, h)
-    cursorX += w + NODE_GAP
+  }
+
+  // Sort each row by X
+  rows.forEach((row) => row.sort((a, b) => a.cx - b.cx))
+
+  // Compute per-column max width (not global max — avoids one wide node stretching all columns)
+  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
+  const colWidths: number[] = new Array(maxCols).fill(0)
+  rows.forEach((row) => {
+    row.forEach((item, col) => {
+      colWidths[col] = Math.max(colWidths[col], item.w)
+    })
   })
 
-  // Compute new bounding box center and translate to original center
+  // Place nodes in detected grid structure
+  let cursorY = 0
+  rows.forEach((row) => {
+    const rowMaxH = row.reduce((max, item) => Math.max(max, item.h), 0)
+    let cursorX = 0
+    row.forEach((item, col) => {
+      const colW = colWidths[col]
+      const px = cursorX + (colW - item.w) / 2
+      const py = cursorY + (rowMaxH - item.h) / 2
+      layoutPositions.set(item.id, [px, py])
+      cursorX += colW + UNLINKED_NODE_GAP
+    })
+    cursorY += rowMaxH + UNLINKED_NODE_GAP
+  })
+
+  // Re-center to original center
   const newRect = computeComponentRect(
-    movable.map((item) => item.id),
+    items.map((item) => item.id),
     layoutNodes,
     layoutPositions,
   )
@@ -872,7 +703,7 @@ function shelfPackCluster(
   const dx = origCx - newCx
   const dy = origCy - newCy
 
-  movable.forEach((item) => {
+  items.forEach((item) => {
     const pos = layoutPositions.get(item.id)
     if (!pos) return
     layoutPositions.set(item.id, [pos[0] + dx, pos[1] + dy])
@@ -940,10 +771,11 @@ export function computeAutoLayoutUpdates(elements: CanvasElement[]): AutoLayoutU
       // Single node: keep original position
       return
     }
-    shelfPackCluster(cluster, unlinkedLayoutNodes, layoutPositions)
+    gridAlignCluster(cluster, unlinkedLayoutNodes, layoutPositions)
   })
 
-  // Global component arrangement using skyline bin packing
+  // Global overlap resolution — only push apart components that actually overlap.
+  // Preserves user's spatial organization; does NOT rearrange everything.
   const getRectWithLayoutPosition = (node: LayoutNode): RectTuple => {
     const pos = layoutPositions.get(node.id)
     const [x, y, w, h] = node.xywh
@@ -979,15 +811,12 @@ export function computeAutoLayoutUpdates(elements: CanvasElement[]): AutoLayoutU
     componentRects.set(component.id, rect)
   })
 
-  // Use skyline bin packing for global arrangement
-  skylineBinPack(componentEntries, componentRects, layoutNodes, layoutPositions)
-
-  // Obstacle avoidance for locked components
-  const obstacleRects = new Map<string, RectTuple>()
+  // Collect all rects as obstacles (locked first, then resolve movable in Y order)
+  const placedRects = new Map<string, RectTuple>()
   componentEntries.forEach((component) => {
     if (!component.locked) return
     const rect = componentRects.get(component.id)
-    if (rect) obstacleRects.set(component.id, rect)
+    if (rect) placedRects.set(component.id, rect)
   })
 
   const movableComponents = componentEntries
@@ -1002,20 +831,49 @@ export function computeAutoLayoutUpdates(elements: CanvasElement[]): AutoLayoutU
   movableComponents.forEach((component) => {
     const rect = componentRects.get(component.id)
     if (!rect) return
-    const obstacleSpans = Array.from(obstacleRects.values())
+
+    // Check overlap with all already-placed rects
+    const paddedRect: RectTuple = [
+      rect[0] - COMPONENT_GAP / 2,
+      rect[1] - COMPONENT_GAP / 2,
+      rect[2] + COMPONENT_GAP,
+      rect[3] + COMPONENT_GAP,
+    ]
+    const overlappingSpans = Array.from(placedRects.values())
+      .filter((obsRect) => {
+        const paddedObs: RectTuple = [
+          obsRect[0] - COMPONENT_GAP / 2,
+          obsRect[1] - COMPONENT_GAP / 2,
+          obsRect[2] + COMPONENT_GAP,
+          obsRect[3] + COMPONENT_GAP,
+        ]
+        return rectsIntersect(paddedRect, paddedObs)
+      })
+
+    if (overlappingSpans.length === 0) {
+      // No overlap — keep original position
+      placedRects.set(component.id, rect)
+      return
+    }
+
+    // Only resolve Y-axis overlap (minimal disturbance)
+    const obstacleYSpans = overlappingSpans
       .filter((obsRect) =>
         spansOverlap(
           { start: rect[0], end: rect[0] + rect[2] },
           { start: obsRect[0], end: obsRect[0] + obsRect[2] },
         ),
       )
-      .map((obsRect) => ({ start: obsRect[1], end: obsRect[1] + obsRect[3] }))
+      .map((obsRect) => ({
+        start: obsRect[1] - COMPONENT_GAP,
+        end: obsRect[1] + obsRect[3] + COMPONENT_GAP,
+      }))
 
     const preferred = rect[1]
     const size = rect[3]
-    const resolved = resolveSecondaryPosition(preferred, size, obstacleSpans)
-    if (resolved === preferred) {
-      obstacleRects.set(component.id, rect)
+    const resolved = resolveSecondaryPosition(preferred, size, obstacleYSpans)
+    if (Math.abs(resolved - preferred) < 1) {
+      placedRects.set(component.id, rect)
       return
     }
     const deltaY = resolved - rect[1]
@@ -1027,8 +885,41 @@ export function computeAutoLayoutUpdates(elements: CanvasElement[]): AutoLayoutU
     })
     const nextRect: RectTuple = [rect[0], resolved, rect[2], rect[3]]
     componentRects.set(component.id, nextRect)
-    obstacleRects.set(component.id, nextRect)
+    placedRects.set(component.id, nextRect)
   })
+
+  // Anchor: preserve the overall centroid so nodes don't drift on repeated layouts
+  const movedIds = Array.from(layoutPositions.keys())
+  if (movedIds.length > 0) {
+    let origSumX = 0
+    let origSumY = 0
+    let newSumX = 0
+    let newSumY = 0
+    let cnt = 0
+    movedIds.forEach((id) => {
+      const node = layoutNodes.get(id)
+      if (!node || node.locked) return
+      const [ox, oy, w, h] = node.xywh
+      const pos = layoutPositions.get(id)!
+      origSumX += ox + w / 2
+      origSumY += oy + h / 2
+      newSumX += pos[0] + w / 2
+      newSumY += pos[1] + h / 2
+      cnt += 1
+    })
+    if (cnt > 0) {
+      const driftX = origSumX / cnt - newSumX / cnt
+      const driftY = origSumY / cnt - newSumY / cnt
+      if (Math.abs(driftX) > 1 || Math.abs(driftY) > 1) {
+        movedIds.forEach((id) => {
+          const node = layoutNodes.get(id)
+          if (!node || node.locked) return
+          const pos = layoutPositions.get(id)!
+          layoutPositions.set(id, [pos[0] + driftX, pos[1] + driftY])
+        })
+      }
+    }
+  }
 
   // Build final updates with grid snapping
   const updates: AutoLayoutUpdate[] = []
@@ -1058,7 +949,14 @@ export function computeAutoLayoutUpdates(elements: CanvasElement[]): AutoLayoutU
 
 // ─── Partial Layout for Selection ──────────────────────────────────
 
-/** Compute layout updates for selected nodes only, with context awareness. */
+/**
+ * Compute layout updates for selected nodes only.
+ *
+ * Key principle: **preserve user's spatial structure**.
+ * - Nodes with connectors: run Sugiyama but fit result back to original region.
+ * - Nodes without connectors: detect row/column structure, snap to clean grid in-place.
+ * - Final result stays centered on the original selection center.
+ */
 export function computePartialLayoutUpdates(
   allElements: CanvasElement[],
   selectedNodeIds: Set<string>,
@@ -1068,23 +966,6 @@ export function computePartialLayoutUpdates(
       element.kind === "node" && selectedNodeIds.has(element.id) && !isExcludedNode(element),
   )
   if (selectedNodes.length < 2) return []
-
-  // Record original bounding box
-  let origMinX = Infinity
-  let origMinY = Infinity
-  let origMaxX = -Infinity
-  let origMaxY = -Infinity
-  selectedNodes.forEach((node) => {
-    const [x, y, w, h] = node.xywh
-    origMinX = Math.min(origMinX, x)
-    origMinY = Math.min(origMinY, y)
-    origMaxX = Math.max(origMaxX, x + w)
-    origMaxY = Math.max(origMaxY, y + h)
-  })
-  const origCx = (origMinX + origMaxX) / 2
-  const origCy = (origMinY + origMaxY) / 2
-  const origW = origMaxX - origMinX
-  const origH = origMaxY - origMinY
 
   // Collect internal connectors
   const internalConnectors = allElements.filter(
@@ -1096,60 +977,73 @@ export function computePartialLayoutUpdates(
       selectedNodeIds.has(element.target.elementId),
   )
 
-  const subElements: CanvasElement[] = [...selectedNodes, ...internalConnectors]
-  const updates = computeAutoLayoutUpdates(subElements)
-  if (updates.length === 0) return []
-
-  // Compute new bounding box
-  let newMinX = Infinity
-  let newMinY = Infinity
-  let newMaxX = -Infinity
-  let newMaxY = -Infinity
-  const updateMap = new Map(updates.map((u) => [u.id, u]))
-  updates.forEach((update) => {
-    const [x, y, w, h] = update.xywh
-    newMinX = Math.min(newMinX, x)
-    newMinY = Math.min(newMinY, y)
-    newMaxX = Math.max(newMaxX, x + w)
-    newMaxY = Math.max(newMaxY, y + h)
+  // Split into linked and unlinked sets
+  const linkedNodeIds = new Set<string>()
+  internalConnectors.forEach((connector) => {
+    if ("elementId" in connector.source) linkedNodeIds.add(connector.source.elementId)
+    if ("elementId" in connector.target) linkedNodeIds.add(connector.target.elementId)
   })
-  const newW = newMaxX - newMinX
-  const newH = newMaxY - newMinY
-  const newCx = (newMinX + newMaxX) / 2
-  const newCy = (newMinY + newMaxY) / 2
 
-  // Scale down if result is larger than original bounding box
-  let scale = 1
-  if (newW > origW + PARTIAL_FIT_PADDING * 2 || newH > origH + PARTIAL_FIT_PADDING * 2) {
-    const scaleX = origW > 0 ? origW / newW : 1
-    const scaleY = origH > 0 ? origH / newH : 1
-    scale = Math.min(scaleX, scaleY, 1)
+  const linkedNodes = selectedNodes.filter((n) => linkedNodeIds.has(n.id))
+  const unlinkedNodes = selectedNodes.filter((n) => !linkedNodeIds.has(n.id))
+
+  const allUpdates: AutoLayoutUpdate[] = []
+
+  // ── Handle linked nodes: Sugiyama, then fit back to original region ──
+  if (linkedNodes.length >= 2 && internalConnectors.length > 0) {
+    const origRect = computeNodesBounds(linkedNodes)
+
+    const subElements: CanvasElement[] = [...linkedNodes, ...internalConnectors]
+    const updates = computeAutoLayoutUpdates(subElements)
+
+    if (updates.length > 0) {
+      const fitted = fitUpdatesToRegion(updates, origRect)
+      allUpdates.push(...fitted)
+    }
   }
 
-  // Translate to original center
-  const finalUpdates: AutoLayoutUpdate[] = updates.map((update) => {
-    const [x, y, w, h] = update.xywh
-    const relX = (x - newCx) * scale
-    const relY = (y - newCy) * scale
-    return {
-      id: update.id,
-      xywh: [
-        snapToGrid(origCx + relX),
-        snapToGrid(origCy + relY),
-        w,
-        h,
-      ] as [number, number, number, number],
-    }
-  })
+  // ── Handle unlinked nodes: grid-align in-place ──
+  if (unlinkedNodes.length >= 2) {
+    const layoutPositions = new Map<string, [number, number]>()
+    const layoutNodes = new Map<string, LayoutNode>()
+    unlinkedNodes.forEach((node) => {
+      layoutNodes.set(node.id, {
+        id: node.id,
+        xywh: node.xywh,
+        locked: Boolean(node.locked),
+        createdAt: 0,
+        isGroup: false,
+        childIds: [],
+      })
+    })
+    gridAlignCluster(
+      unlinkedNodes.map((n) => n.id),
+      layoutNodes,
+      layoutPositions,
+    )
+    unlinkedNodes.forEach((node) => {
+      const pos = layoutPositions.get(node.id)
+      if (!pos) return
+      const [, , w, h] = node.xywh
+      allUpdates.push({
+        id: node.id,
+        xywh: [snapToGrid(pos[0]), snapToGrid(pos[1]), w, h],
+      })
+    })
+  } else if (unlinkedNodes.length === 1) {
+    // Single unlinked node: don't move it
+  }
 
-  // Collision detection with non-selected nodes
+  if (allUpdates.length === 0) return []
+
+  // ── Collision avoidance with non-selected nodes ──
   const nonSelectedNodes = allElements.filter(
     (element): element is CanvasNodeElement =>
       element.kind === "node" && !selectedNodeIds.has(element.id) && !isExcludedNode(element),
   )
 
   if (nonSelectedNodes.length > 0) {
-    const resultRect = computeBoundsFromUpdates(finalUpdates)
+    const resultRect = computeBoundsFromUpdates(allUpdates)
     let hasCollision = false
     for (const node of nonSelectedNodes) {
       if (rectsIntersect(resultRect, node.xywh)) {
@@ -1159,13 +1053,7 @@ export function computePartialLayoutUpdates(
     }
 
     if (hasCollision) {
-      // Try shifting to find nearest empty space
-      const shifts = [
-        [0, -1],
-        [0, 1],
-        [-1, 0],
-        [1, 0],
-      ]
+      const shifts = [[0, -1], [0, 1], [-1, 0], [1, 0]]
       const step = GRID_SNAP * 4
       for (let dist = step; dist < 2000; dist += step) {
         for (const [sx, sy] of shifts) {
@@ -1185,7 +1073,7 @@ export function computePartialLayoutUpdates(
             }
           }
           if (!collides) {
-            return finalUpdates.map((u) => ({
+            return allUpdates.map((u) => ({
               id: u.id,
               xywh: [
                 snapToGrid(u.xywh[0] + dx),
@@ -1200,7 +1088,62 @@ export function computePartialLayoutUpdates(
     }
   }
 
-  return finalUpdates
+  return allUpdates
+}
+
+/** Compute bounding box of raw nodes. */
+function computeNodesBounds(nodes: CanvasNodeElement[]): RectTuple {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  nodes.forEach((node) => {
+    const [x, y, w, h] = node.xywh
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y)
+    maxX = Math.max(maxX, x + w)
+    maxY = Math.max(maxY, y + h)
+  })
+  if (!Number.isFinite(minX)) return [0, 0, 0, 0]
+  return [minX, minY, maxX - minX, maxY - minY]
+}
+
+/** Fit layout updates back to the original region (center + optional scale-down). */
+function fitUpdatesToRegion(
+  updates: AutoLayoutUpdate[],
+  origRect: RectTuple,
+): AutoLayoutUpdate[] {
+  const newRect = computeBoundsFromUpdates(updates)
+  const origCx = origRect[0] + origRect[2] / 2
+  const origCy = origRect[1] + origRect[3] / 2
+  const newCx = newRect[0] + newRect[2] / 2
+  const newCy = newRect[1] + newRect[3] / 2
+
+  // Scale down only if new layout is significantly larger than original
+  let scale = 1
+  if (
+    newRect[2] > origRect[2] + PARTIAL_FIT_PADDING * 2 ||
+    newRect[3] > origRect[3] + PARTIAL_FIT_PADDING * 2
+  ) {
+    const scaleX = origRect[2] > 0 ? origRect[2] / newRect[2] : 1
+    const scaleY = origRect[3] > 0 ? origRect[3] / newRect[3] : 1
+    scale = Math.min(scaleX, scaleY, 1)
+  }
+
+  return updates.map((update) => {
+    const [x, y, w, h] = update.xywh
+    const relX = (x - newCx) * scale
+    const relY = (y - newCy) * scale
+    return {
+      id: update.id,
+      xywh: [
+        snapToGrid(origCx + relX),
+        snapToGrid(origCy + relY),
+        w,
+        h,
+      ] as [number, number, number, number],
+    }
+  })
 }
 
 function computeBoundsFromUpdates(updates: AutoLayoutUpdate[]): RectTuple {

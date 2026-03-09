@@ -32,5 +32,7 @@
   "errUpdateEvent": "更新日历事件失败。",
   "errDeleteEvent": "删除日历事件失败。",
   "errUpdateReminder": "更新提醒事项失败。",
-  "errEventIdNotFound": "未找到系统事件 ID。"
+  "errEventIdNotFound": "未找到系统事件 ID。",
+  "tasks": "任务",
+  "taskCount": "显示 {{count}} 个任务"
 }

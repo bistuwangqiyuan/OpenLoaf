@@ -161,7 +161,7 @@ export function setActiveWorkspaceProjectEntries(
   setWorkspaceProjectEntries(entries);
 }
 
-export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri };
+export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri, getWorkspaceProjectEntries };
 
 /** Resolve a URI into an absolute local path. */
 export function resolveWorkspacePathFromUri(uri: string): string {

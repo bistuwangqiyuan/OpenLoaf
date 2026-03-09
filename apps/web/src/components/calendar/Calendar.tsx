@@ -39,6 +39,7 @@ import "dayjs/locale/es";
 import { CALENDAR_LOCALE_BY_LANGUAGE, CALENDAR_TRANSLATIONS, type LanguageId } from "./calendar-i18n";
 import { CalendarFilterPanel } from "./calendar-filter-panel";
 import { useCalendarPageState } from "./use-calendar-page-state";
+import { useCalendarTasks } from "./use-calendar-tasks";
 import { useProjects } from "@/hooks/use-projects";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
@@ -412,6 +413,7 @@ export default function CalendarPage({
   );
   const projectSelectionInitializedRef = useRef(false);
   const [sourceFilter, setSourceFilter] = useState<CalendarSourceFilter>("all");
+  const [showTasks, setShowTasks] = useState(true);
   // 逻辑：桌面嵌入版隐藏侧边栏，保留日历主体。
   const showSidebar = !compact;
   // 逻辑：主页面底部 Dock 存在时，为日历主体预留安全边距，避免底部边框被遮挡。
@@ -453,6 +455,16 @@ export default function CalendarPage({
     setSelectedReminderListIds,
     toggleReminderCompleted,
   } = useCalendarPageState({ workspaceId, toSystemEvent, getEventKind, sourceFilter });
+
+  const { taskEvents, taskCount } = useCalendarTasks({
+    workspaceId,
+    selectedProjectIds,
+    showTasks,
+  });
+
+  const handleToggleTasks = useCallback(() => {
+    setShowTasks((prev) => !prev);
+  }, []);
 
   const handleSelectAllProjects = useCallback(() => {
     setSelectedProjectIds(new Set(projectIdList));
@@ -526,7 +538,7 @@ export default function CalendarPage({
         toCalendarEvent(reminder, reminderColorMap, reminderAccessMap, sourceMap, "reminder")
       );
 
-    return [...eventResults, ...reminderResults];
+    return [...eventResults, ...reminderResults, ...taskEvents];
   }, [
     calendarColorMap,
     calendarAccessMap,
@@ -535,6 +547,7 @@ export default function CalendarPage({
     systemEvents,
     systemReminders,
     sourceMap,
+    taskEvents,
   ]);
 
   const handleSelectAllCalendarsFiltered = useCallback(() => {
@@ -668,11 +681,28 @@ export default function CalendarPage({
             openEventOnDoubleClick
             renderEvent={(event) => {
               const meta = event.data as {
-                kind?: CalendarKind;
+                kind?: CalendarKind | 'task';
                 completed?: boolean;
                 readOnly?: boolean;
                 isSubscribed?: boolean;
+                status?: string;
               } | undefined;
+              if (meta?.kind === "task") {
+                return (
+                  <div
+                    className={`h-full w-full ${eventPaddingClassName} text-left overflow-clip relative rounded-sm flex items-center ${reminderGapClassName}`}
+                    style={{ backgroundColor: "transparent" }}
+                  >
+                    <span
+                      className="inline-flex h-2 w-2 shrink-0 rounded-[2px]"
+                      style={{ backgroundColor: event.backgroundColor ?? "#1a73e8" }}
+                    />
+                    <span className={`${eventTextClassName} font-semibold text-foreground truncate`}>
+                      {event.title}
+                    </span>
+                  </div>
+                );
+              }
               if (meta?.kind !== "reminder") {
                 return (
                   <div
@@ -738,6 +768,9 @@ export default function CalendarPage({
                   selectedCalendarIds={selectedCalendarIds}
                   selectedReminderListIds={selectedReminderListIds}
                   selectedProjectIds={selectedProjectIds}
+                  showTasks={showTasks}
+                  taskCount={taskCount}
+                  onToggleTasks={handleToggleTasks}
                   className="h-full overflow-auto"
                   onSourceFilterChange={setSourceFilter}
                   onToggleCalendar={handleToggleCalendar}
@@ -764,7 +797,12 @@ export default function CalendarPage({
             }
             sidebarClassName={showSidebar ? "h-full" : "hidden"}
             renderEventForm={(props) => {
-              const selectedMeta = props.selectedEvent?.data as { calendarId?: string; kind?: CalendarKind } | undefined;
+              const selectedMeta = props.selectedEvent?.data as { calendarId?: string; kind?: CalendarKind | 'task' } | undefined;
+              if (selectedMeta?.kind === "task") {
+                // Task events are read-only — close the form immediately
+                props.onClose?.();
+                return null;
+              }
               const kind = selectedMeta?.kind === "reminder" ? "reminder" : "event";
               const fallbackId =
                 kind === "reminder"

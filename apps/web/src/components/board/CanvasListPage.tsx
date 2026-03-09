@@ -21,7 +21,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
-import { BOARD_META_FILE_NAME } from "@/lib/file-name";
+import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
 import { Button } from "@openloaf/ui/button";
 import { Input } from "@openloaf/ui/input";
 import {
@@ -294,7 +294,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       const boardFolderUri = buildFileUriFromRoot(rootUri, board.folderUri);
       const boardFileUri = buildFileUriFromRoot(
         rootUri,
-        `${board.folderUri}${BOARD_META_FILE_NAME}`,
+        `${board.folderUri}${BOARD_INDEX_FILE_NAME}`,
       );
       const baseId = `board:${boardFolderUri}`;
 

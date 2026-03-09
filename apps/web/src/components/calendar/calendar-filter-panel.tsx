@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import { Accordion, AccordionContent, AccordionItem } from "@openloaf/ui/accordion";
 import { Checkbox } from "@openloaf/ui/checkbox";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { ChevronDownIcon, Filter, Folder } from "lucide-react";
+import { CheckSquare, ChevronDownIcon, Filter, Folder } from "lucide-react";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 
 type CalendarSource = {
@@ -43,6 +43,9 @@ type CalendarFilterPanelProps = {
   selectedCalendarIds: Set<string>;
   selectedReminderListIds: Set<string>;
   selectedProjectIds: Set<string>;
+  showTasks: boolean;
+  taskCount: number;
+  onToggleTasks: () => void;
   className?: string;
   onSourceFilterChange: (filter: CalendarSourceFilter) => void;
   onToggleCalendar: (calendarId: string) => void;
@@ -93,6 +96,9 @@ export function CalendarFilterPanel({
   selectedCalendarIds,
   selectedReminderListIds,
   selectedProjectIds,
+  showTasks,
+  taskCount,
+  onToggleTasks,
   className,
   onSourceFilterChange,
   onToggleCalendar,
@@ -398,6 +404,22 @@ export function CalendarFilterPanel({
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      <div className="mt-1 border-t border-[#e3e8ef] dark:border-slate-700 pt-2 px-1">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60"
+          onClick={onToggleTasks}
+        >
+          <span className="flex items-center gap-2 text-sm text-foreground">
+            <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
+            {t('tasks')}
+            {taskCount > 0 && (
+              <span className="text-xs text-muted-foreground">({taskCount})</span>
+            )}
+          </span>
+          <Checkbox checked={showTasks} onCheckedChange={onToggleTasks} />
+        </button>
+      </div>
     </div>
   );
 }

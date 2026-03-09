@@ -15,9 +15,12 @@ import {
   getWorkspaceRootPath,
   getProjectRootPath,
   getAllProjectRootPaths,
+  getWorkspaceProjectEntries,
+  resolveFilePathFromUri,
 } from '@openloaf/api'
 import {
   listTasks,
+  listTasksWithProjectMapping,
   listTasksByStatus,
   getTask,
   createTask,
@@ -45,10 +48,17 @@ export class ScheduledTaskRouterImpl extends BaseScheduledTaskRouter {
         .output(scheduledTaskSchemas.list.output)
         .query(async ({ input }) => {
           const workspaceRoot = getWorkspaceRootPath()
-          const projectRoots = input.projectId
-            ? getProjectRootPath(input.projectId, input.workspaceId)
-            : getAllProjectRootPaths(input.workspaceId)
-          return listTasks(workspaceRoot, projectRoots)
+          if (input.projectId) {
+            const projectRoot = getProjectRootPath(input.projectId, input.workspaceId)
+            return listTasks(workspaceRoot, projectRoot)
+          }
+          const entries = getWorkspaceProjectEntries(input.workspaceId)
+          const mapping = new Map<string, string>()
+          for (const [projectId, rootUri] of entries) {
+            const rootPath = resolveFilePathFromUri(rootUri)
+            if (rootPath) mapping.set(rootPath, projectId)
+          }
+          return listTasksWithProjectMapping(workspaceRoot, mapping)
         }),
       create: shieldedProcedure
         .input(scheduledTaskSchemas.create.input)
