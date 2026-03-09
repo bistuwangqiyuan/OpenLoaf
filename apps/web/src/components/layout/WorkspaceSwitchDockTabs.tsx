@@ -38,10 +38,20 @@ type WorkspaceSwitchTarget = DockTabItem & {
 function buildWorkspaceSwitchTabs(t: (key: string) => string): WorkspaceSwitchTarget[] {
   return [
     {
+      id: "canvas",
+      label: t('nav:canvas'),
+      icon: Palette,
+      tone: "violet",
+      baseId: "base:canvas-list",
+      component: "canvas-list-page",
+      title: t('nav:canvas'),
+      tabIcon: "🎨",
+    },
+    {
       id: "workbench",
       label: t('nav:workbench'),
       icon: LayoutDashboard,
-      tone: "amber",
+      tone: "slate",
       baseId: WORKBENCH_TAB_INPUT.baseId,
       component: WORKBENCH_TAB_INPUT.component,
       title: t('nav:workbench'),
@@ -76,16 +86,6 @@ function buildWorkspaceSwitchTabs(t: (key: string) => string): WorkspaceSwitchTa
       component: "scheduled-tasks-page",
       title: t('nav:tasks'),
       tabIcon: "⏰",
-    },
-    {
-      id: "canvas",
-      label: t('nav:canvas'),
-      icon: Palette,
-      tone: "violet",
-      baseId: "base:canvas-list",
-      component: "canvas-list-page",
-      title: t('nav:canvas'),
-      tabIcon: "🎨",
     },
   ];
 }

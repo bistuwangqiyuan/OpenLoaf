@@ -850,7 +850,6 @@ export default function TaskBoardPage({
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-3 border-b px-4 py-2">
-        <h2 className="shrink-0 text-sm font-semibold">{t('task.board')}</h2>
         <FilterBar
           search={search}
           onSearchChange={setSearch}

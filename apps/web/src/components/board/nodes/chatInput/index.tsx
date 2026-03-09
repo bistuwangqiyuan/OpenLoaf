@@ -444,8 +444,8 @@ export const ChatInputNodeDefinition: CanvasNodeDefinition<ChatInputNodeProps> =
     minSize: { w: 280, h: 160 },
   },
   anchors: (_props, bounds) => [
-    { id: "left", point: [bounds.x, bounds.y + CHAT_ANCHOR_Y_OFFSET] },
-    { id: "right", point: [bounds.x + bounds.w, bounds.y + CHAT_ANCHOR_Y_OFFSET] },
+    { id: "left", point: [bounds.x, bounds.y + bounds.h / 2] },
+    { id: "right", point: [bounds.x + bounds.w, bounds.y + bounds.h / 2] },
   ],
   connectorTemplates: () => [],
 };

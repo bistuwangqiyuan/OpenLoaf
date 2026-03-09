@@ -10,6 +10,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Palette, Plus, Edit2, Trash2, MoreHorizontal, Copy, CalendarDays, Search, X, FolderOpen } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -181,11 +182,11 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const [filterProjectId, setFilterProjectId] = useState<string>("__all__");
 
   const { data: projectList } = useProjects();
-  const projectNameById = useMemo(() => {
-    const map = new Map<string, string>();
+  const projectInfoById = useMemo(() => {
+    const map = new Map<string, { name: string; icon?: string }>();
     const walk = (nodes: typeof projectList) => {
       nodes?.forEach((node) => {
-        if (node.projectId) map.set(node.projectId, node.title);
+        if (node.projectId) map.set(node.projectId, { name: node.title, icon: node.icon });
         if (node.children?.length) walk(node.children);
       });
     };
@@ -248,10 +249,14 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
     [groupByTime, filteredBoards],
   );
 
+  const invalidateBoardList = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
+  }, [queryClient]);
+
   const updateMutation = useMutation(
     trpc.board.update.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
+        invalidateBoardList();
         setRenameTarget(null);
       },
     }),
@@ -260,7 +265,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const deleteMutation = useMutation(
     trpc.board.delete.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
+        invalidateBoardList();
       },
     }),
   );
@@ -268,12 +273,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const createMutation = useMutation(
     trpc.board.create.mutationOptions({
       onSuccess: (board) => {
-        // 乐观更新：将新画布直接插入当前列表 cache，避免 tab 切走后 refetch 丢失。
-        const listKey = trpc.board.list.queryOptions(queryInput as any).queryKey;
-        queryClient.setQueryData(listKey, (old: typeof boards) => {
-          if (!old) return [board];
-          return [board, ...old];
-        });
+        invalidateBoardList();
         handleBoardClick({ id: board.id, title: board.title, folderUri: board.folderUri });
       },
     }),
@@ -283,9 +283,10 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
     if (!workspaceId || !rootUri || createMutation.isPending) return;
     createMutation.mutate({
       workspaceId,
+      title: t("canvasList.defaultName"),
       ...(projectId ? { projectId } : {}),
     });
-  }, [workspaceId, rootUri, projectId, createMutation]);
+  }, [workspaceId, rootUri, projectId, createMutation, t]);
 
   const handleBoardClick = useCallback(
     (board: { id: string; title: string; folderUri: string }) => {
@@ -356,7 +357,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
     activeBase?.component === "board-viewer" ? activeBase.id : undefined;
 
   const renderBoardCard = useCallback(
-    (board: { id: string; title: string; folderUri: string; updatedAt: string | Date; projectId?: string | null }) => {
+    (board: { id: string; title: string; folderUri: string; updatedAt: string | Date; projectId?: string | null }, index: number) => {
       const boardFolderUri = rootUri
         ? buildFileUriFromRoot(rootUri, board.folderUri)
         : "";
@@ -364,11 +365,14 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       const isActive = activeBoardBaseId === baseId;
       const gradientIndex = hashCode(board.id) % PREVIEW_GRADIENTS.length;
       const thumb = thumbMap?.[board.id];
-      const projectName = board.projectId ? projectNameById.get(board.projectId) : undefined;
+      const projectInfo = board.projectId ? projectInfoById.get(board.projectId) : undefined;
 
       return (
-        <div
+        <motion.div
           key={board.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: index * 0.04 }}
           className={`group relative flex flex-col overflow-hidden rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-600 ${
             isActive
               ? "border-teal-400 dark:border-teal-500 shadow-sm ring-1 ring-teal-200 dark:ring-teal-700"
@@ -454,20 +458,24 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
             <span className="text-sm font-medium truncate">
               {board.title || t("canvasList.untitled")}
             </span>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground">
               <span>{formatBoardDate(board.updatedAt, lang)}</span>
-              {projectName ? (
-                <>
-                  <span className="text-muted-foreground/40">·</span>
-                  <span className="truncate">{projectName}</span>
-                </>
+              {projectInfo ? (
+                <span className="flex items-center gap-1 shrink-0 truncate max-w-[50%]">
+                  {projectInfo.icon ? (
+                    <span className="text-xs leading-none">{projectInfo.icon}</span>
+                  ) : (
+                    <img src="/head_s.png" alt="" className="h-3.5 w-3.5 rounded-sm" />
+                  )}
+                  <span className="truncate">{projectInfo.name}</span>
+                </span>
               ) : null}
             </div>
           </div>
-        </div>
+        </motion.div>
       );
     },
-    [rootUri, activeBoardBaseId, thumbMap, projectNameById, lang, handleBoardClick, handleRename, handleDelete, t],
+    [rootUri, activeBoardBaseId, thumbMap, projectInfoById, lang, handleBoardClick, handleRename, handleDelete, t],
   );
 
   return (
@@ -475,7 +483,6 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       {/* Header */}
       <div className="flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-lg font-semibold shrink-0">{t("canvas")}</h2>
           <div className="relative max-w-52">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
             <Input
@@ -494,7 +501,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               </button>
             )}
           </div>
-          {!projectId && projectNameById.size > 0 ? (
+          {!projectId && projectInfoById.size > 0 ? (
             <Select value={filterProjectId} onValueChange={setFilterProjectId}>
               <SelectTrigger className="h-8 w-auto max-w-40 gap-1.5 rounded-full border-transparent bg-muted/40 px-3 text-sm focus:border-border [&>svg]:h-3.5 [&>svg]:w-3.5">
                 <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
@@ -503,8 +510,17 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               <SelectContent>
                 <SelectItem value="__all__">{t("canvasList.allProjects")}</SelectItem>
                 <SelectItem value="__none__">{t("canvasList.noProject")}</SelectItem>
-                {[...projectNameById.entries()].map(([id, name]) => (
-                  <SelectItem key={id} value={id}>{name}</SelectItem>
+                {[...projectInfoById.entries()].map(([id, info]) => (
+                  <SelectItem key={id} value={id}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {info.icon ? (
+                        <span className="text-xs leading-none">{info.icon}</span>
+                      ) : (
+                        <img src="/head_s.png" alt="" className="h-3.5 w-3.5 rounded-sm" />
+                      )}
+                      {info.name}
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -539,7 +555,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {!boards || filteredBoards.length === 0 ? (
+        {filteredBoards.length === 0 ? (
           <div className="flex flex-col h-60 items-center justify-center gap-3 text-muted-foreground">
             <Palette className="h-10 w-10 opacity-30" />
             <p className="text-sm">{t("canvasList.empty")}</p>
@@ -561,15 +577,15 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
                 <h3 className="mb-3 text-xs font-medium text-muted-foreground/70 px-1">
                   {tAi(group.labelKey, { defaultValue: group.labelKey })}
                 </h3>
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
-                  {group.boards.map((board) => renderBoardCard(board))}
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+                  {group.boards.map((board, i) => renderBoardCard(board, i))}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
-            {filteredBoards.map((board) => renderBoardCard(board))}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+            {filteredBoards.map((board, i) => renderBoardCard(board, i))}
           </div>
         )}
       </div>

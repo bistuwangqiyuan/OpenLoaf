@@ -1161,7 +1161,6 @@ export class CanvasEngine {
       this.selection.getSelectedIds()
     );
     deleteSelection(this.getSelectionDeps(), selectionIds);
-    this.autoLayoutMindmap();
   }
 
   /** Copy selected nodes (and internal connectors) to clipboard. */

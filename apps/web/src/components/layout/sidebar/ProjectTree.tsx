@@ -13,6 +13,7 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useTranslation } from "react-i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { useProjectLayout } from "@/hooks/use-project-layout";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { isElectronEnv } from "@/utils/is-electron-env";
@@ -798,13 +799,20 @@ export const PageTreeMenu = ({
       }
     }
 
-    // 3. 创建新 Tab
+    // 3. 创建新 Tab（直接打开文件面板 + 聊天窗口，恢复该项目保存的布局偏好）
+    const savedLayout = useProjectLayout.getState().getProjectLayout(targetProjectId);
     addTab({
       workspaceId: workspace.id,
       createNew: true,
       title: project.title || "Untitled Project",
       icon: project.icon ?? undefined,
-      leftWidthPercent: 100,
+      base: {
+        id: `project:${targetProjectId}`,
+        component: "plant-page",
+        params: { projectId: targetProjectId, rootUri: project.rootUri, projectTab: "files" },
+      },
+      leftWidthPercent: savedLayout?.leftWidthPercent ?? 100,
+      rightChatCollapsed: savedLayout?.rightChatCollapsed ?? false,
       chatParams: { projectId: targetProjectId },
     });
   };

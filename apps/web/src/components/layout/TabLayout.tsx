@@ -24,6 +24,7 @@ import { Chat } from "@/components/ai/Chat";
 import { ChatSessionBarItem } from "@/components/ai/session/ChatSessionBar";
 import { useTabs, LEFT_DOCK_MIN_PX, LEFT_DOCK_DEFAULT_PERCENT } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { useProjectLayout } from "@/hooks/use-project-layout";
 import { useTabView } from "@/hooks/use-tab-view";
 import { createChatSessionId } from "@/lib/chat-session-id";
 import { useChatRuntime, type ChatStatus } from "@/hooks/use-chat-runtime";
@@ -290,11 +291,16 @@ function RightChatPanel({ tabId }: { tabId: string }) {
         setTabBase(tabId, {
           id: `project:${projectId}`,
           component: "plant-page",
-          params: { projectId, rootUri },
+          params: { projectId, rootUri, projectTab: "files" },
         });
-        // 给 LeftDock 一个合理的初始宽度
+        // 给 LeftDock 一个合理的初始宽度（优先使用该项目保存的宽度偏好）
         if (!runtime?.leftWidthPercent || runtime.leftWidthPercent === 0) {
-          setTabLeftWidthPercent(tabId, LEFT_DOCK_DEFAULT_PERCENT);
+          const savedLayout = useProjectLayout.getState().getProjectLayout(projectId);
+          const savedPercent = savedLayout?.leftWidthPercent;
+          setTabLeftWidthPercent(
+            tabId,
+            savedPercent && savedPercent > 0 ? savedPercent : LEFT_DOCK_DEFAULT_PERCENT,
+          );
         }
       }
       // 其他类型的 base（文件查看器等）不动
@@ -845,10 +851,16 @@ export function TabLayout({
     };
   }, [splitPercent]);
 
+  // 切换 Tab 或首次容器测量时用 jump（跳到目标位置，无动画），避免可见的布局跳动
+  const initialLayoutDoneRef = React.useRef(false);
+  React.useEffect(() => {
+    initialLayoutDoneRef.current = false;
+  }, [activeTabId]);
   React.useEffect(() => {
     if (isDragging) return;
-    if (reduceMotion) {
+    if (reduceMotion || !initialLayoutDoneRef.current) {
       splitPercent.jump(targetSplitPercent);
+      if (containerWidth > 0) initialLayoutDoneRef.current = true;
       return;
     }
     splitPercent.set(targetSplitPercent);
@@ -898,6 +910,25 @@ export function TabLayout({
     const nextPercent = (currentLeftPx / rect.width) * 100;
     setTabLeftWidthPercent(activeTabId, Math.round(nextPercent * 10) / 10);
   };
+
+  // 将布局偏好同步到 per-project 缓存，以便下次打开该项目时恢复
+  const activeProjectId = React.useMemo(() => {
+    const params = activeTab?.chatParams as Record<string, unknown> | undefined;
+    const pid = params?.projectId;
+    return typeof pid === "string" ? pid.trim() : "";
+  }, [activeTab?.chatParams]);
+  const activeRightCollapsed = activeTab?.rightChatCollapsed;
+  const activeLeftPercent = activeTab?.leftWidthPercent;
+
+  React.useEffect(() => {
+    if (!activeProjectId) return;
+    // 只在 base 存在（左侧面板已初始化）后才保存，避免初始空状态覆盖
+    if (!activeTab?.base) return;
+    useProjectLayout.getState().saveProjectLayout(activeProjectId, {
+      rightChatCollapsed: Boolean(activeRightCollapsed),
+      leftWidthPercent: activeLeftPercent ?? 0,
+    });
+  }, [activeProjectId, activeRightCollapsed, activeLeftPercent, activeTab?.base]);
 
   const isDividerHidden = targetDividerWidth === 0;
 

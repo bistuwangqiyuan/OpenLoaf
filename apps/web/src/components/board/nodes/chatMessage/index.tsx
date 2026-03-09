@@ -44,8 +44,8 @@ import {
 
 export { CHAT_MESSAGE_NODE_TYPE };
 
-/** Fixed Y-offset for left/right anchors (center of header bar). */
-const CHAT_ANCHOR_Y_OFFSET = 18;
+/** Fixed Y-offset for left/right anchors (center of header bar). Used by chatInput. */
+const CHAT_INPUT_ANCHOR_Y_OFFSET = 18;
 
 /** Extract text content from message parts. */
 function extractTextFromParts(parts: unknown[]): string {
@@ -369,8 +369,8 @@ export const ChatMessageNodeDefinition: CanvasNodeDefinition<ChatMessageNodeProp
     minSize: { w: 300, h: 80 },
   },
   anchors: (_props, bounds) => [
-    { id: "left", point: [bounds.x, bounds.y + CHAT_ANCHOR_Y_OFFSET] },
-    { id: "right", point: [bounds.x + bounds.w, bounds.y + CHAT_ANCHOR_Y_OFFSET] },
+    { id: "left", point: [bounds.x, bounds.y + bounds.h / 2] },
+    { id: "right", point: [bounds.x + bounds.w, bounds.y + bounds.h / 2] },
   ],
   connectorTemplates: (element) => {
     if (element.props.status !== "complete") return [];

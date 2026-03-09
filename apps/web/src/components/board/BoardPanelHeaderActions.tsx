@@ -10,7 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { Camera, Maximize2, Minimize2, MoreHorizontal } from "lucide-react";
+import { Camera, Maximize2, Minimize2, MoreHorizontal, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { DockItem } from "@openloaf/api/common";
@@ -30,6 +30,10 @@ import {
 } from "@/lib/file-name";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { trpcClient } from "@/utils/trpc";
+import { getBoardEngine } from "./engine/board-engine-registry";
+import type { BoardJsonSnapshot } from "@openloaf/api/types/boardCollab";
 import { blobToBase64 } from "./utils/base64";
 import {
   captureBoardImageBlob,
@@ -100,10 +104,19 @@ export type BoardPanelHeaderActionsProps = {
   tabId: string;
 };
 
+/** Default node dimensions used when restoring from JSON snapshot. */
+const REPAIR_NODE_WIDTH = 280;
+const REPAIR_NODE_HEIGHT = 180;
+/** Grid gap between restored nodes. */
+const REPAIR_GRID_GAP = 24;
+/** Columns in the repair grid layout. */
+const REPAIR_GRID_COLS = 4;
+
 /** Render header actions for board panels. */
 export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeaderActionsProps) {
   const { t } = useTranslation('board');
   const isBoardPanel = item.component === "board-viewer";
+  const { workspace } = useWorkspace();
   const sidebar = useOptionalSidebar();
   const isMobile = sidebar?.isMobile ?? false;
   const open = sidebar?.open ?? false;
@@ -160,6 +173,81 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
       setBoardExporting(target, false);
     }
   }, [isBoardPanel, item.id, item.params, title]);
+
+  /** Repair board by reading index.tnboard.json and re-inserting elements. */
+  const handleRepairBoard = useCallback(async () => {
+    const boardFolderUri = (item.params as any)?.boardFolderUri as string | undefined;
+    if (!boardFolderUri) {
+      toast.error(t('panelHeader.repairNoBoardFolder'));
+      return;
+    }
+    const engine = getBoardEngine(item.id);
+    if (!engine) {
+      toast.error(t('panelHeader.repairNoEngine'));
+      return;
+    }
+    const workspaceId = workspace?.id ?? '';
+    const jsonUri = boardFolderUri.replace(/\/$/, '') + '/index.tnboard.json';
+    try {
+      const result = await trpcClient.fs.readFile.query({
+        workspaceId,
+        uri: jsonUri,
+      });
+      if (!result.content) {
+        toast.error(t('panelHeader.repairNoJsonFile'));
+        return;
+      }
+      const snapshot = JSON.parse(result.content) as BoardJsonSnapshot;
+      const allItems = [...(snapshot.nodes ?? []), ...(snapshot.connectors ?? [])];
+      if (allItems.length === 0) {
+        toast.error(t('panelHeader.repairEmptySnapshot'));
+        return;
+      }
+      // 逻辑：JSON 快照不含 xywh 坐标，按网格布局分配默认位置。
+      const existingIds = new Set(engine.doc.getElements().map((el) => el.id));
+      let inserted = 0;
+      let col = 0;
+      let row = 0;
+      for (const entry of allItems) {
+        if (existingIds.has(entry.id)) continue;
+        const x = col * (REPAIR_NODE_WIDTH + REPAIR_GRID_GAP);
+        const y = row * (REPAIR_NODE_HEIGHT + REPAIR_GRID_GAP);
+        if (entry.kind === 'node') {
+          engine.doc.addElement({
+            id: entry.id,
+            type: entry.type,
+            kind: 'node',
+            xywh: [x, y, REPAIR_NODE_WIDTH, REPAIR_NODE_HEIGHT],
+            props: entry.props ?? {},
+          });
+        } else if (entry.kind === 'connector') {
+          engine.doc.addElement({
+            id: entry.id,
+            type: entry.type || 'connector',
+            kind: 'connector',
+            xywh: [0, 0, 0, 0],
+            source: (entry.source ?? {}) as any,
+            target: (entry.target ?? {}) as any,
+            style: (entry.style as any) ?? undefined,
+          });
+        }
+        inserted++;
+        col++;
+        if (col >= REPAIR_GRID_COLS) {
+          col = 0;
+          row++;
+        }
+      }
+      if (inserted === 0) {
+        toast.info(t('panelHeader.repairNoNewElements'));
+      } else {
+        toast.success(t('panelHeader.repairSuccess', { count: inserted }));
+      }
+    } catch (error) {
+      console.error('[board repair] failed', error);
+      toast.error(t('panelHeader.repairFailed'));
+    }
+  }, [item.id, item.params, workspace?.id, t]);
 
   /** Toggle the left sidebar and right AI panel together. */
   const handleTogglePanels = useCallback(() => {
@@ -251,6 +339,10 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
         <DropdownMenuItem onClick={() => void handleExportBoard()}>
           <Camera className="mr-2 h-4 w-4" />
           {exportLabel}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void handleRepairBoard()}>
+          <Wrench className="mr-2 h-4 w-4" />
+          {t('panelHeader.repairBoard')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1740,6 +1740,7 @@ export function useProjectFileSystemModel({
           const stat = await queryClient.fetchQuery(
             trpc.fs.stat.queryOptions({ workspaceId, projectId, uri: sourceUri })
           );
+          if (!stat) continue;
           source = {
             uri: stat.uri,
             name: stat.name,

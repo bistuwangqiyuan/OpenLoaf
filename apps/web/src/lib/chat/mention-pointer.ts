@@ -83,13 +83,14 @@ async function fetchMentionEntry(input: {
   uri: string;
 }): Promise<FileSystemEntry | null> {
   try {
-    return (await queryClient.fetchQuery(
+    const result = await queryClient.fetchQuery(
       trpc.fs.stat.queryOptions({
         workspaceId: input.workspaceId,
         projectId: input.projectId,
         uri: input.uri,
       })
-    )) as FileSystemEntry;
+    );
+    return (result as FileSystemEntry) ?? null;
   } catch {
     return null;
   }

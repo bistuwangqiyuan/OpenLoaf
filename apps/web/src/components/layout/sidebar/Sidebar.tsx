@@ -34,7 +34,6 @@ import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, TEMP_CANVAS_TAB_INPUT, T
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { trpc } from "@/utils/trpc";
-import { Badge } from "@openloaf/ui/calendar/components/ui/badge";
 import { useTaskNotifications } from "@/hooks/use-task-notifications";
 import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
 
@@ -46,11 +45,11 @@ const SIDEBAR_WORKSPACE_COLOR_CLASS = {
   email:
     "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 data-[active=true]:!bg-emerald-100 dark:data-[active=true]:!bg-emerald-500/25 data-[active=true]:!text-emerald-700 dark:data-[active=true]:!text-emerald-200 data-[active=true]:[&>svg]:!text-emerald-600 dark:data-[active=true]:[&>svg]:!text-emerald-300",
   workbench:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 data-[active=true]:!bg-amber-100 dark:data-[active=true]:!bg-amber-500/25 data-[active=true]:!text-amber-700 dark:data-[active=true]:!text-amber-200 data-[active=true]:[&>svg]:!text-amber-600 dark:data-[active=true]:[&>svg]:!text-amber-300",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-slate-700/70 dark:[&>svg]:text-slate-300/70 hover:[&>svg]:text-slate-700 dark:hover:[&>svg]:text-slate-200 data-[active=true]:!bg-slate-100 dark:data-[active=true]:!bg-slate-500/25 data-[active=true]:!text-slate-700 dark:data-[active=true]:!text-slate-200 data-[active=true]:[&>svg]:!text-slate-600 dark:data-[active=true]:[&>svg]:!text-slate-300",
   aiAssistant:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 data-[active=true]:!bg-violet-100 dark:data-[active=true]:!bg-violet-500/25 data-[active=true]:!text-violet-700 dark:data-[active=true]:!text-violet-200 data-[active=true]:[&>svg]:!text-violet-600 dark:data-[active=true]:[&>svg]:!text-violet-300",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 data-[active=true]:!bg-amber-100 dark:data-[active=true]:!bg-amber-500/25 data-[active=true]:!text-amber-700 dark:data-[active=true]:!text-amber-200 data-[active=true]:[&>svg]:!text-amber-600 dark:data-[active=true]:[&>svg]:!text-amber-300",
   canvas:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-teal-700/70 dark:[&>svg]:text-teal-300/70 hover:[&>svg]:text-teal-700 dark:hover:[&>svg]:text-teal-200 data-[active=true]:!bg-teal-100 dark:data-[active=true]:!bg-teal-500/25 data-[active=true]:!text-teal-700 dark:data-[active=true]:!text-teal-200 data-[active=true]:[&>svg]:!text-teal-600 dark:data-[active=true]:[&>svg]:!text-teal-300",
+    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 data-[active=true]:!bg-violet-100 dark:data-[active=true]:!bg-violet-500/25 data-[active=true]:!text-violet-700 dark:data-[active=true]:!text-violet-200 data-[active=true]:[&>svg]:!text-violet-600 dark:data-[active=true]:[&>svg]:!text-violet-300",
 } as const;
 
 const SIDEBAR_SEARCH_ICON_CLASS =
@@ -98,7 +97,23 @@ export const AppSidebar = ({
   );
   // 逻辑：未读数量统一按 workspace 汇总，避免跨账号漏计。
   const unreadCount = unreadCountQuery.data?.count ?? 0;
-  // 待审批任务数量查询（每1分钟自动刷新）。
+  // 任务数量查询：待办、进行中、待审批（每1分钟自动刷新）。
+  const todoTasksQuery = useQuery(
+    trpc.scheduledTask.listByStatus.queryOptions(
+      activeWorkspace
+        ? { workspaceId: activeWorkspace.id, status: ['todo'] }
+        : skipToken,
+      { refetchInterval: 60_000 },
+    ),
+  );
+  const runningTasksQuery = useQuery(
+    trpc.scheduledTask.listByStatus.queryOptions(
+      activeWorkspace
+        ? { workspaceId: activeWorkspace.id, status: ['running'] }
+        : skipToken,
+      { refetchInterval: 60_000 },
+    ),
+  );
   const reviewTasksQuery = useQuery(
     trpc.scheduledTask.listByStatus.queryOptions(
       activeWorkspace
@@ -107,6 +122,8 @@ export const AppSidebar = ({
       { refetchInterval: 60_000 },
     ),
   );
+  const todoTaskCount = todoTasksQuery.data?.length ?? 0;
+  const runningTaskCount = runningTasksQuery.data?.length ?? 0;
   const reviewTaskCount = reviewTasksQuery.data?.length ?? 0;
   // 逻辑：任务状态变更 toast 通知。
   useTaskNotifications();
@@ -391,12 +408,9 @@ export const AppSidebar = ({
               <Mail />
               <span className="flex-1 truncate">{t('email')}</span>
               {unreadCount > 0 ? (
-                <Badge
-                  className="ml-auto min-w-[1.25rem] justify-center px-1.5 py-0.5 text-[10px] leading-[1]"
-                  size="sm"
-                >
+                <span className="ml-auto inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-[#e6f4ea] px-1 py-px text-[10px] font-medium leading-[1] text-[#188038] dark:bg-emerald-900/40 dark:text-emerald-300">
                   {unreadCount}
-                </Badge>
+                </span>
               ) : null}
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -422,13 +436,24 @@ export const AppSidebar = ({
             >
               <Clock />
               <span className="flex-1 truncate">{t('tasks')}</span>
-              {reviewTaskCount > 0 ? (
-                <Badge
-                  className="ml-auto min-w-[1.25rem] justify-center px-1.5 py-0.5 text-[10px] leading-[1]"
-                  size="sm"
-                >
-                  {reviewTaskCount}
-                </Badge>
+              {(todoTaskCount > 0 || runningTaskCount > 0 || reviewTaskCount > 0) ? (
+                <span className="ml-auto flex items-center gap-1">
+                  {todoTaskCount > 0 && (
+                    <span className="inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-[#e8f0fe] px-1 py-px text-[10px] font-medium leading-[1] text-[#1a73e8] dark:bg-sky-900/40 dark:text-sky-300">
+                      {todoTaskCount}
+                    </span>
+                  )}
+                  {runningTaskCount > 0 && (
+                    <span className="inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-[#fef7e0] px-1 py-px text-[10px] font-medium leading-[1] text-[#e37400] dark:bg-amber-900/40 dark:text-amber-300">
+                      {runningTaskCount}
+                    </span>
+                  )}
+                  {reviewTaskCount > 0 && (
+                    <span className="inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-[#f3e8fd] px-1 py-px text-[10px] font-medium leading-[1] text-[#9334e6] dark:bg-violet-900/40 dark:text-violet-300">
+                      {reviewTaskCount}
+                    </span>
+                  )}
+                </span>
               ) : null}
             </SidebarMenuButton>
           </SidebarMenuItem>
