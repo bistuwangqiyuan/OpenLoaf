@@ -311,7 +311,8 @@ export default function ImageViewer({
   const payload = shouldUseBinary ? imageQuery.data : null;
   const placeholderSrc = thumbnailSrc || preview?.src || "";
   // 用 base64 构造 dataUrl，避免浏览器直接访问 file:// 资源。
-  const dataUrl = isDataUrl || isBlob
+  // 仅允许安全的 URL scheme，防止 javascript: 等 XSS 向量。
+  const rawDataUrl = isDataUrl || isBlob
     ? uri
     : shouldUseBinary
       ? payload?.contentBase64 && payload?.mime
@@ -320,6 +321,7 @@ export default function ImageViewer({
       : !isRelative && uri
         ? uri
         : placeholderSrc;
+  const dataUrl = rawDataUrl && /^(?:data:|blob:|https?:\/\/)/i.test(rawDataUrl) ? rawDataUrl : "";
 
   const displayTitle = title || name || "图片预览";
   // 默认保存名按图片加载时刻生成，避免对话框内不断变化。

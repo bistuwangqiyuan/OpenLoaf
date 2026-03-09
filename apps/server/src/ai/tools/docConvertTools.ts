@@ -357,17 +357,23 @@ function escapeXml(str: string): string {
 }
 
 function stripHtmlTags(html: string): string {
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  // Loop style/script removal until stable to handle nested/malformed tags.
+  let result = html
+  let prev = ''
+  while (prev !== result) {
+    prev = result
+    result = result
+      .replace(/<style[\s>][\s\S]*?<\/style\s*>/gi, '')
+      .replace(/<script[\s>][\s\S]*?<\/script\s*>/gi, '')
+  }
+  result = result.replace(/<[^>]+>/g, '')
+  // Decode HTML entities in a single pass to avoid double-unescaping.
+  const entities: Record<string, string> = {
+    '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>',
+    '&quot;': '"', '&apos;': "'",
+  }
+  result = result.replace(/&(?:nbsp|amp|lt|gt|quot|apos);/g, (m) => entities[m] ?? m)
+  return result.replace(/\n{3,}/g, '\n\n').trim()
 }
 
 /** Simple CRC32 for ZIP file creation. */
