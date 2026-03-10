@@ -49,7 +49,13 @@ export async function runPendingMigrations(
     }
   }
 
-  const appliedSet = await getAppliedMigrations(prisma)
+  let appliedSet = await getAppliedMigrations(prisma)
+
+  // 修复：v0.2.5-beta.12 及之前版本的 SQL 解析 bug 导致迁移被标记为已应用
+  // 但实际 DDL 未执行（注释行过滤器错误地丢弃了整条语句）。
+  // 检测并移除这些"幽灵"迁移记录，使其能被重新执行。
+  await repairGhostMigrations(prisma, appliedSet, migrations)
+  appliedSet = await getAppliedMigrations(prisma)
 
   // 按名称排序，确保迁移顺序正确
   const sorted = [...migrations].sort((a, b) => a.name.localeCompare(b.name))
@@ -59,10 +65,13 @@ export async function runPendingMigrations(
 
     // 将 migration.sql 按语句拆分执行
     // Prisma 生成的 SQL 用 `;` + 换行分隔
+    // 注意：Prisma 在每条语句前加注释（如 `-- CreateTable`），
+    // 需要剥离注释行而非丢弃整条语句。
     const statements = migration.sql
       .split(/;\s*\n/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'))
+      .map((s) => s.replace(/^(--[^\n]*\n)+/, '').trim())
+      .filter((s) => s.length > 0)
 
     for (const stmt of statements) {
       await prisma.$executeRawUnsafe(stmt)
@@ -119,6 +128,40 @@ function generateId(): string {
     id += chars[Math.floor(Math.random() * chars.length)]
   }
   return id
+}
+
+/**
+ * 修复"幽灵"迁移：迁移被记录为已应用，但 DDL 实际未执行。
+ * 针对每个已应用的非 baseline 迁移，检查其预期创建的表是否存在，
+ * 若不存在则删除迁移记录使其可以被重新执行。
+ */
+async function repairGhostMigrations(
+  prisma: PrismaClient,
+  appliedSet: Set<string>,
+  migrations: readonly EmbeddedMigration[],
+): Promise<void> {
+  for (const migration of migrations) {
+    if (migration.name === BASELINE_MIGRATION) continue
+    if (!appliedSet.has(migration.name)) continue
+
+    // 从 SQL 中提取 CREATE TABLE 语句的表名
+    const tableNames = [...migration.sql.matchAll(/CREATE\s+TABLE\s+"(\w+)"/gi)].map((m) => m[1])
+    if (tableNames.length === 0) continue
+
+    // 检查第一个表是否存在
+    const result = await prisma.$queryRawUnsafe<{ name: string }[]>(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+      tableNames[0],
+    )
+
+    if (result.length === 0) {
+      // 表不存在——迁移是"幽灵"记录，删除以便重新执行
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM "_prisma_migrations" WHERE migration_name = ?`,
+        migration.name,
+      )
+    }
+  }
 }
 
 async function recordMigration(
