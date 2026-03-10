@@ -341,13 +341,13 @@ export function SidebarHoverPanel({
           base: {
             id: baseId,
             component: 'board-viewer',
-            params: { boardFolderUri, boardFileUri, boardId: item.id },
+            params: { boardFolderUri, boardFileUri, boardId: item.id, projectId, rootUri },
           },
         })
       }
       setActiveView('canvas-list')
     },
-    [rootUri, workspaceId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
+    [rootUri, workspaceId, projectId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
   )
 
   const handleItemClick = useCallback(

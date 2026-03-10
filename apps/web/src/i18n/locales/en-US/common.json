@@ -100,9 +100,9 @@
   },
   "closeConfirm": {
     "title": "Close OpenLoaf",
-    "description": "Are you sure you want to close the application?",
-    "checkboxLabel": "Run in background and don't ask again",
-    "ok": "OK"
+    "checkboxLabel": "Remember my choice and don't ask again",
+    "minimize": "Minimize to Tray",
+    "quit": "Quit"
   },
   "webOnlyNoLocalFile": "Opening local files is not supported in the web version",
   "filePathNotFound": "File path not found",

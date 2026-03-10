@@ -54,6 +54,15 @@ export class SpatialIndex {
   update(id: string, rect: CanvasRect): void {
     const previous = this.rects.get(id);
     if (previous && this.isSameRect(previous, rect)) return;
+    // 逻辑：移动幅度小于 cellSize 时 cell 归属不变，跳过 remove+insert 仅更新 rect 缓存。
+    const oldKeys = this.nodeCells.get(id);
+    if (oldKeys) {
+      const newKeys = this.getCellKeys(rect);
+      if (this.areSameKeys(oldKeys, newKeys)) {
+        this.rects.set(id, rect);
+        return;
+      }
+    }
     this.remove(id);
     this.insert(id, rect);
   }
@@ -91,6 +100,15 @@ export class SpatialIndex {
   private toRect(node: CanvasNodeElement): CanvasRect {
     const [x, y, w, h] = node.xywh;
     return { x, y, w, h };
+  }
+
+  /** Check whether two key arrays are identical. */
+  private areSameKeys(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
   }
 
   /** Check whether two rects are identical. */

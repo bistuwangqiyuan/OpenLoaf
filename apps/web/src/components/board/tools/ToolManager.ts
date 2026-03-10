@@ -40,6 +40,8 @@ export class ToolManager {
   private middlePanning = false;
   /** Pointer capture target for the active interaction. */
   private pointerCaptureTarget: Element | null = null;
+  /** Whether the current pointer interaction started inside a board UI target (e.g. text editor). */
+  private boardUiInteraction = false;
 
   /** Create a new tool manager. */
   constructor(engine: CanvasEngine) {
@@ -75,7 +77,12 @@ export class ToolManager {
 
   /** Handle pointer down events from the canvas container. */
   handlePointerDown(event: PointerEvent): void {
-    if (isBoardUiTarget(event.target)) return;
+    if (isBoardUiTarget(event.target)) {
+      // 逻辑：标记当前交互发生在编辑器等 UI 内部，后续 move/up 也跳过工具分发。
+      this.boardUiInteraction = true;
+      return;
+    }
+    this.boardUiInteraction = false;
     const ctx = this.buildContext(event);
     if (!ctx) return;
 
@@ -147,6 +154,8 @@ export class ToolManager {
 
   /** Handle pointer move events from the canvas container. */
   handlePointerMove(event: PointerEvent): void {
+    // 逻辑：交互起点在编辑器内时跳过工具分发，避免干扰文字选择。
+    if (this.boardUiInteraction) return;
     const ctx = this.buildContext(event);
     if (!ctx) return;
     if (this.engine.isToolbarDragging()) {
@@ -165,6 +174,11 @@ export class ToolManager {
 
   /** Handle pointer up events from the canvas container. */
   handlePointerUp(event: PointerEvent): void {
+    // 逻辑：交互起点在编辑器内时跳过工具分发，避免干扰文字选择。
+    if (this.boardUiInteraction) {
+      this.boardUiInteraction = false;
+      return;
+    }
     const ctx = this.buildContext(event);
     if (!ctx) return;
     if (this.engine.isToolbarDragging()) {
@@ -172,13 +186,12 @@ export class ToolManager {
     }
 
     if (this.pointerCaptureTarget) {
-      this.pointerCaptureTarget.releasePointerCapture(event.pointerId);
-      this.pointerCaptureTarget = null;
-    } else {
-      const target = event.currentTarget;
-      if (target instanceof Element) {
-        target.releasePointerCapture(event.pointerId);
+      try {
+        this.pointerCaptureTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // 逻辑：节点 DOM 被 React 回收时 capture 已自动释放，忽略错误。
       }
+      this.pointerCaptureTarget = null;
     }
     if (this.middlePanning) {
       this.tools.get("hand")?.onPointerUp?.(ctx);

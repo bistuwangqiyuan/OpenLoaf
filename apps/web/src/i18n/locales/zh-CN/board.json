@@ -8,7 +8,7 @@
     "save": "保存",
     "renameCanvas": "重命名",
     "renameCanvasPlaceholder": "输入画布名称",
-    "saveToProject": "保存到项目",
+    "saveToProject": "保存到工作区",
     "deleteCanvas": "删除",
     "actions": "操作",
     "cancel": "取消",
@@ -153,14 +153,19 @@
       "fontSize": "字号",
       "fontWeight": "字重",
       "style": "样式",
+      "list": "列表",
       "align": "对齐",
       "textColor": "文字颜色",
       "backgroundColor": "背景色"
     },
     "format": {
+      "bold": "加粗",
       "italic": "斜体",
       "underline": "下划线",
       "strikethrough": "删除线",
+      "unorderedList": "无序列表",
+      "orderedList": "有序列表",
+      "todoList": "待办列表",
       "alignLeft": "左对齐",
       "alignCenter": "居中",
       "alignRight": "右对齐"

@@ -207,6 +207,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
               boardFolderUri,
               boardFileUri,
               boardId: board.boardId,
+              rootUri,
             },
           },
         });

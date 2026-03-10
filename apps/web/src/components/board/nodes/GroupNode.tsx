@@ -13,14 +13,14 @@ import type {
   CanvasToolbarContext,
 } from "../engine/types";
 import { z } from "zod";
-import { Columns2, Layers, Maximize2, Rows2 } from "lucide-react";
+import { Layers, Maximize2 } from "lucide-react";
 import { cn } from "@udecode/cn";
 import i18next from "i18next";
 import {
   BOARD_TOOLBAR_ITEM_AMBER,
   BOARD_TOOLBAR_ITEM_BLUE,
 } from "../ui/board-style-system";
-import { GROUP_NODE_TYPE, IMAGE_GROUP_NODE_TYPE } from "../engine/grouping";
+import { GROUP_NODE_TYPE, IMAGE_GROUP_NODE_TYPE, getGroupMemberIds } from "../engine/grouping";
 import { NodeFrame } from "./NodeFrame";
 
 export type GroupNodeProps = {
@@ -34,8 +34,8 @@ function GroupNodeView(_props: CanvasNodeViewProps<GroupNodeProps>) {
     <NodeFrame>
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 rounded-xl border-2 border-dashed",
-          "border-neutral-400/50 dark:border-neutral-500/40"
+          "pointer-events-none absolute inset-0 rounded-xl",
+          "bg-neutral-300/25 dark:bg-neutral-600/20"
         )}
       />
     </NodeFrame>
@@ -52,38 +52,25 @@ const groupCapabilities = {
   connectable: "anchors" as const,
 };
 
+/** Node types eligible for uniform-size inside a group. */
+const UNIFORM_SIZE_TYPES = new Set(["image", "video"]);
+
 function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
   const t = (k: string) => i18next.t(k);
   const groupId = ctx.element.id;
-  const layoutAxis = ctx.getGroupLayoutAxis(groupId);
-  const layoutItems = [];
-  if (layoutAxis === "row") {
-    layoutItems.push({
-      id: 'layout-column',
-      label: t('board:groupNode.layoutVertical'),
-      icon: <Rows2 size={14} />,
-      className: BOARD_TOOLBAR_ITEM_BLUE,
-      onSelect: () => ctx.layoutGroup(groupId, "column"),
-    });
-  } else if (layoutAxis === "column") {
-    layoutItems.push({
-      id: 'layout-row',
-      label: t('board:groupNode.layoutHorizontal'),
-      icon: <Columns2 size={14} />,
-      className: BOARD_TOOLBAR_ITEM_BLUE,
-      onSelect: () => ctx.layoutGroup(groupId, "row"),
-    });
-  } else {
-    layoutItems.push({
-      id: 'layout-row',
-      label: t('board:groupNode.layoutHorizontal'),
-      icon: <Columns2 size={14} />,
-      className: BOARD_TOOLBAR_ITEM_BLUE,
-      onSelect: () => ctx.layoutGroup(groupId, "row"),
-    });
-  }
 
-  return [
+  const elements = ctx.engine.doc.getElements();
+  const memberIds = getGroupMemberIds(elements, groupId);
+  const memberTypes = memberIds.map(id => {
+    const el = elements.find((e: { id: string }) => e.id === id);
+    return el?.kind === "node" ? el.type : null;
+  });
+  const allSameMediaType =
+    memberTypes.length > 0 &&
+    memberTypes.every(t => t !== null && UNIFORM_SIZE_TYPES.has(t)) &&
+    new Set(memberTypes).size === 1;
+
+  const items = [
     {
       id: 'ungroup',
       label: t('board:groupNode.dissolve'),
@@ -91,15 +78,19 @@ function createGroupToolbarItems(ctx: CanvasToolbarContext<GroupNodeProps>) {
       className: BOARD_TOOLBAR_ITEM_AMBER,
       onSelect: () => ctx.ungroupSelection(),
     },
-    {
+  ];
+
+  if (allSameMediaType) {
+    items.push({
       id: 'uniform-size',
       label: t('board:groupNode.uniformSize'),
       icon: <Maximize2 size={14} />,
       className: BOARD_TOOLBAR_ITEM_BLUE,
       onSelect: () => ctx.uniformGroupSize(groupId),
-    },
-    ...layoutItems,
-  ];
+    });
+  }
+
+  return items;
 }
 
 /** Definition for a generic group node. */

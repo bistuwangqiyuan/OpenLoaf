@@ -14,34 +14,32 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@openloaf/ui/alert-dialog'
+import { Button } from '@openloaf/ui/button'
 import { Checkbox } from '@openloaf/ui/checkbox'
 import { Label } from '@openloaf/ui/label'
 
 /**
  * Electron 关闭确认对话框（Web 端渲染）。
  *
- * 行为规则：
- * - minimizeToTray 为 false（默认）时弹出此对话框
- * - 复选框"后台运行，下次不再提醒"默认不勾选
- * - 用户勾选并确认 → minimizeToTray 设为 true，以后关闭直接最小化
- * - 用户不勾选并确认 → 退出应用
+ * 三按钮直接选择模式：
+ * - 取消：关闭弹窗，不做任何操作
+ * - 最小化到托盘：隐藏窗口到系统托盘
+ * - 退出：完全退出应用
+ * - 勾选"记住选择"后，下次关闭时直接执行对应操作
  */
 export default function CloseConfirmDialog() {
   const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
-  const [dontAskAgain, setDontAskAgain] = useState(false)
+  const [remember, setRemember] = useState(false)
 
   useEffect(() => {
     const handler = () => {
-      setDontAskAgain(false)
+      setRemember(false)
       setOpen(true)
     }
     window.addEventListener('openloaf:confirm-close', handler)
@@ -53,48 +51,52 @@ export default function CloseConfirmDialog() {
       setOpen(false)
       window.openloafElectron?.respondCloseConfirm?.({
         action,
-        // 勾选"下次不再提醒"时持久化偏好。
-        minimizeToTray: dontAskAgain,
+        minimizeToTray: action === 'minimize' && remember,
       })
     },
-    [dontAskAgain],
+    [remember],
   )
 
   const handleCancel = useCallback(() => respond('cancel'), [respond])
-  const handleOk = useCallback(
-    () => respond(dontAskAgain ? 'minimize' : 'quit'),
-    [respond, dontAskAgain],
-  )
+  const handleMinimize = useCallback(() => respond('minimize'), [respond])
+  const handleQuit = useCallback(() => respond('quit'), [respond])
 
   return (
     <AlertDialog open={open} onOpenChange={(v) => { if (!v) handleCancel() }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('closeConfirm.title')}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t('closeConfirm.description')}
-          </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex items-center gap-2 py-2">
           <Checkbox
             id="dont-ask-again"
-            checked={dontAskAgain}
-            onCheckedChange={(v) => setDontAskAgain(v === true)}
+            checked={remember}
+            onCheckedChange={(v) => setRemember(v === true)}
           />
-          <Label htmlFor="dont-ask-again" className="text-sm cursor-pointer">
+          <Label htmlFor="dont-ask-again" className="text-sm cursor-pointer text-muted-foreground">
             {t('closeConfirm.checkboxLabel')}
           </Label>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancel}>
-            {t('cancel')}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleOk}
-            className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none"
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            className="rounded-full shadow-none transition-colors duration-150"
           >
-            {t('closeConfirm.ok')}
-          </AlertDialogAction>
+            {t('cancel')}
+          </Button>
+          <Button
+            onClick={handleMinimize}
+            className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+          >
+            {t('closeConfirm.minimize')}
+          </Button>
+          <Button
+            onClick={handleQuit}
+            className="rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none transition-colors duration-150"
+          >
+            {t('closeConfirm.quit')}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -25,6 +25,7 @@ import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
 import { useBoardContext, type BoardFileContext } from "../core/BoardProvider";
 import {
+  isBoardRelativePath,
   resolveBoardFolderScope,
   resolveProjectPathFromBoardUri,
 } from "../core/boardFilePath";
@@ -169,9 +170,10 @@ export function VideoNodeView({
     () => ({
       projectId: effectiveProjectId,
       workspaceId: fileContext?.workspaceId,
-      boardId: fileContext?.boardId,
+      // 逻辑：仅 board-relative 路径需要 boardId，否则服务端会错误拼接板路径前缀。
+      boardId: isBoardRelativePath(element.props.sourcePath) ? fileContext?.boardId : undefined,
     }),
-    [effectiveProjectId, fileContext?.workspaceId, fileContext?.boardId],
+    [effectiveProjectId, fileContext?.workspaceId, fileContext?.boardId, element.props.sourcePath],
   );
 
   const handlePlayInline = useCallback(() => {

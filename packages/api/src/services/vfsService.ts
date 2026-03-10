@@ -235,7 +235,12 @@ export function resolveScopedPath(input: {
     if (!rootPath) {
       throw new Error(projectId ? "Project not found." : "Workspace not found.");
     }
-    const normalizedRelative = normalizeRelativePath(raw.slice(1));
+    let normalizedRelative = normalizeRelativePath(raw.slice(1));
+    // 兼容 @[folderName] 格式：当 [name] 内不含 "/" 时，视为裸文件夹名而非项目引用。
+    const bareMatch = normalizedRelative.match(/^\[([^\]/]+)\]$/);
+    if (bareMatch?.[1]) {
+      normalizedRelative = bareMatch[1];
+    }
     return path.resolve(rootPath, normalizedRelative);
   }
   const scopeMatch = raw.match(PROJECT_SCOPE_REGEX);

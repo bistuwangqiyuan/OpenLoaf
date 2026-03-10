@@ -338,13 +338,20 @@ export const fsRouter = t.router({
   stat: shieldedProcedure.input(fsUriSchema).query(async ({ input }) => {
     const rootPath = resolveFsRootPath(input);
     const fullPath = resolveFsTarget(input, input.uri);
-    const stat = await fs.stat(fullPath);
-    return buildFileNode({
-      name: path.basename(fullPath),
-      fullPath,
-      rootPath,
-      stat,
-    });
+    try {
+      const stat = await fs.stat(fullPath);
+      return buildFileNode({
+        name: path.basename(fullPath),
+        fullPath,
+        rootPath,
+        stat,
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    }
   }),
 
   /** List direct children of a directory. */
@@ -444,7 +451,15 @@ export const fsRouter = t.router({
       const rootPath = resolveFsRootPath(input);
       const fullPath = resolveFsTarget(input, input.uri);
       const includeHidden = Boolean(input.includeHidden);
-      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      let entries: import("node:fs").Dirent[];
+      try {
+        entries = await fs.readdir(fullPath, { withFileTypes: true });
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+          return { items: [] };
+        }
+        throw err;
+      }
       const imageFiles = entries.filter((entry) => {
         if (!entry.isFile()) return false;
         if (!includeHidden && entry.name.startsWith(".")) return false;

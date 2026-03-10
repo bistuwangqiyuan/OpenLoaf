@@ -106,7 +106,7 @@ export function useSidebarNavigation(workspaceId: string) {
       base: {
         id: `board:${boardFolderUri}`,
         component: 'board-viewer',
-        params: { boardFolderUri, boardFileUri },
+        params: { boardFolderUri, boardFileUri, rootUri },
       },
     })
 

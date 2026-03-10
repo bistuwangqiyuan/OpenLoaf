@@ -87,6 +87,12 @@ export class SelectTool implements CanvasTool {
   private readonly guideMargin = GUIDE_MARGIN;
   /** Hover clear timeout id. */
   private hoverClearTimeout: number | null = null;
+  /** Cached drag group bounds (computed once at drag activation). */
+  private cachedDragGroupBounds: CanvasRect | null = null;
+  /** Cached set of dragging ids. */
+  private cachedDraggingSet: Set<string> | null = null;
+  /** Cached snap target rects for non-dragged nodes. */
+  private cachedOthersRects: CanvasRect[] | null = null;
 
   /** Handle pointer down to perform hit testing and selection. */
   onPointerDown(ctx: ToolContext): void {
@@ -107,7 +113,8 @@ export class SelectTool implements CanvasTool {
         ctx.event.target.closest("[data-node-toolbar]") ||
         ctx.event.target.closest("[data-node-inspector]") ||
         ctx.event.target.closest("[data-connector-action]") ||
-        ctx.event.target.closest("[data-multi-resize-handle]")
+        ctx.event.target.closest("[data-multi-resize-handle]") ||
+        ctx.event.target.closest('[data-slot="checkbox"]')
       ) {
         return;
       }
@@ -387,9 +394,21 @@ export class SelectTool implements CanvasTool {
       if (distance < DRAG_ACTIVATION_DISTANCE) return;
       this.dragActivated = true;
       ctx.engine.setDraggingElementId(this.draggingId);
+      // 逻辑：在拖拽激活时一次性计算 group bounds、dragging set 和 snap 目标，避免每帧重复 O(n) 计算。
+      this.cachedDragGroupBounds = this.getDragGroupBounds();
+      this.cachedDraggingSet = new Set(this.draggingIds);
+      this.cachedOthersRects = ctx.engine.doc
+        .getElements()
+        .reduce<CanvasRect[]>((acc, element) => {
+          if (element.kind === "node" && !this.cachedDraggingSet!.has(element.id)) {
+            const [x, y, width, height] = element.xywh;
+            acc.push({ x, y, w: width, h: height });
+          }
+          return acc;
+        }, []);
     }
 
-    const group = this.getDragGroupBounds();
+    const group = this.cachedDragGroupBounds;
     if (!group) return;
     const nextRect: CanvasRect = {
       x: group.x + dx,
@@ -397,20 +416,11 @@ export class SelectTool implements CanvasTool {
       w: group.w,
       h: group.h,
     };
-    const draggingSet = new Set(this.draggingIds);
     const { zoom } = ctx.engine.viewport.getState();
     // 逻辑：阈值与边距随缩放换算，保证屏幕体验一致。
     const threshold = this.snapPixel / Math.max(zoom, MIN_ZOOM);
     const margin = this.guideMargin / Math.max(zoom, MIN_ZOOM);
-    const others = ctx.engine.doc
-      .getElements()
-      .filter(
-        element => element.kind === "node" && !draggingSet.has(element.id)
-      )
-      .map(element => {
-        const [x, y, width, height] = element.xywh;
-        return { x, y, w: width, h: height };
-      });
+    const others = this.cachedOthersRects!;
 
     const snapped = snapMoveRect(nextRect, others, threshold, margin);
     const snappedDx = snapped.rect.x - group.x;
@@ -519,6 +529,9 @@ export class SelectTool implements CanvasTool {
     this.dragStartRects.clear();
     this.dragStart = null;
     this.dragActivated = false;
+    this.cachedDragGroupBounds = null;
+    this.cachedDraggingSet = null;
+    this.cachedOthersRects = null;
     this.cancelHoverClear();
   }
 

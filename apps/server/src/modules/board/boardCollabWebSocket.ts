@@ -11,7 +11,7 @@ import type { IncomingMessage, Server as HttpServer } from "node:http";
 import type { Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import type { ServerType } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import type { WebSocket } from "ws";
@@ -389,9 +389,24 @@ export function attachBoardCollabWebSocket(server: ServerType): void {
       (document as BoardDocument).boardCollabContext = boardContext;
       const snapshot = await readBoardSnapshot(boardContext.boardFilePath);
       if (snapshot) {
-        // 逻辑：在当前文档上应用快照，保持上下文与持久化路径一致。
-        Y.applyUpdate(document, snapshot);
-        return document;
+        try {
+          Y.applyUpdate(document, snapshot);
+          return document;
+        } catch (error) {
+          logger.error(
+            { err: error, path: boardContext.boardFilePath },
+            "[board] corrupted binary snapshot, attempting JSON recovery",
+          );
+          // 将损坏的快照重命名为备份，防止下次再加载损坏数据
+          try {
+            const backupPath = `${boardContext.boardFilePath}.corrupted.${Date.now()}`;
+            await rename(boardContext.boardFilePath, backupPath);
+            logger.info({ backupPath }, "[board] corrupted snapshot backed up");
+          } catch (renameError) {
+            logger.warn({ err: renameError }, "[board] failed to backup corrupted snapshot");
+          }
+          // fall through 到下方 JSON 回退逻辑
+        }
       }
       // 逻辑：二进制快照缺失时从 JSON 快照恢复，避免画布空白。
       const jsonSnapshot = await readBoardJsonSnapshot(boardContext.boardJsonPath);

@@ -49,7 +49,9 @@ import {
 } from "@/components/file/lib/file-preview-store";
 import {
   buildChildUri,
+  buildFileUriFromRoot,
 } from "@/components/project/filesystem/utils/file-system-utils";
+import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
 import { trpc, trpcClient } from "@/utils/trpc";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
@@ -253,12 +255,34 @@ export function BoardCanvas({
   const { loggedIn: saasLoggedIn } = useSaasAuth();
   const [saveToProjectOpen, setSaveToProjectOpen] = useState(false);
   const closeTab = useTabs((s) => s.closeTab);
+  const addTab = useTabs((s) => s.addTab);
   const inferBoardNameMutation = useMutation(trpc.settings.inferBoardName.mutationOptions());
   const deleteBoardMutation = useMutation(trpc.fs.delete.mutationOptions());
   const duplicateBoardMutation = useMutation(trpc.board.duplicate.mutationOptions({
-    onSuccess: () => {
+    onSuccess: (newBoard) => {
       queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
       toast.success(i18next.t('nav:canvasList.duplicateSuccess'));
+      if (!rootUri) return;
+      const newBoardFolderUri = buildFileUriFromRoot(rootUri, newBoard.folderUri);
+      const newBoardFileUri = buildFileUriFromRoot(rootUri, `${newBoard.folderUri}${BOARD_INDEX_FILE_NAME}`);
+      addTab({
+        workspaceId: resolvedWorkspaceId,
+        createNew: true,
+        title: newBoard.title,
+        icon: "🎨",
+        leftWidthPercent: 100,
+        base: {
+          id: `board:${newBoardFolderUri}`,
+          component: "board-viewer",
+          params: {
+            boardFolderUri: newBoardFolderUri,
+            boardFileUri: newBoardFileUri,
+            boardId: newBoard.id,
+            projectId,
+            rootUri,
+          },
+        },
+      });
     },
   }));
   const handleDuplicateBoard = useCallback(() => {
@@ -419,6 +443,9 @@ export function BoardCanvas({
         .then(async () => {
           const target = resolveExportTarget();
           if (!target || !target.isConnected) return;
+          // 逻辑：截图前保存当前视口状态，然后适配全部元素以获取完整缩略图。
+          const prevState = engine.viewport.getState();
+          engine.fitToElements();
           try {
             setBoardExporting(target, true);
             await waitForAnimationFrames(2);
@@ -447,10 +474,14 @@ export function BoardCanvas({
             console.error("Board thumbnail capture failed", reason, error);
           } finally {
             setBoardExporting(target, false);
+            // 逻辑：非关闭场景下恢复用户原始视口位置，避免截图导致视图跳动。
+            if (reason !== "close" && target.isConnected) {
+              engine.viewport.setViewport(prevState.zoom, prevState.offset);
+            }
           }
         });
     },
-    [boardFolderUri, projectId, resolveExportTarget, resolvedWorkspaceId, queryClient]
+    [boardFolderUri, projectId, resolveExportTarget, resolvedWorkspaceId, queryClient, engine]
   );
 
   /** Schedule a thumbnail capture after auto layout. */
@@ -489,6 +520,10 @@ export function BoardCanvas({
         projectId,
         uri: thumbnailUri,
       })
+      .then((result) => {
+        if (cancelled) return;
+        if (!result) saveBoardThumbnail("init");
+      })
       .catch(() => {
         if (cancelled) return;
         saveBoardThumbnail("init");
@@ -505,11 +540,37 @@ export function BoardCanvas({
         window.clearTimeout(autoLayoutTimerRef.current);
         autoLayoutTimerRef.current = null;
       }
-      if (boardModifiedRef.current) {
-        saveBoardThumbnail("close");
-      }
+      if (!boardModifiedRef.current) return;
+      if (!boardFolderUri || !resolvedWorkspaceId) return;
+      if (elementCountRef.current === 0) return;
+      const target = resolveExportTarget();
+      if (!target || !target.isConnected) return;
+      // 逻辑：关闭时直接启动截图，不经过队列也不等待动画帧，
+      // html-to-image 会同步克隆 DOM，后续渲染和写盘可异步完成。
+      setBoardExporting(target, true);
+      captureBoardImageBlob(target)
+        .then(async (blob) => {
+          setBoardExporting(target, false);
+          if (!blob) return;
+          const thumbnailBlob = await renderBoardThumbnailBlob(
+            blob,
+            BOARD_THUMBNAIL_WIDTH,
+            BOARD_THUMBNAIL_HEIGHT
+          );
+          if (!thumbnailBlob) return;
+          const contentBase64 = await blobToBase64(thumbnailBlob);
+          const uri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
+          await writeThumbnailRef.current({
+            workspaceId: resolvedWorkspaceId,
+            projectId,
+            uri,
+            contentBase64,
+          });
+          queryClient.invalidateQueries({ queryKey: trpc.board.thumbnails.queryKey() });
+        })
+        .catch(() => undefined);
     };
-  }, [saveBoardThumbnail]);
+  }, [boardFolderUri, projectId, resolvedWorkspaceId, resolveExportTarget, queryClient]);
 
   // 逻辑：预览优先使用原图地址，缺失时回退到压缩预览。
   return (

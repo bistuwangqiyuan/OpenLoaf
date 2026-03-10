@@ -56,7 +56,9 @@ function buildShellCommand(input: {
     if (kind === "powershell") {
       const args: string[] = [];
       if (input.login === false) args.push("-NoProfile");
-      args.push("-Command", trimmed);
+      // 强制 PowerShell 输出 UTF-8，避免中文 Windows 默认 GBK 编码导致乱码。
+      const utf8Prefix = '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; ';
+      args.push("-Command", utf8Prefix + trimmed);
       return { file, args };
     }
     return { file, args: ["/c", trimmed] };

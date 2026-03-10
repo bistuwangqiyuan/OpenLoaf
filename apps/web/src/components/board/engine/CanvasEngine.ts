@@ -33,6 +33,7 @@ import type {
   CanvasStrokeTool,
   CanvasViewState,
 } from "./types";
+import { resolveNodeMinSize } from "./types";
 import type { CanvasHistoryState } from "./history-utils";
 import type { CanvasClipboard, ClipboardInsertPayload } from "./clipboard";
 import type { StrokeSettingsState } from "./strokes";
@@ -141,9 +142,6 @@ const isMindmapLayoutDirection = (value: unknown): value is MindmapLayoutDirecti
 /** Text node style keys to inherit for mindmap children. */
 const TEXT_NODE_INHERITABLE_STYLE_KEYS = [
   "fontSize",
-  "fontWeight",
-  "fontStyle",
-  "textDecoration",
   "textAlign",
   "color",
   "backgroundColor",
@@ -255,6 +253,10 @@ export class CanvasEngine {
   private readonly listeners = new Set<() => void>();
   /** View change subscribers. */
   private readonly viewListeners = new Set<() => void>();
+  /** Pending auto-resize measurements keyed by element id. */
+  private autoResizePending = new Map<string, number>();
+  /** rAF id for batched auto-resize flush. */
+  private autoResizeRaf: number | null = null;
   /** Attached container element. */
   private container: HTMLElement | null = null;
   /** Resize observer for viewport sync. */
@@ -418,6 +420,11 @@ export class CanvasEngine {
     if (this.resizeRaf !== null) {
       window.cancelAnimationFrame(this.resizeRaf);
       this.resizeRaf = null;
+    }
+    if (this.autoResizeRaf !== null) {
+      window.cancelAnimationFrame(this.autoResizeRaf);
+      this.autoResizeRaf = null;
+      this.autoResizePending.clear();
     }
     this.resizeSize = null;
     this.container = null;
@@ -1079,7 +1086,7 @@ export class CanvasEngine {
     this.doc.transact(() => {
       nodes.forEach(node => {
         const definition = this.nodes.getDefinition(node.type);
-        const minSize = definition?.capabilities?.minSize;
+        const minSize = resolveNodeMinSize(definition, node);
         const maxSize = definition?.capabilities?.maxSize;
         let nextW = targetW;
         let nextH = targetH;
@@ -2280,6 +2287,37 @@ export class CanvasEngine {
         this.flushChange();
       }
     }
+  }
+
+  /** Schedule an auto-resize update for a node, batched via rAF. */
+  scheduleAutoResize(elementId: string, measuredHeight: number): void {
+    this.autoResizePending.set(elementId, measuredHeight);
+    if (this.autoResizeRaf !== null) return;
+    this.autoResizeRaf = requestAnimationFrame(() => {
+      this.autoResizeRaf = null;
+      this.flushAutoResize();
+    });
+  }
+
+  /** Flush all pending auto-resize updates in a single transaction. */
+  private flushAutoResize(): void {
+    if (this.autoResizePending.size === 0) return;
+    const pending = new Map(this.autoResizePending);
+    this.autoResizePending.clear();
+    // 逻辑：将所有待处理的 auto-resize 合并到一个 transact + batch，只触发一次变更通知。
+    this.batch(() => {
+      this.doc.transact(() => {
+        pending.forEach((measuredHeight, elementId) => {
+          const node = this.doc.getElementById(elementId);
+          if (!node || node.kind !== "node") return;
+          const [x, y, width, height] = node.xywh;
+          if (Math.abs(height - measuredHeight) < 1) return;
+          this.doc.updateElement(elementId, {
+            xywh: [x, y, width, measuredHeight],
+          });
+        });
+      });
+    });
   }
 
   /** Whether an element is currently being dragged. */

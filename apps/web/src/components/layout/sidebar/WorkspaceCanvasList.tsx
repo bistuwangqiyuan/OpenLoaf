@@ -101,6 +101,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
               boardFolderUri,
               boardFileUri,
               boardId: board.id,
+              rootUri,
             },
           },
         });

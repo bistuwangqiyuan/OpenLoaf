@@ -375,6 +375,8 @@ export type CanvasToolbarContext<P> = {
   element: CanvasNodeElement<P>;
   /** Current selection state. */
   selected: boolean;
+  /** Whether multiple nodes are selected. */
+  multiSelect?: boolean;
   /** File scope metadata for board nodes. */
   fileContext?: BoardFileContext;
   /** Canvas engine reference for advanced operations. */
@@ -398,6 +400,20 @@ export type CanvasToolbarContext<P> = {
   addColorHistory: (color: string) => void;
 };
 
+/** Resolve dynamic or static min size for a node definition. */
+export function resolveNodeMinSize(
+  definition: CanvasNodeDefinition<unknown> | null | undefined,
+  element: CanvasNodeElement,
+  fallback: { w: number; h: number } = { w: 80, h: 60 },
+): { w: number; h: number } {
+  const dynamic = definition?.getMinSize?.(element as CanvasNodeElement<never>);
+  const staticMin = definition?.capabilities?.minSize;
+  if (dynamic && staticMin) {
+    return { w: Math.max(dynamic.w, staticMin.w), h: Math.max(dynamic.h, staticMin.h) };
+  }
+  return dynamic ?? staticMin ?? fallback;
+}
+
 /** Node definition used for registration. */
 export type CanvasNodeDefinition<P> = {
   /** Node type identifier. */
@@ -408,6 +424,8 @@ export type CanvasNodeDefinition<P> = {
   defaultProps: P;
   /** React component used to render the node. */
   view: ComponentType<CanvasNodeViewProps<P>>;
+  /** Dynamic min size resolver based on current element state. */
+  getMinSize?: (element: CanvasNodeElement<P>) => { w: number; h: number };
   /** Measure function used to auto-resize nodes. */
   measure?: (props: P, ctx: { viewport: CanvasViewportState }) => {
     /** Measured width in world coordinates. */

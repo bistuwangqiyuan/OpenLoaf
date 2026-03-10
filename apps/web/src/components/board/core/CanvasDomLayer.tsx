@@ -362,7 +362,8 @@ function CanvasDomLayerBase({
         data-node-type={element.type}
         data-selected={selected || undefined}
         className={cn(
-          "absolute select-none",
+          "absolute",
+          isEditing ? "select-text" : "select-none",
           isGroupNodeType(element.type) ? "pointer-events-none" : "pointer-events-auto"
         )}
         style={{
@@ -412,7 +413,11 @@ function CanvasDomLayerBase({
   return (
     <div
       ref={layerRef}
-      className="pointer-events-none absolute inset-0 origin-top-left"
+      className={cn(
+        "pointer-events-none absolute inset-0 origin-top-left",
+        // 逻辑：编辑模式时整个图层允许文字选择，防止拖选移出节点边界被 select-none 打断。
+        snapshot.editingNodeId && "select-text",
+      )}
       style={{
         transform: `translate(${cullingView.viewport.offset[0]}px, ${cullingView.viewport.offset[1]}px) scale(${cullingView.viewport.zoom})`,
       }}

@@ -58,6 +58,8 @@ function SelectionToolbarContainer({
       )}
       style={{ left: screen[0], top: screen[1] }}
       onPointerDown={onPointerDown}
+      // 逻辑：阻止 mousedown 默认行为，防止焦点从编辑器转移到工具栏按钮。
+      onMouseDown={event => event.preventDefault()}
     >
       {children}
     </div>

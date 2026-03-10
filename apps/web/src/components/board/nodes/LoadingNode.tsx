@@ -156,25 +156,46 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
               }
 
               const selectionSnapshot = engine.selection.getSelectedIds();
-              const [x, y, w] = element.xywh;
-              const baseX = x + (w || LOADING_NODE_SIZE[0]) + 32;
-              let cursorY = y;
+              const [x, y] = element.xywh;
               const imageNodeIds: string[] = [];
 
-              for (const resultUrl of resultUrls) {
-                const payload = await buildImageNodePayloadFromUri(resultUrl, {
-                  projectId: projectId || undefined,
-                  workspaceId: workspaceId || undefined,
-                });
+              // 逻辑：先构建所有图片 payload 以获取真实尺寸，再统一居中放置。
+              const payloads = await Promise.all(
+                resultUrls.map((resultUrl: string) =>
+                  buildImageNodePayloadFromUri(resultUrl, {
+                    projectId: projectId || undefined,
+                    workspaceId: workspaceId || undefined,
+                  })
+                )
+              );
+
+              const gap = 24;
+              const totalHeight =
+                payloads.reduce((sum, p) => sum + p.size[1], 0) +
+                gap * Math.max(payloads.length - 1, 0);
+
+              // 逻辑：以源节点中心为基准居中对齐，源节点不可用时回退到加载节点位置。
+              const sourceEl = sourceNodeId
+                ? engine.doc.getElementById(sourceNodeId)
+                : null;
+              let cursorY: number;
+              if (sourceEl && sourceEl.kind === "node") {
+                const [, srcY, , srcH] = sourceEl.xywh;
+                cursorY = srcY + srcH / 2 - totalHeight / 2;
+              } else {
+                cursorY = y;
+              }
+
+              for (const payload of payloads) {
                 const [nodeW, nodeH] = payload.size;
                 const nodeId = engine.addNodeElement(
                   "image",
                   payload.props,
-                  [baseX, cursorY, nodeW, nodeH]
+                  [x, cursorY, nodeW, nodeH]
                 );
                 if (nodeId) {
                   imageNodeIds.push(nodeId);
-                  cursorY += nodeH + 24;
+                  cursorY += nodeH + gap;
                   if (sourceNodeId) {
                     engine.addConnectorElement({
                       source: { elementId: sourceNodeId },

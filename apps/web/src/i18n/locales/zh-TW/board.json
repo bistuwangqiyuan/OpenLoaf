@@ -153,14 +153,19 @@
       "fontSize": "字型大小",
       "fontWeight": "字重",
       "style": "樣式",
+      "list": "列表",
       "align": "對齊",
       "textColor": "文字顏色",
       "backgroundColor": "背景色"
     },
     "format": {
+      "bold": "粗體",
       "italic": "斜體",
       "underline": "底線",
       "strikethrough": "刪除線",
+      "unorderedList": "無序列表",
+      "orderedList": "有序列表",
+      "todoList": "待辦列表",
       "alignLeft": "靠左對齊",
       "alignCenter": "置中",
       "alignRight": "靠右對齊"

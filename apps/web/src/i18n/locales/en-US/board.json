@@ -153,14 +153,19 @@
       "fontSize": "Font Size",
       "fontWeight": "Font Weight",
       "style": "Style",
+      "list": "List",
       "align": "Align",
       "textColor": "Text Color",
       "backgroundColor": "Background"
     },
     "format": {
+      "bold": "Bold",
       "italic": "Italic",
       "underline": "Underline",
       "strikethrough": "Strikethrough",
+      "unorderedList": "Bullet List",
+      "orderedList": "Numbered List",
+      "todoList": "To-do List",
       "alignLeft": "Align Left",
       "alignCenter": "Center",
       "alignRight": "Align Right"

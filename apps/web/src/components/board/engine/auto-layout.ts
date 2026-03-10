@@ -103,6 +103,37 @@ function spansOverlap(
   return a.start < b.end && a.end > b.start
 }
 
+type HAlignment = "left" | "center" | "right"
+type VAlignment = "top" | "center" | "bottom"
+
+/** Detect whether items are left/center/right aligned by comparing spread of edges. */
+function detectHAlignment(xws: Array<[number, number]>): HAlignment {
+  if (xws.length < 2) return "left"
+  const lefts = xws.map(([x]) => x)
+  const centers = xws.map(([x, w]) => x + w / 2)
+  const rights = xws.map(([x, w]) => x + w)
+  const sL = Math.max(...lefts) - Math.min(...lefts)
+  const sC = Math.max(...centers) - Math.min(...centers)
+  const sR = Math.max(...rights) - Math.min(...rights)
+  if (sL <= sC && sL <= sR) return "left"
+  if (sR <= sC && sR <= sL) return "right"
+  return "center"
+}
+
+/** Detect whether items are top/center/bottom aligned by comparing spread of edges. */
+function detectVAlignment(yhs: Array<[number, number]>): VAlignment {
+  if (yhs.length < 2) return "top"
+  const tops = yhs.map(([y]) => y)
+  const centers = yhs.map(([y, h]) => y + h / 2)
+  const bottoms = yhs.map(([y, h]) => y + h)
+  const sT = Math.max(...tops) - Math.min(...tops)
+  const sC = Math.max(...centers) - Math.min(...centers)
+  const sB = Math.max(...bottoms) - Math.min(...bottoms)
+  if (sT <= sC && sT <= sB) return "top"
+  if (sB <= sC && sB <= sT) return "bottom"
+  return "center"
+}
+
 // ─── Node Filtering ───────────────────────────────────────────────
 
 function isExcludedNode(node: CanvasNodeElement): boolean {
@@ -438,22 +469,38 @@ function tidyGrid(
   // Detect columns: for grid, max columns across all rows
   const maxCols = Math.max(...rows.map((row) => row.length))
 
-  // Compute column align X = median of X centers per column
+  // Detect per-column horizontal alignment (left/center/right)
+  const colHAligns: HAlignment[] = []
   const colAlignX: number[] = []
   const colWidths: number[] = []
   for (let col = 0; col < maxCols; col += 1) {
-    const xCenters: number[] = []
+    const xws: Array<[number, number]> = []
     let maxW = 0
     rows.forEach((row) => {
       if (col >= row.length) return
       const node = layoutNodes.get(row[col])
       if (!node) return
-      xCenters.push(node.xywh[0] + node.xywh[2] / 2)
+      xws.push([node.xywh[0], node.xywh[2]])
       maxW = Math.max(maxW, node.xywh[2])
     })
-    colAlignX.push(xCenters.length > 0 ? median(xCenters) : 0)
+    const hAlign = detectHAlignment(xws)
+    colHAligns.push(hAlign)
+    // Column center X for spacing computation (always use center for gap calculation)
+    const centers = xws.map(([x, w]) => x + w / 2)
+    colAlignX.push(centers.length > 0 ? median(centers) : 0)
     colWidths.push(maxW)
   }
+
+  // Detect per-row vertical alignment (top/center/bottom)
+  const rowVAligns: VAlignment[] = rows.map((row) => {
+    const yhs: Array<[number, number]> = row
+      .filter((id) => !crossRowIds.has(id))
+      .map((id) => {
+        const node = layoutNodes.get(id)!
+        return [node.xywh[1], node.xywh[3]] as [number, number]
+      })
+    return detectVAlignment(yhs)
+  })
 
   // Compute actual column gaps — use smallest gap as the "intended" spacing
   const actualColGaps: number[] = []
@@ -482,7 +529,7 @@ function tidyGrid(
   const anchorX = anchorNode ? anchorNode.xywh[0] + anchorNode.xywh[2] / 2 : colAlignX[0]
   const anchorY = anchorNode ? anchorNode.xywh[1] + anchorNode.xywh[3] / 2 : rowAlignY[0]
 
-  // Compute final column X positions (centered)
+  // Compute final column X positions (slot centers for spacing)
   const finalColX: number[] = [anchorX]
   for (let col = 1; col < maxCols; col += 1) {
     const prevCenter = finalColX[col - 1]
@@ -491,7 +538,7 @@ function tidyGrid(
     finalColX.push(prevCenter + prevHalfW + colGap + currHalfW)
   }
 
-  // Compute final row Y positions (centered)
+  // Compute final row Y positions (slot centers for spacing)
   const finalRowY: number[] = [anchorY]
   for (let row = 1; row < rows.length; row += 1) {
     const prevCenter = finalRowY[row - 1]
@@ -516,7 +563,7 @@ function tidyGrid(
   const origCx = count > 0 ? origCxSum / count : 0
   const origCy = count > 0 ? origCySum / count : 0
 
-  // Place nodes
+  // Place nodes with detected alignment
   rows.forEach((row, rowIdx) => {
     row.forEach((id, colIdx) => {
       const node = layoutNodes.get(id)
@@ -524,7 +571,22 @@ function tidyGrid(
       const [, , w, h] = node.xywh
       const cx = finalColX[colIdx]
       const cy = finalRowY[rowIdx]
-      layoutPositions.set(id, [cx - w / 2, cy - h / 2])
+
+      // Horizontal alignment within column slot
+      let x: number
+      const hAlign = colHAligns[colIdx]
+      if (hAlign === "left") x = cx - colWidths[colIdx] / 2
+      else if (hAlign === "right") x = cx + colWidths[colIdx] / 2 - w
+      else x = cx - w / 2
+
+      // Vertical alignment within row slot
+      let y: number
+      const vAlign = rowVAligns[rowIdx]
+      if (vAlign === "top") y = cy - rowHeights[rowIdx] / 2
+      else if (vAlign === "bottom") y = cy + rowHeights[rowIdx] / 2 - h
+      else y = cy - h / 2
+
+      layoutPositions.set(id, [x, y])
     })
   })
 
@@ -577,9 +639,18 @@ function tidyRow(
 
   if (items.length < 2) return
 
-  // Y align line = median of Y centers
-  const yCenters = items.map((item) => item.node.xywh[1] + item.node.xywh[3] / 2)
-  const alignY = median(yCenters)
+  // Detect vertical alignment (top/center/bottom)
+  const vAlign = detectVAlignment(
+    items.map((item) => [item.node.xywh[1], item.node.xywh[3]] as [number, number]),
+  )
+  let alignY: number
+  if (vAlign === "top") {
+    alignY = median(items.map((item) => item.node.xywh[1]))
+  } else if (vAlign === "bottom") {
+    alignY = median(items.map((item) => item.node.xywh[1] + item.node.xywh[3]))
+  } else {
+    alignY = median(items.map((item) => item.node.xywh[1] + item.node.xywh[3] / 2))
+  }
 
   // Preserve original X order (already sorted from structure detection)
   // Compute actual gaps
@@ -600,17 +671,17 @@ function tidyRow(
 
   // First node X stays, subsequent nodes placed with uniform gap
   let cursorX = items[0].node.xywh[0]
-  items.forEach((item, idx) => {
+  items.forEach((item) => {
     if (item.node.locked) {
       cursorX = item.node.xywh[0] + item.node.xywh[2] + gap
       return
     }
     const [, , w, h] = item.node.xywh
-    if (idx > 0) {
-      layoutPositions.set(item.id, [cursorX, alignY - h / 2])
-    } else {
-      layoutPositions.set(item.id, [cursorX, alignY - h / 2])
-    }
+    let y: number
+    if (vAlign === "top") y = alignY
+    else if (vAlign === "bottom") y = alignY - h
+    else y = alignY - h / 2
+    layoutPositions.set(item.id, [cursorX, y])
     cursorX = cursorX + w + gap
   })
 
@@ -649,9 +720,18 @@ function tidyColumn(
 
   if (items.length < 2) return
 
-  // X align line = median of X centers
-  const xCenters = items.map((item) => item.node.xywh[0] + item.node.xywh[2] / 2)
-  const alignX = median(xCenters)
+  // Detect horizontal alignment (left/center/right)
+  const hAlign = detectHAlignment(
+    items.map((item) => [item.node.xywh[0], item.node.xywh[2]] as [number, number]),
+  )
+  let alignX: number
+  if (hAlign === "left") {
+    alignX = median(items.map((item) => item.node.xywh[0]))
+  } else if (hAlign === "right") {
+    alignX = median(items.map((item) => item.node.xywh[0] + item.node.xywh[2]))
+  } else {
+    alignX = median(items.map((item) => item.node.xywh[0] + item.node.xywh[2] / 2))
+  }
 
   // Compute actual gaps
   const actualGaps: number[] = []
@@ -669,7 +749,7 @@ function tidyColumn(
   })
   origCy /= items.length
 
-  // Place
+  // Place with detected alignment
   let cursorY = items[0].node.xywh[1]
   items.forEach((item) => {
     if (item.node.locked) {
@@ -677,7 +757,11 @@ function tidyColumn(
       return
     }
     const [, , w, h] = item.node.xywh
-    layoutPositions.set(item.id, [alignX - w / 2, cursorY])
+    let x: number
+    if (hAlign === "left") x = alignX
+    else if (hAlign === "right") x = alignX - w
+    else x = alignX - w / 2
+    layoutPositions.set(item.id, [x, cursorY])
     cursorY += h + gap
   })
 

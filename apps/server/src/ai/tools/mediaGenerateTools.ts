@@ -178,10 +178,23 @@ async function downloadAndSaveImage(input: {
   const mediaType = response.headers.get('content-type') || 'image/png'
   const buffer = Buffer.from(await response.arrayBuffer())
   const fileName = buildFileName('png', input.fileName, input.index, input.total)
+  // 逻辑：有 boardId 时直接保存到画布资产目录，与视频行为一致。
+  if (input.boardId) {
+    const rootPath = getWorkspaceRootPathById(input.workspaceId)
+    if (!rootPath) throw new Error('workspace not found')
+    const boardSegment = path.join('.openloaf', 'boards', input.boardId)
+    const dir = path.join(rootPath, boardSegment, 'asset')
+    await fs.mkdir(dir, { recursive: true })
+    const filePath = path.join(dir, fileName)
+    await fs.writeFile(filePath, buffer)
+    return {
+      url: path.posix.join(boardSegment.split(path.sep).join('/'), 'asset', fileName),
+      mediaType,
+    }
+  }
   return saveChatImageAttachment({
     workspaceId: input.workspaceId,
     projectId: input.projectId,
-    boardId: input.boardId,
     sessionId: input.sessionId,
     fileName,
     mediaType,

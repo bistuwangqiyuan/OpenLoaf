@@ -100,9 +100,9 @@
   },
   "closeConfirm": {
     "title": "關閉 OpenLoaf",
-    "description": "確定要關閉應用程式嗎？",
-    "checkboxLabel": "背景執行，下次不再提醒",
-    "ok": "確定"
+    "checkboxLabel": "記住我的選擇，下次不再提醒",
+    "minimize": "最小化到系統列",
+    "quit": "退出"
   },
   "webOnlyNoLocalFile": "網頁版不支援開啟本機檔案",
   "filePathNotFound": "未找到檔案路徑",

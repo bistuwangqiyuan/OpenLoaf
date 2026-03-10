@@ -592,7 +592,6 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
             copyPathAtCurrent: model.handleCopyPathAtCurrent,
             createFolder: handleCreateFolder,
             createDocument: handleCreateDocument,
-            createBoard: model.handleCreateBoard,
             openTerminalAtCurrent: model.handleOpenTerminalAtCurrent,
             paste: model.handlePaste,
           }}
@@ -679,7 +678,6 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
                     onOpenSpreadsheet={model.handleOpenSpreadsheet}
                     onOpenBoard={model.handleOpenBoard}
                     onCreateDocument={handleCreateDocument}
-                    onCreateBoard={model.handleCreateBoard}
                     selectedUris={selectedUris}
                     onEntryClick={handleEntryClick}
                     onSelectionChange={handleSelectionChange}
@@ -781,7 +779,6 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
                   onOpenVideo={model.handleOpenVideo}
                   onOpenBoard={model.handleOpenBoard}
                   onCreateDocument={handleCreateDocument}
-                  onCreateBoard={model.handleCreateBoard}
                   selectedUris={selectedUris}
                   onEntryClick={handleEntryClick}
                   onSelectionChange={handleSelectionChange}

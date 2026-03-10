@@ -27,6 +27,8 @@ export class CanvasDoc {
   private hasPendingRevision = false;
   /** Spatial index for node hit queries. */
   private readonly nodeSpatialIndex = new SpatialIndex(NODE_SPATIAL_INDEX_CELL_SIZE);
+  /** Cached array of elements, invalidated on mutations. */
+  private elementsCache: CanvasElement[] | null = null;
 
   /** Create a new canvas document. */
   constructor(emitChange: () => void) {
@@ -35,7 +37,10 @@ export class CanvasDoc {
 
   /** Return all elements in insertion order. */
   getElements(): CanvasElement[] {
-    return Array.from(this.elements.values());
+    if (!this.elementsCache) {
+      this.elementsCache = Array.from(this.elements.values());
+    }
+    return this.elementsCache;
   }
 
   /** Query candidate nodes by rectangle using the spatial index. */
@@ -63,6 +68,7 @@ export class CanvasDoc {
 
   /** Add a new element to the document. */
   addElement(element: CanvasElement): void {
+    this.elementsCache = null;
     this.elements.set(element.id, element);
     if (element.kind === "node") {
       const [x, y, w, h] = element.xywh;
@@ -73,6 +79,7 @@ export class CanvasDoc {
 
   /** Replace the entire element list. */
   setElements(elements: CanvasElement[]): void {
+    this.elementsCache = null;
     this.elements.clear();
     elements.forEach(element => {
       this.elements.set(element.id, element);
@@ -88,6 +95,7 @@ export class CanvasDoc {
   updateElement(id: string, patch: Partial<CanvasElement>): void {
     const current = this.elements.get(id);
     if (!current) return;
+    this.elementsCache = null;
 
     // 仅合并 props 字段，避免节点属性被整体覆盖丢失。
     let next: CanvasElement;
@@ -128,6 +136,7 @@ export class CanvasDoc {
   deleteElement(id: string): void {
     const element = this.elements.get(id);
     if (!element) return;
+    this.elementsCache = null;
     if (element.kind === "node") {
       this.nodeSpatialIndex.remove(id);
     }
@@ -137,6 +146,7 @@ export class CanvasDoc {
 
   /** Delete multiple elements by id. */
   deleteElements(ids: string[]): void {
+    this.elementsCache = null;
     let changed = false;
     ids.forEach(id => {
       const element = this.elements.get(id);

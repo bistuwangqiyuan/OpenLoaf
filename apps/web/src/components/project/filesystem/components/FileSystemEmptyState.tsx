@@ -25,7 +25,6 @@ type FileSystemEmptyStateProps = {
   showEmptyActions?: boolean;
   parentEntry?: FileSystemEntry | null;
   onCreateDocument?: () => void;
-  onCreateBoard?: () => void;
   onNavigate?: (nextUri: string) => void;
   onEntryDrop?: (
     entry: FileSystemEntry,
@@ -45,7 +44,6 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
   showEmptyActions = true,
   parentEntry,
   onCreateDocument,
-  onCreateBoard,
   onNavigate,
   onEntryDrop,
   setDragOverFolderUri,
@@ -72,15 +70,6 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
                   }}
                 >
                   {t('workspace:filesystem.createDocument')}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={(event) => {
-                    if (shouldBlockPointerEvent(event)) return;
-                    onCreateBoard?.();
-                  }}
-                >
-                  {t('workspace:filesystem.createBoard')}
                 </Button>
               </>
             ) : null

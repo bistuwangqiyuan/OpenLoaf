@@ -248,7 +248,6 @@ export type ProjectFileSystemModel = {
   handleShowInfo: (entry: FileSystemEntry) => void;
   handleCreateFolder: () => Promise<{ uri: string; name: string } | null>;
   handleCreateMarkdown: () => Promise<{ uri: string; name: string } | null>;
-  handleCreateBoard: () => Promise<void>;
   handlePaste: () => Promise<void>;
   /** Retry the last failed Electron transfer. */
   handleRetryTransfer: () => Promise<void>;
@@ -1344,35 +1343,6 @@ export function useProjectFileSystemModel({
     return { uri: docFolderUri, name: targetName };
   };
 
-  /** Create a new board folder in the current directory via DB. */
-  const handleCreateBoard = async () => {
-    if (activeUri === null || !workspaceId) return;
-    const canvasLabel = i18next.t("nav:canvasList.defaultName");
-    try {
-      const board = await trpcClient.board.create.mutate({
-        workspaceId,
-        projectId: projectId ?? undefined,
-        title: canvasLabel,
-      });
-      refreshList();
-      const boardFolderUri = buildChildUri(
-        activeUri.includes(".openloaf/boards") ? activeUri : ".openloaf/boards",
-        board.id,
-      );
-      handleOpenBoard(
-        {
-          uri: boardFolderUri,
-          name: board.id,
-          kind: "folder",
-        },
-        { pendingRename: true }
-      );
-    } catch (error) {
-      console.warn("[handleCreateBoard] failed", error);
-      toast.error("创建画布失败");
-    }
-  };
-
   /** Paste copied files into the current directory. */
   const handlePaste = async () => {
     if (activeUri === null) return;
@@ -1989,7 +1959,6 @@ export function useProjectFileSystemModel({
     handleShowInfo,
     handleCreateFolder,
     handleCreateMarkdown,
-    handleCreateBoard,
     handlePaste,
     handleRetryTransfer,
     handleUploadFiles,

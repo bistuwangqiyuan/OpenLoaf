@@ -90,8 +90,6 @@ export type FileSystemContextMenuActions = {
   createFolder: MenuAction;
   /** Create a new markdown document. */
   createDocument: MenuAction;
-  /** Create a new board. */
-  createBoard: MenuAction;
   /** Open a terminal at the current directory. */
   openTerminalAtCurrent: MenuAction;
   /** Open the current directory in the OS file manager. */
@@ -380,13 +378,6 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               onSelect={withMenuSelectGuard(actions.createDocument)}
             >
               {t('workspace:filesystem.newDocument')}
-            </ContextMenuItem>
-            <ContextMenuItem
-              icon={LayoutGrid}
-              iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
-              onSelect={withMenuSelectGuard(actions.createBoard)}
-            >
-              {t('workspace:filesystem.newBoard')}
             </ContextMenuItem>
             <ContextMenuSeparator />
             {showTerminal ? (

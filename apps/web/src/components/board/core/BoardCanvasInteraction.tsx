@@ -1138,6 +1138,8 @@ export function BoardCanvasInteraction({
                   ? rawTarget.parentElement
                   : null;
             if (!target) return;
+            // 逻辑：过滤 React portal 冒泡的事件（如文件选择对话框的双击）。
+            if (!containerRef.current?.contains(target)) return;
             if (snapshot.pendingInsert || snapshot.toolbarDragging) return;
             if (engine.isLocked()) return;
             if (isBoardUiTarget(target, ["[data-connector-drop-panel]"])) {
@@ -1152,6 +1154,19 @@ export function BoardCanvasInteraction({
             const hitElement = engine.pickElementAt(worldPoint);
             if (hitElement?.kind === "node") {
               handleNodeDoubleClick(hitElement);
+            } else if (!hitElement) {
+              // 逻辑：双击空白区域时创建文本节点并自动进入编辑模式。
+              if (snapshot.activeToolId !== "select") {
+                engine.setActiveTool("select");
+              }
+              const w = 200;
+              const h = TEXT_NODE_DEFAULT_HEIGHT;
+              engine.addNodeElement("text", { autoFocus: true }, [
+                worldPoint[0],
+                worldPoint[1],
+                w,
+                h,
+              ]);
             }
           }}
         >

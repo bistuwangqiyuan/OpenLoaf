@@ -46,19 +46,13 @@ export function useAutoResizeNode({
   const requestResize = useCallback(() => {
     if (!enabled) return;
     if (frameRef.current !== null) return;
+    // 逻辑：测量 DOM 仍用独立 rAF，但更新节点高度通过 engine 批处理调度，避免多节点并发时触发多次通知。
     frameRef.current = window.requestAnimationFrame(() => {
       frameRef.current = null;
       const container = containerRef.current;
       if (!container) return;
-      const node = engine.doc.getElementById(elementId);
-      if (!node || node.kind !== "node") return;
-      // 逻辑：用容器内容高度驱动节点高度，避免内容被裁切。
       const measuredHeight = Math.max(container.offsetHeight, minHeight);
-      const [x, y, width, height] = node.xywh;
-      if (Math.abs(height - measuredHeight) < 1) return;
-      engine.doc.updateElement(node.id, {
-        xywh: [x, y, width, measuredHeight],
-      });
+      engine.scheduleAutoResize(elementId, measuredHeight);
     });
   }, [elementId, enabled, engine, minHeight]);
 

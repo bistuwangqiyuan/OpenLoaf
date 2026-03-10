@@ -99,8 +99,6 @@ type FileSystemListProps = {
   showEmptyActions?: boolean;
   /** Create a new markdown document from empty state. */
   onCreateDocument?: () => void;
-  /** Create a new board from empty state. */
-  onCreateBoard?: () => void;
   renderEntry?: (entry: FileSystemEntry, node: ReactNode) => ReactNode;
   onEntryClick?: (
     entry: FileSystemEntry,
@@ -434,7 +432,6 @@ const FileSystemList = memo(function FileSystemList({
   onOpenBoard,
   showEmptyActions = true,
   onCreateDocument,
-  onCreateBoard,
   renderEntry,
   onEntryClick,
   onEntryContextMenu,
@@ -711,7 +708,6 @@ const FileSystemList = memo(function FileSystemList({
           showEmptyActions={showEmptyActions}
           parentEntry={parentEntry}
           onCreateDocument={onCreateDocument}
-          onCreateBoard={onCreateBoard}
           onNavigate={onNavigate}
           onEntryDrop={onEntryDrop}
           setDragOverFolderUri={setDragOverFolderUri}

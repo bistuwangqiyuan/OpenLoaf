@@ -272,8 +272,9 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
 
   const duplicateMutation = useMutation(
     trpc.board.duplicate.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (board) => {
         invalidateBoardList();
+        handleBoardClick({ id: board.id, title: board.title, folderUri: board.folderUri });
       },
     }),
   );
@@ -328,12 +329,14 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               boardFolderUri,
               boardFileUri,
               boardId: board.id,
+              projectId,
+              rootUri,
             },
           },
         });
       }
     },
-    [rootUri, workspaceId, tabs, runtimeByTabId, addTab, setActiveTab, t],
+    [rootUri, workspaceId, projectId, tabs, runtimeByTabId, addTab, setActiveTab, t],
   );
 
   const handleRename = useCallback(

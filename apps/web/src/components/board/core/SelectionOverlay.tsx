@@ -26,6 +26,7 @@ import type {
   CanvasToolbarItem,
   CanvasViewportState,
 } from "../engine/types";
+import { resolveNodeMinSize } from "../engine/types";
 import { CanvasEngine } from "../engine/CanvasEngine";
 import {
   MULTI_SELECTION_HANDLE_SIZE,
@@ -326,6 +327,7 @@ export function MultiSelectionToolbar({
     ? definition.toolbar({
       element: firstNode,
       selected: true,
+      multiSelect: true,
       fileContext,
       engine,
       openInspector: onInspect,
@@ -543,7 +545,7 @@ export function SingleSelectionOutline({
       ];
       const startWorld = engine.screenToWorld(startPoint);
       const [startX, startY, startW, startH] = element.xywh;
-      const minSize = definition?.capabilities?.minSize ?? { w: 80, h: 60 };
+      const minSize = resolveNodeMinSize(definition, element);
       const maxSize = definition?.capabilities?.maxSize;
       const resizeMode = definition?.capabilities?.resizeMode ?? "free";
       const useRatioRange = resizeMode === "ratio-range" && Boolean(maxSize);
@@ -848,7 +850,7 @@ function getGroupScaleLimits(
   let maxY = 6;
   nodes.forEach(node => {
     const definition = engine.nodes.getDefinition(node.type);
-    const minSize = definition?.capabilities?.minSize;
+    const minSize = resolveNodeMinSize(definition, node, undefined);
     const maxSize = definition?.capabilities?.maxSize;
     const rect = startRects.get(node.id);
     if (!rect) return;
@@ -991,24 +993,15 @@ function resolveSelectionBounds(element: CanvasElement, zoom: number): CanvasRec
   };
 }
 
-/** Build mindmap layout controls for root nodes. */
-/** Node types that should never show mindmap layout controls. */
-const MINDMAP_LAYOUT_EXCLUDED_TYPES = new Set([
-  "video",
-  "image_generate",
-  "video_generate",
-  "image_prompt_generate",
-  "chat_input",
-  "chat_message",
-]);
-
+/** Build mindmap layout controls for text nodes connected to other text nodes. */
 function buildMindmapLayoutItems(
   t: TFunction,
   engine: CanvasEngine,
   element: CanvasNodeElement,
   snapshot: CanvasSnapshot
 ): CanvasToolbarItem[] {
-  if (MINDMAP_LAYOUT_EXCLUDED_TYPES.has(element.type)) return [];
+  // 逻辑：仅 textNode 类型显示方向按钮。
+  if (element.type !== "text") return [];
   const meta = element.meta as Record<string, unknown> | undefined;
   if (Boolean(meta?.[MINDMAP_META.ghost])) return [];
   const inbound = snapshot.elements.filter(item => {
@@ -1016,8 +1009,23 @@ function buildMindmapLayoutItems(
     if (!("elementId" in item.target)) return false;
     return item.target.elementId === element.id;
   });
-  // 逻辑：仅根节点显示布局切换按钮。
+  // 逻辑：仅根节点（无入边）显示布局切换按钮。
   if (inbound.length > 0) return [];
+  // 逻辑：检查是否有连线指向其他 textNode，没有则不显示。
+  const elementMap = new Map(
+    snapshot.elements
+      .filter((el): el is CanvasNodeElement => el.kind === "node")
+      .map(el => [el.id, el])
+  );
+  const hasTextToTextConnector = snapshot.elements.some(item => {
+    if (item.kind !== "connector") return false;
+    if (!("elementId" in item.source) || !("elementId" in item.target)) return false;
+    if (item.source.elementId !== element.id) return false;
+    const targetNode = elementMap.get(item.target.elementId);
+    return targetNode?.type === "text";
+  });
+  if (!hasTextToTextConnector) return [];
+
   const active = engine.getMindmapLayoutDirectionForRoot(element.id);
   const layoutItems = buildMindmapLayoutItems_data(t);
   return [
