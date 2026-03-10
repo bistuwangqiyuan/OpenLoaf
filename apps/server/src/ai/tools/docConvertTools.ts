@@ -357,23 +357,45 @@ function escapeXml(str: string): string {
 }
 
 function stripHtmlTags(html: string): string {
-  // Loop style/script removal until stable to handle nested/malformed tags.
-  let result = html
-  let prev = ''
-  while (prev !== result) {
-    prev = result
-    result = result
-      .replace(/<style[\s>][\s\S]*?<\/style\s*>/gi, '')
-      .replace(/<script[\s>][\s\S]*?<\/script\s*>/gi, '')
+  // State-machine approach: iterate characters to extract text content,
+  // skipping all tags (including <style> and <script> blocks) without regex.
+  const out: string[] = []
+  let i = 0
+  const len = html.length
+  while (i < len) {
+    if (html[i] === '<') {
+      // Check for <style or <script blocks — skip until closing tag.
+      const tagMatch = html.slice(i, i + 10).toLowerCase()
+      let skipTag = ''
+      if (tagMatch.startsWith('<style') && (html[i + 6] === ' ' || html[i + 6] === '>' || html[i + 6] === '\t' || html[i + 6] === '\n')) {
+        skipTag = '</style>'
+      } else if (tagMatch.startsWith('<script') && (html[i + 7] === ' ' || html[i + 7] === '>' || html[i + 7] === '\t' || html[i + 7] === '\n')) {
+        skipTag = '</script>'
+      }
+      if (skipTag) {
+        const end = html.toLowerCase().indexOf(skipTag, i + skipTag.length)
+        i = end === -1 ? len : end + skipTag.length
+      } else {
+        // Skip any HTML tag.
+        const close = html.indexOf('>', i)
+        i = close === -1 ? len : close + 1
+      }
+    } else if (html[i] === '&') {
+      // Decode common HTML entities in-place.
+      const slice = html.slice(i, i + 8)
+      if (slice.startsWith('&nbsp;'))  { out.push(' ');  i += 6 }
+      else if (slice.startsWith('&amp;'))   { out.push('&');  i += 5 }
+      else if (slice.startsWith('&lt;'))    { out.push('<');  i += 4 }
+      else if (slice.startsWith('&gt;'))    { out.push('>');  i += 4 }
+      else if (slice.startsWith('&quot;'))  { out.push('"');  i += 6 }
+      else if (slice.startsWith('&apos;'))  { out.push("'"); i += 6 }
+      else { out.push('&'); i += 1 }
+    } else {
+      out.push(html[i]!)
+      i += 1
+    }
   }
-  result = result.replace(/<[^>]+>/g, '')
-  // Decode HTML entities in a single pass to avoid double-unescaping.
-  const entities: Record<string, string> = {
-    '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>',
-    '&quot;': '"', '&apos;': "'",
-  }
-  result = result.replace(/&(?:nbsp|amp|lt|gt|quot|apos);/g, (m) => entities[m] ?? m)
-  return result.replace(/\n{3,}/g, '\n\n').trim()
+  return out.join('').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 /** Simple CRC32 for ZIP file creation. */

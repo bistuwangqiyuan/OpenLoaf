@@ -311,17 +311,26 @@ export default function ImageViewer({
   const payload = shouldUseBinary ? imageQuery.data : null;
   const placeholderSrc = thumbnailSrc || preview?.src || "";
   // 用 base64 构造 dataUrl，避免浏览器直接访问 file:// 资源。
-  // 仅允许安全的 URL scheme，防止 javascript: 等 XSS 向量。
-  const rawDataUrl = isDataUrl || isBlob
-    ? uri
-    : shouldUseBinary
-      ? payload?.contentBase64 && payload?.mime
-        ? `data:${payload.mime};base64,${payload.contentBase64}`
-        : placeholderSrc
-      : !isRelative && uri
-        ? uri
-        : placeholderSrc;
-  const dataUrl = rawDataUrl && /^(?:data:|blob:|https?:\/\/)/i.test(rawDataUrl) ? rawDataUrl : "";
+  const dataUrl = React.useMemo(() => {
+    const raw = isDataUrl || isBlob
+      ? uri
+      : shouldUseBinary
+        ? payload?.contentBase64 && payload?.mime
+          ? `data:${payload.mime};base64,${payload.contentBase64}`
+          : placeholderSrc
+        : !isRelative && uri
+          ? uri
+          : placeholderSrc;
+    if (!raw) return "";
+    // data: 和 blob: URL 是内部生成的，安全放行。
+    if (raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
+    // 外部 URL 仅允许 http(s) scheme，阻止 javascript: 等 XSS 向量。
+    try {
+      const parsed = new URL(raw, window.location.href);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return raw;
+    } catch { /* invalid URL */ }
+    return "";
+  }, [uri, isDataUrl, isBlob, shouldUseBinary, payload?.contentBase64, payload?.mime, placeholderSrc, isRelative]);
 
   const displayTitle = title || name || "图片预览";
   // 默认保存名按图片加载时刻生成，避免对话框内不断变化。
