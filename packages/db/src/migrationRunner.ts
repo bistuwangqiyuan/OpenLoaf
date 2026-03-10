@@ -65,12 +65,11 @@ export async function runPendingMigrations(
 
     // 将 migration.sql 按语句拆分执行
     // Prisma 生成的 SQL 用 `;` + 换行分隔
-    // 注意：Prisma 在每条语句前加注释（如 `-- CreateTable`），
-    // 需要剥离注释行而非丢弃整条语句。
+    // 注释行已在生成阶段（generate-migrations-index.mjs）剥离，
+    // 此处做防御性处理以兼容旧版嵌入数据。
     const statements = migration.sql
       .split(/;\s*\n/)
-      .map((s) => s.trim())
-      .map((s) => s.replace(/^(--[^\n]*\n)+/, '').trim())
+      .map((s) => s.replace(/^(--[^\n]*\n)*/g, '').trim())
       .filter((s) => s.length > 0)
 
     for (const stmt of statements) {

@@ -27,9 +27,21 @@ const dirs = fs
   })
   .sort()
 
+/** Strip Prisma-generated comment lines (e.g. `-- CreateTable`) from SQL. */
+function stripSqlComments(raw) {
+  return raw
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('--'))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 const entries = dirs.map((name) => {
-  const sql = fs.readFileSync(path.join(migrationsDir, name, 'migration.sql'), 'utf-8')
-  const checksum = crypto.createHash('sha256').update(sql).digest('hex')
+  const raw = fs.readFileSync(path.join(migrationsDir, name, 'migration.sql'), 'utf-8')
+  const sql = stripSqlComments(raw)
+  // checksum 基于原始文件，与 Prisma 自身记录的 checksum 保持一致
+  const checksum = crypto.createHash('sha256').update(raw).digest('hex')
   return { name, sql, checksum }
 })
 
