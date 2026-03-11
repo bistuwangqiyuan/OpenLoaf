@@ -55,10 +55,7 @@ import { resolveSystemCliInfo } from "@/modules/settings/resolveSystemCliInfo";
 import { resolveOfficeInfo } from "@/modules/settings/resolveOfficeInfo";
 import { isSystemAgentId } from "@/ai/shared/systemAgentDefinitions";
 import { getErrorMessage } from "@/shared/errorMessages";
-import {
-  getActiveWorkspaceConfig,
-  getDefaultProjectStorageRootUri,
-} from "@openloaf/api/services/appConfigService";
+import { getDefaultProjectStorageRootUri } from "@openloaf/api/services/appConfigService";
 
 /** Normalize ignoreSkills list for persistence. */
 function normalizeIgnoreSkills(values?: unknown): string[] {
@@ -331,11 +328,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
           return {
             rootUri: getDefaultProjectStorageRootUri(),
           };
-        }),
-      getWorkspaceCompat: shieldedProcedure
-        .output(settingSchemas.getWorkspaceCompat.output)
-        .query(async () => {
-          return getActiveWorkspaceConfig();
         }),
       getCliToolsStatus: shieldedProcedure
         .output(settingSchemas.getCliToolsStatus.output)

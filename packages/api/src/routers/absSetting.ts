@@ -10,7 +10,6 @@
 import { z } from "zod";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { basicConfigSchema, basicConfigUpdateSchema } from "../types/basic";
-import { workspaceBase } from "../types/workspace";
 
 const settingItemSchema = z.object({
   id: z.string().optional(),
@@ -139,9 +138,6 @@ export const settingSchemas = {
       /** Default project storage root URI (file://...). */
       rootUri: z.string().min(1),
     }),
-  },
-  getWorkspaceCompat: {
-    output: workspaceBase,
   },
   getCliToolsStatus: {
     output: z.array(cliToolStatusSchema),
@@ -537,11 +533,6 @@ export abstract class BaseSettingRouter {
         }),
       getProjectStorageRoot: shieldedProcedure
         .output(settingSchemas.getProjectStorageRoot.output)
-        .query(async () => {
-          throw new Error("Not implemented in base class");
-        }),
-      getWorkspaceCompat: shieldedProcedure
-        .output(settingSchemas.getWorkspaceCompat.output)
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),
