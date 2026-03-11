@@ -30,7 +30,6 @@ import {
   FILE_DRAG_REF_MIME,
   FILE_DRAG_URI_MIME,
 } from "@/components/ai-elements/drag-drop";
-import { resolveWorkspaceDisplayName } from "@/utils/workspace-display-name";
 import { readImageDragPayload } from "@/lib/image/drag";
 import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
 import {
@@ -46,8 +45,6 @@ import { ChatInputEditor, type ChatInputEditorHandle } from "./ChatInputEditor";
 import { ChatProjectSelector } from "./ChatProjectSelector";
 import { ChatInputBlockedOverlay } from "./ChatInputBlockedOverlay";
 import { useChatInputDrop } from "./useChatInputDrop";
-import { trpc } from "@/utils/trpc";
-import { useQuery } from "@tanstack/react-query";
 import { useTabs } from "@/hooks/use-tabs";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -786,14 +783,10 @@ export default function ChatInput({
   });
   /** Resolve workspace display name for project selector (with i18n). */
   const { t: tWorkspace } = useTranslation('workspace', { keyPrefix: 'workspace' });
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
   const workspaceName = useMemo(() => {
-    if (!workspaceId || workspaceCompatQuery.data?.id !== workspaceId) return undefined;
-    return resolveWorkspaceDisplayName(workspaceCompatQuery.data.name, tWorkspace);
-  }, [workspaceCompatQuery.data?.id, workspaceCompatQuery.data?.name, workspaceId, tWorkspace]);
+    if (!workspaceId) return undefined;
+    return tWorkspace('defaultWorkspaceName');
+  }, [workspaceId, tWorkspace]);
   /** Switch project scope from the project selector. */
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {
