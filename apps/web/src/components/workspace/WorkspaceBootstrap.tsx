@@ -12,24 +12,23 @@
 import { useEffect } from "react";
 import { DEFAULT_TAB_INFO } from "@openloaf/api/common";
 import { useTabs } from "@/hooks/use-tabs";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useProjectStorageRootQuery } from "@/hooks/use-project-storage-root-uri";
 
 /**
  * Bootstrap compatibility workspace side effects.
  */
 export function WorkspaceBootstrap() {
-  const { workspace, isLoading } = useWorkspace();
+  const { isLoading } = useProjectStorageRootQuery();
   const addTab = useTabs((state) => state.addTab);
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
+  const workspaceId = "default";
 
   useEffect(() => {
-    if (!workspace?.id) return;
-    document.cookie = `workspace-id=${encodeURIComponent(workspace.id)}; path=/; max-age=31536000; SameSite=Lax`;
-  }, [workspace?.id]);
+    document.cookie = `workspace-id=${encodeURIComponent(workspaceId)}; path=/; max-age=31536000; SameSite=Lax`;
+  }, [workspaceId]);
 
   useEffect(() => {
-    if (!workspace?.id) return;
     if (isLoading) return;
     if (activeTabId) return;
     if (tabs.length > 0) return;
@@ -42,7 +41,7 @@ export function WorkspaceBootstrap() {
       leftWidthPercent: 0,
       rightChatCollapsed: false,
     });
-  }, [workspace?.id, isLoading, activeTabId, tabs.length, addTab]);
+  }, [isLoading, activeTabId, tabs.length, addTab]);
 
   return null;
 }

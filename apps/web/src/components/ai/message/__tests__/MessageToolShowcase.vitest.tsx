@@ -85,10 +85,6 @@ vi.mock('@/components/file/lib/open-file', () => ({
   openFilePreview: vi.fn(),
 }))
 
-vi.mock('@/hooks/use-workspace', () => ({
-  useWorkspace: () => ({ workspaceId: 'ws-1' }),
-}))
-
 vi.mock('@/components/desktop/DesktopWidgetLibraryPanel', () => ({
   useWidgetLibraryPanel: () => ({
     openPanel: vi.fn(),

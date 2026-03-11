@@ -47,7 +47,6 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import dynamicIconImports from "lucide-react/dynamicIconImports"
-import { useWorkspace } from "@/hooks/use-workspace"
 import { useTabs } from "@/hooks/use-tabs"
 import { useTabRuntime } from "@/hooks/use-tab-runtime"
 import { useSettingsValues } from "@/hooks/use-settings"
