@@ -255,6 +255,11 @@
     "noProject": "No Project"
   },
   "workspaceListPage": {
+    "helpTitle": "Projects",
+    "helpDesc": "Browse and manage all projects in the current workspace. Click a card to open it.",
+    "addProject": "New Project",
+    "addProjectTitle": "New Project Title",
+    "addProjectPlaceholder": "Enter project name",
     "empty": "No projects yet",
     "untitled": "Untitled Project",
     "renameTitle": "Rename Project",

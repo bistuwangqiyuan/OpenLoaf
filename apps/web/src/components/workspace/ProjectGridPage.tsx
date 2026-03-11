@@ -87,12 +87,12 @@ function flattenProjects(
   return result;
 }
 
-interface WorkspaceListPageProps {
+interface ProjectGridPageProps {
   tabId: string;
   panelKey: string;
 }
 
-export default function WorkspaceListPage({ tabId }: WorkspaceListPageProps) {
+export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
   const { t } = useTranslation("nav");
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? "";
@@ -109,6 +109,8 @@ export default function WorkspaceListPage({ tabId }: WorkspaceListPageProps) {
     title: string;
     nextTitle: string;
   } | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState("");
 
   const { data: projectList } = useProjects();
   const projects = projectList ?? [];
@@ -153,6 +155,22 @@ export default function WorkspaceListPage({ tabId }: WorkspaceListPageProps) {
       },
     }),
   );
+
+  const createMutation = useMutation(
+    trpc.project.create.mutationOptions({
+      onSuccess: () => {
+        invalidateProjects();
+        setIsCreateOpen(false);
+        setCreateTitle("");
+      },
+    }),
+  );
+
+  const handleCreateProject = useCallback(() => {
+    const title = createTitle.trim();
+    if (!title) return;
+    createMutation.mutate({ title, enableVersionControl: true });
+  }, [createTitle, createMutation]);
 
   const handleProjectClick = useCallback(
     (project: ProjectNode) => {
@@ -382,34 +400,48 @@ export default function WorkspaceListPage({ tabId }: WorkspaceListPageProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative max-w-52">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("search")}
-              className="h-8 pl-8 pr-7 text-sm rounded-full bg-muted/40 border-transparent focus:border-border"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+      {/* Page header */}
+      <div className="px-6 pt-6 pb-2">
+        <h1 className="flex items-center gap-2 text-lg font-semibold">
+          <FolderOpen className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+          {t("workspaceListPage.helpTitle")}
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground">{t("workspaceListPage.helpDesc")}</p>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-6 py-2">
+        <div className="relative max-w-52">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("search")}
+            className="h-8 pl-8 pr-7 text-sm rounded-full bg-muted/40 border-transparent focus:border-border"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
             {t("workspaceListPage.totalCount", {
               count: flatProjects.length,
             })}
           </span>
+          <Button
+            className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            {t("workspaceListPage.addProject")}
+          </Button>
         </div>
       </div>
 
@@ -471,6 +503,50 @@ export default function WorkspaceListPage({ tabId }: WorkspaceListPageProps) {
               disabled={updateMutation.isPending}
             >
               {t("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Create project dialog */}
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateOpen(false);
+            setCreateTitle("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("workspaceListPage.addProjectTitle")}</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={createTitle}
+            onChange={(e) => setCreateTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateProject();
+            }}
+            placeholder={t("workspaceListPage.addProjectPlaceholder")}
+            className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
+            autoFocus
+          />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                className="rounded-full text-muted-foreground shadow-none transition-colors duration-150"
+              >
+                {t("cancel")}
+              </Button>
+            </DialogClose>
+            <Button
+              className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+              onClick={handleCreateProject}
+              disabled={createMutation.isPending || !createTitle.trim()}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              {t("workspaceListPage.addProject")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -255,12 +255,17 @@
     "noProject": "未歸屬專案"
   },
   "workspaceListPage": {
-    "empty": "暫無工作區",
-    "untitled": "未命名工作區",
-    "renameTitle": "重新命名工作區",
-    "renameDesc": "輸入工作區的新名稱。",
-    "confirmRemove": "確認移除此工作區？僅從列表移除，不會刪除磁碟檔案。",
+    "helpTitle": "專案管理",
+    "helpDesc": "在這裡瀏覽和管理目前工作空間下的所有專案。點擊卡片即可開啟對應專案。",
+    "addProject": "新建專案",
+    "addProjectTitle": "新建專案標題",
+    "addProjectPlaceholder": "輸入專案名稱",
+    "empty": "暫無專案",
+    "untitled": "未命名專案",
+    "renameTitle": "重新命名專案",
+    "renameDesc": "輸入專案的新名稱。",
+    "confirmRemove": "確認移除此專案？僅從列表移除，不會刪除磁碟檔案。",
     "totalCount": "共 {{count}} 個",
-    "childCount": "{{count}} 個子工作區"
+    "childCount": "{{count}} 個子專案"
   }
 }
