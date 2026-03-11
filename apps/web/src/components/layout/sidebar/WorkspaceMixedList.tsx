@@ -18,6 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_META_FILE_NAME } from "@/lib/file-name";
@@ -76,11 +77,7 @@ export function WorkspaceMixedList() {
   const { loggedIn: saasLoggedIn } = useSaasAuth();
   const { data: projects } = useProjects();
   const projectRootUriMap = useMemo(() => buildProjectRootUriMap(projects), [projects]);
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri;
+  const projectStorageRootUri = useProjectStorageRootUri();
 
   const queryClient = useQueryClient();
   const addTab = useTabs((s) => s.addTab);
@@ -188,8 +185,8 @@ export function WorkspaceMixedList() {
   // Board click handler
   const resolveBoardRootUri = useCallback(
     (projectId?: string | null) =>
-      projectId ? projectRootUriMap.get(projectId) : workspaceRootUri,
-    [projectRootUriMap, workspaceRootUri],
+      projectId ? projectRootUriMap.get(projectId) : projectStorageRootUri,
+    [projectRootUriMap, projectStorageRootUri],
   );
 
   const handleBoardClick = useCallback(

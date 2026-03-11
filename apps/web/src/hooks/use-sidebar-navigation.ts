@@ -236,7 +236,7 @@ export function useSidebarNavigation() {
     const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase()
     const canvasLabel = i18next.t('nav:canvasList.defaultName')
     const boardName = `tnboard_${canvasLabel}_${randomSuffix}`
-    // 逻辑：临时画布先保留相对板路径，具体全局根目录由 board-viewer 内部兼容层解析。
+    // 逻辑：临时画布先保留相对板路径，具体全局根目录由 board-viewer 通过项目存储根查询补齐。
     const boardFolderUri = `.openloaf/boards/${boardName}`
     const boardFileUri = `.openloaf/boards/${boardName}/${BOARD_INDEX_FILE_NAME}`
     addTab({

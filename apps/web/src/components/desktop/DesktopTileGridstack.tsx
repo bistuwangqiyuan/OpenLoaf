@@ -11,14 +11,12 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PencilLine, Pin, PinOff, RotateCw, Layers, Trash2, Settings } from "lucide-react";
 import { BROWSER_WINDOW_COMPONENT, BROWSER_WINDOW_PANEL_ID } from "@openloaf/api/common";
 import { cn } from "@/lib/utils";
 import { GlowingEffect } from "@openloaf/ui/glowing-effect";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { trpc } from "@/utils/trpc";
 import { normalizeUrl } from "@/components/browser/browser-utils";
 import { fetchWebMeta } from "@/lib/web-meta";
 import { Button } from "@openloaf/ui/button";
@@ -51,6 +49,7 @@ import ProjectFileSystemTransferDialog from "@/components/project/filesystem/com
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { createBrowserTabId } from "@/hooks/tab-id";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 
 interface DesktopTileGridstackProps {
   item: DesktopItem;
@@ -83,10 +82,7 @@ export default function DesktopTileGridstack({
   const longPressTimerRef = React.useRef<number | null>(null);
   const pointerStartRef = React.useRef<{ id: number; x: number; y: number } | null>(null);
   const { basic } = useBasicConfig();
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
+  const projectStorageRootUri = useProjectStorageRootUri();
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
   const tabRuntime = useTabRuntime((state) =>
@@ -114,10 +110,12 @@ export default function DesktopTileGridstack({
       : typeof activeTab?.chatParams?.projectId === "string"
         ? String(activeTab.chatParams.projectId)
         : undefined;
-  const workspaceId = workspaceCompatQuery.data?.id;
+  // 逻辑：Desktop 过渡层仍需给旧预览接口传稳定 workspaceId，但不再依赖 compat 查询。
+  const workspaceId =
+    typeof tabParams?.workspaceId === "string" ? String(tabParams.workspaceId) : "default";
   const projectRootUri =
     typeof tabParams?.rootUri === "string" ? String(tabParams.rootUri) : undefined;
-  const defaultRootUri = projectRootUri || workspaceCompatQuery.data?.rootUri;
+  const defaultRootUri = projectRootUri || projectStorageRootUri;
   // 网页组件修改对话框状态。
   const [isWebDialogOpen, setIsWebDialogOpen] = React.useState(false);
   const [webUrlInput, setWebUrlInput] = React.useState("");

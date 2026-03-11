@@ -12,7 +12,7 @@
 import * as React from "react";
 import { Sparkles, Terminal, Search, LayoutDashboard } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import i18next from "i18next";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,7 @@ import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import {
   ensureBoardFolderName,
   BOARD_INDEX_FILE_NAME,
@@ -45,11 +46,7 @@ export interface QuickActionsWidgetProps {
 /** Render a quick actions widget (MVP placeholder). */
 export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
   const { t } = useTranslation('desktop');
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri ?? "";
+  const projectStorageRootUri = useProjectStorageRootUri();
   const activeTabId = useTabs((state) => state.activeTabId);
   const tabs = useTabs((state) => state.tabs);
   const mkdirMutation = useMutation(trpc.fs.mkdir.mutationOptions());
@@ -153,7 +150,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       return;
     }
 
-    // 逻辑：优先使用当前项目标签页的 rootUri，否则回退到工作区根目录。
+    // 逻辑：优先使用当前项目标签页的 rootUri，否则回退到默认项目存储根目录。
     const activeTab = tabs.find(
       (tab) => tab.id === activeTabId,
     );
@@ -161,7 +158,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
     const baseParams = (runtime?.base?.params ?? {}) as Record<string, unknown>;
     const rootUri =
       (typeof baseParams.rootUri === "string" ? baseParams.rootUri : undefined) ??
-      workspaceRootUri ??
+      projectStorageRootUri ??
       "";
     const pwdUri = rootUri ? resolveFileUriFromRoot(rootUri, rootUri) : "";
     if (!pwdUri) {
@@ -179,7 +176,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
         __open: { pwdUri },
       },
     });
-  }, [activeTabId, terminalStatus, tabs, t, workspaceRootUri]);
+  }, [activeTabId, terminalStatus, tabs, t, projectStorageRootUri]);
 
   /** Open/ensure right AI chat panel visible and focus the input. */
   const handleOpenAiChat = React.useCallback(() => {

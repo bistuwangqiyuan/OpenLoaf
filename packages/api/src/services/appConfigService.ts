@@ -103,6 +103,11 @@ export function getDefaultProjectStoragePath(): string {
   return rootPath;
 }
 
+/** Get the default project storage root URI (file://...). */
+export function getDefaultProjectStorageRootUri(): string {
+  return resolveDefaultRootUri();
+}
+
 // ============================================================
 // Backward compatibility exports for workspaceConfig consumers
 // ============================================================

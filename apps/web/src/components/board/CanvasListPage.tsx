@@ -20,6 +20,7 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useProjects } from "@/hooks/use-projects";
 import { useIsInView } from "@/hooks/use-is-in-view";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
@@ -386,11 +387,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const { t, i18n } = useTranslation("nav");
   const { t: tAi } = useTranslation("ai");
   const lang = i18n.language;
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri;
+  const projectStorageRootUri = useProjectStorageRootUri();
   const queryClient = useQueryClient();
 
   const addTab = useTabs((s) => s.addTab);
@@ -430,8 +427,8 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   }, [projectList]);
   const resolveBoardRootUri = useCallback(
     (targetProjectId?: string | null) =>
-      targetProjectId ? projectRootUriMap.get(targetProjectId) : workspaceRootUri,
-    [projectRootUriMap, workspaceRootUri],
+      targetProjectId ? projectRootUriMap.get(targetProjectId) : projectStorageRootUri,
+    [projectRootUriMap, projectStorageRootUri],
   );
 
   const queryInput = useMemo(

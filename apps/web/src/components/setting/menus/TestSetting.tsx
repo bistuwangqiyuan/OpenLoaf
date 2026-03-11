@@ -8,7 +8,6 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import { Button } from "@openloaf/ui/button";
-import { useQuery } from "@tanstack/react-query";
 import {
   BROWSER_WINDOW_COMPONENT,
   BROWSER_WINDOW_PANEL_ID,
@@ -26,9 +25,9 @@ import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsFie
 import { toast } from "sonner";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";
 import { useBasicConfig } from "@/hooks/use-basic-config";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { Switch } from "@openloaf/ui/switch";
 import { isElectronEnv } from "@/utils/is-electron-env";
-import { trpc } from "@/utils/trpc";
 
 /** Flat-color icon badge for settings items. */
 function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
@@ -44,10 +43,7 @@ const STEP_UP_ROUTE = "/step-up";
 
 const TestSetting = memo(function TestSetting() {
   const { basic, setBasic } = useBasicConfig();
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
+  const projectStorageRootUri = useProjectStorageRootUri();
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeStackCount = useTabRuntime((s) => {
     const runtime = activeTabId ? s.runtimeByTabId[activeTabId] : undefined;
@@ -130,7 +126,7 @@ const TestSetting = memo(function TestSetting() {
   }
 
   /**
-   * Opens a Terminal stack at the workspace root directory.
+   * Opens a Terminal stack at the default project storage root directory.
    */
   function handleOpenWorkspaceTerminal() {
     if (!activeTabId) return;
@@ -142,12 +138,12 @@ const TestSetting = memo(function TestSetting() {
       toast.error("终端功能未开启");
       return;
     }
-    const rootUri = workspaceCompatQuery.data?.rootUri;
+    const rootUri = projectStorageRootUri;
     if (!rootUri) {
-      toast.error("未找到工作区目录");
+      toast.error("未找到项目目录");
       return;
     }
-    // 中文注释：终端使用 workspace root 作为 pwd。
+    // 中文注释：终端使用默认项目存储根目录作为 pwd。
     pushStackItem(activeTabId, {
       id: TERMINAL_WINDOW_PANEL_ID,
       sourceKey: TERMINAL_WINDOW_PANEL_ID,

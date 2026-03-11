@@ -134,6 +134,12 @@ export const settingSchemas = {
   getBasic: {
     output: basicConfigSchema,
   },
+  getProjectStorageRoot: {
+    output: z.object({
+      /** Default project storage root URI (file://...). */
+      rootUri: z.string().min(1),
+    }),
+  },
   getWorkspaceCompat: {
     output: workspaceBase,
   },
@@ -526,6 +532,11 @@ export abstract class BaseSettingRouter {
         }),
       getBasic: shieldedProcedure
         .output(settingSchemas.getBasic.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      getProjectStorageRoot: shieldedProcedure
+        .output(settingSchemas.getProjectStorageRoot.output)
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),
