@@ -10,7 +10,6 @@
 'use client'
 
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { FolderOpen, LayoutGrid, CheckCircle2, XCircle } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
@@ -33,8 +32,9 @@ import {
   parseOutputJson,
   widgetModuleCache,
   latestCheckByWidgetId,
+  resolveWidgetFolderUri,
+  resolveWidgetMainFileUri,
 } from './shared/widget-shared'
-import { trpc } from '@/utils/trpc'
 
 export default function WidgetCheckTool({
   part,
@@ -45,10 +45,6 @@ export default function WidgetCheckTool({
 }) {
   const { tabId, projectId } = useChatSession()
   const projectQuery = useProject(projectId)
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  })
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   const input = asPlainObject(normalizeToolInput(part.input))
 
@@ -68,9 +64,6 @@ export default function WidgetCheckTool({
   }, [widgetId, toolCallId])
 
   const isLatest = latestCheckByWidgetId.get(widgetId) === toolCallId
-  const baseRootUri = projectId
-    ? projectQuery.data?.project?.rootUri
-    : workspaceCompatQuery.data?.rootUri
 
   // 逻辑：清除缓存确保显示最新编译结果
   React.useEffect(() => {
@@ -96,9 +89,13 @@ export default function WidgetCheckTool({
 
   const handleOpenWidget = () => {
     if (!tabId || !widgetId) return
-    if (!baseRootUri) return
-    const widgetFolderUri = `${baseRootUri.replace(/\/$/, '')}/.openloaf/dynamic-widgets/${widgetId}`
-    const mainFileUri = `${widgetFolderUri}/widget.tsx`
+    const widgetFolderUri = resolveWidgetFolderUri({
+      outputJson,
+      widgetId,
+      projectRootUri: projectQuery.data?.project?.rootUri,
+    })
+    if (!widgetFolderUri) return
+    const mainFileUri = resolveWidgetMainFileUri(widgetFolderUri)
     pushStackItem(tabId, {
       id: `widget:${widgetId}`,
       sourceKey: `widget:${widgetId}`,
@@ -110,7 +107,7 @@ export default function WidgetCheckTool({
         currentEntryKind: 'file',
         projectId,
         projectTitle: widgetId,
-        viewerRootUri: baseRootUri,
+        viewerRootUri: projectQuery.data?.project?.rootUri,
       },
     })
   }

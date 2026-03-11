@@ -238,6 +238,7 @@ export const widgetCheckTool = tool({
       return JSON.stringify({
         ok: false,
         widgetId: input.widgetId,
+        location: widgetDir,
         errors: [`缺少文件: ${missing.join(', ')}`],
       })
     }
@@ -262,6 +263,7 @@ export const widgetCheckTool = tool({
         ok: false,
         widgetId: input.widgetId,
         widgetName,
+        location: widgetDir,
         errors: [result.error || '编译失败'],
       })
     }
@@ -272,6 +274,7 @@ export const widgetCheckTool = tool({
       ok: true,
       widgetId: input.widgetId,
       widgetName,
+      location: widgetDir,
     })
   },
 })

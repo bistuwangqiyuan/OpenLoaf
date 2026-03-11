@@ -10,7 +10,6 @@
 'use client'
 
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { FolderOpen, LayoutGrid } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
@@ -34,9 +33,10 @@ import { TrafficLights } from '@openloaf/ui/traffic-lights'
 import {
   WidgetPreview,
   parseOutputJson,
+  resolveWidgetFolderUri,
+  resolveWidgetMainFileUri,
 } from './shared/widget-shared'
 import ToolApprovalActions from './shared/ToolApprovalActions'
-import { trpc } from '@/utils/trpc'
 
 export default function WidgetTool({
   part,
@@ -47,10 +47,6 @@ export default function WidgetTool({
 }) {
   const { tabId, projectId } = useChatSession()
   const projectQuery = useProject(projectId)
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  })
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   const input = normalizeToolInput(part.input)
   const inputObj = asPlainObject(input)
@@ -83,9 +79,6 @@ export default function WidgetTool({
   const showToolKind = Boolean(toolKind) && title !== toolKind
   const approvalId = getApprovalId(part)
   const isPending = isApprovalPending(part)
-  const baseRootUri = projectId
-    ? projectQuery.data?.project?.rootUri
-    : workspaceCompatQuery.data?.rootUri
 
   const canRender =
     part.state === 'output-available' && !hasError
@@ -100,9 +93,13 @@ export default function WidgetTool({
 
   const handleOpenWidget = () => {
     if (!tabId) return
-    if (!baseRootUri) return
-    const widgetFolderUri = `${baseRootUri.replace(/\/$/, '')}/.openloaf/dynamic-widgets/${widgetId}`
-    const mainFileUri = `${widgetFolderUri}/widget.tsx`
+    const widgetFolderUri = resolveWidgetFolderUri({
+      outputJson,
+      widgetId,
+      projectRootUri: projectQuery.data?.project?.rootUri,
+    })
+    if (!widgetFolderUri) return
+    const mainFileUri = resolveWidgetMainFileUri(widgetFolderUri)
     pushStackItem(tabId, {
       id: `widget:${widgetId}`,
       sourceKey: `widget:${widgetId}`,
@@ -114,7 +111,7 @@ export default function WidgetTool({
         currentEntryKind: 'file',
         projectId,
         projectTitle: widgetId,
-        viewerRootUri: baseRootUri,
+        viewerRootUri: projectQuery.data?.project?.rootUri,
       },
     })
   }

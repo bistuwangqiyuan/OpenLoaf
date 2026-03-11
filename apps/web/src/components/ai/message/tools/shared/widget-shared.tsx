@@ -11,6 +11,7 @@
 
 import * as React from 'react'
 import { trpcClient } from '@/utils/trpc'
+import { buildChildUri, buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import {
   ensureExternalsRegistered,
   patchBareImports,
@@ -33,6 +34,43 @@ export function parseOutputJson(
   } catch {
     return null
   }
+}
+
+function toFileUri(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('file://')) return trimmed
+  const normalized = trimmed.replace(/\\/g, '/')
+  if (/^[A-Za-z]:\//.test(normalized)) return `file:///${encodeURI(normalized)}`
+  if (normalized.startsWith('/')) return `file://${encodeURI(normalized)}`
+  return `file:///${encodeURI(normalized)}`
+}
+
+/** 逻辑：优先使用 tool output 中的真实目录，缺失时才回退到项目根目录推导。 */
+export function resolveWidgetFolderUri(input: {
+  outputJson: Record<string, unknown> | null
+  widgetId: string
+  projectRootUri?: string
+}): string {
+  const rawLocation =
+    typeof input.outputJson?.widgetDir === 'string'
+      ? input.outputJson.widgetDir
+      : typeof input.outputJson?.location === 'string'
+        ? input.outputJson.location
+        : ''
+  if (rawLocation.trim()) {
+    return toFileUri(rawLocation)
+  }
+  if (!input.projectRootUri?.trim() || !input.widgetId.trim()) return ''
+  return buildFileUriFromRoot(
+    input.projectRootUri,
+    `.openloaf/dynamic-widgets/${input.widgetId}`,
+  )
+}
+
+/** Resolve the widget main file uri for preview. */
+export function resolveWidgetMainFileUri(widgetFolderUri: string): string {
+  return widgetFolderUri ? buildChildUri(widgetFolderUri, 'widget.tsx') : ''
 }
 
 /** Error boundary for widget rendering */
