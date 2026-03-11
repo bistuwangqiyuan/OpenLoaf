@@ -71,7 +71,7 @@
 | **Sidebar.tsx** | SidebarHeader 顶部渲染 `<SidebarUserAccount />`，移除原 SidebarWorkspace 引用 |
 | **WorkspaceBootstrap.tsx** | 兼容层启动器，仅负责默认 workspace cookie 与默认 AI 标签页初始化；`useWorkspace()` 已改为轻量 query hook |
 | **Scope 替换** | 6 个组件中 `"workspace"` → `"global"`：`use-main-agent-model.ts`、`AgentDetailPanel.tsx`、`AgentManagement.tsx`、`ProjectAgentView.tsx`、`SkillsSettingsPanel.tsx`、`ScheduledTaskDialog.tsx` |
-| **workspaceId 移除** | 70+ 个组件移除了 `workspaceId` 的传递/使用（AI、Board、Calendar、Email、File、Desktop、Tasks 等全模块） |
+| **workspaceId / useWorkspace 清理** | 继续清理 AI、Board、Calendar、Email、File、Desktop、Tasks、Settings、Project 页面中的 `workspaceId` 传递与 `useWorkspace()` 依赖；前端业务组件已不再直接依赖 `useWorkspace()`，仅保留 `hooks/use-workspace.ts` 与 `WorkspaceBootstrap.tsx` 兼容层；Calendar 页面/任务聚合/Electron 桥接类型与 Email 页面/栈/下载链接/OAuth 均已不再依赖前端 `workspaceId` guard |
 | **Hooks** | `use-tabs.ts`（移除 workspaceId 字段及 workspaceTabs 逻辑）、`use-navigation.ts`、`use-sidebar-navigation.ts`、`use-chat-sessions.ts` 等 |
 | **i18n** | `nav.json`（3 语言）更新导航翻译 key |
 
@@ -137,9 +137,9 @@
 
 ### 3.3 useWorkspace 过渡层清理（优先级：P1）
 
-当前 `useWorkspace()` 仍被约 60 个前端组件引用，返回默认 workspace 兼容对象；`WorkspaceProvider` 已移除，顶层仅保留 `WorkspaceBootstrap` 处理副作用。
+前端业务组件侧的 `useWorkspace()` 直接依赖已清理完毕；当前仅保留 `hooks/use-workspace.ts` 兼容 hook 与 `WorkspaceBootstrap` 启动器处理兼容副作用。
 
-- [ ] 逐步移除各组件对 `useWorkspace()` 的依赖（本轮已清理 Header / SidebarHoverPanel / ProjectTree / SidebarFeedback / SidebarProject / WorkspaceMixedList / WorkspaceCanvasList，以及 HeaderChatHistory / use-chat-sessions 的 workspace 兼容链）
+- [x] 逐步移除各组件对 `useWorkspace()` 的依赖（已清理 AI / Board / Calendar / Email / File / Desktop / Tasks / Settings / Project 等业务组件，当前仅剩兼容层本身）
 - [x] 已移除 `WorkspaceProvider` 与 `workspaceContext.tsx`；兼容 hook 已迁移到 `hooks/use-workspace.ts`
 - [x] 移除 `workspace` tRPC 路由暴露，并清理前端 `trpc.workspace.*` 客户端调用
 - [ ] 清理 `workspace.json` i18n 中不再需要的翻译 key
@@ -165,8 +165,8 @@
 
 ### 3.6 文档与清理（优先级：P3）
 
-- [ ] 更新 `CLAUDE.md` 中的术语规范（简化 workspace 相关说明）
-- [ ] 更新 `docs/DEVELOPMENT.md`
+- [x] 更新 `CLAUDE.md` 中的术语规范（简化 workspace 相关说明）
+- [x] 更新 `docs/DEVELOPMENT.md`
 - [ ] 清理残留的 workspace 相关注释和死代码
 - [ ] 更新 `.agents/skills/` 中引用 workspace 的 skill 文档
 

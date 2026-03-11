@@ -17,10 +17,8 @@ import { trpc } from "@/utils/trpc";
 type SchedulerTaskHistoryStackPanelProps = {
   /** Optional project id filter. */
   projectId?: string;
-  /** Optional workspace id filter. */
-  workspaceId?: string;
   /** Scope label. */
-  scope?: "project" | "workspace";
+  scope?: "project" | "global";
 };
 
 const STATUS_OPTIONS = [
@@ -33,7 +31,6 @@ const STATUS_OPTIONS = [
 /** Stack panel for scheduler task history list. */
 export const SchedulerTaskHistoryStackPanel = memo(function SchedulerTaskHistoryStackPanel({
   projectId,
-  workspaceId,
   scope,
 }: SchedulerTaskHistoryStackPanelProps) {
   const [page, setPage] = useState(1);
@@ -43,12 +40,11 @@ export const SchedulerTaskHistoryStackPanel = memo(function SchedulerTaskHistory
     const statuses = statusFilter === "all" ? undefined : [statusFilter];
     return {
       projectId,
-      workspaceId,
       statuses,
       page,
       pageSize: 20,
     };
-  }, [page, projectId, statusFilter, workspaceId]);
+  }, [page, projectId, statusFilter]);
 
   const historyQuery = useQuery(trpc.project.listSchedulerTaskRecords.queryOptions(queryInput));
   const total = historyQuery.data?.total ?? 0;
@@ -67,7 +63,7 @@ export const SchedulerTaskHistoryStackPanel = memo(function SchedulerTaskHistory
           : null,
     }));
   }, [historyQuery.data?.items]);
-  const scopeLabel = scope === "workspace" ? "工作空间" : "项目";
+  const scopeLabel = scope === "global" ? "全局" : "项目";
 
   function handlePrevPage() {
     setPage((prev) => Math.max(1, prev - 1));

@@ -285,11 +285,11 @@ declare global {
         getCalendars: () => Promise<OpenLoafCalendarResult<OpenLoafCalendarItem[]>>;
         /** Update calendar sync range for system pull. */
         setSyncRange?: (
-          payload: { workspaceId: string; range?: OpenLoafCalendarRange }
+          payload: { range?: OpenLoafCalendarRange }
         ) => Promise<{ ok: true } | { ok: false; reason?: string }>;
         /** Trigger immediate system calendar sync. */
         syncNow?: (
-          payload: { workspaceId: string; range?: OpenLoafCalendarRange }
+          payload: { range?: OpenLoafCalendarRange }
         ) => Promise<{ ok: true } | { ok: false; reason?: string }>;
         /** Query events within a time range. */
         getEvents: (

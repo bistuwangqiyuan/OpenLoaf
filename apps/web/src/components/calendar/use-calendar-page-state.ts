@@ -35,7 +35,6 @@ type CalendarSourceFilter = "all" | "local" | "system";
 
 type CalendarSource = {
   id: string;
-  workspaceId: string;
   provider: string;
   kind: "calendar" | "reminder";
   externalId?: string | null;
@@ -47,7 +46,6 @@ type CalendarSource = {
 
 type CalendarItemRecord = {
   id: string;
-  workspaceId: string;
   sourceId: string;
   kind: CalendarKind;
   title: string;
@@ -69,7 +67,6 @@ function isEventReadOnly(event: CalendarEvent): boolean {
 }
 
 type CalendarPageStateParams = {
-  workspaceId?: string;
   toSystemEvent: (event: CalendarEvent) => OpenLoafCalendarEvent;
   getEventKind: (event: CalendarEvent) => CalendarKind;
   sourceFilter?: CalendarSourceFilter;
@@ -136,7 +133,6 @@ function playReminderSound() {
 }
 
 export function useCalendarPageState({
-  workspaceId,
   toSystemEvent,
   getEventKind,
   sourceFilter = "all",
@@ -159,7 +155,7 @@ export function useCalendarPageState({
 
   const sourcesQuery = useQuery(
     trpc.calendar.listSources.queryOptions(
-      workspaceId ? {} : skipToken,
+      {},
     ),
   );
 
@@ -216,7 +212,7 @@ export function useCalendarPageState({
 
   const itemsQuery = useQuery(
     trpc.calendar.listItems.queryOptions(
-      workspaceId && activeSourceIds.length > 0
+      activeSourceIds.length > 0
         ? { range: activeRange, sourceIds: activeSourceIds }
         : skipToken,
     ),
@@ -282,7 +278,6 @@ export function useCalendarPageState({
 
   const triggerSync = useCallback(
     async (reason: "enter" | "permission" | "watch") => {
-      if (!workspaceId) return;
       if (reason !== "permission" && permissionState !== "granted") return;
       const now = Date.now();
       if (reason === "watch" && now - lastSyncAtRef.current < 1500) {
@@ -295,7 +290,7 @@ export function useCalendarPageState({
       }
       syncInFlightRef.current = true;
       try {
-        const result = await syncSystemCalendars({ workspaceId, range: activeRange });
+        const result = await syncSystemCalendars({ range: activeRange });
         if (!result.ok) return;
         lastSyncAtRef.current = Date.now();
         queryClient.invalidateQueries({
@@ -317,7 +312,7 @@ export function useCalendarPageState({
         }
       }
     },
-    [activeRange, activeSourceIds, permissionState, queryClient, workspaceId]
+    [activeRange, activeSourceIds, permissionState, queryClient]
   );
 
   const handleRequestPermission = useCallback(async (): Promise<OpenLoafCalendarResult<CalendarPermissionState>> => {
@@ -333,15 +328,9 @@ export function useCalendarPageState({
       return result;
     }
     setErrorMessage(null);
-    if (workspaceId) {
-      await triggerSync("permission");
-    }
+    await triggerSync("permission");
     return result;
-  }, [triggerSync, workspaceId]);
-
-  useEffect(() => {
-    permissionRequestedRef.current = false;
-  }, [workspaceId]);
+  }, [triggerSync]);
 
   useEffect(() => {
     if (permissionState !== "prompt") return;
@@ -351,25 +340,22 @@ export function useCalendarPageState({
   }, [handleRequestPermission, permissionState]);
 
   useEffect(() => {
-    if (!workspaceId) return;
     // 逻辑：进入日历页面时触发一次同步。
     if (!initialSyncRef.current) {
       initialSyncRef.current = true;
       void triggerSync("enter");
     }
-  }, [triggerSync, workspaceId]);
+  }, [triggerSync]);
 
   useEffect(() => {
-    if (!workspaceId) return;
-    void setCalendarSyncRange({ workspaceId, range: activeRange });
-  }, [activeRange, workspaceId]);
+    void setCalendarSyncRange({ range: activeRange });
+  }, [activeRange]);
 
   useEffect(() => {
-    if (!workspaceId) return;
     return subscribeSystemCalendarChanges(() => {
       void triggerSync("watch");
     });
-  }, [triggerSync, workspaceId]);
+  }, [triggerSync]);
 
   const handleDateChange = useCallback((date: dayjs.Dayjs) => {
     const range = buildRangeFromDate(date);
@@ -393,7 +379,6 @@ export function useCalendarPageState({
   const createItemMutation = useMutation(
     trpc.calendar.createItem.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
             range: activeRange,
@@ -410,7 +395,6 @@ export function useCalendarPageState({
   const updateItemMutation = useMutation(
     trpc.calendar.updateItem.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
             range: activeRange,
@@ -427,7 +411,6 @@ export function useCalendarPageState({
   const deleteItemMutation = useMutation(
     trpc.calendar.deleteItem.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
             range: activeRange,
@@ -444,7 +427,6 @@ export function useCalendarPageState({
   const toggleReminderMutation = useMutation(
     trpc.calendar.toggleReminderCompleted.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
             range: activeRange,
@@ -488,7 +470,6 @@ export function useCalendarPageState({
   );
 
   const handleEventAdd = useCallback((event: CalendarEvent) => {
-    if (!workspaceId) return;
     void (async () => {
       const meta = event.data as { calendarId?: string } | undefined;
       const sourceId = meta?.calendarId ?? "";
@@ -548,10 +529,9 @@ export function useCalendarPageState({
         // 逻辑：错误已由 mutation onError 处理。
       }
     })();
-  }, [buildBasePayload, createItemMutation, getEventKind, sourceById, toSystemEvent, workspaceId]);
+  }, [buildBasePayload, createItemMutation, getEventKind, sourceById, toSystemEvent]);
 
   const handleEventUpdate = useCallback((event: CalendarEvent) => {
-    if (!workspaceId) return;
     if (isEventReadOnly(event)) return;
     void (async () => {
       const meta = event.data as { calendarId?: string } | undefined;
@@ -607,10 +587,9 @@ export function useCalendarPageState({
         // 逻辑：错误已由 mutation onError 处理。
       }
     })();
-  }, [buildBasePayload, getEventKind, sourceById, toSystemEvent, updateItemMutation, workspaceId]);
+  }, [buildBasePayload, getEventKind, sourceById, toSystemEvent, updateItemMutation]);
 
   const handleEventDelete = useCallback((event: CalendarEvent) => {
-    if (!workspaceId) return;
     if (isEventReadOnly(event)) return;
     void (async () => {
       const meta = event.data as { calendarId?: string; externalId?: string | null } | undefined;
@@ -637,7 +616,7 @@ export function useCalendarPageState({
         // 逻辑：错误已由 mutation onError 处理。
       }
     })();
-  }, [deleteItemMutation, getEventKind, sourceById, workspaceId]);
+  }, [deleteItemMutation, getEventKind, sourceById]);
 
   const handleToggleCalendar = useCallback((calendarId: string) => {
     setSelectedCalendarIds((prev) => {
@@ -660,7 +639,6 @@ export function useCalendarPageState({
   }, []);
 
   const toggleReminderCompleted = useCallback(async (event: CalendarEvent) => {
-    if (!workspaceId) return;
     const meta = event.data as {
       calendarId?: string;
       externalId?: string | null;
@@ -697,7 +675,7 @@ export function useCalendarPageState({
       return;
     }
     playReminderSound();
-  }, [sourceById, toSystemEvent, toggleReminderMutation, workspaceId]);
+  }, [sourceById, toSystemEvent, toggleReminderMutation]);
 
   return {
     systemEvents,

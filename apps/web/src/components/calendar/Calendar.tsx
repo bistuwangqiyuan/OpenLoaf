@@ -11,7 +11,6 @@
 
 import type { IlamyCalendarProps } from "@openloaf/ui/calendar";
 import { IlamyCalendar } from "@openloaf/ui/calendar";
-import { useQuery } from "@tanstack/react-query";
 import styles from "./Calendar.module.css";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -45,7 +44,6 @@ import { useProjects } from "@/hooks/use-projects";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
 import { toast } from "sonner";
 import { isElectronEnv } from "@/utils/is-electron-env";
-import { trpc } from "@/utils/trpc";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +60,6 @@ type CalendarKind = "event" | "reminder";
 type CalendarSourceFilter = "all" | "local" | "system";
 type CalendarSource = {
   id: string;
-  workspaceId: string;
   provider: string;
   kind: "calendar" | "reminder";
   externalId?: string | null;
@@ -73,7 +70,6 @@ type CalendarSource = {
 };
 type CalendarItemRecord = {
   id: string;
-  workspaceId: string;
   sourceId: string;
   kind: CalendarKind;
   title: string;
@@ -384,11 +380,6 @@ export default function CalendarPage({
 }) {
   const { t } = useTranslation('calendar');
   const { basic } = useBasicConfig();
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceId = workspaceCompatQuery.data?.id;
   const uiLanguageRaw = basic.uiLanguage;
   // 逻辑：未知语言回退到 zh-CN。
   const uiLanguage: LanguageId =
@@ -458,10 +449,9 @@ export default function CalendarPage({
     setSelectedCalendarIds,
     setSelectedReminderListIds,
     toggleReminderCompleted,
-  } = useCalendarPageState({ workspaceId, toSystemEvent, getEventKind, sourceFilter });
+  } = useCalendarPageState({ toSystemEvent, getEventKind, sourceFilter });
 
   const { taskEvents, taskCount } = useCalendarTasks({
-    workspaceId,
     selectedProjectIds,
     showTasks,
   });

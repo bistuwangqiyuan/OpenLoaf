@@ -25,17 +25,15 @@ const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
 }
 
 export function useCalendarTasks({
-  workspaceId,
   selectedProjectIds,
   showTasks,
 }: {
-  workspaceId: string | undefined
   selectedProjectIds: Set<string>
   showTasks: boolean
 }) {
   const { data: tasks = [] } = useQuery(
     trpc.scheduledTask.list.queryOptions(
-      workspaceId && showTasks ? {} : skipToken,
+      showTasks ? {} : skipToken,
       { staleTime: 60_000 },
     ),
   )
