@@ -10,10 +10,8 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { trpc } from "@/utils/trpc";
 import { EmailAddAccountDialog } from "./EmailAddAccountDialog";
 import { EmailMessageList } from "./EmailMessageList";
 import { EmailSidebar } from "./EmailSidebar";
@@ -28,16 +26,9 @@ export default function EmailPage({
   tabId: string;
 }) {
   const { t } = useTranslation('common');
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceId = workspaceCompatQuery.data?.id;
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
   const removeStackItem = useTabRuntime((state) => state.removeStackItem);
-  const { sidebar, messageList, addDialog } = useEmailPageState({
-    workspaceId,
-  });
+  const { sidebar, messageList, addDialog } = useEmailPageState();
 
   useEffect(() => {
     if (!tabId) return;
@@ -67,11 +58,10 @@ export default function EmailPage({
       component: "email-compose-stack",
       title: t('email.compose'),
       params: {
-        workspaceId,
         __opaque: true,
       },
     });
-  }, [pushStackItem, removeStackItem, t, tabId, workspaceId]);
+  }, [pushStackItem, removeStackItem, t, tabId]);
 
   /** Open message detail in stack panel (Gmail-style list -> stack detail). */
   const handleOpenMessageStack = useCallback(
@@ -88,7 +78,6 @@ export default function EmailPage({
         title: detailTitle,
         params: {
           messageId: message.id,
-          workspaceId,
           fallbackFrom: message.from,
           fallbackTime: message.time ?? "",
           fallbackPreview: message.preview,
@@ -96,7 +85,7 @@ export default function EmailPage({
         },
       });
     },
-    [messageList.hasSelection, pushStackItem, t, tabId, workspaceId],
+    [messageList.hasSelection, pushStackItem, t, tabId],
   );
 
   return (

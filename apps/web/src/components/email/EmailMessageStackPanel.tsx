@@ -32,7 +32,6 @@ type EmailMessageStackPanelProps = {
   panelKey: string;
   tabId: string;
   messageId?: string;
-  workspaceId?: string;
   fallbackFrom?: string;
   fallbackTime?: string;
   fallbackPreview?: string;
@@ -40,21 +39,15 @@ type EmailMessageStackPanelProps = {
 
 export default function EmailMessageStackPanel({
   messageId,
-  workspaceId,
   fallbackFrom,
   fallbackTime,
   fallbackPreview,
 }: EmailMessageStackPanelProps) {
   const { t } = useTranslation('common');
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const resolvedWorkspaceId = workspaceId ?? workspaceCompatQuery.data?.id;
 
   const messageQuery = useQuery(
     trpc.email.getMessage.queryOptions(
-      resolvedWorkspaceId && messageId
+      messageId
         ? { id: messageId }
         : skipToken,
     ),
@@ -143,11 +136,11 @@ export default function EmailMessageStackPanel({
             <div className="mt-2 flex flex-wrap gap-2">
               {attachments.map((attachment, index) => {
                 const sizeLabel = formatAttachmentSize(attachment.size);
-                const canDownload = Boolean(detail?.id && resolvedWorkspaceId);
+                const canDownload = Boolean(detail?.id);
                 const downloadUrl = canDownload
-                  ? `${resolveServerUrl()}/api/email/attachment?workspaceId=${encodeURIComponent(
-                      resolvedWorkspaceId!,
-                    )}&messageId=${encodeURIComponent(detail!.id)}&index=${index}`
+                  ? `${resolveServerUrl()}/api/email/attachment?messageId=${encodeURIComponent(
+                      detail!.id,
+                    )}&index=${index}`
                   : "#";
                 return (
                   <a

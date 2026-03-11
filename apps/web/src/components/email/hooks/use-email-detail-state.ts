@@ -34,7 +34,6 @@ import type { DetailState } from '../use-email-page-state'
 
 export function useEmailDetailState(core: EmailCoreState): DetailState {
   const {
-    workspaceId,
     queryClient,
     accounts,
     activeAccount,
@@ -93,7 +92,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   const setFlaggedMutation = useMutation(
     trpc.email.setMessageFlagged.mutationOptions({
       onMutate: async (variables) => {
-        if (!workspaceId) return undefined
         const queryKey = trpc.email.getMessage.queryOptions({
           id: variables.id,
         }).queryKey
@@ -185,7 +183,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
             return next
           })
         }
-        if (!workspaceId) return
         queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
         const targetId = context?.id ?? activeMessageId
         if (targetId) {
@@ -203,7 +200,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   const setPrivateSenderMutation = useMutation(
     trpc.email.setPrivateSender.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId || !unifiedMessagesQueryKey) return
+        if (!unifiedMessagesQueryKey) return
         queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         if (activeMessageId) {
           queryClient.invalidateQueries({
@@ -217,7 +214,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   const removePrivateSenderMutation = useMutation(
     trpc.email.removePrivateSender.mutationOptions({
       onSuccess: () => {
-        if (!workspaceId || !unifiedMessagesQueryKey) return
+        if (!unifiedMessagesQueryKey) return
         queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         if (activeMessageId) {
           queryClient.invalidateQueries({
@@ -234,12 +231,10 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         setComposeDraft(null)
         setIsForwarding(false)
         setForwardDraft(null)
-        if (workspaceId) {
-          queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
+        })
       },
     }),
   )
@@ -248,15 +243,13 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
     trpc.email.deleteMessage.mutationOptions({
       onSuccess: () => {
         setActiveMessageId(null)
-        if (workspaceId) {
-          queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
+        })
       },
     }),
   )
@@ -277,7 +270,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
 
   // 逻辑：自动保存草稿（debounce 3 秒）。
   React.useEffect(() => {
-    if (!composeDraft || !workspaceId) return
+    if (!composeDraft) return
     setDraftSaveStatus('idle')
     const timer = window.setTimeout(() => {
       saveDraftMutation.mutate({
@@ -302,7 +295,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
 
   // ── Handlers ──
   function handleToggleFlagged() {
-    if (!workspaceId || !activeMessageId) return
+    if (!activeMessageId) return
     setFlaggedMutation.mutate({ id: activeMessageId, flagged: !isFlagged })
   }
 
@@ -397,7 +390,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   }
 
   function handleSendMessage() {
-    if (!workspaceId) return
     if (composeDraft) {
       const toList = composeDraft.to.split(/[,;]/).map((s) => s.trim()).filter(Boolean)
       if (!toList.length) return
@@ -429,23 +421,23 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   }
 
   function handleDeleteMessage() {
-    if (!workspaceId || !activeMessageId) return
+    if (!activeMessageId) return
     setDeleteConfirmOpen(true)
   }
 
   function handleDeleteConfirmed() {
-    if (!workspaceId || !activeMessageId) return
+    if (!activeMessageId) return
     deleteMessageMutation.mutate({ id: activeMessageId })
     setDeleteConfirmOpen(false)
   }
 
   function handleSetPrivateSender() {
-    if (!workspaceId || !detailFromAddress) return
+    if (!detailFromAddress) return
     setPrivateSenderMutation.mutate({ senderEmail: detailFromAddress })
   }
 
   function handleRemovePrivateSender() {
-    if (!workspaceId || !detailFromAddress) return
+    if (!detailFromAddress) return
     removePrivateSenderMutation.mutate({ senderEmail: detailFromAddress })
   }
 

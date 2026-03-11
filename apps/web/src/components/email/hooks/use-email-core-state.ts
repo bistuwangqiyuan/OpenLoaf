@@ -92,7 +92,6 @@ export type MailboxOrderKeyInput = {
 
 /** 所有子 hook 共享的核心状态。 */
 export type EmailCoreState = {
-  workspaceId?: string
   queryClient: QueryClient
   // 账号
   accounts: EmailAccountView[]
@@ -200,7 +199,7 @@ export type EmailCoreState = {
   setExpandedMailboxes: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
 }
 
-export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): EmailCoreState {
+export function useEmailCoreState(): EmailCoreState {
   const queryClient = useQueryClient()
   const { t } = useTranslation('common')
 
@@ -266,7 +265,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
     setIsForwarding(false)
     setForwardDraft(null)
     setComposeDraft(null)
-  }, [workspaceId, t])
+  }, [t])
 
   React.useEffect(() => {
     flagOverridesRef.current = flagOverrides
@@ -291,9 +290,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   }, [searchKeyword])
 
   // ── 查询 ──
-  const accountsQuery = useQuery(
-    trpc.email.listAccounts.queryOptions(workspaceId ? {} : skipToken),
-  )
+  const accountsQuery = useQuery(trpc.email.listAccounts.queryOptions({}))
   const accounts = (accountsQuery.data ?? []) as EmailAccountView[]
   const hasConfiguredAccounts = accounts.length > 0
 
@@ -307,19 +304,18 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   }, [accounts, activeAccountEmail])
 
   const unifiedMessagesInput = React.useMemo(() => {
-    if (!workspaceId || !hasConfiguredAccounts) return null
+    if (!hasConfiguredAccounts) return null
     if (activeView.scope === 'mailbox') {
       if (!activeView.accountEmail || !activeView.mailbox) return null
       return {
-        workspaceId,
         scope: activeView.scope,
         accountEmail: activeView.accountEmail,
         mailbox: activeView.mailbox,
         pageSize: MESSAGE_PAGE_SIZE,
       }
     }
-    return { workspaceId, scope: activeView.scope, pageSize: MESSAGE_PAGE_SIZE }
-  }, [workspaceId, hasConfiguredAccounts, activeView])
+    return { scope: activeView.scope, pageSize: MESSAGE_PAGE_SIZE }
+  }, [hasConfiguredAccounts, activeView])
 
   const messagesQuery = useInfiniteQuery({
     ...trpc.email.listUnifiedMessages.infiniteQueryOptions(
@@ -339,13 +335,11 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   }, [unifiedMessagesInput])
 
   const mailboxesQueries = useQueries({
-    queries: workspaceId
-      ? accounts.map((account) =>
-          trpc.email.listMailboxes.queryOptions({
-            accountEmail: account.emailAddress,
-          }),
-        )
-      : [],
+    queries: accounts.map((account) =>
+      trpc.email.listMailboxes.queryOptions({
+        accountEmail: account.emailAddress,
+      }),
+    ),
   })
 
   const mailboxesByAccount = React.useMemo(() => {
@@ -359,7 +353,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const mailboxUnreadStatsQuery = useQuery(
     trpc.email.listMailboxUnreadStats.queryOptions(
-      workspaceId && hasConfiguredAccounts ? {} : skipToken,
+      hasConfiguredAccounts ? {} : skipToken,
     ),
   )
   const mailboxUnreadStats = (mailboxUnreadStatsQuery.data ?? []) as Array<{
@@ -370,7 +364,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const unifiedUnreadStatsQuery = useQuery(
     trpc.email.listUnifiedUnreadStats.queryOptions(
-      workspaceId && hasConfiguredAccounts ? {} : skipToken,
+      hasConfiguredAccounts ? {} : skipToken,
     ),
   )
   const unifiedUnreadStats = unifiedUnreadStatsQuery.data ?? {
@@ -397,7 +391,6 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
       activeView.scope !== 'mailbox' ||
       !activeView.accountEmail ||
       !hasConfiguredAccounts ||
-      !workspaceId ||
       debouncedSearchKeyword.length < 2
     ) {
       return null
@@ -407,7 +400,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
       query: debouncedSearchKeyword,
       pageSize: MESSAGE_PAGE_SIZE,
     }
-  }, [activeView, hasConfiguredAccounts, workspaceId, debouncedSearchKeyword])
+  }, [activeView, hasConfiguredAccounts, debouncedSearchKeyword])
 
   const serverSearchQuery = useInfiniteQuery({
     ...trpc.email.searchMessages.infiniteQueryOptions(
@@ -443,7 +436,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const messageDetailQuery = useQuery(
     trpc.email.getMessage.queryOptions(
-      workspaceId && activeMessageIdForQuery
+      activeMessageIdForQuery
         ? { id: activeMessageIdForQuery }
         : skipToken,
     ),

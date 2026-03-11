@@ -114,7 +114,6 @@ function createMockCoreState(
   const messages = (overrides.visibleMessages ?? []) as EmailMessageSummary[]
 
   return {
-    workspaceId: 'ws-1',
     queryClient,
     accounts: [createMockAccount()],
     hasConfiguredAccounts: true,
@@ -128,7 +127,7 @@ function createMockCoreState(
     setActiveMailbox: vi.fn(),
     activeMessageId: null,
     setActiveMessageId: vi.fn(),
-    unifiedMessagesQueryKey: ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }],
+    unifiedMessagesQueryKey: ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }],
     messagesQuery: { isLoading: false } as any,
     messages,
     visibleMessages: messages,
@@ -320,7 +319,7 @@ describe('选择操作', () => {
 describe('标记已读', () => {
   it('选中未读邮件时 optimistic update 标记为已读', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1, mockMsg2])
 
     const core = createMockCoreState({
@@ -338,7 +337,7 @@ describe('标记已读', () => {
 
   it('已读邮件选中时数据不变', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg3])
 
     const core = createMockCoreState({
@@ -357,7 +356,7 @@ describe('标记已读', () => {
 describe('批量标记已读', () => {
   it('批量标记选中邮件为已读 (optimistic update)', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1, mockMsg2, mockMsg3])
 
     const core = createMockCoreState({
@@ -377,7 +376,7 @@ describe('批量标记已读', () => {
 
   it('无选中时不调用 mutation', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1])
 
     const core = createMockCoreState({
@@ -411,7 +410,7 @@ describe('批量删除', () => {
 
   it('确认删除后邮件从列表消失 (optimistic update)', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1, mockMsg2, mockMsg3])
 
     const setBatchDeleteConfirmOpen = vi.fn()
@@ -433,7 +432,7 @@ describe('批量删除', () => {
 
   it('无选中时不执行删除', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1])
 
     const core = createMockCoreState({
@@ -453,7 +452,7 @@ describe('批量删除', () => {
 describe('批量移动', () => {
   it('移动到 Archive 后邮件从列表消失 (optimistic update)', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1, mockMsg2])
 
     const core = createMockCoreState({
@@ -471,7 +470,7 @@ describe('批量移动', () => {
 
   it('onBatchArchive 快捷方法', async () => {
     const queryClient = createTestQueryClient()
-    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { workspaceId: 'ws-1' }]
+    const queryKey = ['email', 'listUnifiedMessages', 'infinite', { scope: 'all-inboxes', pageSize: 20 }]
     seedMessages(queryClient, queryKey, [mockMsg1, mockMsg2])
 
     const core = createMockCoreState({

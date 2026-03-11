@@ -22,7 +22,6 @@ import type { MessageListState } from '../use-email-page-state'
 
 export function useEmailMessageListState(core: EmailCoreState): MessageListState {
   const {
-    workspaceId,
     queryClient,
     accounts,
     activeAccount,
@@ -55,7 +54,7 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
   const markReadMutation = useMutation(
     trpc.email.markMessageRead.mutationOptions({
       onMutate: async (variables) => {
-        if (!workspaceId || !unifiedMessagesQueryKey) return undefined
+        if (!unifiedMessagesQueryKey) return undefined
         const previous = queryClient.getQueryData<
           InfiniteData<{ items: EmailMessageSummary[]; nextCursor: string | null }>
         >(unifiedMessagesQueryKey)
@@ -80,7 +79,7 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
         queryClient.setQueryData(context.queryKey, context.previous as any)
       },
       onSettled: () => {
-        if (!workspaceId || !unifiedMessagesQueryKey) return
+        if (!unifiedMessagesQueryKey) return
         queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         queryClient.invalidateQueries({
           queryKey: trpc.email.listUnreadCount.queryOptions({}).queryKey,
@@ -118,7 +117,6 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
       },
       onSettled: () => {
         handleClearSelection()
-        if (!workspaceId) return
         if (unifiedMessagesQueryKey) {
           queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         }
@@ -156,7 +154,6 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
       onSettled: () => {
         handleClearSelection()
         setActiveMessageId(null)
-        if (!workspaceId) return
         queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
         queryClient.invalidateQueries({
           queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
@@ -188,7 +185,6 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
       },
       onSettled: () => {
         handleClearSelection()
-        if (!workspaceId) return
         queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
         queryClient.invalidateQueries({
           queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
@@ -205,7 +201,6 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
 
   function handleSelectMessage(message: EmailMessageSummary) {
     setActiveMessageId(message.id)
-    if (!workspaceId) return
     if (message.unread) {
       markReadMutation.mutate({ id: message.id })
     }
@@ -245,23 +240,23 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
   }
 
   function handleBatchMarkRead() {
-    if (!workspaceId || selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
     batchMarkReadMutation.mutate({ ids: [...selectedIds] })
   }
 
   function handleBatchDelete() {
-    if (!workspaceId || selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
     setBatchDeleteConfirmOpen(true)
   }
 
   function handleBatchDeleteConfirmed() {
-    if (!workspaceId || selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
     batchDeleteMutation.mutate({ ids: [...selectedIds] })
     setBatchDeleteConfirmOpen(false)
   }
 
   function handleBatchMove(toMailbox: string) {
-    if (!workspaceId || selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
     batchMoveMutation.mutate({ ids: [...selectedIds], toMailbox })
   }
 
@@ -270,7 +265,6 @@ export function useEmailMessageListState(core: EmailCoreState): MessageListState
   }
 
   function handleRefreshMessages() {
-    if (!workspaceId) return
     for (const account of accounts) {
       syncMailboxesMutation.mutate({ accountEmail: account.emailAddress })
     }
