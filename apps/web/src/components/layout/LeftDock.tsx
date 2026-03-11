@@ -19,7 +19,7 @@ import {
   type StackPanelSlot,
 } from "@/hooks/use-stack-panel-slot";
 import { useTabView } from "@/hooks/use-tab-view";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import type { DockItem } from "@openloaf/api/common";
 import WorkspaceSwitchDockTabs from "./WorkspaceSwitchDockTabs";

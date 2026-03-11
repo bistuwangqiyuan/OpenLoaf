@@ -11,10 +11,9 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/utils/trpc";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import {
   SidebarGroup,
   SidebarMenu,
@@ -100,7 +99,10 @@ export const SidebarProject = () => {
   const projectListQuery = useProjects();
   const projects = projectListQuery.data ?? [];
   const createProject = useMutation(trpc.project.create.mutationOptions());
-  const { workspace } = useWorkspace();
+  const workspaceCompatQuery = useQuery({
+    ...trpc.settings.getWorkspaceCompat.queryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   // 将状态提升到顶层组件，确保整个页面树只有一个状态管理
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>(
@@ -196,7 +198,7 @@ export const SidebarProject = () => {
 
   /** Copy workspace path to clipboard. */
   const handleCopyWorkspacePath = async () => {
-    const rootUri = workspace?.rootUri;
+    const rootUri = workspaceCompatQuery.data?.rootUri;
     if (!rootUri) {
       toast.error(t('sidebar.workspacePathNotFound'));
       return;

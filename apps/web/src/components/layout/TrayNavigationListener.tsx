@@ -15,7 +15,7 @@ import i18next from 'i18next'
 import { AI_ASSISTANT_TAB_INPUT, WORKBENCH_TAB_INPUT } from '@openloaf/api/common'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 import { useGlobalOverlay } from '@/lib/globalShortcuts'
 
 // 四个主页面的 baseId / component 集合（与 Sidebar 保持一致）。

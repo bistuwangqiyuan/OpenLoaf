@@ -37,7 +37,7 @@ import {
 } from "@/components/project/filesystem/components/FileSystemEntryVisual";
 import { buildImageNodePayloadFromUri } from "../utils/image";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   ProjectFilePickerDialog,
   type ProjectFilePickerSelection,

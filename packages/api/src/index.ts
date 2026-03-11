@@ -12,11 +12,6 @@
 // @ts-ignore
 import { appRouter as internalAppRouter } from "../generated/routers";
 import { t } from "../generated/routers/helpers/createRouter";
-import {
-  workspaceRouter,
-  BaseWorkspaceRouter,
-  workspaceSchemas,
-} from "./routers/absWorkspace";
 import { tabRouter, BaseTabRouter, tabSchemas } from "./routers/absTab";
 import { chatRouter } from "./routers/chat";
 import { BaseChatRouter, chatSchemas } from "./routers/absChat";
@@ -64,7 +59,6 @@ export const appRouterDefine = {
   chat: chatRouter,
   project: projectRouter,
   fs: fsRouter,
-  workspace: workspaceRouter,
   tab: tabRouter,
   settings: settingRouter,
   ai: aiRouter,
@@ -108,8 +102,6 @@ export * from "./common";
 export * from "./markdown/block-markdown";
 export * from "./services/vfsService";
 
-// Export workspace router components
-export { BaseWorkspaceRouter, workspaceSchemas };
 
 // Export tab router components
 export { BaseTabRouter, tabSchemas };

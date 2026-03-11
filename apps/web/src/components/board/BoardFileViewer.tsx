@@ -13,7 +13,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { BoardCanvas } from "./core/BoardCanvas";
 import { BOARD_NODE_DEFINITIONS } from "./core/board-nodes";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 
 export interface BoardFileViewerProps {

@@ -17,7 +17,7 @@ import i18next from "i18next";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";

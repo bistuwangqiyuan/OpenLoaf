@@ -28,7 +28,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
 import CodeViewer, { type CodeViewerActions, type CodeViewerStatus } from "@/components/file/CodeViewer";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { stopFindShortcutPropagation } from "@/components/file/lib/viewer-shortcuts";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";

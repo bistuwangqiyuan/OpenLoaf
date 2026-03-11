@@ -47,6 +47,7 @@ import { ChatProjectSelector } from "./ChatProjectSelector";
 import { ChatInputBlockedOverlay } from "./ChatInputBlockedOverlay";
 import { useChatInputDrop } from "./useChatInputDrop";
 import { trpc } from "@/utils/trpc";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useQuery } from "@tanstack/react-query";
 import { useTabs } from "@/hooks/use-tabs";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
@@ -786,16 +787,11 @@ export default function ChatInput({
   });
   /** Resolve workspace display name for project selector (with i18n). */
   const { t: tWorkspace } = useTranslation('workspace', { keyPrefix: 'workspace' });
-  const { data: workspaceList } = useQuery({
-    ...trpc.workspace.getList.queryOptions(),
-    staleTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { workspace } = useWorkspace();
   const workspaceName = useMemo(() => {
-    const raw = workspaceList?.find((w: { id: string; name: string }) => w.id === workspaceId)?.name;
-    if (!raw) return undefined;
-    return resolveWorkspaceDisplayName(raw, tWorkspace);
-  }, [workspaceList, workspaceId, tWorkspace]);
+    if (!workspaceId || workspace?.id !== workspaceId) return undefined;
+    return resolveWorkspaceDisplayName(workspace.name, tWorkspace);
+  }, [workspace?.id, workspace?.name, workspaceId, tWorkspace]);
   /** Switch project scope from the project selector. */
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {

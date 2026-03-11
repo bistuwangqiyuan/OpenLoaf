@@ -76,7 +76,7 @@ import {
 import { useFileSystemHistory, type HistoryAction } from "./file-system-history";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 // 用于"复制/粘贴"的内存剪贴板。
 let fileClipboard: FileSystemEntry[] | null = null;

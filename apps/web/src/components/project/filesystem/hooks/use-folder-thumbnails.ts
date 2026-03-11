@@ -12,7 +12,7 @@
 import { useMemo } from "react";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 type UseFolderThumbnailsParams = {
   currentUri?: string | null;

@@ -17,7 +17,7 @@ import { BROWSER_WINDOW_COMPONENT, BROWSER_WINDOW_PANEL_ID } from "@openloaf/api
 import { cn } from "@/lib/utils";
 import { GlowingEffect } from "@openloaf/ui/glowing-effect";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { normalizeUrl } from "@/components/browser/browser-utils";
 import { fetchWebMeta } from "@/lib/web-meta";
 import { Button } from "@openloaf/ui/button";

@@ -1,6 +1,6 @@
 # 架构迁移：从工作空间中心到项目中心
 
-> 状态：**进行中** | 分支：`main` | 更新时间：2026-03-11
+> 状态：**进行中（数据库迁移已补齐）** | 分支：`main` | 更新时间：2026-03-11
 
 ## 一、目标
 
@@ -29,7 +29,7 @@
 | **新增 SchedulerTaskRecord 模型** | `schema.prisma` — 调度器任务执行历史记录 |
 | **Project 模型扩展** | 新增 `linkedTo`/`linkedFrom` 关系字段、`type` 和 `lastOpenedAt` 索引 |
 
-> **注意：** `pnpm run db:migrate` 尚未执行，迁移文件尚未生成。
+> **更新：** 已补充迁移文件 `packages/db/prisma/migrations/20260311195000_project_centric_architecture/migration.sql`，并通过临时 SQLite 库运行 `migrationRunner` 验证迁移结果。
 
 ### 2.2 API 层（packages/api）
 
@@ -37,7 +37,7 @@
 
 | 模块 | 变更 |
 |------|------|
-| **absWorkspace.ts** | 路由改为返回默认工作空间 `{ id: "default", name: "OpenLoaf", rootUri: "~/.openloaf/" }`，所有 mutation 不再操作数据库 |
+| **workspace 兼容层** | 前端兼容数据已迁移到 `settings.getWorkspaceCompat`，旧 `workspace` tRPC 路由已从主路由表移除 |
 | **absScheduledTask.ts** | `scope` 枚举从 `["workspace", "project"]` 改为 `["global", "project"]` |
 | **absSetting.ts** | `skillScopeSchema` 从 `["workspace", "project", "global"]` 改为 `["project", "global"]`；`scopeFilter` 同步调整 |
 | **absDynamicWidget.ts** | 移除 `workspaceId` 输入参数 |
@@ -69,7 +69,7 @@
 | **SidebarWorkspace.tsx** | **已删除**（830 行） |
 | **SidebarUserAccount.tsx** | **新建** — 从原 SidebarWorkspace 提取用户账户 UI（头像、登录/登出、会员徽章、更新检查），不含工作空间选择器/创建对话框 |
 | **Sidebar.tsx** | SidebarHeader 顶部渲染 `<SidebarUserAccount />`，移除原 SidebarWorkspace 引用 |
-| **WorkspaceProvider.tsx** | 保留为过渡兼容层，`useWorkspace()` 返回默认工作空间对象 |
+| **WorkspaceBootstrap.tsx** | 兼容层启动器，仅负责默认 workspace cookie 与默认 AI 标签页初始化；`useWorkspace()` 已改为轻量 query hook |
 | **Scope 替换** | 6 个组件中 `"workspace"` → `"global"`：`use-main-agent-model.ts`、`AgentDetailPanel.tsx`、`AgentManagement.tsx`、`ProjectAgentView.tsx`、`SkillsSettingsPanel.tsx`、`ScheduledTaskDialog.tsx` |
 | **workspaceId 移除** | 70+ 个组件移除了 `workspaceId` 的传递/使用（AI、Board、Calendar、Email、File、Desktop、Tasks 等全模块） |
 | **Hooks** | `use-tabs.ts`（移除 workspaceId 字段及 workspaceTabs 逻辑）、`use-navigation.ts`、`use-sidebar-navigation.ts`、`use-chat-sessions.ts` 等 |
@@ -113,17 +113,17 @@
 
 ## 三、待完成的工作
 
-### 3.1 数据库迁移（优先级：P0 — 阻塞）
+### 3.1 数据库迁移（优先级：P0 — 已完成）
 
-- [ ] 执行 `pnpm run db:migrate` 生成迁移文件
-- [ ] 验证迁移能正确处理：
+- [x] 生成迁移文件 `packages/db/prisma/migrations/20260311195000_project_centric_architecture/migration.sql`
+- [x] 验证迁移能正确处理：
   - 移除各表 `workspaceId` 列
   - 创建 `ProjectLink` 表
   - 创建 `ActivityRecord` 表
   - 创建 `SchedulerTaskRecord` 表
   - 更新 `Project` 表索引
-- [ ] 编写数据迁移脚本（将现有数据中的 workspaceId 关联转为 projectId）
-- [ ] 执行 `pnpm run db:generate` 重新生成 Prisma 客户端
+- [x] 在迁移 SQL 的 `RedefineTables` 阶段保留既有 `projectId` / `sourceId` / `accountEmail` 关联，本次无需额外独立数据迁移脚本
+- [x] 执行 `pnpm run db:generate` 重新生成 Prisma 客户端
 
 ### 3.2 运行时验证（优先级：P0）
 
@@ -135,13 +135,13 @@
 - [ ] 验证任务系统（创建/执行/调度）
 - [ ] 验证画布系统（创建/编辑/协作）
 
-### 3.3 WorkspaceProvider 过渡层清理（优先级：P1）
+### 3.3 useWorkspace 过渡层清理（优先级：P1）
 
-当前 `WorkspaceProvider` + `useWorkspace()` 仍被约 60 个前端组件引用，作为过渡兼容层返回默认工作空间对象。
+当前 `useWorkspace()` 仍被约 60 个前端组件引用，返回默认 workspace 兼容对象；`WorkspaceProvider` 已移除，顶层仅保留 `WorkspaceBootstrap` 处理副作用。
 
-- [ ] 逐步移除各组件对 `useWorkspace()` 的依赖
-- [ ] 移除 `WorkspaceProvider` 及 `workspaceContext.ts`
-- [ ] 移除 `absWorkspace.ts` 路由及其 tRPC 客户端调用
+- [ ] 逐步移除各组件对 `useWorkspace()` 的依赖（本轮已清理 Header / SidebarHoverPanel / ProjectTree / SidebarFeedback / SidebarProject / WorkspaceMixedList / WorkspaceCanvasList，以及 HeaderChatHistory / use-chat-sessions 的 workspace 兼容链）
+- [x] 已移除 `WorkspaceProvider` 与 `workspaceContext.tsx`；兼容 hook 已迁移到 `hooks/use-workspace.ts`
+- [x] 移除 `workspace` tRPC 路由暴露，并清理前端 `trpc.workspace.*` 客户端调用
 - [ ] 清理 `workspace.json` i18n 中不再需要的翻译 key
 
 ### 3.4 新功能开发（优先级：P2）
@@ -218,26 +218,14 @@ OpenLoaf (全局单例)
 
 ## 五、兼容性策略
 
-### workspace 路由兼容层
+### useWorkspace 兼容层
 
-`packages/api/src/routers/absWorkspace.ts` 保留了完整的 workspace tRPC 路由接口，但所有方法都返回一个固定的默认工作空间：
-
-```typescript
-function getDefaultWorkspace() {
-  return {
-    id: "default",
-    name: "OpenLoaf",
-    type: "local" as const,
-    isActive: true,
-    rootUri: toFileUriWithoutEncoding(getOpenLoafRootDir()),
-  }
-}
-```
+当前兼容数据由 `settings.getWorkspaceCompat` 提供，`useWorkspace()` 在前端直接查询该接口并返回默认 workspace 对象；顶层通过 `WorkspaceBootstrap` 维持 cookie 与默认标签页副作用。
 
 这确保了前端 `useWorkspace()` 及其 ~60 个消费组件无需立即全部重写，可以渐进式迁移。
 
 ### 前端过渡路径
 
-1. **Phase 1（当前）** — WorkspaceProvider 返回默认值，组件无感知
-2. **Phase 2** — 逐步移除组件中的 `useWorkspace()` 调用，替换为直接使用 projectId
-3. **Phase 3** — 删除 WorkspaceProvider、absWorkspace 路由、workspace 翻译 key
+1. **Phase 1（已完成）** — 移除 `workspace` tRPC 路由与 `WorkspaceProvider`，保留 `useWorkspace()` 兼容 hook
+2. **Phase 2（当前）** — 逐步移除组件中的 `useWorkspace()` 调用，替换为直接使用 projectId / rootUri
+3. **Phase 3** — 删除 `useWorkspace()` 兼容 hook 与残余 `workspace` 翻译 key

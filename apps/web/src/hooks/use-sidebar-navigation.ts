@@ -17,7 +17,7 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 
 export function useSidebarNavigation() {
   const { workspace } = useWorkspace()

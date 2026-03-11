@@ -11,7 +11,7 @@ import { z } from "zod";
 
 /**
  * @deprecated Workspace concept has been removed. Use AppConfig instead.
- * This file is kept for backward compatibility with absWorkspace router stubs.
+ * This file is kept for backward compatibility with useWorkspace and legacy workspace-shaped consumers.
  */
 export const workspaceBase = z.object({
   id: z.string().describe("Workspace id."),

@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { basicConfigSchema, basicConfigUpdateSchema } from "../types/basic";
+import { workspaceBase } from "../types/workspace";
 
 const settingItemSchema = z.object({
   id: z.string().optional(),
@@ -132,6 +133,9 @@ export const settingSchemas = {
   },
   getBasic: {
     output: basicConfigSchema,
+  },
+  getWorkspaceCompat: {
+    output: workspaceBase,
   },
   getCliToolsStatus: {
     output: z.array(cliToolStatusSchema),
@@ -522,6 +526,11 @@ export abstract class BaseSettingRouter {
         }),
       getBasic: shieldedProcedure
         .output(settingSchemas.getBasic.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      getWorkspaceCompat: shieldedProcedure
+        .output(settingSchemas.getWorkspaceCompat.output)
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),

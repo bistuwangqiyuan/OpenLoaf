@@ -14,7 +14,6 @@ import { skipToken, useQuery, type QueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabView } from "@/hooks/use-tab-view";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 /** Session list item used by chat UI. */
 export type ChatSessionListItem = {
@@ -76,19 +75,16 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   const activeTabId = useTabs((s) => s.activeTabId);
   const resolvedTabId = input?.tabId ?? activeTabId ?? undefined;
   const tab = useTabView(resolvedTabId);
-  const { workspace } = useWorkspace();
-  const workspaceId = normalizeOptionalId(workspace?.id);
   // 有 chatParams.projectId 的 tab（项目聊天、plant-page 等）按项目范围过滤会话。
   const scopedProjectId = normalizeOptionalId(
     (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,
   );
   const listInput = useMemo(() => {
-    if (!workspaceId) return undefined;
     // 逻辑：聊天面板仅展示未绑定 board 的会话。
     return scopedProjectId
-      ? { workspaceId, projectId: scopedProjectId, boardId: null }
-      : { workspaceId, boardId: null };
-  }, [scopedProjectId, workspaceId]);
+      ? { projectId: scopedProjectId, boardId: null }
+      : { boardId: null };
+  }, [scopedProjectId]);
 
   const query = useQuery({
     ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),
@@ -107,16 +103,10 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   };
 }
 
-/** Fetch all chat sessions for a workspace (no project filter). */
-export function useWorkspaceChatSessions(input?: { workspaceId?: string }) {
-  const workspaceId = input?.workspaceId;
-  const listInput = useMemo(() => {
-    if (!workspaceId) return undefined;
-    return { workspaceId, boardId: null } as const;
-  }, [workspaceId]);
-
+/** Fetch all chat sessions without project filter. */
+export function useWorkspaceChatSessions() {
   const query = useQuery({
-    ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),
+    ...trpc.chat.listSessions.queryOptions({ boardId: null }),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

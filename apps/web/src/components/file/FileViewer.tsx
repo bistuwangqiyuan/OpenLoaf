@@ -11,7 +11,7 @@
 
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface FileViewerProps {

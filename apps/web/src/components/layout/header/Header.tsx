@@ -17,7 +17,6 @@ import { useSidebar } from "@openloaf/ui/sidebar";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useGlobalOverlay, openSettingsTab } from "@/lib/globalShortcuts";
 import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
@@ -87,8 +86,6 @@ export const Header = () => {
     (node: HTMLDivElement | null) => setHeaderTitleExtraTarget(node),
     [setHeaderTitleExtraTarget],
   );
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
   const searchOpen = useGlobalOverlay((s) => s.searchOpen);
@@ -148,25 +145,6 @@ export const Header = () => {
             {t('header.toggleSidebar', { shortcut: sidebarShortcut })}
           </TooltipContent>
         </Tooltip>
-        {workspaceId && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                data-no-drag="true"
-                className="h-8 w-8 shrink-0"
-                variant="ghost"
-                size="icon"
-                onClick={() => setSearchOpen(true)}
-                type="button"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>
-              {t('search')} (⌘K)
-            </TooltipContent>
-          </Tooltip>
-        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -174,7 +152,24 @@ export const Header = () => {
               className="h-8 w-8 shrink-0"
               variant="ghost"
               size="icon"
-              onClick={() => { if (workspaceId) openSettingsTab(); }}
+              onClick={() => setSearchOpen(true)}
+              type="button"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {t('search')} (⌘K)
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              data-no-drag="true"
+              className="h-8 w-8 shrink-0"
+              variant="ghost"
+              size="icon"
+              onClick={() => openSettingsTab()}
             >
               <Settings className="h-4 w-4 text-orange-700/70 dark:text-orange-300/70" />
             </Button>
@@ -201,20 +196,18 @@ export const Header = () => {
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">
         {hasActions && <div className="mx-1 h-5 w-px bg-foreground/20" />}
-        {workspaceId && (
-          <SidebarHoverPanel type="all-chats" workspaceId={workspaceId} side="bottom" align="end">
-            <div data-no-drag="true">
-              <Button
-                className="h-8 shrink-0 gap-1 px-2 text-violet-700/70 hover:text-violet-700 dark:text-violet-300/70 dark:hover:text-violet-200"
-                variant="ghost"
-                size="sm"
-              >
-                <History className="h-4 w-4" />
-                <span className="text-xs">{t('header.chatHistory')}</span>
-              </Button>
-            </div>
-          </SidebarHoverPanel>
-        )}
+        <SidebarHoverPanel type="all-chats" side="bottom" align="end">
+          <div data-no-drag="true">
+            <Button
+              className="h-8 shrink-0 gap-1 px-2 text-violet-700/70 hover:text-violet-700 dark:text-violet-300/70 dark:hover:text-violet-200"
+              variant="ghost"
+              size="sm"
+            >
+              <History className="h-4 w-4" />
+              <span className="text-xs">{t('header.chatHistory')}</span>
+            </Button>
+          </div>
+        </SidebarHoverPanel>
         <div data-no-drag="true">
           <ModeToggle />
         </div>

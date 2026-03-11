@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { EmailAddAccountDialog } from "./EmailAddAccountDialog";
 import { EmailMessageList } from "./EmailMessageList";

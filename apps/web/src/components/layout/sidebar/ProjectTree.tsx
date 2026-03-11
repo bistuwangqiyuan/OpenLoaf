@@ -15,7 +15,6 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useProjectLayout } from "@/hooks/use-project-layout";
 import { useNavigation } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -347,8 +346,6 @@ function FileTreeNode({
   enableHoverPanel,
 }: FileTreeNodeProps) {
   const trpc = trpcContext;
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const nodeKey = getNodeKey(node);
   const isExpanded = expandedNodes[nodeKey] ?? false;
   const isActive =
@@ -357,7 +354,7 @@ function FileTreeNode({
     (node.kind === "project" && activeProjectRootUri === node.uri);
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
-      node.kind === "folder" && isExpanded && workspaceId
+      node.kind === "folder" && isExpanded
         ? { projectId: node.projectId, uri: node.uri }
         : skipToken
     )
@@ -540,7 +537,6 @@ function FileTreeNode({
     return (
       <SidebarHoverPanel
         type="project-chats"
-        workspaceId={workspaceId}
         projectId={node.projectId}
       >
         {collapsibleContent}
@@ -566,8 +562,6 @@ export const PageTreeMenu = ({
   const activeTabId = useTabs((s) => s.activeTabId);
   const tabs = useTabs((s) => s.tabs);
   const setActiveProject = useNavigation((s) => s.setActiveProject);
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const isElectron = isElectronEnv();
   const queryClient = useQueryClient();
   const renameProject = useMutation(trpc.project.update.mutationOptions());
@@ -748,7 +742,6 @@ export const PageTreeMenu = ({
 
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
   const openProjectTab = (project: ProjectInfo) => {
-    if (!workspace?.id) return;
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const targetProjectId = project.projectId;
 
@@ -777,7 +770,6 @@ export const PageTreeMenu = ({
     // 2. 其他 Tab：遍历所有 Tab 的 chatSessionProjectIds 查找匹配
     for (const tab of tabs) {
       if (tab.id === activeTabId) continue;
-      // workspaceId filter removed (workspace concept simplified)
       if (runtimeByTabId[tab.id]?.base) continue;
       const projectMap = tab.chatSessionProjectIds ?? {};
       const matchedSessionId = Object.entries(projectMap).find(
@@ -817,7 +809,6 @@ export const PageTreeMenu = ({
   };
 
   const openFileTab = (node: FileNode) => {
-    if (!workspace?.id) return;
     const baseId = `file:${node.uri}`;
     const displayName = isBoardFolderName(node.name)
       ? getBoardDisplayName(node.name)

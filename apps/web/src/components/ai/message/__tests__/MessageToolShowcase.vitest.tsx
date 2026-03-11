@@ -85,7 +85,7 @@ vi.mock('@/components/file/lib/open-file', () => ({
   openFilePreview: vi.fn(),
 }))
 
-vi.mock('@/components/workspace/workspaceContext', () => ({
+vi.mock('@/hooks/use-workspace', () => ({
   useWorkspace: () => ({ workspaceId: 'ws-1' }),
 }))
 

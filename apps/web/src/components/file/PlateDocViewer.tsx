@@ -24,7 +24,7 @@ import { FloatingToolbarKit } from '@/components/editor/plugins/floating-toolbar
 import { ViewerGuard } from '@/components/file/lib/viewer-guard'
 import { StackHeader } from '@/components/layout/StackHeader'
 import { resolveFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 import { Button } from '@openloaf/ui/button'
 import { Editor, EditorContainer } from '@openloaf/ui/editor'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'

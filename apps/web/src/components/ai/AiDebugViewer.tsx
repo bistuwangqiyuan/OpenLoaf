@@ -20,7 +20,7 @@ import { requestStackMinimize } from '@/lib/stack-dock-animation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@openloaf/ui/tabs'
 import { Copy, FolderOpen } from 'lucide-react'
 import { Button } from '@openloaf/ui/button'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 import { toast } from 'sonner'
 
 interface AiDebugViewerProps {

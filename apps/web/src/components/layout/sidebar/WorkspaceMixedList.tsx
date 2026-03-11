@@ -18,7 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_META_FILE_NAME } from "@/lib/file-name";
 import { Button } from "@openloaf/ui/button";
@@ -42,19 +42,26 @@ import { ConvertChatToProjectDialog } from "./ConvertChatToProjectDialog";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { getCachedAccessToken } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
+import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 
 type MixedItem =
   | { kind: "chat"; id: string; title: string; updatedAt: string; isPin?: boolean; raw: any }
-  | { kind: "canvas"; boardId: string; title: string; folderUri: string; updatedAt: string; raw: any };
+  | { kind: "canvas"; boardId: string; title: string; folderUri: string; projectId: string | null; updatedAt: string; raw: any };
 
-interface WorkspaceMixedListProps {
-  workspaceId: string;
+function buildProjectRootUriMap(projects?: ProjectNode[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const walk = (items?: ProjectNode[]) => {
+    items?.forEach((item) => {
+      if (item.projectId) map.set(item.projectId, item.rootUri);
+      if (item.children?.length) walk(item.children);
+    });
+  };
+  walk(projects);
+  return map;
 }
 
-export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
+export function WorkspaceMixedList() {
   const { t } = useTranslation("nav");
-  const { workspace } = useWorkspace();
-  const rootUri = workspace?.rootUri;
 
   const [expanded, setExpanded] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -67,6 +74,13 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   const [aiNaming, setAiNaming] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const { loggedIn: saasLoggedIn } = useSaasAuth();
+  const { data: projects } = useProjects();
+  const projectRootUriMap = useMemo(() => buildProjectRootUriMap(projects), [projects]);
+  const workspaceCompatQuery = useQuery({
+    ...trpc.settings.getWorkspaceCompat.queryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const workspaceRootUri = workspaceCompatQuery.data?.rootUri;
 
   const queryClient = useQueryClient();
   const addTab = useTabs((s) => s.addTab);
@@ -87,9 +101,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
 
   // Fetch boards from DB
   const { data: boards } = useQuery(
-    trpc.board.list.queryOptions(
-      workspaceId ? {} : ({ workspaceId: "" } as any),
-    ),
+    trpc.board.list.queryOptions({}),
   );
 
   const deleteMutation = useMutation(
@@ -128,6 +140,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
           boardId: board.id,
           title: board.title || t("canvasList.untitled"),
           folderUri: board.folderUri,
+          projectId: board.projectId ?? null,
           updatedAt: board.updatedAt as unknown as string,
           raw: board,
         });
@@ -169,12 +182,19 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
 
       setActiveWorkspaceChat(chatId);
     },
-    [workspaceId, tabs, addTab, setActiveTab, setActiveWorkspaceChat]
+    [tabs, addTab, setActiveTab, setActiveWorkspaceChat]
   );
 
   // Board click handler
+  const resolveBoardRootUri = useCallback(
+    (projectId?: string | null) =>
+      projectId ? projectRootUriMap.get(projectId) : workspaceRootUri,
+    [projectRootUriMap, workspaceRootUri],
+  );
+
   const handleBoardClick = useCallback(
-    (board: { boardId: string; title: string; folderUri: string }) => {
+    (board: { boardId: string; title: string; folderUri: string; projectId: string | null }) => {
+      const rootUri = resolveBoardRootUri(board.projectId);
       if (!rootUri) return;
       const boardFolderUri = buildFileUriFromRoot(rootUri, board.folderUri);
       const boardFileUri = buildFileUriFromRoot(
@@ -203,6 +223,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
               boardFolderUri,
               boardFileUri,
               boardId: board.boardId,
+              projectId: board.projectId,
               rootUri,
             },
           },
@@ -211,7 +232,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
 
       setActiveWorkspaceChat(null);
     },
-    [rootUri, workspaceId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat, t],
+    [resolveBoardRootUri, tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat, t],
   );
 
   const handleDelete = useCallback(
@@ -315,7 +336,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
     } finally {
       setAiNaming(false);
     }
-  }, [renameTarget, workspaceId, saasLoggedIn, boards, t]);
+  }, [renameTarget, saasLoggedIn, boards, t]);
 
   // Auto-close login dialog on successful login
   useEffect(() => {
@@ -385,6 +406,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
           }
 
           // Canvas item from DB
+          const rootUri = resolveBoardRootUri(item.projectId);
           const boardFolderUri = rootUri
             ? buildFileUriFromRoot(rootUri, item.folderUri)
             : "";
@@ -449,7 +471,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
           open={convertDialogOpen}
           onOpenChange={setConvertDialogOpen}
           chatSessionId={selectedChatId}
-          workspaceId={workspaceId}
           onSuccess={() => {
             refetchChats();
             setConvertDialogOpen(false);

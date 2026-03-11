@@ -10,7 +10,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettingsValues } from "@/hooks/use-settings";
-import { queryClient, trpc } from "@/utils/trpc";
 import {
   getProviderDefinition,
   getProviderModels,
@@ -873,9 +872,6 @@ export function useProviderManagement() {
     if (!editingS3Key) {
       await setValue(name, entryValue, S3_PROVIDER_CATEGORY);
       await refresh();
-      await queryClient.invalidateQueries({
-        queryKey: trpc.workspace.getActive.queryOptions().queryKey,
-      });
       setS3DialogOpen(false);
       return;
     }
@@ -885,9 +881,6 @@ export function useProviderManagement() {
     if (!shouldReuseKey) await removeValue(editingS3Key, S3_PROVIDER_CATEGORY);
     await setValue(nextKey, entryValue, S3_PROVIDER_CATEGORY);
     await refresh();
-    await queryClient.invalidateQueries({
-      queryKey: trpc.workspace.getActive.queryOptions().queryKey,
-    });
     setS3DialogOpen(false);
   }
 
@@ -897,9 +890,6 @@ export function useProviderManagement() {
   async function deleteS3Provider(key: string) {
     await removeValue(key, S3_PROVIDER_CATEGORY);
     await refresh();
-    await queryClient.invalidateQueries({
-      queryKey: trpc.workspace.getActive.queryOptions().queryKey,
-    });
   }
 
   const modelOptions = useMemo(

@@ -18,7 +18,7 @@ import { StackHeader } from "@/components/layout/StackHeader";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import "./style/docx-preview.css";
 

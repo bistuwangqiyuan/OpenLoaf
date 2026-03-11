@@ -22,7 +22,7 @@ import { Bug, Globe, Layers, Monitor, RefreshCw } from "lucide-react";
 import { memo, useState, useCallback, useEffect } from "react";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { toast } from "sonner";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";
 import { useBasicConfig } from "@/hooks/use-basic-config";

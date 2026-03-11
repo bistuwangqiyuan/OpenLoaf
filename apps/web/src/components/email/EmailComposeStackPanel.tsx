@@ -13,7 +13,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { EmailForwardEditor } from "./EmailForwardEditor";
 import { EMAIL_GLASS_PANEL_CLASS } from "./email-style-system";
 import { useEmailPageState } from "./use-email-page-state";

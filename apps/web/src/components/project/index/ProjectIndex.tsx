@@ -27,7 +27,7 @@ import {
   serializeDesktopItems,
 } from "@/components/desktop/desktop-persistence";
 import { queryClient, trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useHeaderSlot } from "@/hooks/use-header-slot";

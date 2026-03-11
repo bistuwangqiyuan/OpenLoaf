@@ -17,7 +17,7 @@ import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGro
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
 import { useProject } from "@/hooks/use-project";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { trpc } from "@/utils/trpc";
 import { PageTreePicker } from "@/components/layout/sidebar/ProjectTree";
 import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";

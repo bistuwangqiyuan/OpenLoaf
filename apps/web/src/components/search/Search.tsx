@@ -20,7 +20,7 @@ import {
   CommandShortcut,
 } from "@openloaf/ui/command";
 import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";

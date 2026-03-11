@@ -6,10 +6,11 @@ OpenLoaf 开发规范。适用于核心开发者和外部贡献者。
 
 | 产品术语 | 英文 | 代码标识符 | 说明 |
 |---------|------|-----------|------|
-| **工作空间** | Workspace | `Workspace`、`workspace` | 顶层容器 |
-| **项目** | Project | `Project`、`project` | 工作空间下的项目文件夹 |
+| **工作空间** | Workspace | `Workspace`、`workspace` | 已废弃的兼容概念，当前仅代表默认全局空间 |
+| **项目** | Project | `Project`、`project` | 一等公民的项目实体，对应独立项目文件夹 |
 
-代码中的变量名和路由名保持 `workspace` / `project` 不变，仅在面向用户的 UI 文案中使用产品术语。
+代码中的变量名和路由名保持 `workspace` / `project` 不变。
+其中 `workspace` 多表示兼容层或历史命名；面向用户的主要业务实体统一以“项目”为准。
 
 <strong>简体中文</strong> | <a href="./DEVELOPMENT_en.md">English</a>
 

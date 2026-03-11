@@ -18,7 +18,7 @@ import {
 import { Header } from "@/components/layout/header/Header";
 import { AppSidebar } from "@/components/layout/sidebar/Sidebar";
 import { MainContent } from "@/components/layout/MainContext";
-import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
+import { WorkspaceBootstrap } from "@/components/workspace/WorkspaceBootstrap";
 import { cn } from "@/lib/utils";
 
 function PageContent() {
@@ -43,14 +43,13 @@ function PageContent() {
 export default function Page() {
   return (
     <div className="[--header-height:calc(--spacing(10))] bg-sidebar">
-      <WorkspaceProvider>
-        <SidebarProvider
+      <WorkspaceBootstrap />
+      <SidebarProvider
           className="flex flex-col"
           style={{ "--sidebar-width": "14rem" } as CSSProperties}
         >
           <PageContent />
         </SidebarProvider>
-      </WorkspaceProvider>
     </div>
   );
 }

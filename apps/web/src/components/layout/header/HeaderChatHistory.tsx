@@ -33,11 +33,7 @@ import { useWorkspaceChatSessions } from "@/hooks/use-chat-sessions";
 import SessionList from "@/components/ai/session/SessionList";
 import type { Session } from "@/components/ai/session/SessionItem";
 
-interface HeaderChatHistoryProps {
-  workspaceId: string;
-}
-
-export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
+export function HeaderChatHistory() {
   const { t } = useTranslation("nav");
   const [popoverOpen, setPopoverOpen] = React.useState(false);
   const [menuLock, setMenuLock] = React.useState(false);
@@ -55,7 +51,7 @@ export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
   const addTab = useTabs((s) => s.addTab);
 
   const { openSessionIds, sessionToTabId } = useOpenSessionIds();
-  const { sessions: allSessions, isLoading } = useWorkspaceChatSessions({ workspaceId });
+  const { sessions: allSessions, isLoading } = useWorkspaceChatSessions();
   const sessions = React.useMemo(
     () => showProjectSessions ? allSessions : allSessions.filter((s) => !s.projectId),
     [allSessions, showProjectSessions],
@@ -106,7 +102,6 @@ export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
       currentTabSessionIds,
       sessionToTabId,
       sessions,
-      workspaceId,
       setActiveTabSession,
       addTab,
     ],

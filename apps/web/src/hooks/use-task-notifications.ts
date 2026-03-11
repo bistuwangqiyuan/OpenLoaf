@@ -12,7 +12,7 @@ import { useQuery, skipToken } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { trpc } from '@/utils/trpc'
 import { isElectronEnv } from '@/utils/is-electron-env'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 
 type TaskSummary = {
   id: string

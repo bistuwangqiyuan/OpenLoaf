@@ -24,7 +24,7 @@ import { FileSystemGrid } from "@/components/project/filesystem/components/FileS
 import { Calendar } from "@openloaf/ui/date-picker";
 import { useChatSessions, type ChatSessionListItem } from "@/hooks/use-chat-sessions";
 import { useTabs } from "@/hooks/use-tabs";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { type FileSystemEntry } from "@/components/project/filesystem/utils/file-system-utils";

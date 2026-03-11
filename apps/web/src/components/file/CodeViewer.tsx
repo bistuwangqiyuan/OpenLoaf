@@ -31,7 +31,7 @@ import { Button } from "@openloaf/ui/button";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { getRelativePathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { stopFindShortcutPropagation } from "@/components/file/lib/viewer-shortcuts";
 

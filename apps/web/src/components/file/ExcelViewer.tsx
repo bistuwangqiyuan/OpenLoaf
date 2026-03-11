@@ -24,7 +24,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 import "react-data-grid/lib/styles.css";

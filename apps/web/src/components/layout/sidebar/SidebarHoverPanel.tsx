@@ -42,14 +42,12 @@ import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_META_FILE_NAME } from '@/lib/file-name'
 import type { ProjectNode } from '@openloaf/api/services/projectTreeService'
 
 interface SidebarHoverPanelProps {
   type: 'all-chats' | 'project-chats'
-  workspaceId: string
   projectId?: string
   children: React.ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'
@@ -166,9 +164,20 @@ function buildProjectNameMap(projects?: ProjectNode[]): Map<string, string> {
   return map
 }
 
+function buildProjectRootUriMap(projects?: ProjectNode[]): Map<string, string> {
+  const map = new Map<string, string>()
+  const walk = (items?: ProjectNode[]) => {
+    items?.forEach((item) => {
+      if (item.projectId) map.set(item.projectId, item.rootUri)
+      if (item.children?.length) walk(item.children)
+    })
+  }
+  walk(projects)
+  return map
+}
+
 export function SidebarHoverPanel({
   type,
-  workspaceId,
   projectId,
   children,
   side = 'right',
@@ -178,10 +187,9 @@ export function SidebarHoverPanel({
   const { t: tAi } = useTranslation('ai')
   const { t: tCommon } = useTranslation('common')
   const nav = useSidebarNavigation()
-  const { workspace } = useWorkspace()
-  const rootUri = workspace?.rootUri
   const { data: projects } = useProjects()
   const projectNameMap = useMemo(() => buildProjectNameMap(projects), [projects])
+  const projectRootUriMap = useMemo(() => buildProjectRootUriMap(projects), [projects])
   const queryClient = useQueryClient()
 
   const addTab = useTabs((s) => s.addTab)
@@ -220,9 +228,9 @@ export function SidebarHoverPanel({
   // --- Data queries ---
   const chatQueryInput =
     type === 'all-chats'
-      ? { workspaceId, projectId: undefined as string | null | undefined, limit: 50 }
+      ? { limit: 50 }
       : type === 'project-chats' && projectId
-        ? { workspaceId, projectId, limit: 50 }
+        ? { projectId, limit: 50 }
         : null
 
   const chatQueryOpts = trpc.chat.listByWorkspace.queryOptions(
@@ -315,10 +323,14 @@ export function SidebarHoverPanel({
 
   const handleBoardClick = useCallback(
     (item: HistoryItem) => {
-      if (!rootUri || !item.folderUri) return
-      const boardFolderUri = buildFileUriFromRoot(rootUri, item.folderUri)
+      const targetProjectId = item.projectId ?? projectId ?? null
+      const targetRootUri = targetProjectId
+        ? projectRootUriMap.get(targetProjectId)
+        : undefined
+      if (!targetProjectId || !targetRootUri || !item.folderUri) return
+      const boardFolderUri = buildFileUriFromRoot(targetRootUri, item.folderUri)
       const boardFileUri = buildFileUriFromRoot(
-        rootUri,
+        targetRootUri,
         `${item.folderUri}${BOARD_META_FILE_NAME}`,
       )
       const baseId = `board:${boardFolderUri}`
@@ -339,13 +351,19 @@ export function SidebarHoverPanel({
           base: {
             id: baseId,
             component: 'board-viewer',
-            params: { boardFolderUri, boardFileUri, boardId: item.id, projectId, rootUri },
+            params: {
+              boardFolderUri,
+              boardFileUri,
+              boardId: item.id,
+              projectId: targetProjectId,
+              rootUri: targetRootUri,
+            },
           },
         })
       }
       setActiveView('canvas-list')
     },
-    [rootUri, workspaceId, projectId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
+    [projectId, projectRootUriMap, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
   )
 
   const handleItemClick = useCallback(
@@ -452,7 +470,7 @@ export function SidebarHoverPanel({
     } finally {
       setAiNaming(false)
     }
-  }, [renameTarget, workspaceId, boards, t])
+  }, [renameTarget, boards, t])
 
   const handleRenameDialogClose = useCallback(
     (open: boolean) => {

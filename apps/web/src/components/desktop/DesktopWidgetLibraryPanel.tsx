@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabs } from "@/hooks/use-tabs";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { Input } from "@openloaf/ui/input";
 import { Button } from "@openloaf/ui/button";
 import type { DesktopIconKey, DesktopScope, DesktopWidgetItem } from "./types";

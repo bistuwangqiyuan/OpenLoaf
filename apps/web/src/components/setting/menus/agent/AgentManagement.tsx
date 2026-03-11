@@ -35,7 +35,7 @@ import {
   ContextMenuTrigger,
 } from "@openloaf/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import {

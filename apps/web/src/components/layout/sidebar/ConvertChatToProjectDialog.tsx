@@ -36,7 +36,6 @@ interface ConvertChatToProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chatSessionId: string;
-  workspaceId: string;
   onSuccess?: () => void;
 }
 
@@ -44,7 +43,6 @@ export function ConvertChatToProjectDialog({
   open,
   onOpenChange,
   chatSessionId,
-  workspaceId,
   onSuccess,
 }: ConvertChatToProjectDialogProps) {
   const { t } = useTranslation("nav");

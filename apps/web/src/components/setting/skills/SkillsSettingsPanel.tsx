@@ -28,7 +28,7 @@ import {
   ContextMenuTrigger,
 } from "@openloaf/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useProject } from "@/hooks/use-project";
 import {
   buildFileUriFromRoot,

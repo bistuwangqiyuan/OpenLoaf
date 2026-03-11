@@ -30,7 +30,7 @@ import {
 } from "@/lib/file-name";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { trpcClient } from "@/utils/trpc";
 import { getBoardEngine } from "./engine/board-engine-registry";
 import type { BoardJsonSnapshot } from "@openloaf/api/types/boardCollab";

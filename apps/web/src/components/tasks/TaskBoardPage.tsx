@@ -56,7 +56,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { ScheduledTaskDialog } from './ScheduledTaskDialog'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 
 // ─── Types ────────────────────────────────────────────────────────────
 

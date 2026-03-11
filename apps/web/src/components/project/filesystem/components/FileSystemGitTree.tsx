@@ -43,7 +43,7 @@ import { sortEntriesByType } from "../utils/entry-sort";
 import { getEntryVisual } from "./FileSystemEntryVisual";
 import { useFileSystemDrag } from "../hooks/use-file-system-drag";
 import { useFolderThumbnails } from "../hooks/use-folder-thumbnails";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 type FileSystemGitTreeProps = {
   /** Project root uri. */

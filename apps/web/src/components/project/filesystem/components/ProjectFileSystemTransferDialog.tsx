@@ -51,7 +51,7 @@ import { Ban, FolderPlus, PencilLine } from "lucide-react";
 import { useFileSelection } from "@/hooks/use-file-selection";
 import { useFileRename } from "@/hooks/use-file-rename";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { isBoardFolderName } from "@/lib/file-name";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 import {

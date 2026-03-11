@@ -9,25 +9,22 @@
  */
 "use client";
 
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@openloaf/ui/button";
-import { Input } from "@openloaf/ui/input";
-import { queryClient, trpc } from "@/utils/trpc";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
-import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
-import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Coins, Copy, Crown, FolderOpen, Hash, Layers, Loader2, MessageSquare, Save, TextCursorInput, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { BarChart3, Sparkles, Copy, Crown, FolderOpen, Hash, Layers, MessageSquare, TextCursorInput, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@openloaf/ui/button";
+import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
+import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
+import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
 import { useProjects } from "@/hooks/use-projects";
-import { useTabs } from "@/hooks/use-tabs";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { fetchUserProfile } from "@/lib/saas-auth";
-import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
-
-// Note: MEMBERSHIP_LABELS will be built dynamically using i18n inside component
+import { queryClient, trpc } from "@/utils/trpc";
 
 const TOKEN_K = 1000;
 const TOKEN_M = 1000 * 1000;
@@ -49,13 +46,16 @@ function formatTokenCount(value: number): string {
 }
 
 /**
- * Count project nodes in a workspace tree.
+ * Count project nodes in a project tree.
  */
 function countProjectNodes(nodes?: ProjectNode[]): number {
   if (!nodes?.length) return 0;
   return nodes.reduce((total, node) => total + 1 + countProjectNodes(node.children), 0);
 }
 
+/**
+ * Render a compact settings icon badge.
+ */
 function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
   return (
     <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
@@ -65,15 +65,16 @@ function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg:
 }
 
 export function WorkspaceSettings() {
-  const { t } = useTranslation('workspace', { keyPrefix: 'workspace' });
+  const { t } = useTranslation("workspace", { keyPrefix: "workspace" });
   const { loggedIn } = useSaasAuth();
+  const { workspace: activeWorkspace } = useWorkspace();
+  const projectsQuery = useProjects();
 
-  // Build membership labels dynamically from translations
-  const MEMBERSHIP_LABELS = {
-    free: t('membership.free'),
-    vip: t('membership.vip'),
-    svip: t('membership.svip'),
-    infinity: t('membership.infinity'),
+  const membershipLabels = {
+    free: t("membership.free"),
+    vip: t("membership.vip"),
+    svip: t("membership.svip"),
+    infinity: t("membership.infinity"),
   };
 
   const userProfileQuery = useQuery({
@@ -82,146 +83,45 @@ export function WorkspaceSettings() {
     enabled: loggedIn,
     staleTime: 60_000,
   });
-  const { data: activeWorkspace } = useQuery(trpc.workspace.getActive.queryOptions());
-  const workspacesQuery = useQuery(trpc.workspace.getList.queryOptions());
-  const projectsQuery = useProjects();
-  /** Track workspace name draft. */
-  const [draftWorkspaceName, setDraftWorkspaceName] = useState("");
-  /** Workspace path for display. */
-  const displayWorkspacePath = useMemo(() => {
-    if (!activeWorkspace?.rootUri) return "-";
-    return getDisplayPathFromUri(activeWorkspace.rootUri);
-  }, [activeWorkspace?.rootUri]);
 
   const statsQuery = useQuery({
     ...trpc.chat.getChatStats.queryOptions(),
     staleTime: 5000,
   });
 
-  const updateWorkspaceName = useMutation(
-    trpc.workspace.updateName.mutationOptions({
-      onSuccess: async () => {
-        toast.success(t('settings.workspaceNameUpdated'));
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: trpc.workspace.getActive.queryOptions().queryKey,
-          }),
-          queryClient.invalidateQueries({
-            queryKey: trpc.workspace.getList.queryOptions().queryKey,
-          }),
-        ]);
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    }),
-  );
-
-  const deleteWorkspace = useMutation(
-    trpc.workspace.delete.mutationOptions({
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    }),
-  );
-
-  const activateWorkspace = useMutation(
-    trpc.workspace.activate.mutationOptions({
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    }),
-  );
-
   const clearAllChat = useMutation(
     trpc.chat.clearAllChat.mutationOptions({
-      onSuccess: (res) => {
+      onSuccess: (result) => {
         toast.success(
-          t('settings.sessionsClearedSuccess', { count: res.deletedSessions }),
+          t("settings.sessionsClearedSuccess", { count: result.deletedSessions }),
         );
         queryClient.invalidateQueries();
       },
     }),
   );
 
+  const displayWorkspacePath = useMemo(() => {
+    if (!activeWorkspace?.rootUri) return "-";
+    return getDisplayPathFromUri(activeWorkspace.rootUri);
+  }, [activeWorkspace?.rootUri]);
+
+  const currentWorkspaceName = activeWorkspace?.name ?? "";
   const sessionCount = statsQuery.data?.sessionCount;
   const usage = statsQuery.data?.usageTotals;
-  /** Current workspace name from server. */
-  const currentWorkspaceName = activeWorkspace?.name ?? "";
-  /** Whether workspace name is modified. */
-  const isWorkspaceNameDirty =
-    draftWorkspaceName.trim() !== currentWorkspaceName.trim();
-  /** Total number of projects in current workspace. */
   const totalProjectCount = useMemo(
     () => countProjectNodes(projectsQuery.data),
     [projectsQuery.data],
   );
-  /** Total number of workspaces. */
-  const workspaceCount = workspacesQuery.data?.length ?? 0;
-  /** Whether current workspace can be deleted. */
-  const canDeleteCurrentWorkspace = workspaceCount > 2;
-
-  /** Clear all chat data with a confirm gate. */
-  const handleClearAllChat = async () => {
-    const countPart = typeof sessionCount === "number" ? t('settings.clearChatConfirmWithCount', { count: sessionCount }) : "";
-    const confirmText = `${t('settings.clearChatConfirm', { countText: countPart })}`;
-    if (!window.confirm(confirmText)) return;
-    await clearAllChat.mutateAsync();
-  };
-
-  /** Delete current workspace with confirm gate. */
-  const handleDeleteCurrentWorkspace = async () => {
-    const workspaceId = activeWorkspace?.id;
-    if (!workspaceId) return;
-    if (!canDeleteCurrentWorkspace) {
-      toast.error(t('settings.minWorkspacesToDelete'));
-      return;
-    }
-    const fallbackWorkspace = (workspacesQuery.data ?? []).find(
-      (workspace) => workspace.id !== workspaceId,
-    );
-    if (!fallbackWorkspace) {
-      toast.error(t('settings.noOtherWorkspace'));
-      return;
-    }
-    const name = currentWorkspaceName.trim() || t('settings.deleteWorkspace');
-    const confirmText = t('settings.deleteWorkspaceConfirm', { name });
-    if (!window.confirm(confirmText)) return;
-    await deleteWorkspace.mutateAsync({ id: workspaceId });
-    queryClient.setQueryData(
-      trpc.workspace.getActive.queryOptions().queryKey,
-      fallbackWorkspace,
-    );
-    let activated = false;
-    try {
-      await activateWorkspace.mutateAsync({ id: fallbackWorkspace.id });
-      activated = true;
-    } finally {
-      queryClient.invalidateQueries();
-    }
-    if (activated) {
-      toast.success(t('settings.workspaceDeletedSuccess'));
-    }
-  };
-
-  /** Sync draft name with workspace data. */
-  useEffect(() => {
-    if (!activeWorkspace?.name) {
-      setDraftWorkspaceName("");
-      return;
-    }
-    setDraftWorkspaceName(activeWorkspace.name);
-  }, [activeWorkspace?.name]);
 
   /**
-   * Copy text to clipboard with fallback support.
+   * Copy text to clipboard with a browser fallback.
    */
   const copyTextToClipboard = async (value: string, message: string) => {
     try {
       await navigator.clipboard.writeText(value);
       toast.success(message);
     } catch {
-      // 兼容旧浏览器的降级方案。
+      // 逻辑：兼容旧浏览器的复制能力，避免设置页操作失效。
       const textarea = document.createElement("textarea");
       textarea.value = value;
       textarea.style.position = "fixed";
@@ -234,68 +134,59 @@ export function WorkspaceSettings() {
     }
   };
 
-  /** Copy workspace id to clipboard. */
-  const handleCopyWorkspaceId = async () => {
-    if (!activeWorkspace?.id) return;
-    await copyTextToClipboard(activeWorkspace.id, t('settings.copiedWorkspaceId'));
-  };
-
-  /** Copy workspace path to clipboard. */
-  const handleCopyWorkspacePath = async () => {
-    if (!activeWorkspace?.rootUri) return;
-    await copyTextToClipboard(displayWorkspacePath, t('settings.copiedStoragePath'));
-  };
-
-  /** Open workspace path in system file manager. */
+  /**
+   * Open the global storage path in the system file manager.
+   */
   const handleOpenWorkspacePath = async () => {
     const rootUri = activeWorkspace?.rootUri;
     if (!rootUri) return;
     const api = window.openloafElectron;
     if (!api?.openPath) {
-      toast.error(t('settings.webNoFileManager'));
+      toast.error(t("settings.webNoFileManager"));
       return;
     }
-    const res = await api.openPath({ uri: rootUri });
-    if (!res?.ok) {
-      toast.error(res?.reason ?? t('settings.openFileManagerError'));
+    const result = await api.openPath({ uri: rootUri });
+    if (!result?.ok) {
+      toast.error(result?.reason ?? t("settings.openFileManagerError"));
     }
   };
 
-  /** Save workspace name changes. */
-  const handleSaveWorkspaceName = async () => {
-    if (!activeWorkspace?.id) return;
-    const name = draftWorkspaceName.trim();
-    if (!name) {
-      toast.error(t('settings.workspaceNameEmpty'));
-      return;
-    }
-    if (name === currentWorkspaceName.trim()) return;
-    await updateWorkspaceName.mutateAsync({ id: activeWorkspace.id, name });
+  /**
+   * Clear all chat sessions after confirmation.
+   */
+  const handleClearAllChat = async () => {
+    const countPart =
+      typeof sessionCount === "number"
+        ? t("settings.clearChatConfirmWithCount", { count: sessionCount })
+        : "";
+    const confirmText = `${t("settings.clearChatConfirm", { countText: countPart })}`;
+    if (!window.confirm(confirmText)) return;
+    await clearAllChat.mutateAsync();
   };
 
   return (
     <div className="space-y-6">
       {loggedIn && (
-        <OpenLoafSettingsGroup title={t('settings.accountInfo')}>
+        <OpenLoafSettingsGroup title={t("settings.accountInfo")}>
           <div className="divide-y divide-border/40">
             <div className="flex flex-wrap items-center gap-2 py-3">
               <SettingIcon icon={Crown} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
-              <div className="text-sm font-medium">{t('settings.membershipLevel')}</div>
+              <div className="text-sm font-medium">{t("settings.membershipLevel")}</div>
               <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
                 {userProfileQuery.isLoading
-                  ? t('settings.loading')
+                  ? t("settings.loading")
                   : userProfileQuery.data?.membershipLevel
-                    ? MEMBERSHIP_LABELS[userProfileQuery.data.membershipLevel] ??
+                    ? membershipLabels[userProfileQuery.data.membershipLevel] ??
                       userProfileQuery.data.membershipLevel
                     : "—"}
               </OpenLoafSettingsField>
             </div>
             <div className="flex flex-wrap items-center gap-2 py-3">
-              <SettingIcon icon={Coins} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
-              <div className="text-sm font-medium">{t('settings.creditsBalance')}</div>
+              <SettingIcon icon={Sparkles} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
+              <div className="text-sm font-medium">{t("settings.creditsBalance")}</div>
               <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
                 {userProfileQuery.isLoading
-                  ? t('settings.loading')
+                  ? t("settings.loading")
                   : typeof userProfileQuery.data?.creditsBalance === "number"
                     ? Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()
                     : "—"}
@@ -305,11 +196,11 @@ export function WorkspaceSettings() {
         </OpenLoafSettingsGroup>
       )}
 
-      <OpenLoafSettingsGroup title={t('settings.basicInfo')}>
+      <OpenLoafSettingsGroup title={t("settings.basicInfo")}>
         <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={Hash} bg="bg-slate-500/10" fg="text-slate-600 dark:text-slate-400" />
-            <div className="text-sm font-medium">{t('settings.workspaceId')}</div>
+            <div className="text-sm font-medium">{t("settings.workspaceId")}</div>
             <OpenLoafSettingsField className="flex items-center justify-end gap-2 text-right text-xs text-muted-foreground">
               <span>{activeWorkspace?.id ?? "—"}</span>
               <Button
@@ -317,9 +208,9 @@ export function WorkspaceSettings() {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7"
-                onClick={() => void handleCopyWorkspaceId()}
+                onClick={() => void copyTextToClipboard(activeWorkspace?.id ?? "", t("settings.copiedWorkspaceId"))}
                 disabled={!activeWorkspace?.id}
-                aria-label={t('settings.copyWorkspaceId')}
+                aria-label={t("settings.copyWorkspaceId")}
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -327,34 +218,14 @@ export function WorkspaceSettings() {
           </div>
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={TextCursorInput} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
-            <div className="text-sm font-medium">{t('settings.workspaceName')}</div>
-            <OpenLoafSettingsField className="w-full sm:w-[320px] shrink-0 justify-end gap-2 text-right">
-              <Input
-                value={draftWorkspaceName}
-                placeholder={t('settings.workspaceNamePlaceholder')}
-                onChange={(event) => setDraftWorkspaceName(event.target.value)}
-                className="text-right"
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="secondary"
-                disabled={!isWorkspaceNameDirty || updateWorkspaceName.isPending}
-                onClick={() => void handleSaveWorkspaceName()}
-                aria-label={t('settings.saveWorkspaceName')}
-                title={t('settings.saveButton')}
-              >
-                {updateWorkspaceName.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
+            <div className="text-sm font-medium">{t("settings.workspaceName")}</div>
+            <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
+              {currentWorkspaceName || "—"}
             </OpenLoafSettingsField>
           </div>
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={FolderOpen} bg="bg-emerald-500/10" fg="text-emerald-600 dark:text-emerald-400" />
-            <div className="text-sm font-medium">{t('settings.storagePath')}</div>
+            <div className="text-sm font-medium">{t("settings.storagePath")}</div>
             <OpenLoafSettingsField className="flex items-center justify-end gap-2 text-right text-xs text-muted-foreground">
               <span className="min-w-0 flex-1 truncate">{displayWorkspacePath}</span>
               <Button
@@ -362,10 +233,10 @@ export function WorkspaceSettings() {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7"
-                onClick={() => void handleCopyWorkspacePath()}
+                onClick={() => void copyTextToClipboard(displayWorkspacePath, t("settings.copiedStoragePath"))}
                 disabled={!activeWorkspace?.rootUri}
-                aria-label={t('settings.copyStoragePath')}
-                title={t('settings.copy')}
+                aria-label={t("settings.copyStoragePath")}
+                title={t("settings.copy")}
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -376,8 +247,8 @@ export function WorkspaceSettings() {
                 className="h-7 w-7"
                 onClick={() => void handleOpenWorkspacePath()}
                 disabled={!activeWorkspace?.rootUri}
-                aria-label={t('settings.openFileManager')}
-                title={t('settings.openFileManagerTooltip')}
+                aria-label={t("settings.openFileManager")}
+                title={t("settings.openFileManagerTooltip")}
               >
                 <FolderOpen className="h-4 w-4" />
               </Button>
@@ -385,36 +256,36 @@ export function WorkspaceSettings() {
           </div>
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={Layers} bg="bg-violet-500/10" fg="text-violet-600 dark:text-violet-400" />
-            <div className="text-sm font-medium">{t('settings.projectCount')}</div>
+            <div className="text-sm font-medium">{t("settings.projectCount")}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
-              {projectsQuery.isLoading ? t('settings.loading') : totalProjectCount}
+              {projectsQuery.isLoading ? t("settings.loading") : totalProjectCount}
             </OpenLoafSettingsField>
           </div>
         </div>
       </OpenLoafSettingsGroup>
 
-      <OpenLoafSettingsGroup title={t('settings.chatData')}>
+      <OpenLoafSettingsGroup title={t("settings.chatData")}>
         <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-center gap-2 py-3">
-            <SettingIcon icon={MessageSquare} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
-            <div className="text-sm font-medium">{t('settings.totalSessions')}</div>
+            <SettingIcon icon={MessageSquare} bg="bg-sky-500/10" fg="text-sky-600 dark:text-slate-400" />
+            <div className="text-sm font-medium">{t("settings.totalSessions")}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {typeof sessionCount === "number" ? sessionCount : "—"}
             </OpenLoafSettingsField>
           </div>
           <div className="flex flex-wrap items-center gap-2 py-3">
-            <SettingIcon icon={Coins} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
-            <div className="text-sm font-medium">{t('settings.totalTokens')}</div>
+            <SettingIcon icon={Sparkles} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
+            <div className="text-sm font-medium">{t("settings.totalTokens")}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {usage ? formatTokenCount(usage.totalTokens) : "—"}
             </OpenLoafSettingsField>
           </div>
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={BarChart3} bg="bg-teal-500/10" fg="text-teal-600 dark:text-teal-400" />
-            <div className="text-sm font-medium">{t('settings.tokenUsage')}</div>
+            <div className="text-sm font-medium">{t("settings.tokenUsage")}</div>
             <OpenLoafSettingsField className="text-right text-xs text-muted-foreground">
               {usage
-                ? t('settings.tokenBreakdown', {
+                ? t("settings.tokenBreakdown", {
                     input: formatTokenCount(usage.inputTokens),
                     inputRaw: formatTokenCount(Math.max(0, usage.inputTokens - usage.cachedInputTokens)),
                     cached: formatTokenCount(usage.cachedInputTokens),
@@ -426,65 +297,25 @@ export function WorkspaceSettings() {
         </div>
       </OpenLoafSettingsGroup>
 
-      <OpenLoafSettingsGroup title={t('settings.cleanup')}>
+      <OpenLoafSettingsGroup title={t("settings.cleanup")}>
         <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-center gap-2 py-3">
             <SettingIcon icon={Trash2} bg="bg-red-500/10" fg="text-red-600 dark:text-red-400" />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">{t('settings.clearAllChat')}</div>
+              <div className="text-sm font-medium">{t("settings.clearAllChat")}</div>
               <div className="text-xs text-muted-foreground">
-                {t('settings.clearAllChatDescription')}
+                {t("settings.clearAllChatDescription")}
               </div>
             </div>
-
             <OpenLoafSettingsField>
               <Button
                 type="button"
                 size="sm"
-                className="rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none"
+                className="rounded-full bg-red-500/10 text-red-600 shadow-none hover:bg-red-500/20 dark:text-red-400"
                 disabled={clearAllChat.isPending}
                 onClick={() => void handleClearAllChat()}
               >
-                {clearAllChat.isPending ? t('settings.clearingButton') : t('settings.clearButton')}
-              </Button>
-            </OpenLoafSettingsField>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 py-3">
-            <SettingIcon icon={Trash2} bg="bg-red-500/10" fg="text-red-600 dark:text-red-400" />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">{t('settings.deleteWorkspace')}</div>
-              <div className="text-xs text-muted-foreground">
-                {canDeleteCurrentWorkspace
-                  ? t('settings.deleteWorkspaceDescription')
-                  : t('settings.deleteWorkspaceWarning')}
-              </div>
-            </div>
-
-            <OpenLoafSettingsField>
-              <Button
-                type="button"
-                size="sm"
-                className="rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 shadow-none"
-                disabled={
-                  !activeWorkspace?.id ||
-                  !canDeleteCurrentWorkspace ||
-                  deleteWorkspace.isPending ||
-                  activateWorkspace.isPending
-                }
-                onClick={() => void handleDeleteCurrentWorkspace()}
-              >
-                {deleteWorkspace.isPending || activateWorkspace.isPending ? (
-                  <>
-                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                    {t('settings.deletingButton')}
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                    {t('settings.deleteButton')}
-                  </>
-                )}
+                {clearAllChat.isPending ? t("settings.clearingButton") : t("settings.clearButton")}
               </Button>
             </OpenLoafSettingsField>
           </div>

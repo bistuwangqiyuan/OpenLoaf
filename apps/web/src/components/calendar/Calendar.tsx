@@ -42,7 +42,7 @@ import { useCalendarPageState } from "./use-calendar-page-state";
 import { useCalendarTasks } from "./use-calendar-tasks";
 import { useProjects } from "@/hooks/use-projects";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { toast } from "sonner";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import {

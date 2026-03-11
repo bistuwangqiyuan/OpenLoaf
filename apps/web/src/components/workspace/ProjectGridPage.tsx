@@ -27,7 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient, trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useProjects, getProjectsQueryKey } from "@/hooks/use-projects";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";

@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Palette, Edit2, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_META_FILE_NAME } from "@/lib/file-name";
 import { Button } from "@openloaf/ui/button";
@@ -38,15 +38,22 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@openloaf/ui/context-menu";
+import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 
-interface WorkspaceCanvasListProps {
-  workspaceId: string;
+function buildProjectRootUriMap(projects?: ProjectNode[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const walk = (items?: ProjectNode[]) => {
+    items?.forEach((item) => {
+      if (item.projectId) map.set(item.projectId, item.rootUri);
+      if (item.children?.length) walk(item.children);
+    });
+  };
+  walk(projects);
+  return map;
 }
 
-export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
+export function WorkspaceCanvasList() {
   const { t } = useTranslation("nav");
-  const { workspace } = useWorkspace();
-  const rootUri = workspace?.rootUri;
 
   const [renameTarget, setRenameTarget] = useState<{
     boardId: string;
@@ -54,6 +61,13 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
     nextTitle: string;
   } | null>(null);
   const [aiNaming, setAiNaming] = useState(false);
+  const { data: projects } = useProjects();
+  const projectRootUriMap = useMemo(() => buildProjectRootUriMap(projects), [projects]);
+  const workspaceCompatQuery = useQuery({
+    ...trpc.settings.getWorkspaceCompat.queryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const workspaceRootUri = workspaceCompatQuery.data?.rootUri;
 
   const queryClient = useQueryClient();
 
@@ -64,13 +78,18 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
   const setActiveView = useNavigation((s) => s.setActiveView);
 
   const { data: boards } = useQuery(
-    trpc.board.list.queryOptions(
-      workspaceId ? {} : ({ workspaceId: "" } as any),
-    ),
+    trpc.board.list.queryOptions({}),
+  );
+
+  const resolveBoardRootUri = useCallback(
+    (projectId?: string | null) =>
+      projectId ? projectRootUriMap.get(projectId) : workspaceRootUri,
+    [projectRootUriMap, workspaceRootUri],
   );
 
   const handleBoardClick = useCallback(
-    (board: { id: string; title: string; folderUri: string }) => {
+    (board: { id: string; title: string; folderUri: string; projectId: string | null }) => {
+      const rootUri = resolveBoardRootUri(board.projectId);
       if (!rootUri) return;
       const boardFolderUri = buildFileUriFromRoot(rootUri, board.folderUri);
       const boardFileUri = buildFileUriFromRoot(
@@ -99,6 +118,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
               boardFolderUri,
               boardFileUri,
               boardId: board.id,
+              projectId: board.projectId,
               rootUri,
             },
           },
@@ -107,7 +127,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
 
       setActiveView("canvas-list");
     },
-    [rootUri, workspaceId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
+    [resolveBoardRootUri, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
   );
 
   // Rename via DB
@@ -161,7 +181,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
     } finally {
       setAiNaming(false);
     }
-  }, [renameTarget, workspaceId, boards, t]);
+  }, [renameTarget, boards, t]);
 
   // Soft delete via DB
   const deleteMutation = useMutation(
@@ -196,6 +216,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
       <div className="px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground/70">{t('canvas')}</div>
       <div className="px-2 space-y-0.5">
         {boards.map((board) => {
+          const rootUri = resolveBoardRootUri(board.projectId);
           const boardFolderUri = rootUri
             ? buildFileUriFromRoot(rootUri, board.folderUri)
             : "";

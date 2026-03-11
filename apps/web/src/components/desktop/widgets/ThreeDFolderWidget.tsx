@@ -21,7 +21,7 @@ import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 import { trpc } from "@/utils/trpc";
 import { getEntryVisual, IMAGE_EXTS } from "@/components/project/filesystem/components/FileSystemEntryVisual";
 import { openFilePreview } from "@/components/file/lib/open-file";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import {

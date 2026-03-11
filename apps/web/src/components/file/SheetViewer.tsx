@@ -58,7 +58,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import "@univerjs/design/lib/index.css";
 import "@univerjs/ui/lib/index.css";

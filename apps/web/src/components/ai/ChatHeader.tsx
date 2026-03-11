@@ -25,7 +25,7 @@ import { useTabView } from "@/hooks/use-tab-view";
 import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { MessageAction, MessageActions } from "@/components/ai-elements/message";

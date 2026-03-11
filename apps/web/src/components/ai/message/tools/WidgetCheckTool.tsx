@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { FolderOpen, LayoutGrid, CheckCircle2, XCircle } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useTabs } from '@/hooks/use-tabs'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 import {
   DESKTOP_WIDGET_SELECTED_EVENT,
   type DesktopWidgetSelectedDetail,

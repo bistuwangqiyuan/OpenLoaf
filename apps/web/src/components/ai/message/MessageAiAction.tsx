@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Clock3,
-  Coins,
+  Sparkles,
   Copy,
   Minimize2,
   RotateCcw,
@@ -452,7 +452,7 @@ export default function MessageAiAction({
 
       {typeof creditsConsumed === "number" ? (
         <span className="ml-1 inline-flex select-none items-center gap-1 text-xs text-muted-foreground/60 tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
-          <Coins className="size-3" />
+          <Sparkles className="size-3" />
           {creditsConsumed % 1 === 0 ? creditsConsumed : creditsConsumed.toFixed(2)}
         </span>
       ) : null}

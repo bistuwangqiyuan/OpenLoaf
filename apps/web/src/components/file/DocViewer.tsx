@@ -36,7 +36,7 @@ import { getBlockType, setBlockType } from "@/components/editor/transforms";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { StackHeader } from "@/components/layout/StackHeader";
 import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { Button } from "@openloaf/ui/button";
 import {
   DropdownMenu,

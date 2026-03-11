@@ -25,11 +25,7 @@ import {
 } from "@openloaf/ui/dropdown-menu";
 import { ConvertChatToProjectDialog } from "./ConvertChatToProjectDialog";
 
-interface WorkspaceChatListProps {
-  workspaceId: string;
-}
-
-export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
+export function WorkspaceChatList() {
   const { t } = useTranslation("nav");
   const [expanded, setExpanded] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -92,7 +88,7 @@ export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
 
       setActiveWorkspaceChat(chatId);
     },
-    [workspaceId, tabs, addTab, setActiveTab, setActiveWorkspaceChat]
+    [tabs, addTab, setActiveTab, setActiveWorkspaceChat]
   );
 
   const handleDelete = useCallback(
@@ -196,7 +192,6 @@ export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
           open={convertDialogOpen}
           onOpenChange={setConvertDialogOpen}
           chatSessionId={selectedChatId}
-          workspaceId={workspaceId}
           onSuccess={() => {
             refetch();
             setConvertDialogOpen(false);

@@ -15,7 +15,7 @@ import { Download, Paperclip } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { resolveServerUrl } from "@/utils/server-url";
 import { trpc } from "@/utils/trpc";
 import type { EmailMessageDetail } from "./email-types";

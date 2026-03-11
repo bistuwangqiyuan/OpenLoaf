@@ -12,7 +12,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { openSettingsTab, useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";

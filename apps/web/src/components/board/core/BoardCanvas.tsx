@@ -48,7 +48,7 @@ import {
   waitForAnimationFrames,
 } from "../utils/board-export";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   closeFilePreview,
   openFilePreview,

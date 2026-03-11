@@ -50,7 +50,7 @@ import { useFileSystemPreview } from "../hooks/use-file-system-preview";
 import { useFolderThumbnails } from "../hooks/use-folder-thumbnails";
 import { FileSystemPreviewPanel } from "./FileSystemPreviewPanel";
 import { FileSystemPreviewStack } from "./FileSystemPreviewStack";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { handleFileSystemEntryOpen } from "../utils/entry-open";
 
 /** Return true when the entry represents a board folder. */

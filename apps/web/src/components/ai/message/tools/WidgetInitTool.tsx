@@ -13,7 +13,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { FolderOpen, FileCode } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useWorkspace } from '@/hooks/use-workspace'
 import { useChatSession } from '../../context'
 import {
   getApprovalId,

@@ -18,7 +18,7 @@ import { trpc } from "@/utils/trpc";
 
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";

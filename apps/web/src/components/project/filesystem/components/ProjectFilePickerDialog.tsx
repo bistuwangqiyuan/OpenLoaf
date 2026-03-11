@@ -38,7 +38,7 @@ import {
 } from "@openloaf/ui/dialog";
 import { Button } from "@openloaf/ui/button";
 import { PageTreePicker } from "@/components/layout/sidebar/ProjectTree";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useProjects } from "@/hooks/use-projects";
 import { useFileSelection } from "@/hooks/use-file-selection";
 import { trpc } from "@/utils/trpc";

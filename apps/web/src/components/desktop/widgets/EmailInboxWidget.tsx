@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Input } from "@openloaf/ui/input";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { formatDateTime } from "@/components/email/email-utils";

@@ -15,7 +15,7 @@ import i18next from "i18next";
 import { Chat } from "@/components/ai/Chat";
 import { useStackPanelSlot } from "@/hooks/use-stack-panel-slot";
 import { openSettingsTab } from "@/lib/globalShortcuts";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ExternalLink } from "lucide-react";
 
 // Lazy-load all panel components to reduce initial bundle size.

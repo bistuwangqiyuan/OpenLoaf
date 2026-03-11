@@ -35,7 +35,7 @@ import type { MaskedAttachmentInput } from "@/components/ai/input/chat-attachmen
 import { fetchBlobFromUri, loadImageFromUri } from "@/lib/image/uri";
 import { resolveMaskFileName } from "@/lib/image/mask";
 import { supportsImageInput } from "@/lib/model-capabilities";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface ImageViewerProps {
