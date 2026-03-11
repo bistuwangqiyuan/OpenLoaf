@@ -72,11 +72,6 @@ export function Search({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const activeWorkspaceId = workspaceCompatQuery.data?.id;
   const addTab = useTabs((s) => s.addTab);
   const setActiveTab = useTabs((s) => s.setActiveTab);
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
@@ -91,8 +86,8 @@ export function Search({
   const [committedSearchValue, setCommittedSearchValue] = React.useState("");
   /** 当前项目最近打开列表。 */
   const [recentProjectItems, setRecentProjectItems] = React.useState<RecentOpenItem[]>([]);
-  /** 工作区最近打开列表。 */
-  const [recentWorkspaceItems, setRecentWorkspaceItems] = React.useState<RecentOpenItem[]>([]);
+  /** 全局最近打开列表。 */
+  const [recentGlobalItems, setRecentGlobalItems] = React.useState<RecentOpenItem[]>([]);
   /** 防抖搜索关键字。 */
   const debouncedSearchValue = useDebounce(committedSearchValue.trim(), 200);
   /** 当前搜索范围的项目 id。 */
@@ -107,22 +102,16 @@ export function Search({
     () => buildProjectHierarchyIndex(projects),
     [projects],
   );
-  /** Refresh recent open lists for workspace and project scopes. */
+  /** Refresh recent open lists for global and project scopes. */
   const refreshRecentItems = React.useCallback(() => {
-    if (!activeWorkspaceId) {
-      setRecentProjectItems([]);
-      setRecentWorkspaceItems([]);
-      return;
-    }
     // 逻辑：只在弹层打开时刷新最近打开数据，避免无意义读写。
     const recent = getRecentOpens({
-      workspaceId: activeWorkspaceId,
       projectId: scopedProjectId,
       limit: 5,
     });
     setRecentProjectItems(recent.project);
-    setRecentWorkspaceItems(recent.workspace);
-  }, [activeWorkspaceId, scopedProjectId]);
+    setRecentGlobalItems(recent.global);
+  }, [scopedProjectId]);
   /** 当前激活 Tab 的面板参数。 */
   const activeBaseParams = activeTab?.base?.params as Record<string, unknown> | undefined;
   /** 当前激活 Tab 的聊天参数。 */
@@ -149,7 +138,7 @@ export function Search({
   /** 项目范围内的搜索结果。 */
   const projectSearchQuery = useQuery({
     ...trpc.fs.search.queryOptions(
-      searchEnabled && scopedProjectId && scopedProjectRootUri && activeWorkspaceId
+      searchEnabled && scopedProjectId && scopedProjectRootUri
         ? {
             projectId: scopedProjectId,
             rootUri: scopedProjectRootUri,
@@ -164,7 +153,7 @@ export function Search({
   /** 工作区范围内的搜索结果。 */
   const workspaceSearchQuery = useQuery({
     ...trpc.fs.searchWorkspace.queryOptions(
-      searchEnabled && !scopedProjectId && activeWorkspaceId
+      searchEnabled && !scopedProjectId
         ? {
             query: debouncedSearchValue,
             includeHidden: false,
@@ -336,16 +325,14 @@ export function Search({
   }, [open, refreshRecentItems]);
   React.useEffect(() => {
     if (!open) return;
-    const handleRecentEvent = (event: Event) => {
-      const detail = (event as CustomEvent<{ workspaceId?: string }>).detail;
-      if (detail?.workspaceId && detail.workspaceId !== activeWorkspaceId) return;
+    const handleRecentEvent = () => {
       refreshRecentItems();
     };
     window.addEventListener(RECENT_OPEN_EVENT, handleRecentEvent);
     return () => {
       window.removeEventListener(RECENT_OPEN_EVENT, handleRecentEvent);
     };
-  }, [activeWorkspaceId, open, refreshRecentItems]);
+  }, [open, refreshRecentItems]);
   React.useEffect(() => {
     const wasOpen = prevOpenRef.current;
     prevOpenRef.current = open;
@@ -437,25 +424,24 @@ export function Search({
     [buildRecentResults, recentProjectItems],
   );
   /** 工作区最近打开结果。 */
-  const recentWorkspaceResults = React.useMemo(
-    () => buildRecentResults(recentWorkspaceItems),
-    [buildRecentResults, recentWorkspaceItems],
+  const recentGlobalResults = React.useMemo(
+    () => buildRecentResults(recentGlobalItems),
+    [buildRecentResults, recentGlobalItems],
   );
   /** 需要请求缩略图的结果集合。 */
   const thumbnailTargets = React.useMemo(() => {
     if (searchEnabled) return visibleFileResults;
     if (scopedProjectId) return recentProjectResults;
-    return recentWorkspaceResults;
+    return recentGlobalResults;
   }, [
+    recentGlobalResults,
     recentProjectResults,
-    recentWorkspaceResults,
     scopedProjectId,
     searchEnabled,
     visibleFileResults,
   ]);
   /** 按项目分组构建缩略图请求列表。 */
   const thumbnailGroups = React.useMemo(() => {
-    if (!activeWorkspaceId) return [];
     const grouped = new Map<string, string[]>();
     for (const result of thumbnailTargets) {
       if (result.entry.kind !== "file") continue;
@@ -467,12 +453,12 @@ export function Search({
       projectId,
       uris: Array.from(new Set(uris)).slice(0, 50),
     }));
-  }, [activeWorkspaceId, thumbnailTargets]);
+  }, [thumbnailTargets]);
   /** 请求可见文件的缩略图数据。 */
   const thumbnailQueries = useQueries({
     queries: thumbnailGroups.map((group) => {
       const queryOptions = trpc.fs.thumbnails.queryOptions(
-        group.uris.length && activeWorkspaceId
+        group.uris.length
           ? { projectId: group.projectId, uris: group.uris }
           : skipToken,
       );
@@ -480,7 +466,7 @@ export function Search({
         ...(queryOptions as unknown as Record<string, unknown>),
         queryKey: queryOptions.queryKey,
         queryFn: queryOptions.queryFn,
-        enabled: Boolean(group.uris.length) && Boolean(activeWorkspaceId),
+        enabled: Boolean(group.uris.length),
         refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000,
       };
@@ -733,9 +719,9 @@ export function Search({
                 )}
               </CommandGroup>
             ) : null}
-            {!scopedProjectId && recentWorkspaceResults.length > 0 ? (
+            {!scopedProjectId && recentGlobalResults.length > 0 ? (
               <CommandGroup heading={t('recentOpenWorkspace')}>
-                {recentWorkspaceResults.map((result) => renderFileResult(result))}
+                {recentGlobalResults.map((result) => renderFileResult(result))}
               </CommandGroup>
             ) : null}
           </>

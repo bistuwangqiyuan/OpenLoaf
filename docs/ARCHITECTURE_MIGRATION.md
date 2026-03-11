@@ -4,7 +4,7 @@
 
 ## 一、目标
 
-将 OpenLoaf 从「工作空间（Workspace）包含多个工作区（Project）」的层级架构，改为「项目（Project）作为独立一等公民」的扁平架构。
+将 OpenLoaf 从「工作空间（Workspace）包含多个项目（Project）」的层级架构，改为「项目（Project）作为独立一等公民」的扁平架构。
 
 ### 核心原则
 
@@ -71,7 +71,7 @@
 | **Sidebar.tsx** | SidebarHeader 顶部渲染 `<SidebarUserAccount />`，移除原 SidebarWorkspace 引用 |
 | **WorkspaceBootstrap.tsx** | 兼容层启动器，仅负责默认 workspace cookie 与默认 AI 标签页初始化；`useWorkspace()` 已改为轻量 query hook |
 | **Scope 替换** | 6 个组件中 `"workspace"` → `"global"`：`use-main-agent-model.ts`、`AgentDetailPanel.tsx`、`AgentManagement.tsx`、`ProjectAgentView.tsx`、`SkillsSettingsPanel.tsx`、`ScheduledTaskDialog.tsx` |
-| **workspaceId / useWorkspace 清理** | 继续清理 AI、Board、Calendar、Email、File、Desktop、Tasks、Settings、Project 页面中的 `workspaceId` 传递与 `useWorkspace()` 依赖；前端业务组件已不再直接依赖 `useWorkspace()`，仅保留 `hooks/use-workspace.ts` 与 `WorkspaceBootstrap.tsx` 兼容层；Calendar 页面/任务聚合/Electron 桥接类型与 Email 页面/栈/下载链接/OAuth 均已不再依赖前端 `workspaceId` guard |
+| **workspaceId / useWorkspace 清理** | 继续清理 AI、Board、Calendar、Email、File、Desktop、Tasks、Settings、Project 页面中的 `workspaceId` 传递与 `useWorkspace()` 依赖；前端业务组件已不再直接依赖 `useWorkspace()`，仅保留 `hooks/use-workspace.ts` 与 `WorkspaceBootstrap.tsx` 兼容层；Calendar 页面/任务聚合/Electron 桥接类型、Email 页面/栈/下载链接/OAuth，以及 Search 弹层 / recent-open 本地缓存均已不再依赖前端 `workspaceId` guard |
 | **Hooks** | `use-tabs.ts`（移除 workspaceId 字段及 workspaceTabs 逻辑）、`use-navigation.ts`、`use-sidebar-navigation.ts`、`use-chat-sessions.ts` 等 |
 | **i18n** | `nav.json`（3 语言）更新导航翻译 key |
 
@@ -148,7 +148,7 @@
 
 | 功能 | 说明 |
 |------|------|
-| **ProjectGridPage** | 工作区列表页面（替代原工作空间列表） |
+| **ProjectGridPage** | 项目列表页面（替代原工作空间列表） |
 | **ActivityTimeline** | 主窗口活动时间线组件（消费 ActivityRecord） |
 | **项目链接 UI** | ProjectLink 的创建/管理界面 |
 | **多 Agent 架构** | Secretary Agent → Project Agent → Worker Agents 调度系统 |

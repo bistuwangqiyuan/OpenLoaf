@@ -13,6 +13,8 @@ import { getWorkspaceIdFromCookie } from "@/components/board/core/boardSession";
 import type { FileSystemEntry } from "@/components/project/filesystem/utils/file-system-utils";
 
 export const RECENT_OPEN_EVENT = "openloaf:recent-open";
+const RECENT_OPEN_STORAGE_KEY = "openloaf:recent-open";
+const RECENT_OPEN_STORAGE_KEY_LEGACY_PREFIX = "openloaf:recent-open:";
 
 export type RecentOpenItem = {
   /** Project id for the entry. */
@@ -30,16 +32,16 @@ export type RecentOpenItem = {
 };
 
 type RecentOpenStore = {
-  /** Workspace-level recent entries. */
-  workspace: RecentOpenItem[];
+  /** Global recent entries. */
+  global: RecentOpenItem[];
   /** Project-level recent entries. */
   projects: Record<string, RecentOpenItem[]>;
 };
 
 type RecordRecentOpenInput = {
-  /** Current tab id for workspace resolution. */
+  /** @deprecated Retained for call-site compatibility. */
   tabId?: string | null;
-  /** Explicit workspace id. */
+  /** @deprecated Retained for call-site compatibility. */
   workspaceId?: string | null;
   /** Project id for the entry. */
   projectId?: string | null;
@@ -49,47 +51,59 @@ type RecordRecentOpenInput = {
   maxItems?: number;
 };
 
-/** Build the storage key for a workspace. */
-function buildStorageKey(workspaceId: string): string {
-  return `openloaf:recent-open:${workspaceId}`;
+/** Build the legacy storage key for workspace-scoped history. */
+function buildLegacyStorageKey(workspaceId: string): string {
+  return `${RECENT_OPEN_STORAGE_KEY_LEGACY_PREFIX}${workspaceId}`;
 }
 
-/** Resolve workspace id from explicit input or cookies. */
-function resolveWorkspaceId(input: {
-  tabId?: string | null;
-  workspaceId?: string | null;
-}): string | null {
-  if (input.workspaceId) return input.workspaceId;
-  return getWorkspaceIdFromCookie();
-}
-
-/** Safely read the recent-open store. */
-function readStore(workspaceId: string): RecentOpenStore {
-  if (typeof window === "undefined") {
-    return { workspace: [], projects: {} };
-  }
-  const raw = window.localStorage.getItem(buildStorageKey(workspaceId));
-  if (!raw) return { workspace: [], projects: {} };
+/** Read the legacy workspace-scoped store for one-time migration fallback. */
+function readLegacyStore(): RecentOpenStore | null {
+  if (typeof window === "undefined") return null;
+  const workspaceId = getWorkspaceIdFromCookie();
+  if (!workspaceId) return null;
+  const raw = window.localStorage.getItem(buildLegacyStorageKey(workspaceId));
+  if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<RecentOpenStore>;
+    const parsed = JSON.parse(raw) as Partial<{
+      workspace: RecentOpenItem[];
+      projects: Record<string, RecentOpenItem[]>;
+    }>;
     return {
-      workspace: Array.isArray(parsed.workspace) ? parsed.workspace : [],
+      global: Array.isArray(parsed.workspace) ? parsed.workspace : [],
       projects: parsed.projects && typeof parsed.projects === "object" ? parsed.projects : {},
     };
   } catch {
-    return { workspace: [], projects: {} };
+    return null;
+  }
+}
+
+/** Safely read the recent-open store. */
+function readStore(): RecentOpenStore {
+  if (typeof window === "undefined") {
+    return { global: [], projects: {} };
+  }
+  const raw = window.localStorage.getItem(RECENT_OPEN_STORAGE_KEY);
+  if (!raw) return readLegacyStore() ?? { global: [], projects: {} };
+  try {
+    const parsed = JSON.parse(raw) as Partial<RecentOpenStore>;
+    return {
+      global: Array.isArray(parsed.global) ? parsed.global : [],
+      projects: parsed.projects && typeof parsed.projects === "object" ? parsed.projects : {},
+    };
+  } catch {
+    return readLegacyStore() ?? { global: [], projects: {} };
   }
 }
 
 /** Persist the recent-open store to localStorage. */
-function writeStore(workspaceId: string, store: RecentOpenStore): void {
+function writeStore(store: RecentOpenStore): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(buildStorageKey(workspaceId), JSON.stringify(store));
+  window.localStorage.setItem(RECENT_OPEN_STORAGE_KEY, JSON.stringify(store));
 }
 
 /** Build a unique key for de-duplication. */
 function buildItemKey(item: RecentOpenItem): string {
-  return `${item.projectId ?? "workspace"}:${item.fileUri}`;
+  return `${item.projectId ?? "global"}:${item.fileUri}`;
 }
 
 /** Record a file open event into the recent list. */
@@ -101,14 +115,8 @@ export function recordRecentOpen(input: RecordRecentOpenInput): void {
   const projectId = input.projectId?.trim();
   if (!projectId) return;
 
-  const workspaceId = resolveWorkspaceId({
-    tabId: input.tabId,
-    workspaceId: input.workspaceId,
-  });
-  if (!workspaceId) return;
-
   const maxItems = input.maxItems ?? 5;
-  const store = readStore(workspaceId);
+  const store = readStore();
   const item: RecentOpenItem = {
     projectId,
     fileUri,
@@ -119,11 +127,11 @@ export function recordRecentOpen(input: RecordRecentOpenInput): void {
   };
 
   // 逻辑：同一文件重复打开时置顶，避免重复项。
-  const nextWorkspace = [
+  const nextGlobal = [
     item,
-    ...store.workspace.filter((existing) => buildItemKey(existing) !== buildItemKey(item)),
+    ...store.global.filter((existing) => buildItemKey(existing) !== buildItemKey(item)),
   ].slice(0, maxItems);
-  store.workspace = nextWorkspace;
+  store.global = nextGlobal;
 
   const projectList = store.projects[projectId] ?? [];
   const nextProjectList = [
@@ -132,28 +140,25 @@ export function recordRecentOpen(input: RecordRecentOpenInput): void {
   ].slice(0, maxItems);
   store.projects[projectId] = nextProjectList;
 
-  writeStore(workspaceId, store);
-  window.dispatchEvent(
-    new CustomEvent(RECENT_OPEN_EVENT, { detail: { workspaceId } }),
-  );
+  writeStore(store);
+  window.dispatchEvent(new CustomEvent(RECENT_OPEN_EVENT));
 }
 
-/** Read recent entries for workspace and project scopes. */
+/** Read recent entries for global and project scopes. */
 export function getRecentOpens(input: {
+  /** @deprecated Retained for call-site compatibility. */
   workspaceId?: string | null;
   projectId?: string | null;
   limit?: number;
-}): { workspace: RecentOpenItem[]; project: RecentOpenItem[] } {
+}): { global: RecentOpenItem[]; project: RecentOpenItem[] } {
   if (typeof window === "undefined") {
-    return { workspace: [], project: [] };
+    return { global: [], project: [] };
   }
-  const workspaceId = input.workspaceId?.trim();
-  if (!workspaceId) return { workspace: [], project: [] };
-  const store = readStore(workspaceId);
+  const store = readStore();
   const limit = input.limit ?? 5;
-  const workspaceItems = store.workspace.slice(0, limit);
+  const globalItems = store.global.slice(0, limit);
   const projectItems = input.projectId
     ? (store.projects[input.projectId] ?? []).slice(0, limit)
     : [];
-  return { workspace: workspaceItems, project: projectItems };
+  return { global: globalItems, project: projectItems };
 }
