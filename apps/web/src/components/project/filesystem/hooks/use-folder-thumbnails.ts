@@ -32,7 +32,7 @@ function useFolderThumbnails({
   const thumbnailsQuery = useQuery(
     trpc.fs.folderThumbnails.queryOptions(
       shouldFetch
-        ? { workspaceId, projectId, uri: currentUri, includeHidden }
+        ? { projectId, uri: currentUri, includeHidden }
         : skipToken
     )
   );

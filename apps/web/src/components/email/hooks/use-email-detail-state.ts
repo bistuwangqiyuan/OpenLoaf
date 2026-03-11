@@ -95,12 +95,10 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
       onMutate: async (variables) => {
         if (!workspaceId) return undefined
         const queryKey = trpc.email.getMessage.queryOptions({
-          workspaceId,
           id: variables.id,
         }).queryKey
         const unifiedMessagesKey = unifiedMessagesQueryKey
         const unifiedUnreadStatsKey = trpc.email.listUnifiedUnreadStats.queryOptions({
-          workspaceId,
         }).queryKey
         const previousUnifiedMessages = unifiedMessagesKey
           ? queryClient.getQueryData<
@@ -192,11 +190,11 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         const targetId = context?.id ?? activeMessageId
         if (targetId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.getMessage.queryOptions({ workspaceId, id: targetId }).queryKey,
+            queryKey: trpc.email.getMessage.queryOptions({ id: targetId }).queryKey,
           })
         }
         queryClient.invalidateQueries({
-          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
         })
       },
     }),
@@ -209,7 +207,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         if (activeMessageId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.getMessage.queryOptions({ workspaceId, id: activeMessageId }).queryKey,
+            queryKey: trpc.email.getMessage.queryOptions({ id: activeMessageId }).queryKey,
           })
         }
       },
@@ -223,7 +221,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         queryClient.invalidateQueries({ queryKey: unifiedMessagesQueryKey })
         if (activeMessageId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.getMessage.queryOptions({ workspaceId, id: activeMessageId }).queryKey,
+            queryKey: trpc.email.getMessage.queryOptions({ id: activeMessageId }).queryKey,
           })
         }
       },
@@ -239,7 +237,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         if (workspaceId) {
           queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
         }
       },
@@ -253,10 +251,10 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
         if (workspaceId) {
           queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
         }
       },
@@ -283,7 +281,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
     setDraftSaveStatus('idle')
     const timer = window.setTimeout(() => {
       saveDraftMutation.mutate({
-        workspaceId,
         id: draftIdRef.current ?? undefined,
         accountEmail: composeDraft.accountEmail ?? accounts[0]?.emailAddress ?? '',
         mode: composeDraft.mode,
@@ -306,7 +303,7 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
   // ── Handlers ──
   function handleToggleFlagged() {
     if (!workspaceId || !activeMessageId) return
-    setFlaggedMutation.mutate({ workspaceId, id: activeMessageId, flagged: !isFlagged })
+    setFlaggedMutation.mutate({ id: activeMessageId, flagged: !isFlagged })
   }
 
   function handleStartForward() {
@@ -405,7 +402,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
       const toList = composeDraft.to.split(/[,;]/).map((s) => s.trim()).filter(Boolean)
       if (!toList.length) return
       sendMessageMutation.mutate({
-        workspaceId,
         accountEmail: composeDraft.accountEmail ?? accounts[0]?.emailAddress ?? '',
         to: toList,
         cc: composeDraft.cc ? composeDraft.cc.split(/[,;]/).map((s) => s.trim()).filter(Boolean) : undefined,
@@ -422,7 +418,6 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
       const toList = forwardDraft.to.split(/[,;]/).map((s) => s.trim()).filter(Boolean)
       if (!toList.length) return
       sendMessageMutation.mutate({
-        workspaceId,
         accountEmail: activeMessage.accountEmail,
         to: toList,
         cc: forwardDraft.cc ? forwardDraft.cc.split(/[,;]/).map((s) => s.trim()).filter(Boolean) : undefined,
@@ -440,22 +435,21 @@ export function useEmailDetailState(core: EmailCoreState): DetailState {
 
   function handleDeleteConfirmed() {
     if (!workspaceId || !activeMessageId) return
-    deleteMessageMutation.mutate({ workspaceId, id: activeMessageId })
+    deleteMessageMutation.mutate({ id: activeMessageId })
     setDeleteConfirmOpen(false)
   }
 
   function handleSetPrivateSender() {
     if (!workspaceId || !detailFromAddress) return
-    setPrivateSenderMutation.mutate({ workspaceId, senderEmail: detailFromAddress })
+    setPrivateSenderMutation.mutate({ senderEmail: detailFromAddress })
   }
 
   function handleRemovePrivateSender() {
     if (!workspaceId || !detailFromAddress) return
-    removePrivateSenderMutation.mutate({ workspaceId, senderEmail: detailFromAddress })
+    removePrivateSenderMutation.mutate({ senderEmail: detailFromAddress })
   }
 
   return {
-    workspaceId,
     activeMessage,
     isForwarding,
     forwardDraft,

@@ -15,7 +15,6 @@ import type { DockItem, Tab } from "@openloaf/api/common";
 export type TabMeta = Pick<
   Tab,
   | "id"
-  | "workspaceId"
   | "title"
   | "icon"
   | "isPin"

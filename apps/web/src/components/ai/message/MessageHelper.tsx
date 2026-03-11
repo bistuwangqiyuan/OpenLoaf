@@ -66,7 +66,7 @@ export default function MessageHelper({
     const key = `${projectId || ""}:${workspaceId || ""}`;
     if (lastRequestedKeyRef.current === key) return;
     lastRequestedKeyRef.current = key;
-    dynamicMutation.mutate({ projectId: projectId || undefined, workspaceId: workspaceId || undefined });
+    dynamicMutation.mutate({ projectId: projectId || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, workspaceId]);
 

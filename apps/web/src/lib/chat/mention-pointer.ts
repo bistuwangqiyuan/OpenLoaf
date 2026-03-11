@@ -78,14 +78,12 @@ function resolveProjectTitle(projects: ProjectTreeNode[], projectId: string): st
 
 /** Fetch filesystem metadata for a mention target. */
 async function fetchMentionEntry(input: {
-  workspaceId: string;
   projectId?: string;
   uri: string;
 }): Promise<FileSystemEntry | null> {
   try {
     const result = await queryClient.fetchQuery(
       trpc.fs.stat.queryOptions({
-        workspaceId: input.workspaceId,
         projectId: input.projectId,
         uri: input.uri,
       })
@@ -172,7 +170,6 @@ export function handleChatMentionPointerDown(
   event.stopPropagation();
   void (async () => {
     const entry = await fetchMentionEntry({
-      workspaceId,
       projectId,
       uri,
     });

@@ -18,7 +18,8 @@ import {
   videoGenerateToolDef,
   listMediaModelsToolDef,
 } from '@openloaf/api/types/tools/mediaGenerate'
-import { getWorkspaceRootPathById } from '@openloaf/api/services/vfsService'
+import { getProjectRootPath } from '@openloaf/api/services/vfsService'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { logger } from '@/common/logger'
 import {
   getAbortSignal,
@@ -26,7 +27,6 @@ import {
   getSaasAccessToken,
   getSessionId,
   getUiWriter,
-  getWorkspaceId,
   getProjectId,
   getBoardId,
 } from '@/ai/shared/context/requestContext'
@@ -163,7 +163,6 @@ async function waitForMediaTask(input: {
 async function downloadAndSaveImage(input: {
   url: string
   sessionId: string
-  workspaceId: string
   projectId?: string
   boardId?: string
   abortSignal: AbortSignal
@@ -180,10 +179,10 @@ async function downloadAndSaveImage(input: {
   const fileName = buildFileName('png', input.fileName, input.index, input.total)
   // 逻辑：有 boardId 时直接保存到画布资产目录，与视频行为一致。
   if (input.boardId) {
-    const rootPath = getWorkspaceRootPathById(input.workspaceId)
-    if (!rootPath) throw new Error('workspace not found')
+    const rootPath = input.projectId ? getProjectRootPath(input.projectId) : null
+    const effectiveRoot = rootPath ?? getOpenLoafRootDir()
     const boardSegment = path.join('.openloaf', 'boards', input.boardId)
-    const dir = path.join(rootPath, boardSegment, 'asset')
+    const dir = path.join(effectiveRoot, boardSegment, 'asset')
     await fs.mkdir(dir, { recursive: true })
     const filePath = path.join(dir, fileName)
     await fs.writeFile(filePath, buffer)
@@ -193,7 +192,6 @@ async function downloadAndSaveImage(input: {
     }
   }
   return saveChatImageAttachment({
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
     sessionId: input.sessionId,
     fileName,
@@ -206,7 +204,6 @@ async function downloadAndSaveImage(input: {
 async function downloadAndSaveVideo(input: {
   url: string
   sessionId: string
-  workspaceId: string
   projectId?: string
   boardId?: string
   abortSignal: AbortSignal
@@ -221,12 +218,12 @@ async function downloadAndSaveVideo(input: {
   const contentType = response.headers.get('content-type') || 'video/mp4'
   const ext = contentType.includes('webm') ? 'webm' : 'mp4'
   const fileName = buildFileName(ext, input.fileName, input.index, input.total)
-  const rootPath = getWorkspaceRootPathById(input.workspaceId)
-  if (!rootPath) throw new Error('workspace not found')
+  const rootPath = input.projectId ? getProjectRootPath(input.projectId) : null
+  const effectiveRoot = rootPath ?? getOpenLoafRootDir()
   const chatHistorySegment = input.boardId
     ? path.join('.openloaf', 'boards', input.boardId)
     : path.join('.openloaf', 'chat-history', input.sessionId)
-  const dir = path.join(rootPath, chatHistorySegment, 'asset')
+  const dir = path.join(effectiveRoot, chatHistorySegment, 'asset')
   await fs.mkdir(dir, { recursive: true })
   const filePath = path.join(dir, fileName)
   const stream = Readable.fromWeb(response.body as any)
@@ -328,7 +325,6 @@ async function executeMediaGenerate(input: {
   // 优先级：工具参数 modelId > RequestContext 配置 > autoSelect 兜底
   let modelId = input.modelId || getMediaModelId(input.kind)
   const sessionId = getSessionId()
-  const workspaceId = getWorkspaceId()
   const projectId = getProjectId()
   const boardId = getBoardId()
   const abortSignal = getAbortSignal()
@@ -412,14 +408,13 @@ async function executeMediaGenerate(input: {
 
   // 逻辑：图片结果下载并保存为 chat 附件。
   let resultUrls = taskResult.urls
-  if (input.kind === 'image' && sessionId && workspaceId && resultUrls.length > 0) {
+  if (input.kind === 'image' && sessionId && resultUrls.length > 0) {
     try {
       const saved = await Promise.all(
         resultUrls.map((url, i) =>
           downloadAndSaveImage({
             url,
             sessionId,
-            workspaceId,
             projectId,
             boardId,
             abortSignal: signal,
@@ -436,14 +431,13 @@ async function executeMediaGenerate(input: {
   }
 
   // 逻辑：视频结果下载并保存为 chat 附件。
-  if (input.kind === 'video' && sessionId && workspaceId && resultUrls.length > 0) {
+  if (input.kind === 'video' && sessionId && resultUrls.length > 0) {
     try {
       const saved = await Promise.all(
         resultUrls.map((url, i) =>
           downloadAndSaveVideo({
             url,
             sessionId,
-            workspaceId,
             projectId,
             boardId,
             abortSignal: signal,

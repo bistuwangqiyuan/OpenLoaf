@@ -44,7 +44,7 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
       onSuccess: (data) => {
         if (workspaceId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
           })
         }
         setActiveAccountEmail(normalizeEmail(data.emailAddress))
@@ -139,7 +139,6 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
         formState.oauthProvider === 'google' ? 'oauth2-gmail' : 'oauth2-graph'
       addAccountMutation.mutate({
         authType: oauthAuthType,
-        workspaceId,
         emailAddress: (formState.oauthEmail ?? formState.emailAddress).trim(),
         label: formState.label.trim() || undefined,
       })
@@ -147,7 +146,6 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
     }
     addAccountMutation.mutate({
       authType: 'password',
-      workspaceId,
       emailAddress: formState.emailAddress.trim(),
       label: formState.label.trim() || undefined,
       imap: { host: formState.imapHost.trim(), port: Number(formState.imapPort || 0), tls: formState.imapTls },
@@ -198,7 +196,7 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
       window.clearInterval(timer)
       if (workspaceId) {
         queryClient.invalidateQueries({
-          queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
+          queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
         })
       }
       setFormState((prev) => ({

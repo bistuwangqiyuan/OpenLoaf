@@ -1,6 +1,5 @@
 model CalendarSource {
   id           String   @id /// 记录 ID
-  workspaceId  String /// 工作空间 ID
   provider     String /// 数据来源（local/macos/windows）
   kind         String /// 源类型（calendar/reminder）
   externalId   String? /// 系统日历 ID
@@ -14,14 +13,12 @@ model CalendarSource {
 
   items CalendarItem[]
 
-  @@index([workspaceId])
-  @@index([workspaceId, projectId])
-  @@unique([workspaceId, provider, kind, externalId])
+  @@index([projectId])
+  @@unique([provider, kind, externalId])
 }
 
 model CalendarItem {
   id              String   @id /// 记录 ID
-  workspaceId     String /// 工作空间 ID
   sourceId        String /// 日历源 ID
   kind            String /// 类型（event/reminder）
   title           String /// 标题
@@ -40,7 +37,7 @@ model CalendarItem {
 
   source CalendarSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
-  @@index([workspaceId, startAt])
-  @@index([workspaceId, sourceId])
-  @@unique([workspaceId, sourceId, externalId])
+  @@index([startAt])
+  @@index([sourceId])
+  @@unique([sourceId, externalId])
 }

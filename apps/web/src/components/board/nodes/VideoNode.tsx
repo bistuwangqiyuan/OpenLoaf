@@ -67,7 +67,6 @@ async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileCo
   const displayName = props.fileName || resolvedPath.split("/").pop() || "Video";
 
   const metadata = await fetchVideoMetadata({
-    workspaceId,
     projectId: fileContext?.projectId,
     uri: projectRelativePath || props.sourcePath,
   });

@@ -190,7 +190,6 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     const jsonUri = boardFolderUri.replace(/\/$/, '') + '/index.tnboard.json';
     try {
       const result = await trpcClient.fs.readFile.query({
-        workspaceId,
         uri: jsonUri,
       });
       if (!result.content) {

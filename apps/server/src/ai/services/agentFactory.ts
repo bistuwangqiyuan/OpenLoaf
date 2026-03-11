@@ -299,7 +299,7 @@ export type CreateSubAgentInput = {
   skillRoots?: {
     projectRoot?: string
     parentRoots?: string[]
-    workspaceRoot?: string
+    globalRoot?: string
   }
 }
 

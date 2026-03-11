@@ -135,7 +135,6 @@ function WidgetApprovalPrompt({
 
 export default function DynamicWidgetRenderer({
   widgetId,
-  workspaceId,
   projectId,
   onEmit,
   onNavigate,
@@ -143,12 +142,12 @@ export default function DynamicWidgetRenderer({
   onOpenTab,
 }: DynamicWidgetRendererProps) {
   const { t } = useTranslation('desktop')
-  const { Component, loading, error } = useLoadDynamicComponent(workspaceId, projectId, widgetId)
+  const { Component, loading, error } = useLoadDynamicComponent(projectId, widgetId)
   const [approved, setApproved] = React.useState(() => getApprovedWidgets().has(widgetId))
 
   // 获取 widget 元数据（用于确认对话框展示脚本列表）。
   const metaQuery = useQuery({
-    ...trpc.dynamicWidget.get.queryOptions({ workspaceId, projectId, widgetId }),
+    ...trpc.dynamicWidget.get.queryOptions({ projectId, widgetId }),
     enabled: !approved,
   })
 
@@ -179,7 +178,6 @@ export default function DynamicWidgetRenderer({
     const host: WidgetHostCallbacks = {
       callFunction: async (functionName, params) => {
         const result = await trpcClient.dynamicWidget.callFunction.mutate({
-          workspaceId,
           projectId,
           widgetId,
           functionName,

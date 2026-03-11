@@ -25,7 +25,7 @@ const ARCHIVE_DIR = 'archive'
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export type TaskScope = 'workspace' | 'project'
+export type TaskScope = 'global' | 'project'
 
 export type TaskStatus = 'todo' | 'running' | 'review' | 'done' | 'cancelled'
 
@@ -179,13 +179,13 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 
 // ─── Public API ──────────────────────────────────────────────────────
 
-/** List tasks from workspace + optional project roots. */
+/** List tasks from global + optional project roots. */
 export function listTasks(
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoots?: string | string[] | null,
 ): TaskConfig[] {
   const tasks: TaskConfig[] = []
-  tasks.push(...scanTasks(workspaceRoot, 'workspace'))
+  tasks.push(...scanTasks(globalRoot, 'global'))
   if (projectRoots) {
     const roots = Array.isArray(projectRoots) ? projectRoots : [projectRoots]
     for (const root of roots) {
@@ -196,13 +196,13 @@ export function listTasks(
   return tasks
 }
 
-/** List tasks from workspace + all projects, attaching projectId to each project task. */
+/** List tasks from global + all projects, attaching projectId to each project task. */
 export function listTasksWithProjectMapping(
-  workspaceRoot: string,
+  globalRoot: string,
   projectRootMapping: Map<string, string>,
 ): TaskConfig[] {
   const tasks: TaskConfig[] = []
-  tasks.push(...scanTasks(workspaceRoot, 'workspace'))
+  tasks.push(...scanTasks(globalRoot, 'global'))
   for (const [rootPath, projectId] of projectRootMapping) {
     const projectTasks = scanTasks(rootPath, 'project')
     for (const task of projectTasks) {
@@ -217,17 +217,17 @@ export function listTasksWithProjectMapping(
 /** List tasks filtered by status. */
 export function listTasksByStatus(
   status: TaskStatus | TaskStatus[],
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoots?: string | string[] | null,
 ): TaskConfig[] {
   const statuses = Array.isArray(status) ? status : [status]
-  return listTasks(workspaceRoot, projectRoots).filter((t) => statuses.includes(t.status))
+  return listTasks(globalRoot, projectRoots).filter((t) => statuses.includes(t.status))
 }
 
 /** Get a single task by ID. */
 export function getTask(
   id: string,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoots?: string | string[] | null,
 ): TaskConfig | null {
   if (projectRoots) {
@@ -238,8 +238,8 @@ export function getTask(
       if (task) return task
     }
   }
-  const taskDir = path.join(resolveTasksDir(workspaceRoot), id)
-  return readTaskFromDir(taskDir, 'workspace')
+  const taskDir = path.join(resolveTasksDir(globalRoot), id)
+  return readTaskFromDir(taskDir, 'global')
 }
 
 /** Create input type (fields user/agent must provide). */
@@ -323,10 +323,10 @@ export function createTask(
 export function updateTask(
   id: string,
   patch: Partial<Omit<TaskConfig, 'id' | 'createdAt' | 'scope' | 'filePath' | 'activityLog'>>,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): TaskConfig | null {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing) return null
 
   const updated: Omit<TaskConfig, 'scope' | 'filePath'> = {
@@ -343,10 +343,10 @@ export function updateTask(
 export function appendActivityLog(
   id: string,
   entry: Omit<ActivityLogEntry, 'timestamp'>,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): boolean {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing) return false
 
   const logEntry: ActivityLogEntry = {
@@ -367,10 +367,10 @@ export function appendActivityLog(
 export function updateExecutionSummary(
   id: string,
   summary: ExecutionSummary,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): boolean {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing) return false
 
   const data = stripMeta(existing)
@@ -384,10 +384,10 @@ export function updateExecutionSummary(
 /** Delete a task by ID (removes the entire directory). */
 export function deleteTask(
   id: string,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): boolean {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing) return false
   try {
     const taskDir = path.dirname(existing.filePath)
@@ -401,16 +401,16 @@ export function deleteTask(
 /** Archive a completed task to archive/YYYY-MM-DD/<taskId>/. */
 export function archiveTask(
   id: string,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): boolean {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing || existing.status !== 'done') return false
 
   try {
     const sourceDir = path.dirname(existing.filePath)
     const dateStr = (existing.completedAt ?? existing.updatedAt).slice(0, 10)
-    const rootPath = existing.scope === 'project' && projectRoot ? projectRoot : workspaceRoot
+    const rootPath = existing.scope === 'project' && projectRoot ? projectRoot : globalRoot
     const archiveDir = resolveArchiveDir(rootPath, dateStr)
     const destDir = path.join(archiveDir, id)
 
@@ -425,10 +425,10 @@ export function archiveTask(
 /** Get the task directory path for storing plan.md and chat-history. */
 export function getTaskDir(
   id: string,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
 ): string | null {
-  const existing = getTask(id, workspaceRoot, projectRoot)
+  const existing = getTask(id, globalRoot, projectRoot)
   if (!existing) return null
   return path.dirname(existing.filePath)
 }

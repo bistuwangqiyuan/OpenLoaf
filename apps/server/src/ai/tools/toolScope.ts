@@ -8,30 +8,27 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import path from "node:path";
-import { getProjectId, getWorkspaceId } from "@/ai/shared/context/requestContext";
+import { getProjectId } from "@/ai/shared/context/requestContext";
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
   resolveScopedPath,
 } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 
 type ToolRoots = {
-  /** Workspace root path. */
-  workspaceRoot: string;
+  /** Global root path (~/.openloaf/). */
+  globalRoot: string;
   /** Project root path if available. */
   projectRoot?: string;
 };
 
-/** Resolve workspace/project roots for current request context. */
+/** Resolve global/project roots for current request context. */
 export function resolveToolRoots(): ToolRoots {
-  const workspaceId = getWorkspaceId();
-  if (!workspaceId) throw new Error("workspaceId is required.");
-  const workspaceRoot = getWorkspaceRootPathById(workspaceId);
-  if (!workspaceRoot) throw new Error("Workspace not found.");
+  const globalRoot = getOpenLoafRootDir();
   const projectId = getProjectId();
-  const projectRoot = projectId ? getProjectRootPath(projectId, workspaceId) ?? undefined : undefined;
+  const projectRoot = projectId ? getProjectRootPath(projectId) ?? undefined : undefined;
   return {
-    workspaceRoot: path.resolve(workspaceRoot),
+    globalRoot: path.resolve(globalRoot),
     projectRoot: projectRoot ? path.resolve(projectRoot) : undefined,
   };
 }
@@ -45,31 +42,25 @@ function isPathInside(root: string, target: string): boolean {
 /** Resolve a tool path (always allows outside scope; caller handles approval). */
 export function resolveToolPath(input: {
   target: string;
-}): { absPath: string; rootLabel: "workspace" | "project" | "external" } {
-  const workspaceId = getWorkspaceId();
-  if (!workspaceId) throw new Error("workspaceId is required.");
+}): { absPath: string; rootLabel: "project" | "external" } {
   const projectId = getProjectId();
-  const { workspaceRoot, projectRoot } = resolveToolRoots();
+  const { projectRoot } = resolveToolRoots();
   const absPath = path.resolve(
-    resolveScopedPath({ workspaceId, projectId, target: input.target }),
+    resolveScopedPath({ projectId, target: input.target }),
   );
   const insideProject = projectRoot ? isPathInside(projectRoot, absPath) : false;
-  const insideWorkspace = isPathInside(workspaceRoot, absPath);
-  const rootLabel = insideProject ? "project" : insideWorkspace ? "workspace" : "external";
+  const rootLabel = insideProject ? "project" : "external";
   return { absPath, rootLabel };
 }
 
-/** Check whether a path target is outside workspace/project scope (no-throw, for approval gates). */
+/** Check whether a path target is outside project scope (no-throw, for approval gates). */
 export function isTargetOutsideScope(target: string): boolean {
   try {
-    const workspaceId = getWorkspaceId();
-    if (!workspaceId) return false;
     const projectId = getProjectId();
-    const { workspaceRoot, projectRoot } = resolveToolRoots();
-    const absPath = path.resolve(resolveScopedPath({ workspaceId, projectId, target }));
+    const { projectRoot } = resolveToolRoots();
+    const absPath = path.resolve(resolveScopedPath({ projectId, target }));
     const insideProject = projectRoot ? isPathInside(projectRoot, absPath) : false;
-    const insideWorkspace = isPathInside(workspaceRoot, absPath);
-    return !insideProject && !insideWorkspace;
+    return !insideProject;
   } catch {
     return false;
   }
@@ -78,15 +69,15 @@ export function isTargetOutsideScope(target: string): boolean {
 /** Resolve a working directory (always allows outside scope; caller handles approval). */
 export function resolveToolWorkdir(input: {
   workdir?: string;
-}): { cwd: string; rootLabel: "workspace" | "project" | "external" } {
+}): { cwd: string; rootLabel: "project" | "external" } {
   if (input.workdir) {
     const resolved = resolveToolPath({ target: input.workdir });
     return { cwd: resolved.absPath, rootLabel: resolved.rootLabel };
   }
-  const { workspaceRoot, projectRoot } = resolveToolRoots();
-  const cwd = projectRoot ?? workspaceRoot;
+  const { globalRoot, projectRoot } = resolveToolRoots();
+  const cwd = projectRoot ?? globalRoot;
   return {
     cwd,
-    rootLabel: projectRoot ? "project" : "workspace",
+    rootLabel: projectRoot ? "project" : "external",
   };
 }

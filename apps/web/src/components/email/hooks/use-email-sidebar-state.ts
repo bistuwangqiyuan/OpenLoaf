@@ -67,7 +67,6 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
         if (workspaceId && activeAccount?.emailAddress && activeMailbox) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listUnifiedMessages.infiniteQueryOptions({
-              workspaceId,
               scope: 'mailbox',
               accountEmail: activeAccount.emailAddress,
               mailbox: activeMailbox,
@@ -78,20 +77,19 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
         if (workspaceId && activeAccount?.emailAddress) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listMailboxes.queryOptions({
-              workspaceId,
               accountEmail: activeAccount.emailAddress,
             }).queryKey,
           })
         }
         if (workspaceId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
         }
       },
@@ -104,17 +102,16 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
         if (workspaceId && activeAccount?.emailAddress) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listMailboxes.queryOptions({
-              workspaceId,
               accountEmail: activeAccount.emailAddress,
             }).queryKey,
           })
         }
         if (workspaceId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
         }
       },
@@ -126,17 +123,17 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
       onSuccess: () => {
         if (workspaceId) {
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
           queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnreadCount.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnreadCount.queryOptions({}).queryKey,
           })
         }
         setActiveAccountEmail(null)
@@ -151,7 +148,6 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
         if (!workspaceId) return
         queryClient.invalidateQueries({
           queryKey: trpc.email.listMailboxes.queryOptions({
-            workspaceId,
             accountEmail: variables.accountEmail,
           }).queryKey,
         })
@@ -196,10 +192,9 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
 
   function handleSyncMailbox() {
     if (!workspaceId || !activeAccount?.emailAddress) return
-    syncMailboxesMutation.mutate({ workspaceId, accountEmail: activeAccount.emailAddress })
+    syncMailboxesMutation.mutate({ accountEmail: activeAccount.emailAddress })
     if (activeMailbox) {
       syncMailboxMutation.mutate({
-        workspaceId,
         accountEmail: activeAccount.emailAddress,
         mailbox: activeMailbox,
       })
@@ -208,7 +203,7 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
 
   function handleRemoveAccount(emailAddress: string) {
     if (!workspaceId) return
-    removeAccountMutation.mutate({ workspaceId, emailAddress })
+    removeAccountMutation.mutate({ emailAddress })
   }
 
   function resolveOrderedMailboxNodes(
@@ -268,7 +263,6 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
       sort: index * 10,
     }))
     updateMailboxSortsMutation.mutate({
-      workspaceId,
       accountEmail: input.accountEmail,
       parentPath: input.parentPath,
       sorts,

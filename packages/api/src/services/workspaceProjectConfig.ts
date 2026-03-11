@@ -18,9 +18,8 @@ import {
 import { z } from "zod";
 import {
   getActiveWorkspaceConfig,
-  getWorkspaceByIdConfig,
   resolveWorkspaceRootPath,
-} from "./workspaceConfig";
+} from "./appConfigService";
 import { normalizeFileUri, resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
 
 /** Workspace-level project config directory name. */
@@ -40,17 +39,15 @@ export const workspaceProjectConfigSchema = z
 export type WorkspaceProjectConfig = z.infer<typeof workspaceProjectConfigSchema>;
 
 type WorkspaceProjectContext = {
-  /** Workspace id. */
-  workspaceId: string;
-  /** Workspace root URI. */
+  /** Root URI. */
   rootUri: string;
-  /** Workspace root path on disk. */
+  /** Root path on disk. */
   rootPath: string;
-  /** Raw workspace config data. */
+  /** Raw config data. */
   config: WorkspaceProjectConfig;
 };
 
-/** Build workspace.json path from workspace root path. */
+/** Build workspace.json path from root path. */
 function resolveWorkspaceProjectConfigPath(rootPath: string): string {
   return path.join(rootPath, WORKSPACE_PROJECT_CONFIG_DIR, WORKSPACE_PROJECT_CONFIG_FILE);
 }
@@ -73,7 +70,6 @@ function writeWorkspaceProjectConfig(rootPath: string, payload: WorkspaceProject
   const dirPath = path.dirname(filePath);
   mkdirSync(dirPath, { recursive: true });
   const tmpPath = `${filePath}.${Date.now()}.tmp`;
-  // 中文注释：使用原子写入，避免读取到半写入状态。
   writeFileSync(tmpPath, JSON.stringify(payload, null, 2), "utf-8");
   renameSync(tmpPath, filePath);
 }
@@ -105,7 +101,7 @@ function normalizeWorkspaceProjectConfig(
   return { projects, order };
 }
 
-/** Check whether target path is inside the workspace root. */
+/** Check whether target path is inside the root. */
 function isPathInside(rootPath: string, targetPath: string): boolean {
   const normalizedRoot = path.resolve(rootPath);
   const normalizedTarget = path.resolve(targetPath);
@@ -127,7 +123,6 @@ function resolveWorkspaceProjectEntry(rootPath: string, value: string): string |
 
 /** Convert a project root URI into a workspace.json entry. */
 function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
-  // 中文注释：兼容历史脏数据，截取拼接字符串中的 file:// 段。
   const cleanedRootUri = (() => {
     const trimmed = rootUri.trim();
     const fileIndex = trimmed.indexOf("file://");
@@ -140,15 +135,12 @@ function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
     return toFileUriWithoutEncoding(projectRootPath);
   }
   const relativePath = path.relative(rootPath, projectRootPath);
-  // 中文注释：同目录时使用 "."，避免空字符串导致歧义。
   return relativePath || ".";
 }
 
-/** Ensure workspace.json exists for the workspace. */
-function ensureWorkspaceProjectConfig(workspaceId?: string): WorkspaceProjectContext | null {
-  const workspace = workspaceId
-    ? getWorkspaceByIdConfig(workspaceId)
-    : getActiveWorkspaceConfig();
+/** Ensure workspace.json exists. workspaceId parameter is ignored. */
+function ensureWorkspaceProjectConfig(_workspaceId?: string): WorkspaceProjectContext | null {
+  const workspace = getActiveWorkspaceConfig();
   if (!workspace) return null;
   const rootPath = resolveWorkspaceRootPath(workspace.rootUri);
   let config = readWorkspaceProjectConfig(rootPath);
@@ -164,16 +156,15 @@ function ensureWorkspaceProjectConfig(workspaceId?: string): WorkspaceProjectCon
   }
 
   return {
-    workspaceId: workspace.id,
     rootUri: workspace.rootUri,
     rootPath,
     config,
   };
 }
 
-/** Get ordered project entries for a workspace. */
-export function getWorkspaceProjectEntries(workspaceId?: string): Array<[string, string]> {
-  const context = ensureWorkspaceProjectConfig(workspaceId);
+/** Get ordered project entries. workspaceId parameter is ignored. */
+export function getWorkspaceProjectEntries(_workspaceId?: string): Array<[string, string]> {
+  const context = ensureWorkspaceProjectConfig();
   if (!context) return [];
   const { projects, order } = normalizeWorkspaceProjectConfig(context.config);
   const entries: Array<[string, string]> = [];
@@ -187,18 +178,18 @@ export function getWorkspaceProjectEntries(workspaceId?: string): Array<[string,
   return entries;
 }
 
-/** Get project map for a workspace. */
-export function getWorkspaceProjectMap(workspaceId?: string): Map<string, string> {
-  return new Map(getWorkspaceProjectEntries(workspaceId));
+/** Get project map. workspaceId parameter is ignored. */
+export function getWorkspaceProjectMap(_workspaceId?: string): Map<string, string> {
+  return new Map(getWorkspaceProjectEntries());
 }
 
-/** Upsert a project entry into workspace.json. */
+/** Upsert a project entry into workspace.json. workspaceId parameter is ignored. */
 export function upsertWorkspaceProjectEntry(
   projectId: string,
   rootUri: string,
-  workspaceId?: string,
+  _workspaceId?: string,
 ): void {
-  const context = ensureWorkspaceProjectConfig(workspaceId);
+  const context = ensureWorkspaceProjectConfig();
   if (!context) return;
   const normalized = normalizeWorkspaceProjectConfig(context.config);
   const nextProjects = { ...normalized.projects };
@@ -218,9 +209,9 @@ export function upsertWorkspaceProjectEntry(
   });
 }
 
-/** Remove a project entry from workspace.json. */
-export function removeWorkspaceProjectEntry(projectId: string, workspaceId?: string): void {
-  const context = ensureWorkspaceProjectConfig(workspaceId);
+/** Remove a project entry from workspace.json. workspaceId parameter is ignored. */
+export function removeWorkspaceProjectEntry(projectId: string, _workspaceId?: string): void {
+  const context = ensureWorkspaceProjectConfig();
   if (!context) return;
   const normalized = normalizeWorkspaceProjectConfig(context.config);
   const trimmedId = projectId.trim();
@@ -236,12 +227,12 @@ export function removeWorkspaceProjectEntry(projectId: string, workspaceId?: str
   });
 }
 
-/** Replace workspace.json project entries in order. */
+/** Replace workspace.json project entries in order. workspaceId parameter is ignored. */
 export function setWorkspaceProjectEntries(
   entries: Array<[string, string]>,
-  workspaceId?: string,
+  _workspaceId?: string,
 ): void {
-  const context = ensureWorkspaceProjectConfig(workspaceId);
+  const context = ensureWorkspaceProjectConfig();
   if (!context) return;
   const projects: Record<string, string> = {};
   const order: string[] = [];

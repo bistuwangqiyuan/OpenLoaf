@@ -15,15 +15,14 @@ import { sendViaSMTP } from "./transport/smtpSender";
 import type { SendMessageInput, SendMessageResult } from "./transport/types";
 
 type SendEmailParams = {
-  workspaceId: string;
   accountEmail: string;
   input: SendMessageInput;
 };
 
 /** Send email through the appropriate channel based on account auth type. */
 export async function sendEmail(params: SendEmailParams): Promise<SendMessageResult> {
-  const { workspaceId, accountEmail, input } = params;
-  const config = readEmailConfigFile(workspaceId);
+  const { accountEmail, input } = params;
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (a) => a.emailAddress.trim().toLowerCase() === accountEmail.trim().toLowerCase(),
   );
@@ -62,7 +61,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendMessageRes
           emailAddress: account.emailAddress,
           auth: account.auth,
         },
-        { workspaceId },
+        {},
       );
       try {
         if (!transport.sendMessage) {

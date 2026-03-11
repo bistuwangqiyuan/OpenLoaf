@@ -69,7 +69,6 @@ type ScheduledTaskDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-  workspaceId: string
   projectId?: string
   task: TaskData | null
 }
@@ -172,7 +171,6 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
   open,
   onOpenChange,
   onSuccess,
-  workspaceId,
   projectId,
   task,
 }: ScheduledTaskDialogProps) {
@@ -199,7 +197,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
   const [message, setMessage] = useState('')
   const [enabled, setEnabled] = useState(true)
   /** Selected tab scope for new tasks. */
-  const [tabScope, setTabScope] = useState<'workspace' | 'project'>('workspace')
+  const [tabScope, setTabScope] = useState<'global' | 'project'>('global')
   /** Selected project id when tab scope is project. */
   const [targetProjectId, setTargetProjectId] = useState('')
   const [sessionMode, setSessionMode] = useState<'isolated' | 'shared'>('isolated')
@@ -262,7 +260,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
       setAgentName(task.agentName ?? '')
       setMessage((task.payload?.message as string) ?? '')
       setEnabled(task.enabled)
-      setTabScope((task.scope as 'workspace' | 'project') ?? 'workspace')
+      setTabScope((task.scope as 'global' | 'project') ?? 'global')
       setTargetProjectId(projectId ?? '')
       setSessionMode((task.sessionMode as 'isolated' | 'shared') ?? 'isolated')
       setTimeoutMs(task.timeoutMs ?? 600000)
@@ -284,7 +282,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
       setMessage('')
       setEnabled(true)
       // 逻辑：根据当前标签页默认作用域与项目。
-      setTabScope(projectId ? 'project' : 'workspace')
+      setTabScope(projectId ? 'project' : 'global')
       setTargetProjectId(projectId ?? '')
       setSessionMode('isolated')
       setTimeoutMs(600000)
@@ -358,7 +356,6 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
       })
     } else {
       createMutation.mutate({
-        workspaceId,
         projectId: resolvedProjectId || undefined,
         name,
         agentName: agentName || undefined,
@@ -377,7 +374,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
     isEditing, task, name, agentName, enabled,
     triggerMode, schedulePreset, scheduleTime, scheduleWeekday, scheduleMonthDay, cronExpr, intervalMs, scheduleOnceDate, scheduleOnceTime, timezone,
     condition, message, tabScope, resolvedProjectId, sessionMode, timeoutMs, cooldownMs,
-    projectId, workspaceId, createMutation, updateMutation,
+    projectId, createMutation, updateMutation,
   ])
 
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -423,8 +420,8 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
                   <FormRow label={t('schedule.scopeLabel')}>
                     <Tabs value={tabScope} onValueChange={(value) => setTabScope(value as typeof tabScope)}>
                       <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
-                        <TabsTrigger value="workspace" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                          {t('schedule.workspace')}
+                        <TabsTrigger value="global" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+                          {t('schedule.global', { defaultValue: t('schedule.workspace') })}
                         </TabsTrigger>
                         <TabsTrigger value="project" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
                           {t('schedule.project')}

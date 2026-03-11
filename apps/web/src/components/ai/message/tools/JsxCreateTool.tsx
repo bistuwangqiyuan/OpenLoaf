@@ -82,7 +82,7 @@ export default function JsxCreateTool({
     () =>
       trpc.fs.readFile.queryOptions(
         jsxUri && workspaceId
-          ? { workspaceId, projectId, uri: jsxUri }
+          ? { projectId, uri: jsxUri }
           : skipToken,
       ),
     [jsxUri, workspaceId, projectId],
@@ -167,25 +167,23 @@ export default function JsxCreateTool({
       if (payload.uri !== jsxUri) return
       // 逻辑：收到刷新事件后，强制重新拉取 jsx 文件内容。
       const queryKey = trpc.fs.readFile.queryOptions({
-        workspaceId,
         projectId,
         uri: jsxUri,
       }).queryKey
       void queryClient.invalidateQueries({ queryKey })
     })
     return unsubscribe
-  }, [jsxUri, workspaceId, projectId, queryClient])
+  }, [jsxUri, projectId, queryClient])
 
   /** Manually refresh the JSX file content from disk. */
   const handleManualRefresh = React.useCallback(() => {
     if (!jsxUri || !workspaceId) return
     const queryKey = trpc.fs.readFile.queryOptions({
-      workspaceId,
       projectId,
       uri: jsxUri,
     }).queryKey
     void queryClient.invalidateQueries({ queryKey })
-  }, [jsxUri, workspaceId, projectId, queryClient])
+  }, [jsxUri, projectId, queryClient])
 
   if (!hasJsx && !isStreaming && !errorText) {
     // 逻辑：未提供 JSX 且无错误时不渲染内容卡片。

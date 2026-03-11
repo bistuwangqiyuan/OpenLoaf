@@ -15,12 +15,13 @@ import {
   t,
   shieldedProcedure,
 } from '@openloaf/api'
-import { getProjectRootPath, getWorkspaceRootPathById } from '@openloaf/api/services/vfsService'
+import { getProjectRootPath } from '@openloaf/api/services/vfsService'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { executeWidgetFunction } from '@/modules/dynamic-widget/functionExecutor'
 import { compileWidget } from '@/modules/dynamic-widget/widgetCompiler'
 
-/** Resolve the dynamic widgets directory with projectId → workspaceId fallback. */
-function getDynamicWidgetsDir(projectId: string | undefined, workspaceId: string): string {
+/** Resolve the dynamic widgets directory with projectId fallback to global root. */
+function getDynamicWidgetsDir(projectId: string | undefined): string {
   if (projectId) {
     const projectRoot = getProjectRootPath(projectId)
     if (!projectRoot) {
@@ -28,11 +29,8 @@ function getDynamicWidgetsDir(projectId: string | undefined, workspaceId: string
     }
     return path.join(projectRoot, '.openloaf', 'dynamic-widgets')
   }
-  const workspaceRoot = getWorkspaceRootPathById(workspaceId)
-  if (!workspaceRoot) {
-    throw new Error(`Workspace not found: ${workspaceId}`)
-  }
-  return path.join(workspaceRoot, '.openloaf', 'dynamic-widgets')
+  const globalRoot = getOpenLoafRootDir()
+  return path.join(globalRoot, 'dynamic-widgets')
 }
 
 /** Read and parse a widget's package.json. */
@@ -67,7 +65,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .input(dynamicWidgetSchemas.list.input)
         .output(dynamicWidgetSchemas.list.output)
         .query(async ({ input }) => {
-          const widgetsDir = getDynamicWidgetsDir(input.projectId, input.workspaceId)
+          const widgetsDir = getDynamicWidgetsDir(input.projectId)
           try {
             await fs.access(widgetsDir)
           } catch {
@@ -100,7 +98,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .output(dynamicWidgetSchemas.get.output)
         .query(async ({ input }) => {
           const widgetDir = path.join(
-            getDynamicWidgetsDir(input.projectId, input.workspaceId),
+            getDynamicWidgetsDir(input.projectId),
             input.widgetId,
           )
           try {
@@ -123,7 +121,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .output(dynamicWidgetSchemas.save.output)
         .mutation(async ({ input }) => {
           const widgetDir = path.join(
-            getDynamicWidgetsDir(input.projectId, input.workspaceId),
+            getDynamicWidgetsDir(input.projectId),
             input.widgetId,
           )
           await fs.mkdir(widgetDir, { recursive: true })
@@ -143,7 +141,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .output(dynamicWidgetSchemas.delete.output)
         .mutation(async ({ input }) => {
           const widgetDir = path.join(
-            getDynamicWidgetsDir(input.projectId, input.workspaceId),
+            getDynamicWidgetsDir(input.projectId),
             input.widgetId,
           )
           try {
@@ -159,7 +157,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .output(dynamicWidgetSchemas.callFunction.output)
         .mutation(async ({ input }) => {
           const widgetDir = path.join(
-            getDynamicWidgetsDir(input.projectId, input.workspaceId),
+            getDynamicWidgetsDir(input.projectId),
             input.widgetId,
           )
           return executeWidgetFunction(
@@ -174,7 +172,7 @@ export class DynamicWidgetRouterImpl extends BaseDynamicWidgetRouter {
         .output(dynamicWidgetSchemas.compile.output)
         .query(async ({ input }) => {
           const widgetDir = path.join(
-            getDynamicWidgetsDir(input.projectId, input.workspaceId),
+            getDynamicWidgetsDir(input.projectId),
             input.widgetId,
           )
           return compileWidget(widgetDir)

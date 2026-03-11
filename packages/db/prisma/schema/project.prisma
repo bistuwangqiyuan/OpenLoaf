@@ -1,24 +1,42 @@
 model Project {
-  id          String   @id /// Project id.
-  workspaceId String /// Workspace id.
-  title       String /// Project title.
-  icon        String? /// Project icon.
-  rootUri     String /// Project root URI.
-  parentId    String? /// Parent project id.
-  sortIndex   Int      @default(0) /// Project sort index under parent.
-  isFavorite  Boolean  @default(false) /// Whether the project is favorited (pinned to top).
-  isDeleted   Boolean  @default(false) /// Soft delete flag.
-  deletedAt   DateTime? /// Soft delete timestamp.
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String    @id /// Project id.
+  title        String /// Project title.
+  icon         String? /// Project icon.
+  rootUri      String /// Project root URI.
+  type         String? /// User-defined project type label (e.g. "代码", "知识库", "文档").
+  parentId     String? /// Parent project id.
+  sortIndex    Int       @default(0) /// Project sort index under parent.
+  isFavorite   Boolean   @default(false) /// Whether the project is favorited (pinned to top).
+  isDeleted    Boolean   @default(false) /// Soft delete flag.
+  deletedAt    DateTime? /// Soft delete timestamp.
+  lastOpenedAt DateTime? /// Last time the project was opened.
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   parent   Project?  @relation("ProjectToProject", fields: [parentId], references: [id], onDelete: SetNull)
   children Project[] @relation("ProjectToProject")
 
-  @@index([workspaceId])
-  @@index([workspaceId, parentId])
-  @@index([workspaceId, parentId, sortIndex])
-  @@index([workspaceId, isFavorite])
-  @@index([workspaceId, isDeleted])
+  linkedTo   ProjectLink[] @relation("ProjectLinkSource")
+  linkedFrom ProjectLink[] @relation("ProjectLinkTarget")
+
+  @@index([parentId])
+  @@index([parentId, sortIndex])
+  @@index([isFavorite])
+  @@index([isDeleted])
   @@index([deletedAt])
+  @@index([type])
+  @@index([lastOpenedAt])
+}
+
+/// Many-to-many link between projects (e.g. linking a knowledge base to a code project).
+model ProjectLink {
+  sourceId  String /// The project that owns this link.
+  targetId  String /// The linked project.
+  createdAt DateTime @default(now())
+
+  source Project @relation("ProjectLinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Project @relation("ProjectLinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, targetId])
+  @@index([targetId])
 }

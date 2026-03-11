@@ -66,13 +66,11 @@ export default function TrayNavigationListener() {
 
   const openSingletonTab = useCallback(
     (input: TabInput) => {
-      if (!activeWorkspace) return
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '')
 
       const state = useTabs.getState()
       const runtime = useTabRuntime.getState().runtimeByTabId
       const existing = state.tabs.find((tab) => {
-        if (tab.workspaceId !== activeWorkspace.id) return false
         if (runtime[tab.id]?.base?.id === input.baseId) return true
         if (input.component === 'ai-chat' && !runtime[tab.id]?.base && tab.title === tabTitle) return true
         return false
@@ -82,7 +80,6 @@ export default function TrayNavigationListener() {
         return
       }
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -90,19 +87,18 @@ export default function TrayNavigationListener() {
         base: input.component === 'ai-chat' ? undefined : { id: input.baseId, component: input.component },
       })
     },
-    [activeWorkspace, addTab, setActiveTab],
+    [addTab, setActiveTab],
   )
 
   const openWorkspacePageTab = useCallback(
     (input: TabInput) => {
-      if (!activeWorkspace) return
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '')
 
       const state = useTabs.getState()
       const runtime = useTabRuntime.getState().runtimeByTabId
 
       const currentTab =
-        activeTabId && state.tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id)
+        activeTabId && state.tabs.find((tab) => tab.id === activeTabId)
       const currentBase = currentTab ? runtime[currentTab.id]?.base : undefined
       const shouldReuse =
         Boolean(currentTab) &&
@@ -120,7 +116,6 @@ export default function TrayNavigationListener() {
       }
 
       const existingPage = state.tabs
-        .filter((tab) => tab.workspaceId === activeWorkspace.id)
         .filter((tab) => {
           const base = runtime[tab.id]?.base
           if (!base) return false
@@ -138,7 +133,6 @@ export default function TrayNavigationListener() {
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -146,7 +140,7 @@ export default function TrayNavigationListener() {
         base: { id: input.baseId, component: input.component },
       })
     },
-    [activeWorkspace, activeTabId, addTab, clearStack, setActiveTab, setTabBase, setTabIcon, setTabTitle],
+    [activeTabId, addTab, clearStack, setActiveTab, setTabBase, setTabIcon, setTabTitle],
   )
 
   useEffect(() => {

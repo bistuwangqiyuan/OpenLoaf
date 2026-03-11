@@ -13,9 +13,9 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import type { UIMessage } from "ai";
 import type { OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
-import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
 import { getOpenLoafRootDir } from "@openloaf/config";
-import { getProjectId, getWorkspaceId } from "@/ai/shared/context/requestContext";
+import { getProjectId } from "@/ai/shared/context/requestContext";
 
 /** Max image edge length for chat. */
 const CHAT_IMAGE_MAX_EDGE = 1024;
@@ -340,19 +340,16 @@ async function resolveImageMetadataText(filePath: string): Promise<string | null
 async function resolveChatAttachmentRoot(input: {
   /** Project id. */
   projectId?: string;
-  /** Workspace id. */
-  workspaceId?: string;
   /** Optional board id — when present, chat files live under the board directory. */
   boardId?: string;
 }): Promise<{ rootPath: string; chatHistoryDir: string } | null> {
   const projectId = input.projectId?.trim();
-  const workspaceId = input.workspaceId?.trim();
   let scopeRoot: string | null = null;
   if (projectId) {
-    scopeRoot = await getProjectRootPath(projectId, workspaceId);
+    scopeRoot = await getProjectRootPath(projectId);
   }
-  if (!scopeRoot && workspaceId) {
-    scopeRoot = getWorkspaceRootPathById(workspaceId);
+  if (!scopeRoot) {
+    scopeRoot = getOpenLoafRootDir();
   }
   if (!scopeRoot) return null;
   const boardId = input.boardId?.trim();
@@ -378,8 +375,6 @@ type ChatBinaryAttachmentResult = {
 
 /** Save a binary attachment for the current chat session. */
 export async function saveChatBinaryAttachment(input: {
-  /** Workspace id. */
-  workspaceId?: string;
   /** Project id. */
   projectId?: string;
   /** Optional board id — chat files stored under board directory when present. */
@@ -397,19 +392,15 @@ export async function saveChatBinaryAttachment(input: {
   if (!sessionId) {
     throw new Error("sessionId is required.");
   }
-  if (!input.projectId && !input.workspaceId) {
-    throw new Error("workspaceId is required when projectId is missing.");
-  }
   if (input.buffer.length > CHAT_ATTACHMENT_MAX_BYTES) {
     throw new Error("Attachment too large.");
   }
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!root) {
-    throw new Error("Workspace or project not found");
+    throw new Error("Project or root directory not found");
   }
   const ext = path.extname(input.fileName).toLowerCase().replace(/^\./, "") || "bin";
   const storedName = buildChatAttachmentFileName(ext);
@@ -455,14 +446,12 @@ function parseScopedRelativePath(raw: string): { projectId?: string; relativePat
   return { relativePath: normalized };
 }
 
-/** Resolve a relative path into an absolute file path within the project/workspace root. */
+/** Resolve a relative path into an absolute file path within the project root. */
 async function resolveProjectFilePath(input: {
   /** Raw relative path string. */
   path: string;
   /** Optional project id override. */
   projectId?: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string;
 }): Promise<{ absPath: string; relativePath: string } | null> {
   const resolved = await resolveProjectFilePathWithRoot(input);
   if (!resolved) return null;
@@ -475,8 +464,6 @@ async function resolveProjectFilePathWithRoot(input: {
   path: string;
   /** Optional project id override. */
   projectId?: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string;
 }): Promise<{ absPath: string; relativePath: string; rootPath: string } | null> {
   const parsed = parseScopedRelativePath(input.path);
   if (!parsed) return null;
@@ -484,7 +471,6 @@ async function resolveProjectFilePathWithRoot(input: {
   if (!relativePath || hasParentTraversal(relativePath)) return null;
   const root = await resolveChatAttachmentRoot({
     projectId: parsed.projectId ?? input.projectId ?? getProjectId(),
-    workspaceId: input.workspaceId ?? getWorkspaceId(),
   });
   if (!root) return null;
   const targetPath = path.resolve(root.rootPath, relativePath);
@@ -706,8 +692,6 @@ async function compressImageBufferToTarget(
 
 /** Save chat image attachment and return url. */
 export async function saveChatImageAttachment(input: {
-  /** Workspace id. */
-  workspaceId: string;
   /** Project id. */
   projectId?: string;
   /** Optional board id — chat files stored under board directory when present. */
@@ -733,11 +717,10 @@ export async function saveChatImageAttachment(input: {
   const fileName = buildChatAttachmentFileName(compressed.ext);
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!root) {
-    throw new Error("Workspace or project not found");
+    throw new Error("Project not found");
   }
 
   const targetPath = path.join(root.chatHistoryDir, input.sessionId, "asset", fileName);
@@ -763,8 +746,6 @@ export async function saveChatImageAttachment(input: {
 
 /** Save chat image attachment from a project-relative path. */
 export async function saveChatImageAttachmentFromPath(input: {
-  /** Workspace id. */
-  workspaceId: string;
   /** Project id. */
   projectId?: string;
   /** Optional board id — chat files stored under board directory when present. */
@@ -779,7 +760,6 @@ export async function saveChatImageAttachmentFromPath(input: {
   const resolved = await resolveProjectFilePath({
     path: input.path,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
   });
   if (!resolved) {
     throw new Error("Invalid attachment path");
@@ -795,11 +775,10 @@ export async function saveChatImageAttachmentFromPath(input: {
   const fileName = buildChatAttachmentFileName(compressed.ext);
   const root = await resolveChatAttachmentRoot({
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!root) {
-    throw new Error("Workspace or project not found");
+    throw new Error("Project not found");
   }
   const targetPath = path.join(root.chatHistoryDir, input.sessionId, "asset", fileName);
   const relativePath = path.relative(root.rootPath, targetPath).split(path.sep).join("/");
@@ -828,8 +807,6 @@ export async function buildFilePartFromPath(input: {
   path: string;
   /** Project id for resolving path. */
   projectId?: string;
-  /** Workspace id for resolving path. */
-  workspaceId?: string;
   /** Media type override. */
   mediaType?: string;
 }): Promise<{ type: "file"; url: string; mediaType: string } | null> {
@@ -858,8 +835,6 @@ export async function getFilePreview(input: {
   path: string;
   /** Project id for resolving path. */
   projectId?: string;
-  /** Workspace id for resolving path. */
-  workspaceId?: string;
   /** Whether to include metadata. */
   includeMetadata?: boolean;
   /** Target byte size for preview compression. */
@@ -872,7 +847,6 @@ export async function getFilePreview(input: {
     : await resolveProjectFilePathWithRoot({
         path: input.path,
         projectId: input.projectId,
-        workspaceId: input.workspaceId,
       });
   if (!resolved) return null;
   const filePath = resolved.absPath;
@@ -949,15 +923,12 @@ export async function loadProjectImageBuffer(input: {
   path: string;
   /** Project id for resolving path. */
   projectId?: string;
-  /** Workspace id for resolving path. */
-  workspaceId?: string;
   /** Media type override. */
   mediaType?: string;
 }): Promise<{ buffer: Buffer; mediaType: string } | null> {
   const resolved = await resolveProjectFilePath({
     path: input.path,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
   });
   if (!resolved) return null;
   const filePath = resolved.absPath;

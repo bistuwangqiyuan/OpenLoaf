@@ -85,10 +85,6 @@ export function WorkspaceSettings() {
   const { data: activeWorkspace } = useQuery(trpc.workspace.getActive.queryOptions());
   const workspacesQuery = useQuery(trpc.workspace.getList.queryOptions());
   const projectsQuery = useProjects();
-  const removeTabsByWorkspace = useTabs((state) => state.removeTabsByWorkspace);
-  const resetWorkspaceTabsToDesktop = useTabs(
-    (state) => state.resetWorkspaceTabsToDesktop,
-  );
   /** Track workspace name draft. */
   const [draftWorkspaceName, setDraftWorkspaceName] = useState("");
   /** Workspace path for display. */
@@ -200,9 +196,7 @@ export function WorkspaceSettings() {
     try {
       await activateWorkspace.mutateAsync({ id: fallbackWorkspace.id });
       activated = true;
-      resetWorkspaceTabsToDesktop(fallbackWorkspace.id);
     } finally {
-      removeTabsByWorkspace(workspaceId);
       queryClient.invalidateQueries();
     }
     if (activated) {

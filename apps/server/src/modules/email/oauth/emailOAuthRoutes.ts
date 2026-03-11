@@ -188,19 +188,14 @@ export function registerEmailOAuthRoutes(app: Hono): void {
       return c.json({ error: `不支持的提供商：${providerId}` }, 400);
     }
 
-    const workspaceId = c.req.query("workspaceId");
-    if (!workspaceId) {
-      return c.json({ error: "缺少 workspaceId 参数。" }, 400);
-    }
-
     try {
       const origin = new URL(c.req.url).origin;
       const redirectUri = `${origin}/auth/email/${providerId}/callback`;
-      const { url } = generateAuthUrl(providerId, workspaceId, redirectUri);
+      const { url } = generateAuthUrl(providerId, redirectUri);
       return c.redirect(url);
     } catch (err) {
       const message = err instanceof Error ? err.message : "未知错误";
-      logger.error({ err, providerId, workspaceId }, "OAuth start failed");
+      logger.error({ err, providerId }, "OAuth start failed");
       return c.json({ error: message }, 500);
     }
   });
@@ -227,15 +222,15 @@ export function registerEmailOAuthRoutes(app: Hono): void {
     }
 
     try {
-      // 逻辑：exchangeCode 返回令牌及原始 state 中的 providerId 和 workspaceId。
-      const { tokens, workspaceId } = await exchangeCode(stateKey, code);
+      // 逻辑：exchangeCode 返回令牌及原始 state 中的 providerId。
+      const { tokens } = await exchangeCode(stateKey, code);
       const email = await fetchUserEmail(providerId, tokens.accessToken);
 
       // 逻辑：将 OAuth 令牌持久化到 .env，供后续邮件收发使用。
-      storeOAuthTokens(workspaceId, email, providerId, tokens);
+      storeOAuthTokens(email, providerId, tokens);
 
       logger.info(
-        { providerId, workspaceId, email },
+        { providerId, email },
         "Email OAuth authorization completed",
       );
 

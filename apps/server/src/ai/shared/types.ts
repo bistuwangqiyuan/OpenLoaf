@@ -33,15 +33,6 @@ export type PrefaceCapabilities = {
 }
 
 export type PromptContext = {
-  /** Workspace snapshot for prompt building. */
-  workspace: {
-    /** Workspace id. */
-    id: string;
-    /** Workspace name. */
-    name: string;
-    /** Workspace root path. */
-    rootPath: string;
-  };
   /** Project snapshot for prompt building. */
   project: {
     /** Project id. */

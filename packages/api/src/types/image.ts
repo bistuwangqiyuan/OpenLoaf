@@ -73,8 +73,6 @@ export type OpenLoafImageMetadataV1 = {
   modelSource?: "local" | "cloud" | "saas";
   /** Provider id used to resolve model. */
   providerId?: string;
-  /** Workspace id for storage scope. */
-  workspaceId?: string;
   /** Project id for storage scope. */
   projectId?: string;
   /** Board id for board scope. */

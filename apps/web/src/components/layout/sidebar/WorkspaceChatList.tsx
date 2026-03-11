@@ -45,7 +45,6 @@ export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
   // 查询 Workspace Chat 列表
   const { data: chats, refetch } = useQuery(
     trpc.chat.listByWorkspace.queryOptions({
-      workspaceId,
       projectId: null, // 只查询 Workspace 级别的对话
       limit: expanded ? undefined : 10,
     })
@@ -72,7 +71,6 @@ export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
       // 检查是否已有该 chat 的 tab
       const existingTab = tabs.find(
         (tab) =>
-          tab.workspaceId === workspaceId &&
           tab.chatSessionId === chatId
       );
 
@@ -81,7 +79,6 @@ export function WorkspaceChatList({ workspaceId }: WorkspaceChatListProps) {
       } else {
         // 创建新 tab
         addTab({
-          workspaceId,
           createNew: true,
           title: chatTitle,
           icon: "💬",

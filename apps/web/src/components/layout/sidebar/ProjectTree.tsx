@@ -358,7 +358,7 @@ function FileTreeNode({
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
       node.kind === "folder" && isExpanded && workspaceId
-        ? { workspaceId, projectId: node.projectId, uri: node.uri }
+        ? { projectId: node.projectId, uri: node.uri }
         : skipToken
     )
   );
@@ -757,7 +757,7 @@ export const PageTreeMenu = ({
 
     // 1. 当前 Tab：遍历 chatSessionProjectIds 查找匹配的 sessionId
     const currentTab = activeTabId ? tabs.find((t) => t.id === activeTabId) : undefined;
-    if (currentTab && currentTab.workspaceId === workspace.id && !runtimeByTabId[currentTab.id]?.base) {
+    if (currentTab && !runtimeByTabId[currentTab.id]?.base) {
       const projectMap = currentTab.chatSessionProjectIds ?? {};
       const matchedSessionId = Object.entries(projectMap).find(
         ([, pid]) => pid === targetProjectId,
@@ -777,7 +777,7 @@ export const PageTreeMenu = ({
     // 2. 其他 Tab：遍历所有 Tab 的 chatSessionProjectIds 查找匹配
     for (const tab of tabs) {
       if (tab.id === activeTabId) continue;
-      if (tab.workspaceId !== workspace.id) continue;
+      // workspaceId filter removed (workspace concept simplified)
       if (runtimeByTabId[tab.id]?.base) continue;
       const projectMap = tab.chatSessionProjectIds ?? {};
       const matchedSessionId = Object.entries(projectMap).find(
@@ -802,7 +802,6 @@ export const PageTreeMenu = ({
     // 3. 创建新 Tab（直接打开文件面板 + 聊天窗口，恢复该项目保存的布局偏好）
     const savedLayout = useProjectLayout.getState().getProjectLayout(targetProjectId);
     addTab({
-      workspaceId: workspace.id,
       createNew: true,
       title: project.title || "Untitled Project",
       icon: project.icon ?? undefined,
@@ -826,7 +825,7 @@ export const PageTreeMenu = ({
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const existing = tabs.find(
       (tab) =>
-        tab.workspaceId === workspace.id && runtimeByTabId[tab.id]?.base?.id === baseId,
+        runtimeByTabId[tab.id]?.base?.id === baseId,
     );
     if (existing) {
       startTransition(() => {
@@ -838,7 +837,6 @@ export const PageTreeMenu = ({
     const resolvedRootUri = projectRootById.get(node.projectId ?? "") ?? undefined;
     if (isBoardFolderName(node.name)) {
       addTab({
-        workspaceId: workspace.id,
         createNew: true,
         title: displayName,
         icon: "📄",
@@ -872,7 +870,6 @@ export const PageTreeMenu = ({
     });
     if (!stackItem) return;
     addTab({
-      workspaceId: workspace.id,
       createNew: true,
       title: displayName,
       icon: "📄",
@@ -1056,7 +1053,6 @@ export const PageTreeMenu = ({
           throw new Error("缺少项目 ID");
         }
         await renameFile.mutateAsync({
-          workspaceId,
           projectId: renameTarget.node.projectId,
           from: renameTarget.node.uri,
           to: nextUri,
@@ -1071,7 +1067,6 @@ export const PageTreeMenu = ({
         const parentUri = getParentUri(renameTarget.node.uri);
         await queryClient.invalidateQueries({
           queryKey: trpc.fs.list.queryOptions({
-            workspaceId,
             projectId: renameTarget.node.projectId,
             uri: parentUri,
           }).queryKey,
@@ -1092,7 +1087,6 @@ export const PageTreeMenu = ({
         throw new Error("缺少项目 ID");
       }
       await deleteFile.mutateAsync({
-        workspaceId,
         projectId: deleteTarget.projectId,
         uri: deleteTarget.uri,
         recursive: true,
@@ -1101,7 +1095,6 @@ export const PageTreeMenu = ({
       const parentUri = getParentUri(deleteTarget.uri);
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: deleteTarget.projectId,
           uri: parentUri,
         }).queryKey,

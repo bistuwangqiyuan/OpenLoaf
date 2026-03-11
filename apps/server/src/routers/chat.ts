@@ -436,11 +436,10 @@ export class ChatRouterImpl extends BaseChatRouter {
           return { ok: true, title }
         }),
 
-      // 新增：Workspace Chat 管理方法
+      // Chat session listing
       listByWorkspace: shieldedProcedure
         .input(
           z.object({
-            workspaceId: z.string().trim().min(1),
             projectId: z.string().nullable().optional(),
             limit: z.number().optional(),
           }),
@@ -449,7 +448,6 @@ export class ChatRouterImpl extends BaseChatRouter {
           const sessions = await ctx.prisma.chatSession.findMany({
             where: {
               deletedAt: null,
-              workspaceId: input.workspaceId,
               ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
             },
             orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
@@ -485,7 +483,6 @@ export class ChatRouterImpl extends BaseChatRouter {
               errorMessage: true,
               projectId: true,
               messageCount: true,
-              workspaceId: true,
             },
           })
 

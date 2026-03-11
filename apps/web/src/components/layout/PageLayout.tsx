@@ -32,7 +32,7 @@ const DIVIDER_WIDTH_PX = 4;
  */
 export function PageLayout() {
   const activeView = useNavigation((s) => s.activeView);
-  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
+  const activeProjectId = useNavigation((s) => s.activeProjectId);
   const getViewRuntime = useNavigation((s) => s.getViewRuntime);
   const setViewRuntime = useNavigation((s) => s.setViewRuntime);
 
@@ -178,7 +178,7 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeWorkspaceId || ""}
+                  workspaceId={activeProjectId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}
@@ -254,7 +254,7 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeWorkspaceId || ""}
+                  workspaceId={activeProjectId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}

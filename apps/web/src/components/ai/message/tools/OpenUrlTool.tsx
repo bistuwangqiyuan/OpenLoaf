@@ -72,7 +72,7 @@ export default function OpenUrlTool({
     const state = useTabs.getState();
     const tab = state.getTabById(tabId);
     if (!tab) return;
-    const baseKey = `browser:${tab.workspaceId}:${tabId}:${tab.chatSessionId}`;
+    const baseKey = `browser:${tabId}:${tab.chatSessionId}`;
     const viewKey = `${baseKey}:${createBrowserTabId()}`;
     useTabRuntime.getState().pushStackItem(
       tabId,

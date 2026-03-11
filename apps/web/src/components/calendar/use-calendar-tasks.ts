@@ -35,7 +35,7 @@ export function useCalendarTasks({
 }) {
   const { data: tasks = [] } = useQuery(
     trpc.scheduledTask.list.queryOptions(
-      workspaceId && showTasks ? { workspaceId } : skipToken,
+      workspaceId && showTasks ? {} : skipToken,
       { staleTime: 60_000 },
     ),
   )

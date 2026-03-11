@@ -131,7 +131,7 @@ export default function FileViewer({ uri, name, ext, projectId, workspaceId: wor
   const isBinaryFallback = shouldUseBinaryFallback(resolvedExt);
   const fileQuery = useQuery(
     trpc.fs.readFile.queryOptions(
-      uri && workspaceId && !isBinaryFallback ? { workspaceId, projectId, uri } : skipToken
+      uri && workspaceId && !isBinaryFallback ? { projectId, uri } : skipToken
     )
   );
 

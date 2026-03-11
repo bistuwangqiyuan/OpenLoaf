@@ -32,8 +32,6 @@ export type RequestContext = {
   clientId?: string;
   /** Client timezone (IANA). */
   timezone?: string;
-  /** Workspace id for this request. */
-  workspaceId?: string;
   /** Project id for this request. */
   projectId?: string;
   /** Board id for this request. */
@@ -109,7 +107,7 @@ export function getSessionId(): string | undefined {
   return getRequestContext()?.sessionId;
 }
 
-/** Get cookies (MVP: workspaceId can fall back to cookies). */
+/** Get cookies snapshot. */
 function getCookies(): Record<string, string> | undefined {
   return getRequestContext()?.cookies;
 }
@@ -117,11 +115,6 @@ function getCookies(): Record<string, string> | undefined {
 /** 获取单个 cookie 值。 */
 export function getCookie(name: string): string | undefined {
   return getCookies()?.[name];
-}
-
-/** Get workspaceId (MVP: prefer request body, fallback cookie `workspace-id`). */
-export function getWorkspaceId(): string | undefined {
-  return getRequestContext()?.workspaceId || getCookie("workspace-id");
 }
 
 /** Get projectId (MVP: from request context). */

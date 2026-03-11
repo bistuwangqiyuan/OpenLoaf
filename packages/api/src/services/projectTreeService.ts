@@ -12,7 +12,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
-import { getActiveWorkspace, getWorkspaceById } from "./vfsService";
+import { getActiveWorkspace } from "./vfsService";
 import { getWorkspaceProjectEntries } from "./workspaceProjectConfig";
 
 /** Directory name for project metadata. */
@@ -275,10 +275,9 @@ async function readProjectTree(
   }
 }
 
-/** Read the project trees from a workspace. */
-export async function readWorkspaceProjectTrees(workspaceId?: string): Promise<ProjectNode[]> {
-  const trimmedId = typeof workspaceId === "string" ? workspaceId.trim() : "";
-  const workspace = trimmedId ? getWorkspaceById(trimmedId) : getActiveWorkspace();
+/** Read the project trees. workspaceId parameter is ignored. */
+export async function readWorkspaceProjectTrees(_workspaceId?: string): Promise<ProjectNode[]> {
+  const workspace = getActiveWorkspace();
   if (!workspace) return [];
   let workspaceRootPath: string | undefined;
   try {
@@ -286,7 +285,7 @@ export async function readWorkspaceProjectTrees(workspaceId?: string): Promise<P
   } catch {
     workspaceRootPath = undefined;
   }
-  const projectEntries = getWorkspaceProjectEntries(workspace.id);
+  const projectEntries = getWorkspaceProjectEntries();
   const projects: ProjectNode[] = [];
   for (const [projectId, rootUri] of projectEntries) {
     let rootPath: string;

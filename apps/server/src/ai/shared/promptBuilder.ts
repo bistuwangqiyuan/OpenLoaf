@@ -80,8 +80,6 @@ export function buildLanguageSection(context: PromptContext): string {
 export function buildEnvironmentSection(context: PromptContext): string {
   const lines = [
     '环境与身份',
-    `- workspace: ${context.workspace.name} (${context.workspace.id})`,
-    `- workspaceRootPath: ${context.workspace.rootPath}`,
   ]
   if (!isUnknown(context.project.id)) {
     lines.push(`- project: ${context.project.name} (${context.project.id})`)
@@ -218,13 +216,9 @@ export function buildSessionContextSection(
   const lines = [
     '会话上下文',
     `- chatSessionId: ${sessionId}`,
-    `- workspace: ${context.workspace.name} (${context.workspace.id})`,
-    `- workspaceRootPath: ${context.workspace.rootPath}`,
   ]
   if (isTempChat) {
     lines.push('- 临时对话（未绑定项目）')
-    const sessionRootPath = path.join(context.workspace.rootPath, '.openloaf', 'chat-history', sessionId, 'root')
-    lines.push(`- projectRootPath: ${sessionRootPath}`)
   } else {
     lines.push(`- project: ${context.project.name} (${context.project.id})`)
     lines.push(`- projectRootPath: ${context.project.rootPath}`)

@@ -24,16 +24,13 @@ export type SummaryTaskStatusInput = {
 export type SummaryTaskListInput = {
   /** Optional project id. */
   projectId?: string;
-  /** Optional workspace id. */
-  workspaceId?: string;
 };
 
 export type SummaryRuntime = {
   /** Run daily summary for a project. */
   runDailySummary: (input: RunDailySummaryInput) => Promise<{ taskId: string }>;
-  /** Run daily summary for all projects in a workspace. */
-  runDailySummaryForWorkspace: (input: {
-    workspaceId: string;
+  /** Run daily summary for all projects. */
+  runDailySummaryForAllProjects: (input: {
     dateKey: string;
     triggeredBy: "manual" | "external";
   }) => Promise<{ taskIds: string[] }>;

@@ -14,7 +14,7 @@ import {
   calendarQueryToolDef,
 } from '@openloaf/api/types/tools/calendar'
 import { calendarRouterImplementation } from '@/routers/calendar'
-import { getProjectId, getWorkspaceId } from '@/ai/shared/context/requestContext'
+import { getProjectId } from '@/ai/shared/context/requestContext'
 
 /** Slim source view returned to LLM. */
 type SourceView = {
@@ -52,13 +52,6 @@ type CalendarMutateOutput = {
     | { action: 'update'; item: ItemView }
     | { action: 'delete'; id: string }
     | { action: 'toggle-completed'; item: ItemView }
-}
-
-/** Resolve workspaceId from request context. */
-function resolveWorkspaceId(): string {
-  const wid = getWorkspaceId()
-  if (!wid) throw new Error('workspaceId is required.')
-  return wid
 }
 
 /** Create a tRPC caller for calendar operations. */
@@ -100,9 +93,8 @@ function toItemView(row: any): ItemView {
 /** Execute list-sources query. */
 async function executeListSources(): Promise<CalendarQueryOutput> {
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
   const projectId = getProjectId()
-  const sources = await caller.listSources({ workspaceId, projectId })
+  const sources = await caller.listSources({ projectId })
   return { ok: true, data: { mode: 'list-sources', sources: sources.map(toSourceView) } }
 }
 
@@ -116,10 +108,8 @@ async function executeListItems(input: {
     throw new Error('rangeStart and rangeEnd are required for list-items mode.')
   }
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
   const projectId = getProjectId()
   const items = await caller.listItems({
-    workspaceId,
     range: { start: input.rangeStart, end: input.rangeEnd },
     sourceIds: input.sourceIds,
     projectId,
@@ -144,10 +134,8 @@ async function executeCreateItem(input: {
   if (!input.startAt) throw new Error('startAt is required for create.')
   if (!input.endAt) throw new Error('endAt is required for create.')
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
   const projectId = getProjectId()
   const result = await caller.createItem({
-    workspaceId,
     projectId,
     item: {
       sourceId: input.sourceId,
@@ -177,16 +165,13 @@ async function executeUpdateItem(input: {
 }): Promise<CalendarMutateOutput> {
   if (!input.itemId) throw new Error('itemId is required for update.')
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
   // 先查询现有数据，合并用户传入的字段。
   const items = await caller.listItems({
-    workspaceId,
     range: { start: '1970-01-01T00:00:00Z', end: '2099-12-31T23:59:59Z' },
   })
   const existing = items.find((i) => i.id === input.itemId)
   if (!existing) throw new Error('Calendar item not found.')
   const result = await caller.updateItem({
-    workspaceId,
     item: {
       id: input.itemId,
       sourceId: input.sourceId ?? existing.sourceId,
@@ -206,8 +191,7 @@ async function executeUpdateItem(input: {
 async function executeDeleteItem(itemId?: string): Promise<CalendarMutateOutput> {
   if (!itemId) throw new Error('itemId is required for delete.')
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.deleteItem({ workspaceId, id: itemId })
+  await caller.deleteItem({ id: itemId })
   return { ok: true, data: { action: 'delete', id: itemId } }
 }
 
@@ -219,9 +203,7 @@ async function executeToggleCompleted(input: {
   if (!input.itemId) throw new Error('itemId is required for toggle-completed.')
   if (input.completed === undefined) throw new Error('completed is required for toggle-completed.')
   const caller = await createCalendarCaller()
-  const workspaceId = resolveWorkspaceId()
   const result = await caller.toggleReminderCompleted({
-    workspaceId,
     id: input.itemId,
     completed: input.completed,
   })

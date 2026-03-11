@@ -19,6 +19,7 @@ import {
   type StackPanelSlot,
 } from "@/hooks/use-stack-panel-slot";
 import { useTabView } from "@/hooks/use-tab-view";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import type { DockItem } from "@openloaf/api/common";
 import WorkspaceSwitchDockTabs from "./WorkspaceSwitchDockTabs";
@@ -272,7 +273,8 @@ function parseRenamePath(uri: string) {
 // Render the left dock contents for a tab.
 export function LeftDock({ tabId }: { tabId: string }) {
   const tab = useTabView(tabId);
-  const workspaceId = tab?.workspaceId ?? "";
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id ?? "";
   const stackHidden = Boolean(tab?.stackHidden);
   const activeStackItemId = tab?.activeStackItemId;
   const removeStackItem = useTabRuntime((s) => s.removeStackItem);
@@ -326,14 +328,12 @@ export function LeftDock({ tabId }: { tabId: string }) {
       if (isBoardEmpty(uri)) {
         try {
           await deleteMutation.mutateAsync({
-            workspaceId,
             projectId,
             uri,
             recursive: true,
           });
           await queryClient.invalidateQueries({
             queryKey: trpc.fs.list.queryOptions({
-              workspaceId,
               projectId,
               uri: getParentUri(uri),
             }).queryKey,
@@ -359,14 +359,12 @@ export function LeftDock({ tabId }: { tabId: string }) {
     const nextUri = buildRenamedUri(renameDialog.uri, nextName);
     try {
       await renameMutation.mutateAsync({
-        workspaceId,
         projectId: renameDialog.projectId,
         from: renameDialog.uri,
         to: nextUri,
       });
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: renameDialog.projectId,
           uri: getParentUri(renameDialog.uri),
         }).queryKey,
@@ -382,7 +380,6 @@ export function LeftDock({ tabId }: { tabId: string }) {
     renameDialog,
     renameMutation,
     renameValue,
-    workspaceId,
     queryClient,
   ]);
 
@@ -392,14 +389,12 @@ export function LeftDock({ tabId }: { tabId: string }) {
     if (!workspaceId) return;
     try {
       await deleteMutation.mutateAsync({
-        workspaceId,
         projectId: renameDialog.projectId,
         uri: renameDialog.uri,
         recursive: true,
       });
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: renameDialog.projectId,
           uri: getParentUri(renameDialog.uri),
         }).queryKey,

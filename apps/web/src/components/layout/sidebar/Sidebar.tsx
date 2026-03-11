@@ -13,7 +13,6 @@ import { startTransition, useCallback } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { SidebarProject } from "@/components/layout/sidebar/SidebarProject";
-import { SidebarWorkspace } from "../../workspace/SidebarWorkspace";
 import {
   Sidebar,
   SidebarContent,
@@ -27,12 +26,12 @@ import { Building2, Inbox, LayoutDashboard, LayoutTemplate, Palette, Sparkles } 
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useNavigation } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
-import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, TEMP_CANVAS_TAB_INPUT, TEMP_CHAT_TAB_INPUT, WORKBENCH_TAB_INPUT, WORKSPACE_LIST_TAB_INPUT } from "@openloaf/api/common";
+import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, PROJECT_LIST_TAB_INPUT, TEMP_CANVAS_TAB_INPUT, TEMP_CHAT_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
+import { SidebarUserAccount } from "@/components/layout/sidebar/SidebarUserAccount";
 
 const SIDEBAR_WORKSPACE_COLOR_CLASS = {
   calendar:
@@ -60,7 +59,7 @@ const SIDEBAR_WORKSPACE_PAGE_BASE_IDS = new Set([
   "base:scheduled-tasks",
   "base:mailbox",
   CANVAS_LIST_TAB_INPUT.baseId,
-  WORKSPACE_LIST_TAB_INPUT.baseId,
+  PROJECT_LIST_TAB_INPUT.baseId,
 ]);
 
 const SIDEBAR_WORKSPACE_PAGE_COMPONENTS = new Set([
@@ -69,14 +68,13 @@ const SIDEBAR_WORKSPACE_PAGE_COMPONENTS = new Set([
   "scheduled-tasks-page",
   "email-page",
   CANVAS_LIST_TAB_INPUT.component,
-  WORKSPACE_LIST_TAB_INPUT.component,
+  PROJECT_LIST_TAB_INPUT.component,
 ]);
 
 export const AppSidebar = ({
   ...props
 }: React.ComponentProps<typeof Sidebar>) => {
   const { t } = useTranslation('nav');
-  const { workspace: activeWorkspace } = useWorkspace();
   const addTab = useTabs((s) => s.addTab);
   const setActiveTab = useTabs((s) => s.setActiveTab);
   const setTabTitle = useTabs((s) => s.setTabTitle);
@@ -89,11 +87,11 @@ export const AppSidebar = ({
   const setActiveView = useNavigation((s) => s.setActiveView);
   const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat);
   const isNarrow = useIsNarrowScreen(900);
-  const nav = useSidebarNavigation(activeWorkspace?.id ?? '');
+  const nav = useSidebarNavigation();
 
   const activeTab =
-    activeWorkspace && activeTabId
-      ? tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id)
+    activeTabId
+      ? tabs.find((tab) => tab.id === activeTabId)
       : null;
   const activeBaseId = activeTab ? runtimeByTabId[activeTab.id]?.base?.id : undefined;
   // 逻辑：ai-chat 的 base 会在 store 层被归一化为 undefined，需要用 title 兜底。
@@ -106,13 +104,11 @@ export const AppSidebar = ({
 
   const openSingletonTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
-      if (!activeWorkspace) return;
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
       const existing = state.tabs.find((tab) => {
-        if (tab.workspaceId !== activeWorkspace.id) return false;
         if (runtimeByTabId[tab.id]?.base?.id === input.baseId) return true;
         // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
         if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === tabTitle) return true;
@@ -126,7 +122,6 @@ export const AppSidebar = ({
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -138,12 +133,11 @@ export const AppSidebar = ({
             : { id: input.baseId, component: input.component },
       });
     },
-    [activeWorkspace, addTab, setActiveTab],
+    [addTab, setActiveTab],
   );
 
   const openWorkspacePageTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string; viewType?: string }) => {
-      if (!activeWorkspace) return;
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       // 更新导航状态
@@ -155,7 +149,7 @@ export const AppSidebar = ({
       const runtimeState = useTabRuntime.getState().runtimeByTabId;
 
       const currentTab =
-        activeTabId && state.tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id);
+        activeTabId && state.tabs.find((tab) => tab.id === activeTabId);
       const currentBase = currentTab ? runtimeState[currentTab.id]?.base : undefined;
 
       const shouldReuseCurrent =
@@ -177,7 +171,6 @@ export const AppSidebar = ({
       }
 
       const existingWorkspacePageTab = state.tabs
-        .filter((tab) => tab.workspaceId === activeWorkspace.id)
         .filter((tab) => {
           const base = runtimeState[tab.id]?.base;
           if (!base) return false;
@@ -201,7 +194,6 @@ export const AppSidebar = ({
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -211,7 +203,6 @@ export const AppSidebar = ({
     },
     [
       activeTabId,
-      activeWorkspace,
       addTab,
       clearStack,
       setActiveTab,
@@ -231,7 +222,7 @@ export const AppSidebar = ({
       {...props}
     >
       <SidebarHeader>
-        <SidebarWorkspace />
+        <SidebarUserAccount />
         <SidebarMenu>
           {/* 先隐藏模版入口，后续再开放。 */}
           {false ? (
@@ -303,10 +294,10 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('workspaceList')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.workspace}
-              isActive={isMenuActive(WORKSPACE_LIST_TAB_INPUT)}
+              isActive={isMenuActive(PROJECT_LIST_TAB_INPUT)}
               onClick={() =>
                 openWorkspacePageTab({
-                  ...WORKSPACE_LIST_TAB_INPUT,
+                  ...PROJECT_LIST_TAB_INPUT,
                   viewType: 'workspace-list',
                 })
               }

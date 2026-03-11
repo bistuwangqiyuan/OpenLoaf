@@ -21,7 +21,6 @@ export type ProjectDbClient = {
       where: { id: string };
       create: {
         id: string;
-        workspaceId: string;
         title: string;
         icon: string | null;
         rootUri: string;
@@ -42,14 +41,13 @@ export type ProjectDbClient = {
     }) => Promise<unknown>;
     updateMany: (args: {
       where: {
-        workspaceId: string;
         isDeleted: boolean;
         id?: { notIn: string[] };
       };
       data: { isDeleted: boolean; deletedAt: Date | null };
     }) => Promise<unknown>;
     findMany: (args: {
-      where: { workspaceId: string; isDeleted: boolean };
+      where: { isDeleted: boolean };
       select: { id: true; title: true };
     }) => Promise<Array<{ id: string; title: string }>>;
   };
@@ -59,7 +57,6 @@ export type ProjectDbClient = {
 
 type ProjectRecord = {
   id: string;
-  workspaceId: string;
   title: string;
   icon: string | null;
   rootUri: string;
@@ -68,7 +65,7 @@ type ProjectRecord = {
 };
 
 /** Flatten project tree nodes into records for persistence. */
-function flattenProjectTrees(projects: ProjectNode[], workspaceId: string): ProjectRecord[] {
+function flattenProjectTrees(projects: ProjectNode[]): ProjectRecord[] {
   const records: ProjectRecord[] = [];
   const stack: Array<{
     node: ProjectNode;
@@ -84,7 +81,6 @@ function flattenProjectTrees(projects: ProjectNode[], workspaceId: string): Proj
     if (!current) continue;
     records.push({
       id: current.node.projectId,
-      workspaceId,
       title: current.node.title,
       icon: current.node.icon ?? null,
       rootUri: current.node.rootUri,
@@ -102,16 +98,15 @@ function flattenProjectTrees(projects: ProjectNode[], workspaceId: string): Proj
   return records;
 }
 
-/** Sync workspace projects from project.json into database. */
+/** Sync projects from project.json into database. workspaceId parameter is ignored. */
 export async function syncWorkspaceProjectsFromDisk(
   prisma: ProjectDbClient,
-  workspaceId: string,
+  _workspaceId?: string,
   projectTrees?: ProjectNode[],
 ): Promise<ProjectRecord[]> {
-  const trees = projectTrees ?? (await readWorkspaceProjectTrees(workspaceId));
-  const records = flattenProjectTrees(trees, workspaceId);
+  const trees = projectTrees ?? (await readWorkspaceProjectTrees());
+  const records = flattenProjectTrees(trees);
   const recordIds = records.map((record) => record.id);
-  // 逻辑：以文件为主，先 upsert，再软删除缺失项目。
   const upserts = records.map((record) =>
     prisma.project.upsert({
       where: { id: record.id },
@@ -132,8 +127,8 @@ export async function syncWorkspaceProjectsFromDisk(
     })
   );
   const deleteWhere = recordIds.length
-    ? { workspaceId, isDeleted: false, id: { notIn: recordIds } }
-    : { workspaceId, isDeleted: false };
+    ? { isDeleted: false as const, id: { notIn: recordIds } }
+    : { isDeleted: false as const };
   const softDelete = prisma.project.updateMany({
     where: deleteWhere,
     data: { isDeleted: true, deletedAt: new Date() },
@@ -142,13 +137,13 @@ export async function syncWorkspaceProjectsFromDisk(
   return records;
 }
 
-/** Build projectId -> title map from database. */
+/** Build projectId -> title map from database. workspaceId parameter is ignored. */
 export async function getWorkspaceProjectTitleMap(
   prisma: ProjectDbClient,
-  workspaceId: string,
+  _workspaceId?: string,
 ): Promise<Map<string, string>> {
   const rows = await prisma.project.findMany({
-    where: { workspaceId, isDeleted: false },
+    where: { isDeleted: false },
     select: { id: true, title: true },
   });
   const map = new Map<string, string>();

@@ -419,26 +419,20 @@ export function registerIpcHandlers(args: { log: Logger }) {
 
   // 设置系统日历同步范围（页面进入/切换后更新）。
   ipcMain.handle('openloaf:calendar:set-sync-range', async (_event, payload: {
-    workspaceId: string;
     range?: { start: string; end: string };
   }) => {
-    const workspaceId = String(payload?.workspaceId ?? '').trim();
-    if (!workspaceId) return { ok: false as const, reason: 'workspaceId required' };
-    calendarSync.setSyncContext({ workspaceId, viewRange: payload?.range });
+    calendarSync.setSyncContext({ viewRange: payload?.range });
     calendarSync.startTimer();
     return { ok: true as const };
   });
 
   // 立即触发系统日历同步。
   ipcMain.handle('openloaf:calendar:sync', async (_event, payload: {
-    workspaceId: string;
     range?: { start: string; end: string };
   }) => {
-    const workspaceId = String(payload?.workspaceId ?? '').trim();
-    if (!workspaceId) return { ok: false as const, reason: 'workspaceId required' };
-    calendarSync.setSyncContext({ workspaceId, viewRange: payload?.range });
+    calendarSync.setSyncContext({ viewRange: payload?.range });
     calendarSync.startTimer();
-    await calendarSync.syncNow({ workspaceId, viewRange: payload?.range });
+    await calendarSync.syncNow({ viewRange: payload?.range });
     return { ok: true as const };
   });
 

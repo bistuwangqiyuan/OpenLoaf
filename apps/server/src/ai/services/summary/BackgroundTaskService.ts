@@ -26,8 +26,6 @@ type SummaryTaskInput = {
   taskId: string;
   /** Project id. */
   projectId: string;
-  /** Workspace id (optional). */
-  workspaceId?: string;
   /** Project root path. */
   rootPath: string;
   /** Task time. */
@@ -53,7 +51,7 @@ export class BackgroundTaskService {
     await this.taskStatusRepo.upsertStatus({
       taskId: input.taskId,
       status: "running",
-      metadata: { projectId: input.projectId, workspaceId: input.workspaceId },
+      metadata: { projectId: input.projectId },
     });
 
     try {
@@ -79,7 +77,6 @@ export class BackgroundTaskService {
       await createSchedulerTaskRecord({
         id: input.taskId,
         projectId: input.projectId,
-        workspaceId: input.workspaceId ?? null,
         type: taskPlan.type,
         dates: taskPlan.dates,
         status: "running",
@@ -103,7 +100,7 @@ export class BackgroundTaskService {
             await this.taskStatusRepo.upsertStatus({
               taskId: input.taskId,
               status: "completed",
-              metadata: { projectId: input.projectId, workspaceId: input.workspaceId },
+              metadata: { projectId: input.projectId },
             });
             return;
           }
@@ -178,7 +175,7 @@ export class BackgroundTaskService {
       await this.taskStatusRepo.upsertStatus({
         taskId: input.taskId,
         status: "completed",
-        metadata: { projectId: input.projectId, workspaceId: input.workspaceId },
+        metadata: { projectId: input.projectId },
       });
     } catch (err) {
       await updateSchedulerTaskRecord({
@@ -191,7 +188,6 @@ export class BackgroundTaskService {
         status: "failed",
         metadata: {
           projectId: input.projectId,
-          workspaceId: input.workspaceId,
           error: err instanceof Error ? err.message : "unknown error",
         },
       });

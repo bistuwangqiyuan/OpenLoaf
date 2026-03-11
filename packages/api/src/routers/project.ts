@@ -17,7 +17,6 @@ import {
   getProjectRootPath,
   getActiveWorkspace,
   getWorkspaceRootPath,
-  getWorkspaceRootPathById,
   removeActiveWorkspaceProject,
   resolveFilePathFromUri,
   setActiveWorkspaceProjectEntries,
@@ -66,8 +65,6 @@ const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 type CacheScopeInput = {
   /** Target project id. */
   projectId?: string;
-  /** Target workspace id. */
-  workspaceId?: string;
 };
 
 /** Read JSON file safely, return null when missing. */
@@ -200,25 +197,17 @@ function resolveProjectRootPath(projectId: string): string {
   return resolveFilePathFromUri(rootUri);
 }
 
-/** Resolve cache root path from project/workspace scope. */
+/** Resolve cache root path from project scope. */
 function resolveCacheRootPath(input: CacheScopeInput): string {
   const projectId = input.projectId?.trim();
-  const workspaceId = input.workspaceId?.trim();
   if (projectId) {
-    const rootPath = getProjectRootPath(projectId, workspaceId);
+    const rootPath = getProjectRootPath(projectId);
     if (!rootPath) {
       throw new Error("Project not found.");
     }
     return rootPath;
   }
-  if (workspaceId) {
-    const rootPath = getWorkspaceRootPathById(workspaceId);
-    if (!rootPath) {
-      throw new Error("Workspace not found.");
-    }
-    return rootPath;
-  }
-  throw new Error("projectId or workspaceId is required.");
+  return getWorkspaceRootPath();
 }
 
 /** Compute directory size recursively. */
@@ -359,19 +348,15 @@ function reorderWorkspaceProjectEntry(
   setActiveWorkspaceProjectEntries(ordered);
 }
 
-/** Return the active workspace project map. */
+/** Return the project map. */
 function getActiveWorkspaceProjects(): Record<string, string> {
-  return Object.fromEntries(getWorkspaceProjectEntries(getActiveWorkspace().id));
+  return Object.fromEntries(getWorkspaceProjectEntries());
 }
 
 /** Schema for cache management input. */
 const cacheScopeSchema = z
   .object({
     projectId: z.string().optional(),
-    workspaceId: z.string().optional(),
-  })
-  .refine((value) => Boolean(value.projectId || value.workspaceId), {
-    message: "projectId or workspaceId is required",
   });
 
 /** Schema for project AI settings payload. */
@@ -862,13 +847,12 @@ export const projectRouter = t.router({
       });
     }),
 
-  /** Run daily summary for all projects in a workspace by date. */
-  runSummaryForWorkspace: shieldedProcedure
-    .input(z.object({ workspaceId: z.string(), dateKey: z.string().regex(DATE_KEY_PATTERN) }))
+  /** Run daily summary for all projects by date. */
+  runSummaryForAllProjects: shieldedProcedure
+    .input(z.object({ dateKey: z.string().regex(DATE_KEY_PATTERN) }))
     .mutation(async ({ input }) => {
       const runtime = requireSummaryRuntime();
-      return runtime.runDailySummaryForWorkspace({
-        workspaceId: input.workspaceId,
+      return runtime.runDailySummaryForAllProjects({
         dateKey: input.dateKey,
         triggeredBy: "manual",
       });
@@ -884,7 +868,7 @@ export const projectRouter = t.router({
 
   /** List summary task statuses. */
   listSummaryTaskStatus: shieldedProcedure
-    .input(z.object({ projectId: z.string().optional(), workspaceId: z.string().optional() }))
+    .input(z.object({ projectId: z.string().optional() }))
     .query(async ({ input }) => {
       const runtime = requireSummaryRuntime();
       return runtime.listTaskStatus(input);
@@ -895,7 +879,6 @@ export const projectRouter = t.router({
     .input(
       z.object({
         projectId: z.string().optional(),
-        workspaceId: z.string().optional(),
         statuses: z.array(z.string()).optional(),
         page: z.number().int().min(1).optional(),
         pageSize: z.number().int().min(1).max(200).optional(),
@@ -1127,7 +1110,7 @@ export const projectRouter = t.router({
       // 1. 验证 ChatSession 存在且 projectId IS NULL
       const session = await ctx.prisma.chatSession.findUnique({
         where: { id: input.chatSessionId },
-        select: { id: true, title: true, projectId: true, workspaceId: true },
+        select: { id: true, title: true, projectId: true },
       });
 
       if (!session) {
@@ -1138,18 +1121,10 @@ export const projectRouter = t.router({
         throw new Error("Chat session already belongs to a project.");
       }
 
-      if (!session.workspaceId) {
-        throw new Error("Chat session must belong to a workspace.");
-      }
-
       // 2. 生成项目名称和目录
       const projectTitle = input.projectTitle?.trim() || session.title || "Untitled Project";
       const folderName = toSafeFolderName(projectTitle);
-      const workspaceRootPath = getWorkspaceRootPathById(session.workspaceId);
-
-      if (!workspaceRootPath) {
-        throw new Error("Workspace not found.");
-      }
+      const workspaceRootPath = getWorkspaceRootPath();
 
       const projectRootPath = await ensureUniqueProjectRoot(workspaceRootPath, folderName);
       const projectRootUri = toFileUriWithoutEncoding(projectRootPath);

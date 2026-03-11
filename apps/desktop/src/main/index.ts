@@ -7,9 +7,10 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { app, BrowserWindow, Menu, session, nativeImage, protocol } from 'electron';
+import { app, BrowserWindow, Menu, session, nativeImage, protocol, dialog, shell } from 'electron';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import Module from 'node:module';
+import os from 'node:os';
 import path from 'path';
 import { fixPath } from './fixPath';
 import { installAutoUpdate } from './autoUpdate';
@@ -553,6 +554,24 @@ async function boot() {
 
   if (pendingProtocolUrl) {
     handleProtocolUrl(pendingProtocolUrl);
+  }
+
+  // 检测架构不匹配：x64 二进制运行在 Apple Silicon 上会导致严重性能问题。
+  if (app.isPackaged && process.platform === 'darwin' && os.arch() === 'arm64' && process.arch === 'x64') {
+    log(`Architecture mismatch: app=${process.arch}, cpu=${os.arch()} (running under Rosetta 2)`);
+    dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: '架构不匹配 / Architecture Mismatch',
+      message: '当前运行的是 Intel (x64) 版本，但您的 Mac 是 Apple Silicon (ARM)。',
+      detail: '这会导致应用通过 Rosetta 2 模拟运行，性能大幅下降。\n\n请下载并安装 Apple Silicon 版本以获得最佳体验。\n\nYou are running the Intel (x64) version on Apple Silicon. Please download the ARM version for optimal performance.',
+      buttons: ['下载正确版本', '继续使用'],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) {
+        shell.openExternal('https://github.com/OpenLoaf/OpenLoaf/releases/latest');
+      }
+    });
   }
 
   // 打包版自动检查 Electron 本体更新；dev 模式会自动跳过。

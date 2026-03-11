@@ -69,7 +69,7 @@ export default function DocViewer({
   const shouldUseFs = typeof uri === "string" && uri.startsWith("file://");
   /** Holds the binary payload fetched from the fs API. */
   const fileQuery = useQuery({
-    ...trpc.fs.readBinary.queryOptions({ workspaceId, uri: uri ?? "" }),
+    ...trpc.fs.readBinary.queryOptions({ uri: uri ?? "" }),
     enabled: shouldUseFs && Boolean(uri) && Boolean(workspaceId),
   });
 

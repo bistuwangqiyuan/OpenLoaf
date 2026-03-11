@@ -76,9 +76,6 @@ export interface NavigationState {
   /** 当前激活的 Workspace Chat Session ID */
   activeWorkspaceChatSessionId: string | null;
 
-  /** 当前激活的工作区 ID */
-  activeWorkspaceId: string | null;
-
   /** 结构化的当前激活视图（派生自 activeViewType + context） */
   activeView: ActiveView | null;
 
@@ -93,9 +90,6 @@ export interface NavigationState {
 
   /** 设置激活的 Workspace Chat */
   setActiveWorkspaceChat: (sessionId: string | null) => void;
-
-  /** 设置当前工作区 ID */
-  setActiveWorkspaceId: (workspaceId: string | null) => void;
 
   /** 获取当前激活的视图信息 */
   getActiveView: () => {
@@ -149,7 +143,6 @@ export const useNavigation = create<NavigationState>((set, get) => ({
   activeViewType: null,
   activeProjectId: null,
   activeWorkspaceChatSessionId: null,
-  activeWorkspaceId: null,
   activeView: null,
   viewRuntimes: {},
   sidebarTab: "project",
@@ -182,10 +175,6 @@ export const useNavigation = create<NavigationState>((set, get) => ({
         ? { type: "workspace-chat", chatSessionId: sessionId }
         : null,
     });
-  },
-
-  setActiveWorkspaceId: (workspaceId) => {
-    set({ activeWorkspaceId: workspaceId });
   },
 
   getActiveView: () => {

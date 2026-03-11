@@ -14,6 +14,7 @@ import { skipToken, useQuery, type QueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabView } from "@/hooks/use-tab-view";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 /** Session list item used by chat UI. */
 export type ChatSessionListItem = {
@@ -75,7 +76,8 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   const activeTabId = useTabs((s) => s.activeTabId);
   const resolvedTabId = input?.tabId ?? activeTabId ?? undefined;
   const tab = useTabView(resolvedTabId);
-  const workspaceId = normalizeOptionalId(tab?.workspaceId);
+  const { workspace } = useWorkspace();
+  const workspaceId = normalizeOptionalId(workspace?.id);
   // 有 chatParams.projectId 的 tab（项目聊天、plant-page 等）按项目范围过滤会话。
   const scopedProjectId = normalizeOptionalId(
     (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,

@@ -12,9 +12,9 @@
 import type { UIMessage } from "@ai-sdk/react";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { getTabViewById } from "@/hooks/use-tab-view";
 import { extractPatchFileInfo } from "@/lib/chat/patch-utils";
 import { isHiddenToolPart } from "@/lib/chat/message-parts";
+import { getWorkspaceIdFromCookie } from "@/components/board/core/boardSession";
 
 // 逻辑：按文件路径分组 apply-patch stack，同文件复用同一个 stack panel。
 const writeFileStackByPath = new Map<string, string>(); // filePath → stackId
@@ -61,8 +61,7 @@ export function syncToolPartsFromMessages({
         const input = part?.input;
         const patchText = typeof input?.patch === "string" ? input.patch : "";
         const { fileName, firstPath } = extractPatchFileInfo(patchText);
-        const tabView = tabId ? getTabViewById(tabId) : undefined;
-        const workspaceId = tabView?.workspaceId ?? "";
+        const workspaceId = getWorkspaceIdFromCookie() ?? "";
         const baseParams = useTabRuntime.getState().runtimeByTabId[tabId]?.base?.params as Record<string, unknown> | undefined;
         const projectId = typeof baseParams?.projectId === "string" ? baseParams.projectId : undefined;
 
@@ -134,8 +133,7 @@ export function syncToolPartsFromMessages({
             const rt = useTabRuntime.getState().runtimeByTabId[tabId];
             const item = rt?.stack?.find((s: any) => s.id === myStackId);
             if (item && item.title !== fileName) {
-              const tabView2 = tabId ? getTabViewById(tabId) : undefined;
-              const wId = tabView2?.workspaceId ?? "";
+              const wId = getWorkspaceIdFromCookie() ?? "";
               const bp2 = useTabRuntime.getState().runtimeByTabId[tabId]?.base?.params as Record<string, unknown> | undefined;
               const pId = typeof bp2?.projectId === "string" ? bp2.projectId : undefined;
               useTabRuntime.getState().pushStackItem(tabId, {

@@ -43,7 +43,6 @@ export type StoredEmailIndex = {
 export type StoredEmailMeta = StoredEmailIndex & {
   accountEmail: string
   mailboxPath: string
-  workspaceId: string
   hasBodyHtml: boolean
   hasBodyMd: boolean
   hasEml: boolean
@@ -98,37 +97,34 @@ export function decodeMailboxPath(encoded: string): string {
   return Buffer.from(encoded, 'base64url').toString('utf8')
 }
 
-/** Resolve workspace root for email store. */
-function resolveWorkspaceRoot(workspaceId: string): string {
-  // 逻辑：email-store 存放在默认工作区根目录下。
+/** Resolve root for email store. */
+function resolveEmailStoreRoot(): string {
   const root = getDefaultWorkspaceRootDir()
   return path.join(root, '.openloaf', EMAIL_STORE_DIR)
 }
 
 /** Resolve account directory. */
-export function resolveAccountDir(workspaceId: string, accountEmail: string): string {
-  const storeRoot = resolveWorkspaceRoot(workspaceId)
+export function resolveAccountDir(accountEmail: string): string {
+  const storeRoot = resolveEmailStoreRoot()
   return path.join(storeRoot, accountEmail.trim().toLowerCase())
 }
 
 /** Resolve mailbox directory. */
 export function resolveMailboxDir(
-  workspaceId: string,
   accountEmail: string,
   mailboxPath: string,
 ): string {
-  const accountDir = resolveAccountDir(workspaceId, accountEmail)
+  const accountDir = resolveAccountDir(accountEmail)
   return path.join(accountDir, encodeMailboxPath(mailboxPath))
 }
 
 /** Resolve message directory. */
 export function resolveMessageDir(
-  workspaceId: string,
   accountEmail: string,
   mailboxPath: string,
   externalId: string,
 ): string {
-  const mailboxDir = resolveMailboxDir(workspaceId, accountEmail, mailboxPath)
+  const mailboxDir = resolveMailboxDir(accountEmail, mailboxPath)
   return path.join(mailboxDir, externalId)
 }
 
@@ -156,8 +152,8 @@ async function withMailboxLock<T>(lockKey: string, fn: () => Promise<T>): Promis
   }
 }
 
-function mailboxLockKey(workspaceId: string, accountEmail: string, mailboxPath: string): string {
-  return `${workspaceId}::${accountEmail.trim().toLowerCase()}::${mailboxPath}`
+function mailboxLockKey(accountEmail: string, mailboxPath: string): string {
+  return `${accountEmail.trim().toLowerCase()}::${mailboxPath}`
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +229,7 @@ async function readIndexJsonlRaw(indexPath: string): Promise<StoredEmailIndex[]>
 // ---------------------------------------------------------------------------
 
 export type WriteEmailMessageInput = {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   id: string
@@ -264,10 +260,10 @@ export type WriteEmailMessageInput = {
 
 /** Write email message to file system (directory + meta.json + body files + index). */
 export async function writeEmailMessage(input: WriteEmailMessageInput): Promise<void> {
-  const lockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const lockKey = mailboxLockKey(input.accountEmail, input.mailboxPath)
   await withMailboxLock(lockKey, async () => {
     const msgDir = resolveMessageDir(
-      input.workspaceId,
+
       input.accountEmail,
       input.mailboxPath,
       input.externalId,
@@ -301,7 +297,7 @@ export async function writeEmailMessage(input: WriteEmailMessageInput): Promise<
       updatedAt,
       accountEmail: input.accountEmail.trim().toLowerCase(),
       mailboxPath: input.mailboxPath,
-      workspaceId: input.workspaceId,
+
       hasBodyHtml,
       hasBodyMd,
       hasEml,
@@ -341,7 +337,7 @@ export async function writeEmailMessage(input: WriteEmailMessageInput): Promise<
       createdAt,
       updatedAt,
     }
-    const mailboxDir = resolveMailboxDir(input.workspaceId, input.accountEmail, input.mailboxPath)
+    const mailboxDir = resolveMailboxDir(input.accountEmail, input.mailboxPath)
     await fs.mkdir(mailboxDir, { recursive: true })
     await fs.appendFile(
       path.join(mailboxDir, 'index.jsonl'),
@@ -350,7 +346,7 @@ export async function writeEmailMessage(input: WriteEmailMessageInput): Promise<
     )
 
     // 逻辑：写入后使缓存失效。
-    const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+    const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
     invalidateIndexCache(cacheKey)
   })
 }
@@ -361,30 +357,30 @@ export async function writeEmailMessage(input: WriteEmailMessageInput): Promise<
 
 /** Append a single index entry (used by updateEmailFlags). */
 export async function appendEmailIndex(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   entry: StoredEmailIndex
 }): Promise<void> {
-  const mailboxDir = resolveMailboxDir(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const mailboxDir = resolveMailboxDir(input.accountEmail, input.mailboxPath)
   await fs.mkdir(mailboxDir, { recursive: true })
   await fs.appendFile(
     path.join(mailboxDir, 'index.jsonl'),
     `${JSON.stringify(input.entry)}\n`,
     'utf8',
   )
-  const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+  const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
   invalidateIndexCache(cacheKey)
 }
 
 /** Load mailbox index with LRU cache + mtime check. */
 export async function loadMailboxIndex(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
 }): Promise<Map<string, StoredEmailIndex>> {
-  const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
-  const mailboxDir = resolveMailboxDir(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+  const mailboxDir = resolveMailboxDir(input.accountEmail, input.mailboxPath)
   const indexPath = path.join(mailboxDir, 'index.jsonl')
 
   let mtimeMs = 0
@@ -415,13 +411,13 @@ export async function loadMailboxIndex(input: {
 
 /** Read meta.json for a message. */
 export async function readEmailMeta(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<StoredEmailMeta | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -436,13 +432,13 @@ export async function readEmailMeta(input: {
 
 /** Read body.html for a message. */
 export async function readEmailBodyHtml(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<string | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -456,13 +452,13 @@ export async function readEmailBodyHtml(input: {
 
 /** Read body-raw.html (original unfiltered HTML) for a message. */
 export async function readEmailBodyHtmlRaw(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<string | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -476,13 +472,13 @@ export async function readEmailBodyHtmlRaw(input: {
 
 /** Read body.md for a message. */
 export async function readEmailBodyMd(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<string | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -496,13 +492,13 @@ export async function readEmailBodyMd(input: {
 
 /** Read message.eml for a message. */
 export async function readEmailEml(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<string | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -520,7 +516,7 @@ export async function readEmailEml(input: {
 
 /** Cache a downloaded attachment to local filesystem. */
 export async function cacheAttachment(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
@@ -529,7 +525,7 @@ export async function cacheAttachment(input: {
   contentType: string
 }): Promise<void> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -554,14 +550,14 @@ export async function cacheAttachment(input: {
 
 /** Read a cached attachment. */
 export async function readCachedAttachment(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
   filename: string
 }): Promise<{ content: Buffer; contentType: string } | null> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -580,13 +576,13 @@ export async function readCachedAttachment(input: {
 
 /** List cached attachment filenames. */
 export async function listCachedAttachments(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<string[]> {
   const msgDir = resolveMessageDir(
-    input.workspaceId,
+
     input.accountEmail,
     input.mailboxPath,
     input.externalId,
@@ -605,16 +601,16 @@ export async function listCachedAttachments(input: {
 
 /** Update email flags in meta.json and append new index line. */
 export async function updateEmailFlags(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
   flags: string[]
 }): Promise<void> {
-  const lockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const lockKey = mailboxLockKey(input.accountEmail, input.mailboxPath)
   await withMailboxLock(lockKey, async () => {
     const msgDir = resolveMessageDir(
-      input.workspaceId,
+
       input.accountEmail,
       input.mailboxPath,
       input.externalId,
@@ -646,7 +642,7 @@ export async function updateEmailFlags(input: {
         updatedAt: meta.updatedAt,
       }
       const mailboxDir = resolveMailboxDir(
-        input.workspaceId,
+  
         input.accountEmail,
         input.mailboxPath,
       )
@@ -659,7 +655,7 @@ export async function updateEmailFlags(input: {
       // 逻辑：meta.json 不存在时忽略。
     }
 
-    const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+    const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
     invalidateIndexCache(cacheKey)
   })
 }
@@ -670,15 +666,15 @@ export async function updateEmailFlags(input: {
 
 /** Delete email message directory and remove from index. */
 export async function deleteEmailMessage(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
   externalId: string
 }): Promise<void> {
-  const lockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const lockKey = mailboxLockKey(input.accountEmail, input.mailboxPath)
   await withMailboxLock(lockKey, async () => {
     const msgDir = resolveMessageDir(
-      input.workspaceId,
+
       input.accountEmail,
       input.mailboxPath,
       input.externalId,
@@ -686,29 +682,29 @@ export async function deleteEmailMessage(input: {
     await fs.rm(msgDir, { recursive: true, force: true })
 
     // 逻辑：重写 index.jsonl，移除该 externalId 的所有行。
-    const mailboxDir = resolveMailboxDir(input.workspaceId, input.accountEmail, input.mailboxPath)
+    const mailboxDir = resolveMailboxDir(input.accountEmail, input.mailboxPath)
     const indexPath = path.join(mailboxDir, 'index.jsonl')
     const entries = await readIndexJsonlRaw(indexPath)
     const filtered = entries.filter((e) => e.externalId !== input.externalId)
     const content = filtered.map((e) => `${JSON.stringify(e)}\n`).join('')
     await fs.writeFile(indexPath, content, 'utf8')
 
-    const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+    const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
     invalidateIndexCache(cacheKey)
   })
 }
 
 /** Move email message from one mailbox to another. */
 export async function moveEmailMessage(input: {
-  workspaceId: string
+
   accountEmail: string
   fromMailboxPath: string
   toMailboxPath: string
   externalId: string
 }): Promise<void> {
   // 逻辑：先读取源 meta，移动目录，更新两个 index.jsonl。
-  const srcLockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.fromMailboxPath)
-  const dstLockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.toMailboxPath)
+  const srcLockKey = mailboxLockKey(input.accountEmail, input.fromMailboxPath)
+  const dstLockKey = mailboxLockKey(input.accountEmail, input.toMailboxPath)
 
   // 逻辑：按字典序加锁避免死锁。
   const [firstKey, secondKey] =
@@ -717,13 +713,13 @@ export async function moveEmailMessage(input: {
   await withMailboxLock(firstKey, () =>
     withMailboxLock(secondKey, async () => {
       const srcDir = resolveMessageDir(
-        input.workspaceId,
+  
         input.accountEmail,
         input.fromMailboxPath,
         input.externalId,
       )
       const dstMailboxDir = resolveMailboxDir(
-        input.workspaceId,
+  
         input.accountEmail,
         input.toMailboxPath,
       )
@@ -748,7 +744,7 @@ export async function moveEmailMessage(input: {
 
       // 逻辑：从源 index 移除。
       const srcMailboxDir = resolveMailboxDir(
-        input.workspaceId,
+  
         input.accountEmail,
         input.fromMailboxPath,
       )
@@ -785,8 +781,8 @@ export async function moveEmailMessage(input: {
         'utf8',
       )
 
-      const srcCacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.fromMailboxPath}`
-      const dstCacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.toMailboxPath}`
+      const srcCacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.fromMailboxPath}`
+      const dstCacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.toMailboxPath}`
       invalidateIndexCache(srcCacheKey)
       invalidateIndexCache(dstCacheKey)
     }),
@@ -799,11 +795,11 @@ export async function moveEmailMessage(input: {
 
 /** Write mailboxes.json for an account. */
 export async function writeMailboxes(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxes: StoredMailbox[]
 }): Promise<void> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   await fs.mkdir(accountDir, { recursive: true })
   await fs.writeFile(
     path.join(accountDir, 'mailboxes.json'),
@@ -814,10 +810,10 @@ export async function writeMailboxes(input: {
 
 /** Read mailboxes.json for an account. */
 export async function readMailboxes(input: {
-  workspaceId: string
+
   accountEmail: string
 }): Promise<StoredMailbox[]> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   try {
     const content = await fs.readFile(path.join(accountDir, 'mailboxes.json'), 'utf8')
     return JSON.parse(content) as StoredMailbox[]
@@ -832,11 +828,11 @@ export async function readMailboxes(input: {
 
 /** Save draft to file. */
 export async function saveDraftFile(input: {
-  workspaceId: string
+
   accountEmail: string
   draft: StoredDraft
 }): Promise<void> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   const draftsDir = path.join(accountDir, 'drafts')
   await fs.mkdir(draftsDir, { recursive: true })
   await fs.writeFile(
@@ -848,11 +844,11 @@ export async function saveDraftFile(input: {
 
 /** Read a single draft file. */
 export async function readDraftFile(input: {
-  workspaceId: string
+
   accountEmail: string
   draftId: string
 }): Promise<StoredDraft | null> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   try {
     const content = await fs.readFile(
       path.join(accountDir, 'drafts', `${input.draftId}.json`),
@@ -866,10 +862,10 @@ export async function readDraftFile(input: {
 
 /** List all draft files for an account. */
 export async function listDraftFiles(input: {
-  workspaceId: string
+
   accountEmail: string
 }): Promise<StoredDraft[]> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   const draftsDir = path.join(accountDir, 'drafts')
   try {
     const entries = await fs.readdir(draftsDir)
@@ -893,11 +889,11 @@ export async function listDraftFiles(input: {
 
 /** Delete a draft file. */
 export async function deleteDraftFile(input: {
-  workspaceId: string
+
   accountEmail: string
   draftId: string
 }): Promise<void> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   try {
     await fs.unlink(path.join(accountDir, 'drafts', `${input.draftId}.json`))
   } catch {
@@ -911,13 +907,13 @@ export async function deleteDraftFile(input: {
 
 /** Compact mailbox index: deduplicate, keep only latest entry per externalId. */
 export async function compactMailboxIndex(input: {
-  workspaceId: string
+
   accountEmail: string
   mailboxPath: string
 }): Promise<void> {
-  const lockKey = mailboxLockKey(input.workspaceId, input.accountEmail, input.mailboxPath)
+  const lockKey = mailboxLockKey(input.accountEmail, input.mailboxPath)
   await withMailboxLock(lockKey, async () => {
-    const mailboxDir = resolveMailboxDir(input.workspaceId, input.accountEmail, input.mailboxPath)
+    const mailboxDir = resolveMailboxDir(input.accountEmail, input.mailboxPath)
     const indexPath = path.join(mailboxDir, 'index.jsonl')
     const entries = await readIndexJsonlRaw(indexPath)
 
@@ -932,7 +928,7 @@ export async function compactMailboxIndex(input: {
       .join('')
     await fs.writeFile(indexPath, content, 'utf8')
 
-    const cacheKey = `${input.workspaceId}::${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
+    const cacheKey = `${input.accountEmail.trim().toLowerCase()}::${input.mailboxPath}`
     invalidateIndexCache(cacheKey)
   })
 }
@@ -943,10 +939,10 @@ export async function compactMailboxIndex(input: {
 
 /** Delete all files for an email account. */
 export async function deleteAccountFiles(input: {
-  workspaceId: string
+
   accountEmail: string
 }): Promise<void> {
-  const accountDir = resolveAccountDir(input.workspaceId, input.accountEmail)
+  const accountDir = resolveAccountDir(input.accountEmail)
   try {
     await fs.rm(accountDir, { recursive: true, force: true })
   } catch {

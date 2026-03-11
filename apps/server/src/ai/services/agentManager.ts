@@ -33,8 +33,6 @@ import { buildSubAgentPrefaceText } from '@/ai/shared/subAgentPrefaceBuilder'
 import { resolveAgentDir, readAgentJson } from '@/ai/shared/defaultAgentResolver'
 import { isBuiltinSubAgentType } from '@/ai/services/agentFactory'
 import {
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
   getProjectRootPath,
 } from '@openloaf/api/services/vfsService'
 import { logger } from '@/common/logger'
@@ -110,12 +108,6 @@ function resolveSubAgentSkills(
     const projectRoot = getProjectRootPath(requestContext.projectId)
     if (projectRoot) roots.push(projectRoot)
   }
-  if (requestContext.workspaceId) {
-    const wsRoot = getWorkspaceRootPathById(requestContext.workspaceId)
-    if (wsRoot) roots.push(wsRoot)
-  }
-  const fallbackWs = getWorkspaceRootPath()
-  if (fallbackWs && !roots.includes(fallbackWs)) roots.push(fallbackWs)
 
   for (const rootPath of roots) {
     const descriptor = readAgentJson(resolveAgentDir(rootPath, effectiveName))

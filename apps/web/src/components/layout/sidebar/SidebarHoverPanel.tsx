@@ -177,7 +177,7 @@ export function SidebarHoverPanel({
   const { t } = useTranslation('nav')
   const { t: tAi } = useTranslation('ai')
   const { t: tCommon } = useTranslation('common')
-  const nav = useSidebarNavigation(workspaceId)
+  const nav = useSidebarNavigation()
   const { workspace } = useWorkspace()
   const rootUri = workspace?.rootUri
   const { data: projects } = useProjects()
@@ -234,7 +234,7 @@ export function SidebarHoverPanel({
   })
 
   const boardQueryOpts = trpc.board.list.queryOptions(
-    type === 'all-chats' ? { workspaceId } : (skipToken as any),
+    type === 'all-chats' ? {} : (skipToken as any),
   )
   const { data: boards, isLoading: boardsLoading } = useQuery({
     ...boardQueryOpts,
@@ -324,7 +324,6 @@ export function SidebarHoverPanel({
       const baseId = `board:${boardFolderUri}`
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false
         const base = runtimeByTabId[tab.id]?.base
         return base?.id === baseId
       })
@@ -333,7 +332,6 @@ export function SidebarHoverPanel({
         setActiveTab(existingTab.id)
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: item.title || t('canvasList.untitled'),
           icon: '🎨',
@@ -442,7 +440,6 @@ export function SidebarHoverPanel({
       const board = boards?.find((b) => b.id === renameTarget.id)
       if (!board) return
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId,
         boardFolderUri: board.folderUri,
       })
       if (result.title) {

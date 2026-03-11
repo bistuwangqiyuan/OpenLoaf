@@ -11,7 +11,6 @@
 
 import { getWorkspaceIdFromCookie } from "@/components/board/core/boardSession";
 import type { FileSystemEntry } from "@/components/project/filesystem/utils/file-system-utils";
-import { useTabs } from "@/hooks/use-tabs";
 
 export const RECENT_OPEN_EVENT = "openloaf:recent-open";
 
@@ -55,16 +54,12 @@ function buildStorageKey(workspaceId: string): string {
   return `openloaf:recent-open:${workspaceId}`;
 }
 
-/** Resolve workspace id from tab or cookies. */
+/** Resolve workspace id from explicit input or cookies. */
 function resolveWorkspaceId(input: {
   tabId?: string | null;
   workspaceId?: string | null;
 }): string | null {
   if (input.workspaceId) return input.workspaceId;
-  if (input.tabId) {
-    const tab = useTabs.getState().getTabById(input.tabId);
-    if (tab?.workspaceId) return tab.workspaceId;
-  }
   return getWorkspaceIdFromCookie();
 }
 

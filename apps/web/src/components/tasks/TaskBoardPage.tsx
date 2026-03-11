@@ -701,7 +701,7 @@ export default function TaskBoardPage({
 
   const { data: tasks = [], isLoading, refetch } = useQuery(
     trpc.scheduledTask.list.queryOptions(
-      workspaceId ? { workspaceId, projectId } : skipToken,
+      workspaceId ? { projectId } : skipToken,
       { refetchInterval: 60_000, staleTime: 0, refetchOnMount: 'always' },
     ),
   )
@@ -790,7 +790,7 @@ export default function TaskBoardPage({
         sourceKey: `task-detail:${id}`,
         component: 'task-detail',
         title: task?.name ?? t('messages.detailTitle'),
-        params: { taskId: id, workspaceId, projectId },
+        params: { taskId: id, projectId },
       })
     },
     [activeTabId, pushStackItem, tasks, workspaceId, projectId, t],
@@ -1041,7 +1041,6 @@ export default function TaskBoardPage({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: trpc.scheduledTask.pathKey() })}
-        workspaceId={workspaceId}
         projectId={projectId}
         task={null}
       />

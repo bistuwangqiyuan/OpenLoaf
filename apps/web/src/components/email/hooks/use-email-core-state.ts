@@ -292,7 +292,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   // ── 查询 ──
   const accountsQuery = useQuery(
-    trpc.email.listAccounts.queryOptions(workspaceId ? { workspaceId } : skipToken),
+    trpc.email.listAccounts.queryOptions(workspaceId ? {} : skipToken),
   )
   const accounts = (accountsQuery.data ?? []) as EmailAccountView[]
   const hasConfiguredAccounts = accounts.length > 0
@@ -342,7 +342,6 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
     queries: workspaceId
       ? accounts.map((account) =>
           trpc.email.listMailboxes.queryOptions({
-            workspaceId,
             accountEmail: account.emailAddress,
           }),
         )
@@ -360,7 +359,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const mailboxUnreadStatsQuery = useQuery(
     trpc.email.listMailboxUnreadStats.queryOptions(
-      workspaceId && hasConfiguredAccounts ? { workspaceId } : skipToken,
+      workspaceId && hasConfiguredAccounts ? {} : skipToken,
     ),
   )
   const mailboxUnreadStats = (mailboxUnreadStatsQuery.data ?? []) as Array<{
@@ -371,7 +370,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
 
   const unifiedUnreadStatsQuery = useQuery(
     trpc.email.listUnifiedUnreadStats.queryOptions(
-      workspaceId && hasConfiguredAccounts ? { workspaceId } : skipToken,
+      workspaceId && hasConfiguredAccounts ? {} : skipToken,
     ),
   )
   const unifiedUnreadStats = unifiedUnreadStatsQuery.data ?? {
@@ -404,7 +403,6 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
       return null
     }
     return {
-      workspaceId,
       accountEmail: activeView.accountEmail,
       query: debouncedSearchKeyword,
       pageSize: MESSAGE_PAGE_SIZE,
@@ -446,7 +444,7 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   const messageDetailQuery = useQuery(
     trpc.email.getMessage.queryOptions(
       workspaceId && activeMessageIdForQuery
-        ? { workspaceId, id: activeMessageIdForQuery }
+        ? { id: activeMessageIdForQuery }
         : skipToken,
     ),
   )
@@ -587,7 +585,6 @@ export function useEmailCoreState({ workspaceId }: { workspaceId?: string }): Em
   ])
 
   return {
-    workspaceId,
     queryClient,
     accounts,
     hasConfiguredAccounts,

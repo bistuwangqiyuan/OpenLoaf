@@ -461,7 +461,6 @@ export default function SheetViewer({
   /** Holds the binary payload fetched from the fs API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),
@@ -605,7 +604,6 @@ export default function SheetViewer({
       const contentBase64 = encodeArrayBufferToBase64(buffer);
       const saveUri = resolveSaveUri(uri, ext);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: saveUri,
         contentBase64,

@@ -78,9 +78,9 @@ function normalizeEmailAddress(emailAddress: string): string {
 }
 
 /** Resolve email account and password from configuration. */
-function resolveEmailAccountCredential(workspaceId: string, accountEmail: string) {
+function resolveEmailAccountCredential(accountEmail: string) {
   const normalizedEmail = normalizeEmailAddress(accountEmail);
-  const config = readEmailConfigFile(workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
   );
@@ -99,7 +99,6 @@ function resolveEmailAccountCredential(workspaceId: string, accountEmail: string
 
 /** Update email account status and mailbox sync state. */
 function updateEmailAccountSyncStatus(input: {
-  workspaceId: string;
   accountEmail: string;
   mailboxPath: string;
   uidValidity?: number;
@@ -107,7 +106,7 @@ function updateEmailAccountSyncStatus(input: {
   lastSyncAt?: string;
   lastError?: string | null;
 }) {
-  const config = readEmailConfigFile(input.workspaceId);
+  const config = readEmailConfigFile();
   const normalizedEmail = normalizeEmailAddress(input.accountEmail);
   const index = config.emailAccounts.findIndex(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
@@ -140,7 +139,7 @@ function updateEmailAccountSyncStatus(input: {
       idx === index ? nextAccount : account,
     ),
   };
-  writeEmailConfigFile(nextConfig, input.workspaceId);
+  writeEmailConfigFile(nextConfig);
 }
 
 /** Connect to IMAP server and wait until ready. */
@@ -350,7 +349,6 @@ function formatErrorMessage(error: unknown): string {
 /** Sync recent messages from mailbox into database. */
 export async function syncRecentMailboxMessages(input: {
   prisma: PrismaClient;
-  workspaceId: string;
   accountEmail: string;
   mailboxPath: string;
   limit?: number;
@@ -361,7 +359,7 @@ export async function syncRecentMailboxMessages(input: {
   try {
     logger.info(
       {
-        workspaceId: input.workspaceId,
+
         accountEmail: input.accountEmail,
         mailboxPath: input.mailboxPath,
         limit,
@@ -369,7 +367,7 @@ export async function syncRecentMailboxMessages(input: {
       "email sync start",
     );
     const { account, password, normalizedEmail } = resolveEmailAccountCredential(
-      input.workspaceId,
+
       input.accountEmail,
     );
     imap = new Imap({
@@ -437,7 +435,7 @@ export async function syncRecentMailboxMessages(input: {
     if (!uids.length) {
       // 逻辑：无邮件时也写入同步时间，清空错误状态。
       updateEmailAccountSyncStatus({
-        workspaceId: input.workspaceId,
+
         accountEmail: normalizedEmail,
         mailboxPath: input.mailboxPath,
         uidValidity: box.uidvalidity,
@@ -470,7 +468,7 @@ export async function syncRecentMailboxMessages(input: {
     // 逻辑：过滤已同步的 UID，避免重复拉取。
     const existingRows = await input.prisma.emailMessage.findMany({
       where: {
-        workspaceId: input.workspaceId,
+
         accountEmail: normalizedEmail,
         mailboxPath: input.mailboxPath,
         externalId: { in: recentUids.map(String) },
@@ -491,7 +489,7 @@ export async function syncRecentMailboxMessages(input: {
     if (!pendingUids.length) {
       // 逻辑：无新增邮件时仍更新同步时间与最高 UID。
       updateEmailAccountSyncStatus({
-        workspaceId: input.workspaceId,
+
         accountEmail: normalizedEmail,
         mailboxPath: input.mailboxPath,
         uidValidity: box.uidvalidity,
@@ -536,16 +534,16 @@ export async function syncRecentMailboxMessages(input: {
       highestUid = Math.max(highestUid, message.uid);
       await input.prisma.emailMessage.upsert({
         where: {
-          workspaceId_accountEmail_mailboxPath_externalId: {
-            workspaceId: input.workspaceId,
+          accountEmail_mailboxPath_externalId: {
+    
             accountEmail: normalizedEmail,
             mailboxPath: input.mailboxPath,
             externalId,
           },
         },
         create: {
-          id: `${input.workspaceId}-${normalizedEmail}-${input.mailboxPath}-${externalId}`,
-          workspaceId: input.workspaceId,
+          id: `${normalizedEmail}-${input.mailboxPath}-${externalId}`,
+  
           accountEmail: normalizedEmail,
           mailboxPath: input.mailboxPath,
           externalId,
@@ -578,10 +576,10 @@ export async function syncRecentMailboxMessages(input: {
 
       // 逻辑：双写文件系统。
       void writeEmailMessage({
-        workspaceId: input.workspaceId,
+
         accountEmail: normalizedEmail,
         mailboxPath: input.mailboxPath,
-        id: `${input.workspaceId}-${normalizedEmail}-${input.mailboxPath}-${externalId}`,
+        id: `${normalizedEmail}-${input.mailboxPath}-${externalId}`,
         externalId,
         messageId: message.messageId,
         subject: message.subject,
@@ -604,7 +602,7 @@ export async function syncRecentMailboxMessages(input: {
     }
 
     updateEmailAccountSyncStatus({
-      workspaceId: input.workspaceId,
+
       accountEmail: normalizedEmail,
       mailboxPath: input.mailboxPath,
       uidValidity: box.uidvalidity,
@@ -631,7 +629,7 @@ export async function syncRecentMailboxMessages(input: {
       "email sync failed",
     );
     updateEmailAccountSyncStatus({
-      workspaceId: input.workspaceId,
+
       accountEmail: input.accountEmail,
       mailboxPath: input.mailboxPath,
       lastError: formatErrorMessage(error),
@@ -689,7 +687,7 @@ export async function syncRecentMailboxMessages(input: {
 /** Mark a single message as read in IMAP and database. */
 export async function markEmailMessageRead(input: {
   prisma: PrismaClient;
-  workspaceId: string;
+
   id: string;
 }): Promise<void> {
   const startedAt = Date.now();
@@ -697,7 +695,7 @@ export async function markEmailMessageRead(input: {
   let closeContext: { accountEmail?: string; mailboxPath?: string; externalId?: string } = {};
   try {
     const row = await input.prisma.emailMessage.findFirst({
-      where: { id: input.id, workspaceId: input.workspaceId },
+      where: { id: input.id },
     });
     if (!row) {
       throw new Error("邮件不存在。");
@@ -712,7 +710,7 @@ export async function markEmailMessageRead(input: {
       return;
     }
     const { account, password, normalizedEmail } = resolveEmailAccountCredential(
-      input.workspaceId,
+
       row.accountEmail,
     );
     if (shouldSkipImapOperations()) {
@@ -766,7 +764,7 @@ export async function markEmailMessageRead(input: {
     });
     // 逻辑：双写文件系统 flags。
     void updateEmailFlagsFile({
-      workspaceId: input.workspaceId,
+
       accountEmail: row.accountEmail,
       mailboxPath: row.mailboxPath,
       externalId: row.externalId,
@@ -785,7 +783,7 @@ export async function markEmailMessageRead(input: {
     );
   } catch (error) {
     logger.error(
-      { err: error, messageId: input.id, workspaceId: input.workspaceId },
+      { err: error, messageId: input.id },
       "email mark read failed",
     );
     throw error;
@@ -841,7 +839,7 @@ export async function markEmailMessageRead(input: {
 /** Set flagged state for a single message in IMAP and database. */
 export async function setEmailMessageFlagged(input: {
   prisma: PrismaClient;
-  workspaceId: string;
+
   id: string;
   flagged: boolean;
 }): Promise<void> {
@@ -850,7 +848,7 @@ export async function setEmailMessageFlagged(input: {
   let closeContext: { accountEmail?: string; mailboxPath?: string; externalId?: string } = {};
   try {
     const row = await input.prisma.emailMessage.findFirst({
-      where: { id: input.id, workspaceId: input.workspaceId },
+      where: { id: input.id },
     });
     if (!row) {
       throw new Error("邮件不存在。");
@@ -866,7 +864,7 @@ export async function setEmailMessageFlagged(input: {
       return;
     }
     const { account, password, normalizedEmail } = resolveEmailAccountCredential(
-      input.workspaceId,
+
       row.accountEmail,
     );
     if (shouldSkipImapOperations()) {
@@ -933,7 +931,7 @@ export async function setEmailMessageFlagged(input: {
       ? ensureFlaggedFlag(existingFlags)
       : removeFlaggedFlag(existingFlags);
     void updateEmailFlagsFile({
-      workspaceId: input.workspaceId,
+
       accountEmail: row.accountEmail,
       mailboxPath: row.mailboxPath,
       externalId: row.externalId,
@@ -953,7 +951,7 @@ export async function setEmailMessageFlagged(input: {
     );
   } catch (error) {
     logger.error(
-      { err: error, messageId: input.id, workspaceId: input.workspaceId },
+      { err: error, messageId: input.id },
       "email set flagged failed",
     );
     throw error;

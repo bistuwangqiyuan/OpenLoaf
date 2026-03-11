@@ -17,7 +17,6 @@ const calendarRangeSchema = z.object({
 
 const calendarSourceSchema = z.object({
   id: z.string(),
-  workspaceId: z.string(),
   provider: z.string(),
   kind: z.string(),
   externalId: z.string().nullable().optional(),
@@ -32,7 +31,6 @@ const calendarSourceSchema = z.object({
 
 const calendarItemSchema = z.object({
   id: z.string(),
-  workspaceId: z.string(),
   sourceId: z.string(),
   kind: z.enum(["event", "reminder"]),
   title: z.string(),
@@ -51,17 +49,13 @@ const calendarItemSchema = z.object({
 });
 
 const calendarItemCreateSchema = calendarItemSchema
-  .omit({ id: true, workspaceId: true, createdAt: true, updatedAt: true })
+  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     id: z.string().optional(),
-    workspaceId: z.string().optional(),
   });
 
 const calendarItemUpdateSchema = calendarItemSchema
-  .omit({ workspaceId: true, createdAt: true, updatedAt: true })
-  .extend({
-    workspaceId: z.string().optional(),
-  });
+  .omit({ createdAt: true, updatedAt: true });
 
 const syncSourceInputSchema = z.object({
   kind: z.enum(["calendar", "reminder"]),
@@ -90,14 +84,12 @@ const syncItemInputSchema = z.object({
 export const calendarSchemas = {
   listSources: {
     input: z.object({
-      workspaceId: z.string().min(1),
       projectId: z.string().optional(),
     }),
     output: z.array(calendarSourceSchema),
   },
   listItems: {
     input: z.object({
-      workspaceId: z.string().min(1),
       range: calendarRangeSchema,
       sourceIds: z.array(z.string()).optional(),
       projectId: z.string().optional(),
@@ -106,7 +98,6 @@ export const calendarSchemas = {
   },
   createItem: {
     input: z.object({
-      workspaceId: z.string().min(1),
       item: calendarItemCreateSchema,
       projectId: z.string().optional(),
     }),
@@ -114,21 +105,18 @@ export const calendarSchemas = {
   },
   updateItem: {
     input: z.object({
-      workspaceId: z.string().min(1),
       item: calendarItemUpdateSchema,
     }),
     output: calendarItemSchema,
   },
   deleteItem: {
     input: z.object({
-      workspaceId: z.string().min(1),
       id: z.string().min(1),
     }),
     output: z.object({ id: z.string() }),
   },
   toggleReminderCompleted: {
     input: z.object({
-      workspaceId: z.string().min(1),
       id: z.string().min(1),
       completed: z.boolean(),
     }),
@@ -136,7 +124,6 @@ export const calendarSchemas = {
   },
   syncFromSystem: {
     input: z.object({
-      workspaceId: z.string().min(1),
       provider: z.enum(["macos", "windows"]),
       range: calendarRangeSchema,
       sources: z.array(syncSourceInputSchema),

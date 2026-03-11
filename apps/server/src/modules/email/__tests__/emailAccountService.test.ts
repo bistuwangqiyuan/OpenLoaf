@@ -14,28 +14,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { setWorkspaces } from "@openloaf/api/services/workspaceConfig";
-import type { Workspace } from "@openloaf/api";
 import { setOpenLoafRootOverride } from "@openloaf/config";
 
 const tempRoot = mkdtempSync(path.join(tmpdir(), "openloaf-email-account-"));
 process.env.OPENLOAF_SERVER_ENV_PATH = path.join(tempRoot, ".env");
 setOpenLoafRootOverride(tempRoot);
-
-const workspaceRoot = path.join(tempRoot, "workspace");
-const workspaceId = "workspace-test";
-
-const workspace: Workspace = {
-  id: workspaceId,
-  name: "Test Workspace",
-  type: "local",
-  isActive: true,
-  rootUri: pathToFileURL(workspaceRoot).href,
-  projects: {},
-  ignoreSkills: [],
-};
-
-setWorkspaces([workspace]);
 
 let emailAccountService: typeof import("../emailAccountService");
 try {
@@ -50,7 +33,6 @@ const emailAddress = "User+Test@example.com";
 const password = "app-password";
 
 const account = addEmailAccount({
-  workspaceId,
   emailAddress,
   label: "Work",
   imap: { host: "imap.example.com", port: 993, tls: true },
@@ -62,7 +44,7 @@ const expectedSlug = emailAddress
   .toLowerCase()
   .replace(/[^a-z0-9]/g, "_")
   .replace(/^_+|_+$/g, "");
-const expectedEnvKey = `EMAIL_PASSWORD__${workspaceId}__${expectedSlug}`;
+const expectedEnvKey = `EMAIL_PASSWORD__default__${expectedSlug}`;
 
 assert.equal(account.auth.type, "password");
 if (account.auth.type === "password") {
@@ -75,7 +57,6 @@ assert.ok(envContent.includes(`${expectedEnvKey}=${password}`));
 let duplicateError: unknown = null;
 try {
   addEmailAccount({
-    workspaceId,
     emailAddress,
     imap: { host: "imap.example.com", port: 993, tls: true },
     smtp: { host: "smtp.example.com", port: 465, tls: true },

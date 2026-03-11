@@ -10,7 +10,6 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import {
-  getActiveWorkspace,
   getProjectRootUri,
   resolveFilePathFromUri,
   toFileUriWithoutEncoding,
@@ -160,8 +159,7 @@ export async function moveProjectStorage(
     upsertActiveWorkspaceProject(projectId, nextRootUri);
   }
 
-  const workspaceId = getActiveWorkspace().id;
-  await syncWorkspaceProjectsFromDisk(input.prisma, workspaceId);
+  await syncWorkspaceProjectsFromDisk(input.prisma);
 
   return { rootUri: nextRootUri };
 }

@@ -33,9 +33,9 @@ import {
   getProjectId,
   getSessionId,
   getUiWriter,
-  getWorkspaceId,
 } from "@/ai/shared/context/requestContext";
-import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { getCodexAppServerConnection } from "@/ai/models/cli/codex/codexAppServerConnection";
 import {
   getCachedCodexThread,
@@ -285,12 +285,7 @@ function resolveCodexWorkingDirectory(): string {
     const projectRootPath = getProjectRootPath(projectId);
     if (projectRootPath) return projectRootPath;
   }
-  const workspaceId = getWorkspaceId();
-  if (workspaceId) {
-    const workspaceRootPath = getWorkspaceRootPathById(workspaceId);
-    if (workspaceRootPath) return workspaceRootPath;
-  }
-  throw new Error("Codex 运行路径缺失：未找到 project 或 workspace 根目录");
+  return getOpenLoafRootDir();
 }
 
 /** Resolve prompt text based on whether a thread already exists. */

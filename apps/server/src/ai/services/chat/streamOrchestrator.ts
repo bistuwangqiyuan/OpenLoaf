@@ -67,8 +67,6 @@ type ChatStreamResponseInput = {
   parentMessageId: string;
   /** Request start time. */
   requestStartAt: Date;
-  /** Workspace id used for branch log path resolving. */
-  workspaceId?: string;
   /** Model-ready messages. */
   modelMessages: UIMessage[];
   /** Agent runner. */

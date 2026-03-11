@@ -53,7 +53,7 @@ export default function EmailMessageStackPanel({
   const messageQuery = useQuery(
     trpc.email.getMessage.queryOptions(
       resolvedWorkspaceId && messageId
-        ? { workspaceId: resolvedWorkspaceId, id: messageId }
+        ? { id: messageId }
         : skipToken,
     ),
   );

@@ -196,7 +196,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
   }, [agentsQuery.data])
 
   const listQuery = useQuery(
-    trpc.scheduledTask.list.queryOptions({ workspaceId, projectId }),
+    trpc.scheduledTask.list.queryOptions({ projectId }),
   )
   const allTasks = useMemo(() => listQuery.data ?? [], [listQuery.data])
   const tasks = useMemo(() => {
@@ -266,11 +266,10 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
   const addTab = useTabs((s) => s.addTab)
   const handleOpenChat = useCallback((sessionId: string) => {
     addTab({
-      workspaceId,
       chatSessionId: sessionId,
       chatLoadHistory: true,
     })
-  }, [addTab, workspaceId])
+  }, [addTab])
 
   const colSpan = 7
 
@@ -467,7 +466,6 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         onSuccess={handleDialogSuccess}
-        workspaceId={workspaceId}
         projectId={projectId}
         task={editingTask}
       />
@@ -476,7 +474,6 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
         open={Boolean(logTaskId)}
         onOpenChange={(open) => { if (!open) setLogTaskId(null) }}
         taskId={logTaskId ?? ''}
-        workspaceId={workspaceId}
         projectId={projectId}
         onOpenChat={handleOpenChat}
       />

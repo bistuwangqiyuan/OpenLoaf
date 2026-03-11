@@ -43,13 +43,11 @@ export const WorkspaceProvider = ({ children }: WorkspaceProviderProps) => {
     if (isLoading) return;
     if (activeTabId) return;
 
-    // 检查是否已有该工作区的标签页
-    const hasWorkspaceTabs = tabs.some((tab) => tab.workspaceId === workspace.id);
-    if (hasWorkspaceTabs) return;
+    // 检查是否已有标签页
+    if (tabs.length > 0) return;
 
     // 创建默认 AI 助手标签页
     addTab({
-      workspaceId: workspace.id,
       createNew: true,
       title: DEFAULT_TAB_INFO.titleKey,
       icon: DEFAULT_TAB_INFO.icon,

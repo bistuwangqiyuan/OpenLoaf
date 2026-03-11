@@ -38,7 +38,7 @@ function extractBoardTitle(folderName: string): string {
  */
 async function syncBoardsFromDisk(
   prisma: any,
-  input: { workspaceId: string; projectId?: string },
+  input: { projectId?: string },
 ): Promise<void> {
   let rootPath: string;
   try {
@@ -87,7 +87,6 @@ async function syncBoardsFromDisk(
   const folderUris = toSync.map((b) => `.openloaf/boards/${b.folderName}/`);
   const existing = await prisma.board.findMany({
     where: {
-      workspaceId: input.workspaceId,
       folderUri: { in: folderUris },
     },
     select: { folderUri: true },
@@ -100,7 +99,6 @@ async function syncBoardsFromDisk(
     .map((b) => ({
       id: createBoardId(),
       title: extractBoardTitle(b.folderName),
-      workspaceId: input.workspaceId,
       projectId: input.projectId ?? null,
       folderUri: `.openloaf/boards/${b.folderName}/`,
       createdAt: b.mtime,
@@ -124,7 +122,6 @@ export const boardRouter = t.router({
   create: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
         title: z.string().optional(),
       }),
@@ -140,7 +137,6 @@ export const boardRouter = t.router({
         data: {
           id: boardId,
           title: input.title ?? defaultTitle,
-          workspaceId: input.workspaceId,
           projectId: input.projectId ?? null,
           folderUri,
         },
@@ -149,25 +145,22 @@ export const boardRouter = t.router({
       return board;
     }),
 
-  /** List boards for a workspace, optionally filtered by project. */
+  /** List boards, optionally filtered by project. */
   list: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const where = {
         deletedAt: null,
-        workspaceId: input.workspaceId,
         ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
       };
       const selectFields = {
         id: true,
         title: true,
         isPin: true,
-        workspaceId: true,
         projectId: true,
         folderUri: true,
         createdAt: true,
@@ -184,7 +177,6 @@ export const boardRouter = t.router({
       if (boards.length === 0) {
         try {
           await syncBoardsFromDisk(ctx.prisma, {
-            workspaceId: input.workspaceId,
             projectId: input.projectId,
           });
           boards = await ctx.prisma.board.findMany({
@@ -219,7 +211,6 @@ export const boardRouter = t.router({
   thumbnails: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
         boardIds: z.array(z.string()),
       }),
@@ -298,7 +289,6 @@ export const boardRouter = t.router({
     .input(
       z.object({
         boardId: z.string().min(1),
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
@@ -314,7 +304,6 @@ export const boardRouter = t.router({
       // Copy board folder on disk
       try {
         const rootPath = resolveScopedRootPath({
-          workspaceId: input.workspaceId,
           projectId: input.projectId,
         });
         const boardsDir = path.join(rootPath, ".openloaf", "boards");
@@ -348,7 +337,6 @@ export const boardRouter = t.router({
         data: {
           id: newBoardId,
           title: `${original.title} (copy)`,
-          workspaceId: input.workspaceId,
           projectId: input.projectId ?? original.projectId,
           folderUri: newFolderUri,
         },
@@ -382,7 +370,6 @@ export const boardRouter = t.router({
     .input(
       z.object({
         boardId: z.string().min(1),
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
@@ -409,7 +396,6 @@ export const boardRouter = t.router({
       // Delete file folder
       try {
         const rootPath = resolveScopedRootPath({
-          workspaceId: input.workspaceId,
           projectId: input.projectId,
         });
         const boardDir = path.join(rootPath, ".openloaf", "boards", input.boardId);

@@ -198,7 +198,7 @@ export function ProjectFilePickerDialog({
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
       activeUri !== null && workspaceId
-        ? { workspaceId, projectId: activeProjectId, uri: activeUri }
+        ? { projectId: activeProjectId, uri: activeUri }
         : skipToken
     )
   );

@@ -23,11 +23,11 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import os from 'node:os'
-import { setRequestContext, runWithContext } from '@/ai/shared/context/requestContext'
+import { runWithContext } from '@/ai/shared/context/requestContext'
 import { isTargetOutsideScope, resolveToolPath } from '@/ai/tools/toolScope'
 import { readFileTool, listDirTool } from '@/ai/tools/fileTools'
 import { grepFilesTool } from '@/ai/tools/grepFilesTool'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 
 // ---------------------------------------------------------------------------
 // Test runner
@@ -54,16 +54,8 @@ async function test(name: string, fn: () => Promise<void> | void) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** 以有效 workspaceId 运行函数（完整 E2E 工作区上下文）。 */
+/** 以完整 E2E 上下文运行函数。 */
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
-  return runWithContext(
-    { sessionId: 'toolscope-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
-    fn as () => Promise<T>,
-  )
-}
-
-/** 以空 workspaceId 运行函数（模拟无有效工作区的情况）。 */
-function withNoWorkspace<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
     { sessionId: 'toolscope-test', cookies: {} },
     fn as () => Promise<T>,
@@ -93,13 +85,6 @@ async function main() {
   // A 层：isTargetOutsideScope 纯函数行为
   // -----------------------------------------------------------------------
   console.log('\nA 层 — isTargetOutsideScope')
-
-  await test('无 workspaceId 时不抛出，返回 false', () =>
-    withNoWorkspace(() => {
-      const result = isTargetOutsideScope('/any/path')
-      assert.equal(result, false)
-    }),
-  )
 
   await test('workspace 根目录（相对 "."）→ false', () =>
     withCtx(() => assert.equal(isTargetOutsideScope('.'), false)),
@@ -148,15 +133,6 @@ async function main() {
       const { rootLabel, absPath } = resolveToolPath({ target: outsidePath })
       assert.equal(rootLabel, 'external')
       assert.equal(absPath, path.resolve(outsidePath))
-    }),
-  )
-
-  await test('无 workspaceId 时抛出 Error', () =>
-    withNoWorkspace(() => {
-      assert.throws(
-        () => resolveToolPath({ target: 'file.txt' }),
-        /workspaceId is required/,
-      )
     }),
   )
 

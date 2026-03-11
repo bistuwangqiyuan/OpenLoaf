@@ -44,7 +44,7 @@ import {
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { toast } from "sonner";
 
-type AgentScope = "workspace" | "project" | "global";
+type AgentScope = "project" | "global";
 
 type AgentSummary = {
   name: string;
@@ -336,7 +336,6 @@ function WorkspaceAgentView() {
     }
     try {
       await mkdirMutation.mutateAsync({
-        workspaceId,
         uri: ".openloaf/agents",
         recursive: true,
       });
@@ -380,9 +379,7 @@ function WorkspaceAgentView() {
       const titlePrefix =
         agent.scope === "global"
           ? t("settings:agent.scopeGlobal")
-          : agent.scope === "project"
-            ? t("settings:agent.scopeProject")
-            : t("settings:agent.scopeWorkspace");
+          : t("settings:agent.scopeProject");
       pushStackItem(activeTabId, {
         id: `agent:${agent.scope}:${stackKey}`,
         sourceKey: `agent:${agent.scope}:${stackKey}`,
@@ -426,7 +423,7 @@ function WorkspaceAgentView() {
       title: t("settings:agent.createTitle"),
       params: {
         isNew: true,
-        scope: "workspace",
+        scope: "global",
       },
     });
   }, [activeTabId, pushStackItem]);
@@ -435,7 +432,7 @@ function WorkspaceAgentView() {
     (agent: AgentSummary, nextEnabled: boolean) => {
       if (!agent.ignoreKey.trim()) return;
       updateAgentMutation.mutate({
-        scope: "workspace",
+        scope: "global",
         ignoreKey: agent.ignoreKey,
         enabled: nextEnabled,
       });
@@ -451,7 +448,7 @@ function WorkspaceAgentView() {
       );
       if (!confirmed) return;
       await deleteAgentMutation.mutateAsync({
-        scope: "workspace",
+        scope: "global",
         ignoreKey: agent.ignoreKey,
         agentPath: agent.path,
       });
@@ -608,7 +605,7 @@ function WorkspaceAgentView() {
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {(() => {
-                          const label = agent.scope === "project" ? t("settings:agent.badgeProject") : t("settings:agent.badgeWorkspace");
+                          const label = agent.scope === "project" ? t("settings:agent.badgeProject") : t("settings:agent.badgeGlobal", { defaultValue: t("settings:agent.badgeWorkspace") });
                           const colorClass = agent.scope === "project"
                             ? "bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-400"
                             : "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400";

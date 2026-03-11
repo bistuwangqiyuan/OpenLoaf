@@ -402,7 +402,6 @@ const FileSystemColumns = memo(function FileSystemColumns({
   const columnQueries = useQueries({
     queries: columnUris.map((uri) => ({
       ...trpc.fs.list.queryOptions({
-        workspaceId,
         projectId,
         uri,
         includeHidden,

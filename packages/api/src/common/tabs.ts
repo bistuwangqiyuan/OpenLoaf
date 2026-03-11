@@ -25,7 +25,6 @@ export type DockItem = {
 export interface Tab {
   /** Random tab id (tabId), independent from chat session id. */
   id: string;
-  workspaceId: string;
   title: string;
   icon?: string;
   isPin?: boolean;
@@ -89,11 +88,11 @@ export const CANVAS_LIST_TAB_INPUT = {
   icon: "🎨",
 } as const;
 
-export const WORKSPACE_LIST_TAB_INPUT = {
-  baseId: "base:workspace-list",
-  component: "workspace-list-page",
-  titleKey: "nav:workspaceList",
-  icon: "🏢",
+export const PROJECT_LIST_TAB_INPUT = {
+  baseId: "base:project-list",
+  component: "project-list-page",
+  titleKey: "nav:projectList",
+  icon: "📁",
 } as const;
 
 export const DEFAULT_TAB_INFO = {

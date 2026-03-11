@@ -75,7 +75,7 @@ export default function DesktopTileContent({
         return;
       }
       if (iconKey === "settings" && scope === "workspace") {
-        openSettingsTab(workspace.id);
+        openSettingsTab();
         return;
       }
       if (iconKey === "agent-settings") {
@@ -99,7 +99,7 @@ export default function DesktopTileContent({
         return;
       }
       const activeTab = tabs.find(
-        (tab) => tab.id === activeTabId && tab.workspaceId === workspace.id
+        (tab) => tab.id === activeTabId
       );
       if (!activeTab) {
         toast.error(t('content.tabNotFound'));

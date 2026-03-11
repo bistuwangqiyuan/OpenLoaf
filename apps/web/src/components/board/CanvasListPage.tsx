@@ -300,7 +300,6 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const handleCreate = useCallback(() => {
     if (!workspaceId || !rootUri || createMutation.isPending) return;
     createMutation.mutate({
-      workspaceId,
       title: t("canvasList.defaultName"),
       ...(projectId ? { projectId } : {}),
     });
@@ -317,7 +316,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       const baseId = `board:${boardFolderUri}`;
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false;
+        if (workspaceId !== workspaceId) return false;
         const base = runtimeByTabId[tab.id]?.base;
         return base?.id === baseId;
       });
@@ -326,7 +325,6 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
         setActiveTab(existingTab.id);
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: board.title || t("canvasList.untitled"),
           icon: "🎨",
@@ -376,7 +374,6 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
         : "";
       if (!boardFolderUri) return;
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId,
         boardFolderUri,
         saasAccessToken: getCachedAccessToken() ?? undefined,
       });
@@ -408,7 +405,6 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       if (!workspaceId || duplicateMutation.isPending) return;
       duplicateMutation.mutate({
         boardId,
-        workspaceId,
         ...(projectId ? { projectId } : {}),
       });
     },

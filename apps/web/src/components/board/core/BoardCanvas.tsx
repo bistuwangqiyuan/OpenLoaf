@@ -273,7 +273,6 @@ export function BoardCanvas({
       const newBoardFolderUri = buildFileUriFromRoot(rootUri, newBoard.folderUri);
       const newBoardFileUri = buildFileUriFromRoot(rootUri, `${newBoard.folderUri}${BOARD_INDEX_FILE_NAME}`);
       addTab({
-        workspaceId: resolvedWorkspaceId,
         createNew: true,
         title: newBoard.title,
         icon: "🎨",
@@ -296,7 +295,6 @@ export function BoardCanvas({
     if (!resolvedBoardId || !resolvedWorkspaceId || duplicateBoardMutation.isPending) return;
     duplicateBoardMutation.mutate({
       boardId: resolvedBoardId,
-      workspaceId: resolvedWorkspaceId,
       ...(projectId ? { projectId } : {}),
     });
   }, [resolvedBoardId, resolvedWorkspaceId, projectId, duplicateBoardMutation]);
@@ -328,7 +326,6 @@ export function BoardCanvas({
     setAiNaming(true);
     try {
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId: resolvedWorkspaceId,
         boardFolderUri,
         saasAccessToken: getCachedAccessToken() ?? undefined,
       });
@@ -352,7 +349,7 @@ export function BoardCanvas({
       ? boardFolderUri.slice(rootUriBase.length).replace(/^\//, '')
       : boardFolderUri;
     deleteBoardMutation.mutate(
-      { workspaceId: resolvedWorkspaceId, uri: relativeUri },
+      { uri: relativeUri },
       {
         onSuccess: () => {
           // Close current tab and open a fresh canvas
@@ -469,7 +466,6 @@ export function BoardCanvas({
             const contentBase64 = await blobToBase64(thumbnailBlob);
             const uri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
             await writeThumbnailRef.current({
-              workspaceId: resolvedWorkspaceId,
               projectId,
               uri,
               contentBase64,
@@ -551,7 +547,6 @@ export function BoardCanvas({
           const contentBase64 = await blobToBase64(thumbnailBlob);
           const uri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
           await writeThumbnailRef.current({
-            workspaceId: resolvedWorkspaceId,
             projectId,
             uri,
             contentBase64,

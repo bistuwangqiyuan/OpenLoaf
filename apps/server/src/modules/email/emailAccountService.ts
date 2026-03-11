@@ -14,7 +14,6 @@ import type { EmailConfigFile } from "./emailConfigStore";
 import { removeEmailEnvValue, setEmailEnvValue } from "./emailEnvStore";
 
 const emailAccountInputSchema = z.object({
-  workspaceId: z.string().min(1),
   emailAddress: z.string().min(1),
   label: z.string().optional(),
   imap: z.object({
@@ -31,7 +30,6 @@ const emailAccountInputSchema = z.object({
 });
 
 const oauthAccountInputSchema = z.object({
-  workspaceId: z.string().min(1),
   emailAddress: z.string().min(1),
   label: z.string().optional(),
   authType: z.enum(["oauth2-graph", "oauth2-gmail"]),
@@ -52,19 +50,25 @@ export function toEmailSlug(emailAddress: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+/**
+ * Fixed scope key for env key naming (backward compatible).
+ * Previously this was workspaceId; now email is global.
+ */
+const ENV_KEY_SCOPE = "default";
+
 /** Build env key for email password. */
-export function buildEmailPasswordEnvKey(workspaceId: string, emailAddress: string): string {
+export function buildEmailPasswordEnvKey(emailAddress: string): string {
   const slug = toEmailSlug(emailAddress);
-  return `EMAIL_PASSWORD__${workspaceId}__${slug}`;
+  return `EMAIL_PASSWORD__${ENV_KEY_SCOPE}__${slug}`;
 }
 
 /** Build env keys for OAuth tokens. */
-export function buildOAuthEnvKeys(workspaceId: string, emailAddress: string) {
+export function buildOAuthEnvKeys(emailAddress: string) {
   const slug = toEmailSlug(emailAddress);
   return {
-    refreshTokenEnvKey: `EMAIL_OAUTH_REFRESH__${workspaceId}__${slug}`,
-    accessTokenEnvKey: `EMAIL_OAUTH_ACCESS__${workspaceId}__${slug}`,
-    expiresAtEnvKey: `EMAIL_OAUTH_EXPIRES__${workspaceId}__${slug}`,
+    refreshTokenEnvKey: `EMAIL_OAUTH_REFRESH__${ENV_KEY_SCOPE}__${slug}`,
+    accessTokenEnvKey: `EMAIL_OAUTH_ACCESS__${ENV_KEY_SCOPE}__${slug}`,
+    expiresAtEnvKey: `EMAIL_OAUTH_EXPIRES__${ENV_KEY_SCOPE}__${slug}`,
   };
 }
 
@@ -72,9 +76,9 @@ export function buildOAuthEnvKeys(workspaceId: string, emailAddress: string) {
 export function addEmailAccount(input: EmailAccountInput) {
   const parsed = emailAccountInputSchema.parse(input);
   const normalizedEmail = normalizeEmailAddress(parsed.emailAddress);
-  const envKey = buildEmailPasswordEnvKey(parsed.workspaceId, normalizedEmail);
+  const envKey = buildEmailPasswordEnvKey(normalizedEmail);
 
-  const config = readEmailConfigFile(parsed.workspaceId);
+  const config = readEmailConfigFile();
   const exists = config.emailAccounts.some(
     (account) => normalizeEmailAddress(account.emailAddress) === normalizedEmail,
   );
@@ -107,7 +111,7 @@ export function addEmailAccount(input: EmailAccountInput) {
     emailAccounts: [...config.emailAccounts, nextAccount],
     privateSenders: config.privateSenders ?? [],
   };
-  writeEmailConfigFile(nextConfig, parsed.workspaceId);
+  writeEmailConfigFile(nextConfig);
 
   return nextAccount;
 }
@@ -116,9 +120,9 @@ export function addEmailAccount(input: EmailAccountInput) {
 export function addOAuthEmailAccount(input: OAuthAccountInput) {
   const parsed = oauthAccountInputSchema.parse(input);
   const normalizedEmail = normalizeEmailAddress(parsed.emailAddress);
-  const envKeys = buildOAuthEnvKeys(parsed.workspaceId, normalizedEmail);
+  const envKeys = buildOAuthEnvKeys(normalizedEmail);
 
-  const config = readEmailConfigFile(parsed.workspaceId);
+  const config = readEmailConfigFile();
   const exists = config.emailAccounts.some(
     (account) => normalizeEmailAddress(account.emailAddress) === normalizedEmail,
   );
@@ -146,18 +150,17 @@ export function addOAuthEmailAccount(input: OAuthAccountInput) {
     emailAccounts: [...config.emailAccounts, nextAccount],
     privateSenders: config.privateSenders ?? [],
   };
-  writeEmailConfigFile(nextConfig, parsed.workspaceId);
+  writeEmailConfigFile(nextConfig);
 
   return nextAccount;
 }
 
 /** Remove an email account from email.json and clean up its env entries. */
 export function removeEmailAccount(input: {
-  workspaceId: string;
   emailAddress: string;
 }): void {
   const normalizedEmail = normalizeEmailAddress(input.emailAddress);
-  const config = readEmailConfigFile(input.workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
   );
@@ -171,7 +174,7 @@ export function removeEmailAccount(input: {
       (item) => normalizeEmailAddress(item.emailAddress) !== normalizedEmail,
     ),
   };
-  writeEmailConfigFile(nextConfig, input.workspaceId);
+  writeEmailConfigFile(nextConfig);
 
   // 逻辑：清理 .env 中的凭据条目。
   if (account.auth.type === "password") {

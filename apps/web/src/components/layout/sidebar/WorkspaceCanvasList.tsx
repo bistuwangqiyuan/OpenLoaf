@@ -65,7 +65,7 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
 
   const { data: boards } = useQuery(
     trpc.board.list.queryOptions(
-      workspaceId ? { workspaceId } : ({ workspaceId: "" } as any),
+      workspaceId ? {} : ({ workspaceId: "" } as any),
     ),
   );
 
@@ -80,7 +80,6 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
       const baseId = `board:${boardFolderUri}`;
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false;
         const base = runtimeByTabId[tab.id]?.base;
         return base?.id === baseId;
       });
@@ -89,7 +88,6 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
         setActiveTab(existingTab.id);
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: board.title || t("canvasList.untitled"),
           icon: "🎨",
@@ -149,7 +147,6 @@ export function WorkspaceCanvasList({ workspaceId }: WorkspaceCanvasListProps) {
       const board = boards?.find((b) => b.id === renameTarget.boardId);
       if (!board) return;
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId,
         boardFolderUri: board.folderUri,
       });
       if (result.title) {

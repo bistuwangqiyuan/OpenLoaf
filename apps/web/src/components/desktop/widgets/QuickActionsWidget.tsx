@@ -67,7 +67,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
     }
     // 逻辑：从当前激活 tab 获取项目上下文。
     const activeTab = tabs.find(
-      (tab) => tab.id === activeTabId && tab.workspaceId === workspaceId,
+      (tab) => tab.id === activeTabId,
     );
     if (!activeTab) {
       toast.error(t('quickActions.noTab'));
@@ -96,19 +96,16 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       const assetsUri = buildChildUri(boardFolderUri, BOARD_ASSETS_DIR_NAME);
 
       await mkdirMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: boardFolderUri,
         recursive: true,
       });
       await mkdirMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: assetsUri,
         recursive: true,
       });
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: boardFileUri,
         contentBase64: "",
@@ -160,7 +157,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
 
     // 逻辑：优先使用当前项目标签页的 rootUri，否则回退到工作区根目录。
     const activeTab = tabs.find(
-      (tab) => tab.id === activeTabId && tab.workspaceId === workspaceId,
+      (tab) => tab.id === activeTabId,
     );
     const runtime = activeTab ? useTabRuntime.getState().runtimeByTabId[activeTab.id] : null;
     const baseParams = (runtime?.base?.params ?? {}) as Record<string, unknown>;

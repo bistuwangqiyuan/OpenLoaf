@@ -563,7 +563,6 @@ export function Chat({
   const effectiveSessionId = sessionId ?? sessionIdRef.current;
   const effectiveLoadHistory = loadHistory ?? Boolean(sessionId);
   const workspaceId =
-    tab?.workspaceId ??
     (typeof rawParams.workspaceId === "string" ? rawParams.workspaceId.trim() : "");
   const projectId =
     typeof rawParams.projectId === "string" ? rawParams.projectId.trim() : "";

@@ -18,6 +18,7 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 import { useTabs } from "@/hooks/use-tabs";
 import { queryClient } from "@/utils/trpc";
 import { getProjectsQueryKey } from "@/hooks/use-projects";
+import { getWorkspaceIdFromCookie } from "@/components/board/core/boardSession";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
 import { getRelativePathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
 import { createFileEntryFromUri } from "@/components/file/lib/open-file";
@@ -82,7 +83,9 @@ function resolveFileEntryFromUrl(input: {
   if (!input.url.startsWith("file://")) return null;
 
   const tab = useTabs.getState().getTabById(input.tabId);
-  if (!tab?.workspaceId) return null;
+  if (!tab) return null;
+  const workspaceId = getWorkspaceIdFromCookie();
+  if (!workspaceId) return null;
   const projectId =
     typeof tab.chatParams?.projectId === "string" ? tab.chatParams.projectId : null;
   if (!projectId) return null;
@@ -104,7 +107,7 @@ function resolveFileEntryFromUrl(input: {
 
   return {
     entry,
-    workspaceId: tab.workspaceId,
+    workspaceId,
     projectId,
   };
 }

@@ -19,7 +19,7 @@ import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
 import { useWorkspace } from '@/components/workspace/workspaceContext'
 
-export function useSidebarNavigation(workspaceId: string) {
+export function useSidebarNavigation() {
   const { workspace } = useWorkspace()
   const addTab = useTabs((s) => s.addTab)
   const setActiveTab = useTabs((s) => s.setActiveTab)
@@ -35,14 +35,13 @@ export function useSidebarNavigation(workspaceId: string) {
   const openChat = useCallback(
     (chatId: string, chatTitle: string) => {
       const existingTab = tabs.find(
-        (tab) => tab.workspaceId === workspaceId && tab.chatSessionId === chatId,
+        (tab) => tab.chatSessionId === chatId,
       )
 
       if (existingTab) {
         startTransition(() => setActiveTab(existingTab.id))
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: chatTitle,
           icon: '\uD83D\uDCAC',
@@ -56,7 +55,7 @@ export function useSidebarNavigation(workspaceId: string) {
 
       setActiveWorkspaceChat(chatId)
     },
-    [workspaceId, tabs, addTab, setActiveTab, setActiveWorkspaceChat],
+    [tabs, addTab, setActiveTab, setActiveWorkspaceChat],
   )
 
   const openTempChat = useCallback(() => {
@@ -65,7 +64,6 @@ export function useSidebarNavigation(workspaceId: string) {
     const state = useTabs.getState()
     const rtById = useTabRuntime.getState().runtimeByTabId
     const existing = state.tabs.find((tab) => {
-      if (tab.workspaceId !== workspaceId) return false
       if (rtById[tab.id]?.base) return false
       return tab.title === tabTitle
     })
@@ -74,7 +72,6 @@ export function useSidebarNavigation(workspaceId: string) {
       startTransition(() => setActiveTab(existing.id))
     } else {
       addTab({
-        workspaceId,
         createNew: true,
         title: tabTitle,
         icon: TEMP_CHAT_TAB_INPUT.icon,
@@ -85,7 +82,7 @@ export function useSidebarNavigation(workspaceId: string) {
 
     setActiveWorkspaceChat(null)
     setActiveView('ai-assistant')
-  }, [workspaceId, addTab, setActiveTab, setActiveView, setActiveWorkspaceChat])
+  }, [addTab, setActiveTab, setActiveView, setActiveWorkspaceChat])
 
   const openTempCanvas = useCallback(() => {
     const rootUri = workspace?.rootUri
@@ -98,7 +95,6 @@ export function useSidebarNavigation(workspaceId: string) {
     const boardFolderUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}`)
     const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_INDEX_FILE_NAME}`)
     addTab({
-      workspaceId,
       createNew: true,
       title: tabTitle,
       icon: TEMP_CANVAS_TAB_INPUT.icon,
@@ -112,7 +108,7 @@ export function useSidebarNavigation(workspaceId: string) {
 
     setActiveWorkspaceChat(null)
     setActiveView('canvas-list')
-  }, [workspace, workspaceId, addTab, setActiveView, setActiveWorkspaceChat])
+  }, [workspace, addTab, setActiveView, setActiveWorkspaceChat])
 
   return { openChat, openTempChat, openTempCanvas }
 }

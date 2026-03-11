@@ -74,7 +74,6 @@ export const aiSchemas = {
       aspectRatio: z.string().optional(),
       parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
       chatModelId: z.string().optional(),
-      workspaceId: z.string().optional(),
       projectId: z.string().optional(),
     }),
     output: z.object({ taskId: z.string().min(1) }),
@@ -83,7 +82,6 @@ export const aiSchemas = {
     input: z.object({
       taskId: z.string().min(1),
       chatModelId: z.string().optional(),
-      workspaceId: z.string().optional(),
       projectId: z.string().optional(),
       saveDir: z.string().optional(),
     }),

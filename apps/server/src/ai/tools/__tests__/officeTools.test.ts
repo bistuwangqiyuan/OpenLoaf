@@ -27,7 +27,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { promises as fs } from 'node:fs'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { wordQueryTool, wordMutateTool } from '@/ai/tools/wordTools'
 import { excelQueryTool, excelMutateTool } from '@/ai/tools/excelTools'
 import { pptxQueryTool, pptxMutateTool } from '@/ai/tools/pptxTools'
@@ -60,7 +60,7 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'office-tools-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'office-tools-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }

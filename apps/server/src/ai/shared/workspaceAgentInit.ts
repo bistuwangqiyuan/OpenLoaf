@@ -10,11 +10,7 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import {
-  getActiveWorkspaceConfig,
-  resolveWorkspaceRootPath,
-} from '@openloaf/api/services/workspaceConfig'
+import { getOpenLoafRootDir } from '@openloaf/config'
 
 /** OpenLoaf meta directory name. */
 const OPENLOAF_META_DIR = '.openloaf'
@@ -62,40 +58,32 @@ function cleanupLegacySystemAgents(rootPath: string): void {
 }
 
 /**
- * Initialize workspace agents:
+ * Initialize global agent cleanup:
  * Clean up legacy system agent folders from older versions.
  */
-function initWorkspaceAgents(rootPath: string): void {
+function initAgentCleanup(rootPath: string): void {
   cleanupLegacySystemAgents(rootPath)
 }
 
 /**
- * Ensure the active workspace has been migrated.
+ * Ensure the global OpenLoaf directory has been migrated.
  * Called at server startup.
  */
-export function ensureActiveWorkspaceDefaultAgent(): void {
+export function ensureDefaultAgentCleanup(): void {
   try {
-    const active = getActiveWorkspaceConfig()
-    if (!active?.rootUri) return
-    const rootPath = resolveWorkspaceRootPath(active.rootUri)
-    initWorkspaceAgents(rootPath)
+    const rootPath = getOpenLoafRootDir()
+    initAgentCleanup(rootPath)
   } catch {
     // 逻辑：启动时静默忽略，不影响服务启动。
   }
 }
 
 /**
- * Ensure a workspace has been migrated by its rootUri.
- * Called when creating or switching workspaces.
+ * @deprecated No longer needed — workspace concept removed.
+ * Kept as no-op for backward compatibility with callers.
  */
 export function ensureWorkspaceDefaultAgentByRootUri(
-  rootUri: string,
+  _rootUri: string,
 ): void {
-  if (!rootUri) return
-  try {
-    const rootPath = fileURLToPath(rootUri)
-    initWorkspaceAgents(rootPath)
-  } catch {
-    // 逻辑：静默忽略，不影响 workspace 操作。
-  }
+  // No-op: workspace concept removed.
 }

@@ -86,7 +86,7 @@ function SettingsStackSlotButton({ settingsMenu }: { settingsMenu: string }) {
           title: i18next.t('nav:panelTitle.openInSettings'),
           "aria-label": i18next.t('nav:panelTitle.openInSettings'),
           onClick: () => {
-            if (workspace?.id) openSettingsTab(workspace.id, settingsMenu);
+            if (workspace?.id) openSettingsTab(settingsMenu);
           },
         },
         React.createElement(ExternalLink, { className: "h-3.5 w-3.5" }),
@@ -154,7 +154,7 @@ export const ComponentMap: Record<string, PanelComponent> = {
   "ai-debug-viewer": LazyAiDebugViewer,
   "task-detail": LazyTaskDetailPanel,
   "canvas-list-page": LazyCanvasListPage,
-  "workspace-list-page": LazyProjectGridPage,
+  "project-list-page": LazyProjectGridPage,
 };
 
 /**

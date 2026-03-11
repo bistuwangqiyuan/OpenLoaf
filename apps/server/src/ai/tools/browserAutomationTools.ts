@@ -18,7 +18,7 @@ import {
   browserDownloadImageToolDef,
 } from "@openloaf/api/types/tools/browserAutomation";
 import { logger } from "@/common/logger";
-import { getClientId, getSessionId, getWorkspaceId, getProjectId } from "@/ai/shared/context/requestContext";
+import { getClientId, getSessionId, getProjectId } from "@/ai/shared/context/requestContext";
 import { requireTabId } from "@/common/tabContext";
 import { sendCdpCommand } from "@/modules/browser/cdpClient";
 import { getActiveBrowserTargetId, tabSnapshotStore } from "@/modules/tab/TabSnapshotStoreAdapter";
@@ -604,11 +604,8 @@ export const browserScreenshotTool = tool({
     const ext = fmt === "jpeg" ? "jpg" : fmt;
     const mediaType = fmt === "jpeg" ? "image/jpeg" : fmt === "webp" ? "image/webp" : "image/png";
     const sessionId = requireSessionId();
-    const workspaceId = getWorkspaceId();
     const projectId = getProjectId();
-    if (!workspaceId) throw new Error("workspaceId is required.");
     const saved = await saveChatBinaryAttachment({
-      workspaceId,
       projectId,
       sessionId,
       fileName: `screenshot.${ext}`,
@@ -664,9 +661,7 @@ export const browserDownloadImageTool = tool({
 
     urls = urls.slice(0, limit);
     const sessionId = requireSessionId();
-    const workspaceId = getWorkspaceId();
     const projectId = getProjectId();
-    if (!workspaceId) throw new Error("workspaceId is required.");
 
     const images: Array<{ url: string; sourceUrl: string; fileName: string; bytes: number }> = [];
     const errors: Array<{ sourceUrl: string; error: string }> = [];
@@ -703,7 +698,6 @@ export const browserDownloadImageTool = tool({
         }
 
         const saved = await saveChatBinaryAttachment({
-          workspaceId,
           projectId,
           sessionId,
           fileName: `download.${ext}`,

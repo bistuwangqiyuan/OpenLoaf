@@ -37,7 +37,7 @@ import {
 import { toast } from "sonner";
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
 
-type SkillScope = "workspace" | "project" | "global";
+type SkillScope = "project" | "global";
 
 type SkillSummary = {
   /** Skill name. */
@@ -71,8 +71,6 @@ type StatusFilter = "all" | "enabled" | "disabled";
 
 /** Card styles per scope. */
 const SCOPE_CARD_CLASS: Record<SkillScope, string> = {
-  workspace:
-    "bg-zinc-100 hover:bg-zinc-200/75 dark:bg-zinc-800 dark:hover:bg-zinc-700/85",
   project:
     "bg-sky-100 hover:bg-sky-200/75 dark:bg-sky-900/55 dark:hover:bg-sky-800/70",
   global:
@@ -279,7 +277,6 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
     }
     try {
       await mkdirMutation.mutateAsync({
-        workspaceId,
         projectId: isProjectList ? projectId : undefined,
         uri: ".agents/skills",
         recursive: true,
@@ -316,9 +313,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
       const stackKey = skill.ignoreKey.trim() || skill.path || skill.name;
       const titlePrefix = isGlobalSkill
         ? t('skills.scopeGlobal')
-        : isProjectSkill
-          ? t('skills.scopeProject')
-          : t('skills.scopeWorkspace');
+        : t('skills.scopeProject');
       // 打开左侧 stack 的文件系统预览，根目录固定为技能所在目录。
       pushStackItem(activeTabId, {
         id: `skill:${skill.scope}:${stackKey}`,
@@ -344,7 +339,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
   const handleToggleSkill = useCallback(
     (skill: SkillSummary, nextEnabled: boolean) => {
       if (!skill.ignoreKey.trim()) return;
-      const scope = isProjectList ? "project" : "workspace";
+      const scope = isProjectList ? "project" : "global";
       updateSkillMutation.mutate({
         scope,
         projectId: scope === "project" ? projectId : undefined,
@@ -379,7 +374,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
       if (!skill.isDeletable || !skill.ignoreKey.trim()) return;
       const confirmed = window.confirm(t('skills.confirmDelete', { name: skill.name }));
       if (!confirmed) return;
-      const scope = isProjectList ? "project" : "workspace";
+      const scope = isProjectList ? "project" : "global";
       await deleteSkillMutation.mutateAsync({
         scope,
         projectId: scope === "project" ? projectId : undefined,
@@ -455,12 +450,6 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
                     {t('skills.filterProject')}
                   </TabsTrigger>
                 ) : null}
-                <TabsTrigger
-                  value="workspace"
-                  className="h-6 rounded-full px-2 text-xs whitespace-nowrap"
-                >
-                  {t('skills.filterWorkspace')}
-                </TabsTrigger>
                 <TabsTrigger value="global" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
                   {t('skills.filterGlobal')}
                 </TabsTrigger>

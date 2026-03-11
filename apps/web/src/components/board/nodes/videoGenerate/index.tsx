@@ -607,7 +607,6 @@ export function VideoGenerateNodeView({
             duration: durationSeconds || undefined,
           },
           parameters: requestParameters,
-          workspaceId: resolvedWorkspaceId || undefined,
           projectId: currentProjectId || undefined,
           saveDir: videoSaveDir || undefined,
           sourceNodeId: nodeId,

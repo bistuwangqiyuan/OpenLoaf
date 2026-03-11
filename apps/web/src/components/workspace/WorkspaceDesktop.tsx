@@ -93,7 +93,6 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
         // 逻辑：读取 workspace/desktop.openloaf 并初始化桌面布局。
         const result = await queryClient.fetchQuery(
           trpc.fs.readFile.queryOptions({
-            workspaceId,
             uri: desktopFileUri,
           })
         );
@@ -171,7 +170,6 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
       // 中文注释：编辑对话框保存时立即持久化桌面布局。
       const payload = serializeDesktopItems(nextItems);
       void saveDesktopMutation.mutateAsync({
-        workspaceId,
         uri: desktopFileUri,
         content: JSON.stringify(payload, null, 2),
       });
@@ -227,11 +225,10 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
     // 逻辑：保存当前桌面布局到 desktop.openloaf。
     const payload = serializeDesktopItems(items);
     await saveDesktopMutation.mutateAsync({
-      workspaceId,
       uri: desktopFileUri,
       content: JSON.stringify(payload, null, 2),
     });
-  }, [desktopFileUri, items, saveDesktopMutation, workspaceId]);
+  }, [desktopFileUri, items, saveDesktopMutation]);
 
   /** Trigger a compact layout pass. */
   const handleCompact = React.useCallback(() => {

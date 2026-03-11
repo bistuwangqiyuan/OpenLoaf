@@ -254,13 +254,11 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
               normalizeProjectRelativePath(savedPath);
             const [metadata, thumbnailResult] = await Promise.all([
               fetchVideoMetadata({
-                workspaceId,
                 projectId,
                 uri: scopedPath,
               }),
               workspaceId && projectId && relativePath
                 ? trpcClient.fs.thumbnails.query({
-                    workspaceId,
                     projectId,
                     uris: [relativePath],
                   })
@@ -351,7 +349,6 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
     sourceNodeId,
     taskId,
     taskType,
-    workspaceId,
     errCancelled,
     errQueryFailed,
     errImageFailed,

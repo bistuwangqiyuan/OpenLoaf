@@ -179,7 +179,6 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
       const baseId = `project:${targetProjectId}`;
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false;
         const base = runtimeByTabId[tab.id]?.base;
         return base?.id === baseId;
       });
@@ -193,7 +192,6 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
         .getState()
         .getProjectLayout(targetProjectId);
       addTab({
-        workspaceId,
         createNew: true,
         title: project.title || t("workspaceListPage.untitled"),
         icon: project.icon ?? undefined,

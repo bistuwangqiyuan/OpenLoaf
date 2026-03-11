@@ -14,13 +14,11 @@ import path from 'node:path'
 
 import {
   setOpenLoafRootOverride,
-  setDefaultWorkspaceRootOverride,
 } from '@openloaf/config'
 
 // 逻辑：创建临时目录隔离测试环境。
 const tempDir = mkdtempSync(path.join(tmpdir(), 'openloaf-email-test-'))
 setOpenLoafRootOverride(tempDir)
-setDefaultWorkspaceRootOverride(tempDir)
 
 import {
   encodeMailboxPath,
@@ -53,7 +51,6 @@ import {
 } from '../emailFileStore'
 import type { StoredMailbox, StoredDraft, StoredEmailIndex } from '../emailFileStore'
 
-const WS = 'ws-test'
 const ACCOUNT = 'user@example.com'
 const MAILBOX = 'INBOX'
 
@@ -87,7 +84,7 @@ assert.equal(
 
 // B1: writeEmailMessage 创建完整邮件目录
 await writeEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   id: 'msg-1',
@@ -105,7 +102,7 @@ await writeEmailMessage({
   size: 100,
 })
 
-const msgDir = resolveMessageDir(WS, ACCOUNT, MAILBOX, '100')
+const msgDir = resolveMessageDir(ACCOUNT, MAILBOX, '100')
 assert.ok(existsSync(path.join(msgDir, 'meta.json')), 'B1: meta.json should exist')
 assert.ok(existsSync(path.join(msgDir, 'body.html')), 'B1: body.html should exist')
 assert.ok(existsSync(path.join(msgDir, 'body.md')), 'B1: body.md should exist')
@@ -113,7 +110,7 @@ assert.ok(existsSync(path.join(msgDir, 'message.eml')), 'B1: message.eml should 
 
 // B2: writeEmailMessage 空 body 不创建文件
 await writeEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   id: 'msg-2',
@@ -124,47 +121,47 @@ await writeEmailMessage({
   flags: [],
 })
 
-const msgDir2 = resolveMessageDir(WS, ACCOUNT, MAILBOX, '101')
+const msgDir2 = resolveMessageDir(ACCOUNT, MAILBOX, '101')
 assert.ok(existsSync(path.join(msgDir2, 'meta.json')), 'B2: meta.json should exist')
 assert.ok(!existsSync(path.join(msgDir2, 'body.html')), 'B2: body.html should not exist')
 assert.ok(!existsSync(path.join(msgDir2, 'body.md')), 'B2: body.md should not exist')
 assert.ok(!existsSync(path.join(msgDir2, 'message.eml')), 'B2: message.eml should not exist')
 
 // B3: readEmailMeta 读取 meta.json
-const meta = await readEmailMeta({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
+const meta = await readEmailMeta({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
 assert.ok(meta, 'B3: meta should exist')
 assert.equal(meta!.subject, 'Test Subject', 'B3: subject should match')
 assert.equal(meta!.hasBodyHtml, true, 'B3: hasBodyHtml should be true')
 
 // B4: readEmailBodyHtml 读取 body.html
-const html = await readEmailBodyHtml({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
+const html = await readEmailBodyHtml({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
 assert.equal(html, '<p>Hello</p>', 'B4: body.html content should match')
 
 // B5: readEmailBodyMd 读取 body.md
-const md = await readEmailBodyMd({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
+const md = await readEmailBodyMd({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
 assert.equal(md, 'Hello world', 'B5: body.md content should match')
 
 // B6: readEmailEml 读取 message.eml
-const eml = await readEmailEml({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
+const eml = await readEmailEml({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
 assert.ok(eml?.includes('From: sender@example.com'), 'B6: eml should contain From header')
 
 // B7: readEmailBodyHtml 文件不存在返回 null
-const noHtml = await readEmailBodyHtml({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '101' })
+const noHtml = await readEmailBodyHtml({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '101' })
 assert.equal(noHtml, null, 'B7: should return null for missing body.html')
 
 // B8: appendEmailIndex 追加索引行
-const indexBefore = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexBefore = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 const countBefore = indexBefore.size
 clearEmailFileStoreCache()
 
 // B9: loadMailboxIndex 加载索引
-const index = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const index = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.ok(index.has('100'), 'B9: should have externalId 100')
 assert.ok(index.has('101'), 'B9: should have externalId 101')
 
 // B10: loadMailboxIndex last-write-wins
 await appendEmailIndex({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   entry: {
@@ -186,23 +183,23 @@ await appendEmailIndex({
   },
 })
 clearEmailFileStoreCache()
-const indexUpdated = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexUpdated = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.equal(indexUpdated.get('100')?.subject, 'Updated Subject', 'B10: last-write-wins')
 
 // B11: updateEmailFlags 更新标记
 await updateEmailFlags({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   externalId: '100',
   flags: ['\\Seen', '\\Flagged', '\\Deleted'],
 })
-const metaAfterFlags = await readEmailMeta({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
+const metaAfterFlags = await readEmailMeta({ accountEmail: ACCOUNT, mailboxPath: MAILBOX, externalId: '100' })
 assert.ok(metaAfterFlags!.flags.includes('\\Deleted'), 'B11: meta flags should include \\Deleted')
 
 // B12: cacheAttachment 保存附件
 await cacheAttachment({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   externalId: '100',
@@ -217,7 +214,7 @@ assert.ok(
 
 // B13: readCachedAttachment 读取缓存附件
 const cached = await readCachedAttachment({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   externalId: '100',
@@ -228,7 +225,7 @@ assert.equal(cached!.content.toString(), 'PDF content', 'B13: content should mat
 
 // B14: readCachedAttachment 未缓存返回 null
 const notCached = await readCachedAttachment({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   externalId: '100',
@@ -250,8 +247,8 @@ const mailboxes: StoredMailbox[] = [
     updatedAt: new Date().toISOString(),
   },
 ]
-await writeMailboxes({ workspaceId: WS, accountEmail: ACCOUNT, mailboxes })
-const readMb = await readMailboxes({ workspaceId: WS, accountEmail: ACCOUNT })
+await writeMailboxes({ accountEmail: ACCOUNT, mailboxes })
+const readMb = await readMailboxes({ accountEmail: ACCOUNT })
 assert.equal(readMb.length, 1, 'B15: should have 1 mailbox')
 assert.equal(readMb[0]!.path, 'INBOX', 'B15: mailbox path should match')
 
@@ -270,38 +267,38 @@ const draft: StoredDraft = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 }
-await saveDraftFile({ workspaceId: WS, accountEmail: ACCOUNT, draft })
-const readDraft = await readDraftFile({ workspaceId: WS, accountEmail: ACCOUNT, draftId: 'draft-1' })
+await saveDraftFile({ accountEmail: ACCOUNT, draft })
+const readDraft = await readDraftFile({ accountEmail: ACCOUNT, draftId: 'draft-1' })
 assert.ok(readDraft, 'B16: draft should exist')
 assert.equal(readDraft!.subject, 'Draft Subject', 'B16: draft subject should match')
 
 // B17: listDraftFiles 列出所有草稿
 const draft2: StoredDraft = { ...draft, id: 'draft-2', subject: 'Draft 2', updatedAt: new Date().toISOString() }
-await saveDraftFile({ workspaceId: WS, accountEmail: ACCOUNT, draft: draft2 })
-const drafts = await listDraftFiles({ workspaceId: WS, accountEmail: ACCOUNT })
+await saveDraftFile({ accountEmail: ACCOUNT, draft: draft2 })
+const drafts = await listDraftFiles({ accountEmail: ACCOUNT })
 assert.equal(drafts.length, 2, 'B17: should have 2 drafts')
 
 // B18: deleteDraftFile 删除草稿
-await deleteDraftFile({ workspaceId: WS, accountEmail: ACCOUNT, draftId: 'draft-2' })
-const draftsAfterDelete = await listDraftFiles({ workspaceId: WS, accountEmail: ACCOUNT })
+await deleteDraftFile({ accountEmail: ACCOUNT, draftId: 'draft-2' })
+const draftsAfterDelete = await listDraftFiles({ accountEmail: ACCOUNT })
 assert.equal(draftsAfterDelete.length, 1, 'B18: should have 1 draft after delete')
 
 // B19: deleteEmailMessage 删除邮件目录
 await deleteEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   externalId: '101',
 })
 assert.ok(!existsSync(msgDir2), 'B19: message directory should not exist')
 clearEmailFileStoreCache()
-const indexAfterDelete = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexAfterDelete = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.ok(!indexAfterDelete.has('101'), 'B19: index should not have deleted externalId')
 
 // B20: moveEmailMessage 移动邮件
 const SENT = 'Sent'
 await writeEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   id: 'msg-move',
@@ -313,20 +310,20 @@ await writeEmailMessage({
   bodyHtml: '<p>Move</p>',
 })
 await moveEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   fromMailboxPath: MAILBOX,
   toMailboxPath: SENT,
   externalId: '200',
 })
-const srcDir = resolveMessageDir(WS, ACCOUNT, MAILBOX, '200')
-const dstDir = resolveMessageDir(WS, ACCOUNT, SENT, '200')
+const srcDir = resolveMessageDir(ACCOUNT, MAILBOX, '200')
+const dstDir = resolveMessageDir(ACCOUNT, SENT, '200')
 assert.ok(!existsSync(srcDir), 'B20: source directory should not exist')
 assert.ok(existsSync(dstDir), 'B20: destination directory should exist')
 clearEmailFileStoreCache()
-const srcIndex = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const srcIndex = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.ok(!srcIndex.has('200'), 'B20: source index should not have moved message')
-const dstIndex = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: SENT })
+const dstIndex = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: SENT })
 assert.ok(dstIndex.has('200'), 'B20: destination index should have moved message')
 
 // =========================================================================
@@ -335,16 +332,16 @@ assert.ok(dstIndex.has('200'), 'B20: destination index should have moved message
 
 // C1: LRU 缓存命中（第二次 loadMailboxIndex 不读文件）
 clearEmailFileStoreCache()
-await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 const t1 = Date.now()
-await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 const t2 = Date.now()
 // 逻辑：缓存命中应该非常快（< 5ms）。
 assert.ok(t2 - t1 < 50, 'C1: cached load should be fast')
 
 // C2: LRU 缓存失效（写入后 mtime 变化）
 await writeEmailMessage({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: MAILBOX,
   id: 'msg-c2',
@@ -354,7 +351,7 @@ await writeEmailMessage({
   to: {},
   flags: [],
 })
-const indexC2 = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexC2 = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.ok(indexC2.has('300'), 'C2: should see new message after cache invalidation')
 
 // C3: LRU 缓存淘汰（超过 30 个邮箱后最早的被淘汰）
@@ -362,7 +359,7 @@ clearEmailFileStoreCache()
 for (let i = 0; i < 32; i++) {
   const mb = `mailbox-${i}`
   await writeEmailMessage({
-    workspaceId: WS,
+  
     accountEmail: ACCOUNT,
     mailboxPath: mb,
     id: `msg-lru-${i}`,
@@ -372,16 +369,16 @@ for (let i = 0; i < 32; i++) {
     to: {},
     flags: [],
   })
-  await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: mb })
+  await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: mb })
 }
 // 逻辑：最早的邮箱应该已被淘汰，但仍可重新加载。
-const lruReload = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: 'mailbox-0' })
+const lruReload = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: 'mailbox-0' })
 assert.ok(lruReload.has('lru-0'), 'C3: evicted mailbox should still be loadable')
 
 // C4: 并发写入互斥
 const concurrentWrites = Array.from({ length: 10 }, (_, i) =>
   writeEmailMessage({
-    workspaceId: WS,
+  
     accountEmail: ACCOUNT,
     mailboxPath: 'concurrent-test',
     id: `msg-concurrent-${i}`,
@@ -395,7 +392,7 @@ const concurrentWrites = Array.from({ length: 10 }, (_, i) =>
 await Promise.all(concurrentWrites)
 clearEmailFileStoreCache()
 const concurrentIndex = await loadMailboxIndex({
-  workspaceId: WS,
+
   accountEmail: ACCOUNT,
   mailboxPath: 'concurrent-test',
 })
@@ -403,22 +400,22 @@ assert.equal(concurrentIndex.size, 10, 'C4: all concurrent writes should be pres
 
 // C5: compactMailboxIndex 压缩
 clearEmailFileStoreCache()
-const indexBeforeCompact = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexBeforeCompact = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 const sizeBeforeCompact = indexBeforeCompact.size
-await compactMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+await compactMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 clearEmailFileStoreCache()
-const indexAfterCompact = await loadMailboxIndex({ workspaceId: WS, accountEmail: ACCOUNT, mailboxPath: MAILBOX })
+const indexAfterCompact = await loadMailboxIndex({ accountEmail: ACCOUNT, mailboxPath: MAILBOX })
 assert.equal(indexAfterCompact.size, sizeBeforeCompact, 'C5: compaction should preserve unique entries')
 
 // C6: deleteAccountFiles 清理
-const accountDir = resolveAccountDir(WS, ACCOUNT)
+const accountDir = resolveAccountDir(ACCOUNT)
 assert.ok(existsSync(accountDir), 'C6: account dir should exist before cleanup')
-await deleteAccountFiles({ workspaceId: WS, accountEmail: ACCOUNT })
+await deleteAccountFiles({ accountEmail: ACCOUNT })
 assert.ok(!existsSync(accountDir), 'C6: account dir should not exist after cleanup')
 
 // C7: 完整写入→读取流程
 await writeEmailMessage({
-  workspaceId: WS,
+
   accountEmail: 'fresh@example.com',
   mailboxPath: 'INBOX',
   id: 'msg-c7',
@@ -432,11 +429,11 @@ await writeEmailMessage({
   rawRfc822: 'From: a@b.com\r\n\r\nFull flow',
 })
 clearEmailFileStoreCache()
-const c7Index = await loadMailboxIndex({ workspaceId: WS, accountEmail: 'fresh@example.com', mailboxPath: 'INBOX' })
+const c7Index = await loadMailboxIndex({ accountEmail: 'fresh@example.com', mailboxPath: 'INBOX' })
 assert.ok(c7Index.has('999'), 'C7: index should have message')
-const c7Meta = await readEmailMeta({ workspaceId: WS, accountEmail: 'fresh@example.com', mailboxPath: 'INBOX', externalId: '999' })
+const c7Meta = await readEmailMeta({ accountEmail: 'fresh@example.com', mailboxPath: 'INBOX', externalId: '999' })
 assert.equal(c7Meta!.subject, 'Full Flow', 'C7: meta subject should match')
-const c7Html = await readEmailBodyHtml({ workspaceId: WS, accountEmail: 'fresh@example.com', mailboxPath: 'INBOX', externalId: '999' })
+const c7Html = await readEmailBodyHtml({ accountEmail: 'fresh@example.com', mailboxPath: 'INBOX', externalId: '999' })
 assert.equal(c7Html, '<p>Full flow</p>', 'C7: body.html should match')
 
 // =========================================================================

@@ -159,7 +159,7 @@ export function useCalendarPageState({
 
   const sourcesQuery = useQuery(
     trpc.calendar.listSources.queryOptions(
-      workspaceId ? { workspaceId } : skipToken,
+      workspaceId ? {} : skipToken,
     ),
   );
 
@@ -217,7 +217,7 @@ export function useCalendarPageState({
   const itemsQuery = useQuery(
     trpc.calendar.listItems.queryOptions(
       workspaceId && activeSourceIds.length > 0
-        ? { workspaceId, range: activeRange, sourceIds: activeSourceIds }
+        ? { range: activeRange, sourceIds: activeSourceIds }
         : skipToken,
     ),
   );
@@ -299,12 +299,11 @@ export function useCalendarPageState({
         if (!result.ok) return;
         lastSyncAtRef.current = Date.now();
         queryClient.invalidateQueries({
-          queryKey: trpc.calendar.listSources.queryOptions({ workspaceId }).queryKey,
+          queryKey: trpc.calendar.listSources.queryOptions({}).queryKey,
         });
         if (activeSourceIds.length > 0) {
           queryClient.invalidateQueries({
             queryKey: trpc.calendar.listItems.queryOptions({
-              workspaceId,
               range: activeRange,
               sourceIds: activeSourceIds,
             }).queryKey,
@@ -397,7 +396,6 @@ export function useCalendarPageState({
         if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
-            workspaceId,
             range: activeRange,
             sourceIds: activeSourceIds,
           }).queryKey,
@@ -415,7 +413,6 @@ export function useCalendarPageState({
         if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
-            workspaceId,
             range: activeRange,
             sourceIds: activeSourceIds,
           }).queryKey,
@@ -433,7 +430,6 @@ export function useCalendarPageState({
         if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
-            workspaceId,
             range: activeRange,
             sourceIds: activeSourceIds,
           }).queryKey,
@@ -451,7 +447,6 @@ export function useCalendarPageState({
         if (!workspaceId) return;
         queryClient.invalidateQueries({
           queryKey: trpc.calendar.listItems.queryOptions({
-            workspaceId,
             range: activeRange,
             sourceIds: activeSourceIds,
           }).queryKey,
@@ -538,7 +533,7 @@ export function useCalendarPageState({
           sourceUpdatedAt: new Date().toISOString(),
         };
         try {
-          await createItemMutation.mutateAsync({ workspaceId, item: itemPayload });
+          await createItemMutation.mutateAsync({ item: itemPayload });
         } catch {
           // 逻辑：错误已由 mutation onError 处理。
         }
@@ -548,7 +543,7 @@ export function useCalendarPageState({
       const payload = buildBasePayload(event);
       if (!payload.sourceId) return;
       try {
-        await createItemMutation.mutateAsync({ workspaceId, item: payload });
+        await createItemMutation.mutateAsync({ item: payload });
       } catch {
         // 逻辑：错误已由 mutation onError 处理。
       }
@@ -596,7 +591,7 @@ export function useCalendarPageState({
           deletedAt: null,
         };
         try {
-          await updateItemMutation.mutateAsync({ workspaceId, item: itemPayload });
+          await updateItemMutation.mutateAsync({ item: itemPayload });
         } catch {
           // 逻辑：错误已由 mutation onError 处理。
         }
@@ -606,7 +601,6 @@ export function useCalendarPageState({
       const payload = buildBasePayload(event);
       try {
         await updateItemMutation.mutateAsync({
-          workspaceId,
           item: { ...payload, id: String(event.id) },
         });
       } catch {
@@ -638,7 +632,7 @@ export function useCalendarPageState({
         return;
       }
       try {
-        await deleteItemMutation.mutateAsync({ workspaceId, id: String(event.id) });
+        await deleteItemMutation.mutateAsync({ id: String(event.id) });
       } catch {
         // 逻辑：错误已由 mutation onError 处理。
       }
@@ -695,7 +689,6 @@ export function useCalendarPageState({
     }
     try {
       await toggleReminderMutation.mutateAsync({
-        workspaceId,
         id: String(event.id),
         completed: !currentCompleted,
       });

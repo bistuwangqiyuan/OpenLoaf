@@ -885,7 +885,6 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
       const payloads = [];
       for (const item of videoSelections) {
         const metadata = await fetchVideoMetadata({
-          workspaceId,
           projectId: item.projectId,
           uri: item.entry.uri,
         });

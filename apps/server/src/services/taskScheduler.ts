@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { getWorkspaceRootPath } from '@openloaf/api'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { randomUUID } from 'node:crypto'
 import { logger } from '@/common/logger'
 import { listTasks, getTask, updateTask, type TaskConfig } from './taskConfigService'
@@ -36,8 +36,8 @@ class TaskScheduler {
     if (this.started) return
     this.started = true
     try {
-      const workspaceRoot = getWorkspaceRootPath()
-      const tasks = listTasks(workspaceRoot)
+      const globalRoot = getOpenLoafRootDir()
+      const tasks = listTasks(globalRoot)
       const enabled = tasks.filter((t) => t.enabled)
       for (const task of enabled) {
         this.registerTask(task)
@@ -135,13 +135,13 @@ class TaskScheduler {
 
   /** Execute a task: call Agent via runChatStream. */
   private async executeTask(taskId: string, projectRoot?: string | null): Promise<void> {
-    const workspaceRoot = getWorkspaceRootPath()
+    const globalRoot = getOpenLoafRootDir()
     const startedAt = new Date().toISOString()
     const abortController = new AbortController()
     let sessionId = ''
 
     try {
-      const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+      const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
       if (!task || !task.enabled) return
 
       // 逻辑：防止同一任务并发执行。
@@ -161,7 +161,7 @@ class TaskScheduler {
         lastStatus: 'running',
         lastError: null,
         runCount: task.runCount + 1,
-      }, workspaceRoot, projectRoot ?? undefined)
+      }, globalRoot, projectRoot ?? undefined)
 
       // 逻辑：设置超时控制。
       const timeoutId = setTimeout(() => {
@@ -185,7 +185,6 @@ class TaskScheduler {
               parentMessageId: null,
             } as any],
             trigger: 'submit-message',
-            workspaceId: undefined,
             projectId: undefined,
           },
           cookies: {},
@@ -213,7 +212,7 @@ class TaskScheduler {
         lastStatus: 'ok',
         lastError: null,
         consecutiveErrors: 0,
-      }, workspaceRoot, projectRoot ?? undefined)
+      }, globalRoot, projectRoot ?? undefined)
 
       appendRunLog(taskId, {
         trigger: 'scheduled',
@@ -222,24 +221,24 @@ class TaskScheduler {
         startedAt,
         finishedAt: new Date().toISOString(),
         durationMs: Date.now() - new Date(startedAt).getTime(),
-      }, projectRoot ?? workspaceRoot)
+      }, projectRoot ?? globalRoot)
 
       // 逻辑：单次任务执行后自动禁用。
       if (task.schedule?.type === 'once') {
-        updateTask(taskId, { enabled: false }, workspaceRoot, projectRoot ?? undefined)
+        updateTask(taskId, { enabled: false }, globalRoot, projectRoot ?? undefined)
         this.unregisterTask(taskId)
       }
     } catch (err) {
       logger.error({ taskId, err }, '[task-scheduler] Task execution failed')
       try {
-        const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+        const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
         updateTask(taskId, {
           lastRunAt: new Date().toISOString(),
           lastStatus: 'error',
           lastError: err instanceof Error ? err.message : String(err),
           runCount: (task?.runCount ?? 0) + 1,
           consecutiveErrors: (task?.consecutiveErrors ?? 0) + 1,
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         appendRunLog(taskId, {
           trigger: 'scheduled',
@@ -249,7 +248,7 @@ class TaskScheduler {
           startedAt,
           finishedAt: new Date().toISOString(),
           durationMs: Date.now() - new Date(startedAt).getTime(),
-        }, projectRoot ?? workspaceRoot)
+        }, projectRoot ?? globalRoot)
       } catch {
         // ignore update failure
       }

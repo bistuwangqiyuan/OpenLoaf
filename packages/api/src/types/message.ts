@@ -124,8 +124,6 @@ export type ChatRequestBody = {
   timezone?: string;
   /** Board id for associating chat sessions. */
   boardId?: string;
-  /** Workspace id for this request. */
-  workspaceId?: string;
   /** Project id for this request. */
   projectId?: string;
   /** Image save directory uri. */

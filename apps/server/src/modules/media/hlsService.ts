@@ -13,10 +13,10 @@ import { createHash } from "node:crypto";
 import ffmpeg from "fluent-ffmpeg";
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
   resolveScopedPath,
   toRelativePath,
 } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 
 export type HlsManifestResult = {
   /** Manifest content with segment URLs. */
@@ -98,14 +98,13 @@ export function isHlsQuality(value?: string): value is HlsQuality {
 }
 
 /** Resolve an absolute file path under a project root. */
-function resolveProjectFilePath(input: { path: string; projectId: string; workspaceId?: string }) {
-  const rootPath = getProjectRootPath(input.projectId, input.workspaceId);
+function resolveProjectFilePath(input: { path: string; projectId: string }) {
+  const rootPath = getProjectRootPath(input.projectId);
   if (!rootPath) return null;
   const relativePath = normalizeRelativePath(input.path);
   if (!relativePath || hasParentTraversal(relativePath)) return null;
   const absPath = path.resolve(rootPath, relativePath);
   const rootResolved = path.resolve(rootPath);
-  // 逻辑：限制在项目根目录内，避免路径穿越。
   if (absPath !== rootResolved && !absPath.startsWith(rootResolved + path.sep)) {
     return null;
   }
@@ -114,64 +113,43 @@ function resolveProjectFilePath(input: { path: string; projectId: string; worksp
     absPath,
     relativePath,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
   };
 }
 
-/** Resolve an absolute file path using workspace scoped rules. */
+/** Resolve an absolute file path using project-scoped rules. */
 function resolveScopedFilePath(input: {
   path: string;
   projectId?: string;
-  workspaceId?: string;
   /** Optional board id — server resolves to .openloaf/boards/<boardId>/ prefix. */
   boardId?: string;
 }) {
   const rawPath = input.path.trim();
   if (!rawPath) return null;
-  // 逻辑：当提供 boardId 时，由服务端安全地拼接画布目录前缀，
-  // 使 board 内部资源可用相对路径引用，避免前端传路径导致越权。
   const boardPrefix = input.boardId ? `.openloaf/boards/${input.boardId}` : "";
   const effectivePath = boardPrefix
     ? `${boardPrefix}/${normalizeRelativePath(rawPath)}`
     : rawPath;
-  const workspaceId = input.workspaceId?.trim();
   const scopedMatch = effectivePath.match(PROJECT_SCOPE_REGEX);
   let projectId = input.projectId?.trim() ?? "";
   if (scopedMatch?.[1]) {
-    // 逻辑：路径自带项目范围时优先使用它解析根目录。
     projectId = scopedMatch[1].trim();
   }
   const resolvedTarget = scopedMatch?.[2]?.trim() ? scopedMatch[2].trim() : effectivePath;
 
-  if (!workspaceId) {
-    if (!projectId) return null;
+  if (projectId) {
     return resolveProjectFilePath({ path: resolvedTarget, projectId });
   }
 
-  let absPath: string;
-  try {
-    absPath = resolveScopedPath({
-      workspaceId,
-      projectId: projectId || undefined,
-      target: effectivePath,
-    });
-  } catch {
-    return null;
-  }
-
-  const scopeRootPath = projectId
-    ? getProjectRootPath(projectId, workspaceId)
-    : getWorkspaceRootPathById(workspaceId);
-  if (!scopeRootPath) return null;
-  const rootResolved = path.resolve(scopeRootPath);
-  const absResolved = path.resolve(absPath);
-  // 逻辑：确保解析结果仍然位于工作区/项目根目录内。
-  if (absResolved !== rootResolved && !absResolved.startsWith(rootResolved + path.sep)) {
-    return null;
-  }
-  const relativePath = toRelativePath(rootResolved, absResolved);
+  // Fallback to global root
+  const globalRoot = getOpenLoafRootDir();
+  const relativePath = normalizeRelativePath(resolvedTarget);
   if (!relativePath || hasParentTraversal(relativePath)) return null;
-  return { rootPath: rootResolved, absPath: absResolved, relativePath, projectId, workspaceId };
+  const absPath = path.resolve(globalRoot, relativePath);
+  const rootResolved = path.resolve(globalRoot);
+  if (absPath !== rootResolved && !absPath.startsWith(rootResolved + path.sep)) {
+    return null;
+  }
+  return { rootPath: rootResolved, absPath, relativePath, projectId };
 }
 
 /** Build a stable cache key for HLS outputs. */
@@ -350,12 +328,10 @@ async function probeDurationSeconds(sourcePath: string) {
 function buildMasterPlaylist(input: {
   path: string;
   projectId?: string;
-  workspaceId?: string;
 }) {
   const makeUrl = (quality: HlsQuality) => {
     const query = new URLSearchParams({ path: input.path, quality });
     if (input.projectId) query.set("projectId", input.projectId);
-    if (input.workspaceId) query.set("workspaceId", input.workspaceId);
     return `/media/hls/manifest?${query.toString()}`;
   };
   const lines = [
@@ -502,34 +478,23 @@ async function ensureThumbnailAssets(input: {
 /** Build a token for segment lookup. */
 function buildToken(input: {
   projectId?: string;
-  workspaceId?: string;
   cacheKey: string;
   quality: HlsQuality;
 }) {
-  if (input.workspaceId) {
-    return `${input.workspaceId}::${input.projectId ?? ""}::${input.cacheKey}::${
-      input.quality
-    }`;
-  }
   return `${input.projectId ?? ""}::${input.cacheKey}::${input.quality}`;
 }
 
 /** Build a token for thumbnail lookup. */
 function buildThumbnailToken(input: {
   projectId?: string;
-  workspaceId?: string;
   cacheKey: string;
 }) {
-  if (input.workspaceId) {
-    return `${input.workspaceId}::${input.projectId ?? ""}::${input.cacheKey}::thumbs`;
-  }
   return `${input.projectId ?? ""}::${input.cacheKey}::thumbs`;
 }
 
 /** Parse a segment token into project id and cache key. */
 export function parseSegmentToken(token: string): {
   projectId?: string;
-  workspaceId?: string;
   cacheKey: string;
   quality: HlsQuality;
 } | null {
@@ -540,24 +505,12 @@ export function parseSegmentToken(token: string): {
     if (!isHlsQuality(qualityRaw)) return null;
     return { projectId, cacheKey, quality: qualityRaw };
   }
-  if (parts.length === 4) {
-    const [workspaceId, projectId, cacheKey, qualityRaw] = parts;
-    if (!workspaceId || !cacheKey || !qualityRaw) return null;
-    if (!isHlsQuality(qualityRaw)) return null;
-    return {
-      workspaceId,
-      projectId: projectId || undefined,
-      cacheKey,
-      quality: qualityRaw,
-    };
-  }
   return null;
 }
 
 /** Parse a thumbnail token into project id and cache key. */
 export function parseThumbnailToken(token: string): {
   projectId?: string;
-  workspaceId?: string;
   cacheKey: string;
 } | null {
   const parts = token.split("::").map((value) => value.trim());
@@ -567,12 +520,6 @@ export function parseThumbnailToken(token: string): {
     if (marker !== "thumbs") return null;
     return { projectId, cacheKey };
   }
-  if (parts.length === 4) {
-    const [workspaceId, projectId, cacheKey, marker] = parts;
-    if (!workspaceId || !cacheKey || !marker) return null;
-    if (marker !== "thumbs") return null;
-    return { workspaceId, projectId: projectId || undefined, cacheKey };
-  }
   return null;
 }
 
@@ -580,14 +527,12 @@ export function parseThumbnailToken(token: string): {
 export async function getHlsManifest(input: {
   path: string;
   projectId?: string;
-  workspaceId?: string;
   boardId?: string;
   quality?: HlsQuality;
 }): Promise<HlsManifestStatus | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!resolved) return null;
@@ -606,7 +551,6 @@ export async function getHlsManifest(input: {
       manifest: buildMasterPlaylist({
         path: resolved.relativePath,
         projectId: resolved.projectId,
-        workspaceId: resolved.workspaceId,
       }),
       token: "",
     };
@@ -636,7 +580,6 @@ export async function getHlsManifest(input: {
 
   const token = buildToken({
     projectId: resolved.projectId,
-    workspaceId: resolved.workspaceId,
     cacheKey,
     quality: input.quality,
   });
@@ -654,14 +597,12 @@ export async function getHlsManifest(input: {
 export async function getHlsProgress(input: {
   path: string;
   projectId?: string;
-  workspaceId?: string;
   boardId?: string;
   quality: HlsQuality;
 }): Promise<HlsProgressResult | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!resolved) return null;
@@ -680,13 +621,11 @@ export async function getHlsProgress(input: {
 export async function getHlsThumbnails(input: {
   path: string;
   projectId?: string;
-  workspaceId?: string;
   boardId?: string;
 }): Promise<HlsThumbnailResult | null> {
   const resolved = resolveScopedFilePath({
     path: input.path,
     projectId: input.projectId,
-    workspaceId: input.workspaceId,
     boardId: input.boardId,
   });
   if (!resolved) return null;
@@ -709,7 +648,6 @@ export async function getHlsThumbnails(input: {
   });
   const token = buildThumbnailToken({
     projectId: resolved.projectId,
-    workspaceId: resolved.workspaceId,
     cacheKey,
   });
   const raw = await fs.readFile(vttPath, "utf-8");
@@ -732,13 +670,9 @@ export async function getHlsSegment(input: {
 }): Promise<Uint8Array<ArrayBuffer> | null> {
   const parsed = parseSegmentToken(input.token);
   if (!parsed) return null;
-  const rootPath = parsed.workspaceId
-    ? parsed.projectId
-      ? getProjectRootPath(parsed.projectId, parsed.workspaceId)
-      : getWorkspaceRootPathById(parsed.workspaceId)
-    : parsed.projectId
-      ? getProjectRootPath(parsed.projectId)
-      : null;
+  const rootPath = parsed.projectId
+    ? getProjectRootPath(parsed.projectId)
+    : getOpenLoafRootDir();
   if (!rootPath) return null;
   if (!input.name || input.name.includes("/") || input.name.includes("\\")) return null;
   if (input.name.includes("..")) return null;
@@ -765,13 +699,9 @@ export async function getHlsThumbnail(input: {
 }): Promise<Uint8Array<ArrayBuffer> | null> {
   const parsed = parseThumbnailToken(input.token);
   if (!parsed) return null;
-  const rootPath = parsed.workspaceId
-    ? parsed.projectId
-      ? getProjectRootPath(parsed.projectId, parsed.workspaceId)
-      : getWorkspaceRootPathById(parsed.workspaceId)
-    : parsed.projectId
-      ? getProjectRootPath(parsed.projectId)
-      : null;
+  const rootPath = parsed.projectId
+    ? getProjectRootPath(parsed.projectId)
+    : getOpenLoafRootDir();
   if (!rootPath) return null;
   if (!input.name || input.name.includes("/") || input.name.includes("\\")) return null;
   if (input.name.includes("..")) return null;

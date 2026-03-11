@@ -199,7 +199,6 @@ export default function WidgetCheckTool({
         {canRender && workspaceId ? (
           <WidgetPreview
             widgetId={widgetId}
-            workspaceId={workspaceId}
             projectId={projectId}
           />
         ) : null}

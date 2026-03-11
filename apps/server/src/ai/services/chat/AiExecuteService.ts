@@ -17,9 +17,8 @@ import { SummaryTitleUseCase } from "@/ai/services/summary/SummaryTitleUseCase";
 import { ImageRequestUseCase } from "@/ai/services/image/ImageRequestUseCase";
 import {
   getProjectRootPath,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
 } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { resolveParentProjectRootPaths } from "@/ai/shared/util";
 import { CommandParser } from "@/ai/tools/CommandParser";
 import { SkillSelector, type SkillMatch } from "@/ai/tools/SkillSelector";
@@ -163,7 +162,6 @@ function buildChatStreamRequest(input: {
     params: input.request.params,
     trigger: input.request.trigger,
     retry: input.request.retry,
-    workspaceId: input.request.workspaceId,
     projectId: input.request.projectId,
     boardId: input.request.boardId,
     selectedSkills: input.selectedSkills,
@@ -198,7 +196,6 @@ function buildChatImageRequest(input: {
     params: input.request.params,
     trigger: input.request.trigger,
     retry: input.request.retry,
-    workspaceId: input.request.workspaceId,
     projectId: input.request.projectId,
     boardId: input.request.boardId ?? null,
     imageSaveDir: input.request.imageSaveDir,
@@ -216,17 +213,14 @@ async function resolveSkillMatches(input: {
   const projectRoot = input.request.projectId
     ? getProjectRootPath(input.request.projectId) ?? undefined
     : undefined;
-  const workspaceRootFromId = input.request.workspaceId
-    ? getWorkspaceRootPathById(input.request.workspaceId)
-    : null;
-  const workspaceRoot = workspaceRootFromId ?? getWorkspaceRootPath() ?? undefined;
+  const globalRoot = getOpenLoafRootDir();
   const parentRoots = await resolveParentProjectRootPaths(input.request.projectId);
   const matches: SkillMatch[] = [];
   for (const name of input.names) {
     const match = await SkillSelector.resolveSkillByName(name, {
       projectRoot,
       parentRoots,
-      workspaceRoot,
+      globalRoot,
     });
     if (match) matches.push(match);
   }

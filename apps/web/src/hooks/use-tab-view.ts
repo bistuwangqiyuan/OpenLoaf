@@ -27,10 +27,9 @@ const EMPTY_RUNTIME: TabRuntime = {
 function normalizeTabMeta(input: unknown): TabMeta | undefined {
   if (!input || typeof input !== "object") return undefined;
   const tab = input as TabMeta;
-  if (!tab.id || !tab.workspaceId) return undefined;
+  if (!tab.id) return undefined;
   return {
     id: tab.id,
-    workspaceId: tab.workspaceId,
     title: tab.title,
     icon: tab.icon,
     isPin: tab.isPin,

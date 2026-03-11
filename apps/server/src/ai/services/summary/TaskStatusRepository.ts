@@ -27,7 +27,6 @@ export interface TaskStatusRepository {
   listStatuses?(
     filter?: {
       projectId?: string;
-      workspaceId?: string;
       status?: TaskStatusValue[];
     },
   ): Promise<TaskStatusRecord[]>;

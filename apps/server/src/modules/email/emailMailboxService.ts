@@ -58,9 +58,9 @@ function normalizeEmailAddress(emailAddress: string): string {
 }
 
 /** Resolve email account and password from configuration. */
-function resolveEmailAccountCredential(workspaceId: string, accountEmail: string) {
+function resolveEmailAccountCredential(accountEmail: string) {
   const normalizedEmail = normalizeEmailAddress(accountEmail);
-  const config = readEmailConfigFile(workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
   );
@@ -79,12 +79,11 @@ function resolveEmailAccountCredential(workspaceId: string, accountEmail: string
 
 /** Update mailbox sync status for an account. */
 function updateMailboxSyncStatus(input: {
-  workspaceId: string;
   accountEmail: string;
   lastMailboxSyncAt?: string;
   lastMailboxSyncError?: string | null;
 }) {
-  const config = readEmailConfigFile(input.workspaceId);
+  const config = readEmailConfigFile();
   const normalizedEmail = normalizeEmailAddress(input.accountEmail);
   const index = config.emailAccounts.findIndex(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
@@ -110,7 +109,7 @@ function updateMailboxSyncStatus(input: {
       idx === index ? nextAccount : account,
     ),
   };
-  writeEmailConfigFile(nextConfig, input.workspaceId);
+  writeEmailConfigFile(nextConfig);
 }
 
 /** Connect to IMAP server and wait until ready. */
@@ -162,14 +161,12 @@ function flattenMailboxes(
 /** Sync mailbox list from IMAP into database. */
 export async function syncEmailMailboxes(input: {
   prisma: PrismaClient;
-  workspaceId: string;
   accountEmail: string;
 }): Promise<EmailMailboxEntry[]> {
   const startedAt = Date.now();
   let imap: Imap | null = null;
   try {
     const { account, password, normalizedEmail } = resolveEmailAccountCredential(
-      input.workspaceId,
       input.accountEmail,
     );
     if (shouldSkipImapOperations()) {
@@ -178,7 +175,6 @@ export async function syncEmailMailboxes(input: {
         "email imap mailbox sync skipped",
       );
       updateMailboxSyncStatus({
-        workspaceId: input.workspaceId,
         accountEmail: normalizedEmail,
         lastMailboxSyncAt: new Date().toISOString(),
         lastMailboxSyncError: null,
@@ -216,15 +212,13 @@ export async function syncEmailMailboxes(input: {
       const sort = resolveMailboxSort(entry);
       await input.prisma.emailMailbox.upsert({
         where: {
-          workspaceId_accountEmail_path: {
-            workspaceId: input.workspaceId,
+          accountEmail_path: {
             accountEmail: normalizedEmail,
             path: entry.path,
           },
         },
         create: {
-          id: `${input.workspaceId}-${normalizedEmail}-${entry.path}`,
-          workspaceId: input.workspaceId,
+          id: `${normalizedEmail}-${entry.path}`,
           accountEmail: normalizedEmail,
           path: entry.path,
           name: entry.name,
@@ -242,7 +236,6 @@ export async function syncEmailMailboxes(input: {
       });
     }
     updateMailboxSyncStatus({
-      workspaceId: input.workspaceId,
       accountEmail: normalizedEmail,
       lastMailboxSyncAt: new Date().toISOString(),
       lastMailboxSyncError: null,
@@ -250,10 +243,9 @@ export async function syncEmailMailboxes(input: {
     // 逻辑：双写 mailboxes.json 到文件系统。
     const now = new Date().toISOString();
     void writeMailboxes({
-      workspaceId: input.workspaceId,
       accountEmail: normalizedEmail,
       mailboxes: entries.map((entry) => ({
-        id: `${input.workspaceId}-${normalizedEmail}-${entry.path}`,
+        id: `${normalizedEmail}-${entry.path}`,
         path: entry.path,
         name: entry.name,
         parentPath: entry.parentPath,
@@ -281,7 +273,6 @@ export async function syncEmailMailboxes(input: {
       "email mailbox sync failed",
     );
     updateMailboxSyncStatus({
-      workspaceId: input.workspaceId,
       accountEmail: input.accountEmail,
       lastMailboxSyncError: error instanceof Error ? error.message : "同步失败",
     });

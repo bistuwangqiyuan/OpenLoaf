@@ -157,7 +157,7 @@ export default function StreamingCodeViewer({
     fetchedPathRef.current = firstPath
     setLoadingOriginal(true)
     trpcClient.fs.readFile
-      .query({ workspaceId, projectId, uri: firstPath })
+      .query({ projectId, uri: firstPath })
       .then((res) => setOriginalContent(res.content))
       .catch(() => setOriginalContent(''))
       .finally(() => setLoadingOriginal(false))

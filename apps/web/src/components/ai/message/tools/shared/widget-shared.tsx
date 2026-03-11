@@ -60,18 +60,16 @@ export class WidgetErrorBoundary extends React.Component<
 export const widgetModuleCache = new Map<string, React.ComponentType<any>>()
 
 export async function compileAndLoadWidget(
-  workspaceId: string,
   projectId: string | undefined,
   widgetId: string,
 ): Promise<React.ComponentType<any>> {
-  const cacheKey = `${workspaceId}:${projectId ?? ''}:${widgetId}`
+  const cacheKey = `${projectId ?? ''}:${widgetId}`
   const cached = widgetModuleCache.get(cacheKey)
   if (cached) return cached
 
   ensureExternalsRegistered()
 
   const result = await trpcClient.dynamicWidget.compile.query({
-    workspaceId,
     projectId,
     widgetId,
   })
@@ -99,11 +97,9 @@ export async function compileAndLoadWidget(
 /** 逻辑：widget 渲染完成后的实际渲染区域 */
 export function WidgetPreview({
   widgetId,
-  workspaceId,
   projectId,
 }: {
   widgetId: string
-  workspaceId: string
   projectId?: string
 }) {
   const [Component, setComponent] = React.useState<React.ComponentType<any> | null>(null)
@@ -115,7 +111,7 @@ export function WidgetPreview({
     let cancelled = false
     setLoading(true)
     setError(null)
-    compileAndLoadWidget(workspaceId, projectId, widgetId)
+    compileAndLoadWidget(projectId, widgetId)
       .then((mod) => {
         if (!cancelled) {
           setComponent(() => mod)
@@ -129,7 +125,7 @@ export function WidgetPreview({
         }
       })
     return () => { cancelled = true }
-  }, [workspaceId, projectId, widgetId])
+  }, [projectId, widgetId])
 
   // 逻辑：创建最小化 SDK（chat 上下文不需要完整 desktop SDK）
   // 注意：getTheme 必须返回稳定引用，否则 useSyncExternalStore 会无限循环

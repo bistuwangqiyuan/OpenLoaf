@@ -215,7 +215,6 @@ export default function ExcelViewer({
   /** Holds the binary payload fetched from the fs API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),
@@ -383,7 +382,6 @@ export default function ExcelViewer({
       const arrayBuffer = XLSX.write(workbook, { type: "array", bookType });
       const contentBase64 = encodeArrayBufferToBase64(arrayBuffer as ArrayBuffer);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri,
         contentBase64,

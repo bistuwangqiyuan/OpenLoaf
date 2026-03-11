@@ -160,7 +160,7 @@ const ProjectHistory = memo(function ProjectHistory({
   const summaryQuery = useQuery(
     trpc.fs.readFile.queryOptions(
       summaryUri && workspaceId && scopeProjectId
-        ? { workspaceId, projectId: scopeProjectId, uri: summaryUri }
+        ? { projectId: scopeProjectId, uri: summaryUri }
         : skipToken
     )
   );

@@ -9,7 +9,10 @@
  */
 import { z } from "zod";
 
-// 定义工作空间基础类型
+/**
+ * @deprecated Workspace concept has been removed. Use AppConfig instead.
+ * This file is kept for backward compatibility with absWorkspace router stubs.
+ */
 export const workspaceBase = z.object({
   id: z.string().describe("Workspace id."),
   name: z.string().describe("Workspace display name."),
@@ -26,5 +29,5 @@ export const workspaceBase = z.object({
     .describe("Skill folder names to ignore at workspace scope."),
 });
 
-// 导出TypeScript类型
+/** @deprecated Use AppConfig instead. */
 export type Workspace = z.infer<typeof workspaceBase>;

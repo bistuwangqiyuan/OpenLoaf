@@ -20,9 +20,9 @@ import { startServer } from "@/bootstrap/startServer";
 import { flushBoardDocuments } from "@/modules/board/boardCollabWebSocket";
 import { installHttpProxy } from "@/modules/proxy/httpProxy";
 import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
-import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
+import { getWorkspaces } from "@openloaf/api/services/appConfigService";
 import { migrateLegacyServerData } from "@openloaf/config";
-import { ensureActiveWorkspaceDefaultAgent } from "@/ai/shared/workspaceAgentInit";
+import { ensureDefaultAgentCleanup } from "@/ai/shared/workspaceAgentInit";
 import { initDatabase } from "@openloaf/db";
 import { runPendingMigrations } from "@openloaf/db/migrationRunner";
 import { embeddedMigrations } from "@openloaf/db/migrations.generated";
@@ -42,8 +42,8 @@ void syncSystemProxySettings();
 migrateLegacyServerData();
 getWorkspaces();
 
-// 启动时确保活跃 workspace 有默认 agent 文件。
-ensureActiveWorkspaceDefaultAgent();
+// 启动时清理旧版 agent 文件夹。
+ensureDefaultAgentCleanup();
 
 // 数据库迁移：检查并应用所有待执行的 schema 迁移。
 // 必须在 initDatabase() 之前完成，确保表结构就绪。

@@ -57,7 +57,7 @@ import { buildChatModelOptions } from "@/lib/provider-models"
 import { getModelLabel } from "@/lib/model-registry"
 import { toast } from "sonner"
 
-type AgentScope = "workspace" | "project" | "global"
+type AgentScope = "project" | "global"
 
 type AgentSummary = {
   name: string
@@ -245,7 +245,7 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
 
   // 逻辑：查询工作空间 agent（用于复制对话框）。
   const wsAgentsQuery = useQuery(
-    trpc.settings.getAgents.queryOptions({ scopeFilter: "workspace" }),
+    trpc.settings.getAgents.queryOptions({ scopeFilter: "global" }),
   )
   const wsAgents = (wsAgentsQuery.data ?? []) as AgentSummary[]
 

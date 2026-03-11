@@ -28,7 +28,6 @@ function isExpired(client: OfficeClient, now = Date.now()) {
 
 export function registerOfficeClient(input: {
   appType: OfficeAppType;
-  workspaceId?: string;
   projectId?: string;
   capabilities?: OfficeAction[];
   clientMeta?: Record<string, unknown>;
@@ -41,7 +40,6 @@ export function registerOfficeClient(input: {
   const client: OfficeClient = {
     clientId,
     appType: input.appType,
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
     capabilities,
     clientMeta: input.clientMeta,
@@ -89,7 +87,6 @@ export function cleanupExpiredOfficeClients(): number {
 
 export function selectOfficeClient(input: {
   appType: OfficeAppType;
-  workspaceId?: string;
   projectId?: string;
 }): OfficeClient | null {
   cleanupExpiredOfficeClients();
@@ -99,10 +96,9 @@ export function selectOfficeClient(input: {
   if (!candidates.length) return null;
 
   let filtered = candidates;
-  if (input.workspaceId || input.projectId) {
+  if (input.projectId) {
     const exact = candidates.filter(
       (client) =>
-        client.workspaceId === input.workspaceId &&
         client.projectId === input.projectId,
     );
     if (exact.length) filtered = exact;
@@ -114,7 +110,6 @@ export function selectOfficeClient(input: {
 
 export function waitForOfficeClient(input: {
   appType: OfficeAppType;
-  workspaceId?: string;
   projectId?: string;
   timeoutSec?: number;
 }): Promise<OfficeClient | null> {
@@ -132,7 +127,6 @@ export function waitForOfficeClient(input: {
 
     const handler = (client: OfficeClient) => {
       if (client.appType !== input.appType) return;
-      if (input.workspaceId && client.workspaceId !== input.workspaceId) return;
       if (input.projectId && client.projectId !== input.projectId) return;
       clearTimeout(timer);
       clientEventBus.off("registered", handler);

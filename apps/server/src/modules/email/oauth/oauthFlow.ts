@@ -55,7 +55,6 @@ function purgeExpiredStates(): void {
  */
 export function generateAuthUrl(
   providerId: string,
-  workspaceId: string,
   redirectUri: string,
 ): { url: string; stateKey: string } {
   purgeExpiredStates();
@@ -72,7 +71,6 @@ export function generateAuthUrl(
 
   const oauthState: OAuthState = {
     providerId,
-    workspaceId,
     codeVerifier,
     redirectUri,
     timestamp: Date.now(),
@@ -101,14 +99,14 @@ export function generateAuthUrl(
   }
 
   const url = `${provider.authorizeUrl}?${params.toString()}`;
-  logger.info({ providerId, workspaceId }, "OAuth authorization URL generated");
+  logger.info({ providerId }, "OAuth authorization URL generated");
 
   return { url, stateKey };
 }
 
 /**
  * Exchange authorization code for tokens using the stored PKCE state.
- * Returns tokens along with providerId and workspaceId from the original state.
+ * Returns tokens along with providerId from the original state.
  */
 export async function exchangeCode(
   stateKey: string,
@@ -182,7 +180,6 @@ export async function exchangeCode(
   return {
     tokens: { accessToken, refreshToken, expiresAt },
     providerId: state.providerId,
-    workspaceId: state.workspaceId,
   };
 }
 

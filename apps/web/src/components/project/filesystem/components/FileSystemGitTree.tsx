@@ -288,7 +288,6 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
     trpc.fs.list.queryOptions(
       shouldFetchChildren && workspaceId
         ? {
-            workspaceId,
             projectId,
             uri: node.entry.uri,
             includeHidden: showHidden,

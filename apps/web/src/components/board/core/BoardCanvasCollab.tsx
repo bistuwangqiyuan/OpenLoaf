@@ -157,7 +157,6 @@ function createBoardDocId(): string {
 
 /** Build the collaboration websocket URL for the board. */
 function resolveBoardCollabUrl(input: {
-  workspaceId: string;
   projectId?: string;
   boardFileUri?: string;
   boardFolderUri?: string;
@@ -168,7 +167,6 @@ function resolveBoardCollabUrl(input: {
     (typeof window !== "undefined" ? window.location.origin : "http://localhost");
   const wsBase = baseUrl.replace(/^http/, "ws");
   const params = new URLSearchParams();
-  params.set("workspaceId", input.workspaceId);
   if (input.projectId) params.set("projectId", input.projectId);
   if (input.boardFileUri) params.set("boardFileUri", input.boardFileUri);
   if (input.boardFolderUri) params.set("boardFolderUri", input.boardFolderUri);
@@ -328,7 +326,6 @@ export function BoardCanvasCollab({
     metaPersistedRef.current = true;
     try {
       await writeMetaRef.current({
-        workspaceId,
         projectId,
         uri: metaFileUri,
         content: JSON.stringify({ [BOARD_META_DOC_ID_KEY]: docId }, null, 2),
@@ -344,7 +341,6 @@ export function BoardCanvasCollab({
     try {
       const result = await queryClient.fetchQuery(
         trpc.fs.readFile.queryOptions({
-          workspaceId,
           projectId,
           uri: metaFileUri,
         })
@@ -369,7 +365,6 @@ export function BoardCanvasCollab({
     try {
       const result = await queryClient.fetchQuery(
         trpc.fs.list.queryOptions({
-          workspaceId,
           projectId,
           uri: assetsFolderUri,
         })
@@ -385,7 +380,6 @@ export function BoardCanvasCollab({
   const saveBoardAssetFile = useCallback(async (file: File) => {
     if (!assetsFolderUri) return "";
     await mkdirRef.current({
-      workspaceId,
       projectId,
       uri: assetsFolderUri,
       recursive: true,
@@ -394,7 +388,6 @@ export function BoardCanvasCollab({
     const targetUri = buildChildUri(assetsFolderUri, uniqueName);
     const contentBase64 = await fileToBase64(file);
     await writeAssetRef.current({
-      workspaceId,
       projectId,
       uri: targetUri,
       contentBase64,
@@ -681,7 +674,6 @@ export function BoardCanvasCollab({
       doc = new Y.Doc();
       awareness = new Awareness(doc);
       const wsUrl = resolveBoardCollabUrl({
-        workspaceId,
         projectId,
         boardFileUri: boardFileRef || undefined,
         boardFolderUri: boardFolderRef || undefined,
@@ -777,7 +769,6 @@ export function BoardCanvasCollab({
     onSyncLogChange,
     projectId,
     readOrCreateDocId,
-    workspaceId,
   ]);
 
   return null;

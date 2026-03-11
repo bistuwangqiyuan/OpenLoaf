@@ -10,18 +10,17 @@
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { z } from "zod";
 import { workspaceBase } from "../types/workspace";
+import { getOpenLoafRootDir } from "@openloaf/config";
+import { toFileUriWithoutEncoding } from "../services/fileUri";
 
-// 工作空间名称验证规则
-export const workspaceNameSchema = z
-  .string()
-  .min(1, "工作空间名称不能为空")
-  .max(50, "工作空间名称不能超过50个字符")
-  .trim();
+/**
+ * @deprecated Workspace concept removed. This router returns a single
+ * default workspace pointing to ~/.openloaf/ for backward compatibility
+ * with components that still call useWorkspace().
+ */
 
-// 工作空间ID验证规则
-export const workspaceIdSchema = z.string();
+const workspaceIdSchema = z.string();
 
-// 定义路由输入输出schema
 export const workspaceSchemas = {
   getList: {
     output: z.array(workspaceBase),
@@ -31,91 +30,76 @@ export const workspaceSchemas = {
   },
   create: {
     input: z.object({
-      name: workspaceNameSchema,
-      rootUri: z.string().min(1, "工作空间保存目录不能为空").trim(),
+      name: z.string().trim(),
+      rootUri: z.string().trim(),
     }),
     output: workspaceBase,
   },
   activate: {
-    input: z.object({
-      id: workspaceIdSchema,
-    }),
+    input: z.object({ id: workspaceIdSchema }),
     output: workspaceBase,
   },
   delete: {
-    input: z.object({
-      id: workspaceIdSchema,
-    }),
+    input: z.object({ id: workspaceIdSchema }),
     output: z.boolean(),
   },
   updateName: {
     input: z.object({
       id: workspaceIdSchema,
-      name: workspaceNameSchema,
+      name: z.string().trim(),
     }),
     output: workspaceBase,
   },
 };
 
-// 定义抽象路由类，包含所有路由的schema定义
+function getDefaultWorkspace() {
+  const rootDir = getOpenLoafRootDir();
+  return {
+    id: "default",
+    name: "OpenLoaf",
+    type: "local" as const,
+    isActive: true,
+    rootUri: toFileUriWithoutEncoding(rootDir),
+  };
+}
+
 export abstract class BaseWorkspaceRouter {
-  // 路由名称
   public static routeName = "workspace";
 
-  // 定义路由结构，子类需要实现具体的query/mutation逻辑
   public static createRouter() {
+    const defaultWs = () => getDefaultWorkspace();
     return t.router({
-      // 获取工作空间列表
       getList: shieldedProcedure
         .output(workspaceSchemas.getList.output)
-        .query(async () => {
-          throw new Error("Not implemented in base class");
-        }),
+        .query(async () => [defaultWs()]),
 
-      // 获取激活的工作空间
       getActive: shieldedProcedure
         .output(workspaceSchemas.getActive.output)
-        .query(async () => {
-          throw new Error("Not implemented in base class");
-        }),
+        .query(async () => defaultWs()),
 
-      // 新增工作空间
       create: shieldedProcedure
         .input(workspaceSchemas.create.input)
         .output(workspaceSchemas.create.output)
-        .mutation(async () => {
-          throw new Error("Not implemented in base class");
-        }),
+        .mutation(async () => defaultWs()),
 
-      // 激活工作空间
       activate: shieldedProcedure
         .input(workspaceSchemas.activate.input)
         .output(workspaceSchemas.activate.output)
-        .mutation(async () => {
-          throw new Error("Not implemented in base class");
-        }),
+        .mutation(async () => defaultWs()),
 
-      // 删除工作空间
       delete: shieldedProcedure
         .input(workspaceSchemas.delete.input)
         .output(workspaceSchemas.delete.output)
-        .mutation(async () => {
-          throw new Error("Not implemented in base class");
-        }),
+        .mutation(async () => true),
 
-      // 更新工作空间名称
       updateName: shieldedProcedure
         .input(workspaceSchemas.updateName.input)
         .output(workspaceSchemas.updateName.output)
-        .mutation(async () => {
-          throw new Error("Not implemented in base class");
-        }),
-
+        .mutation(async () => defaultWs()),
     });
   }
 }
 
-// 使用基类创建API路由框架
 export const workspaceRouter = BaseWorkspaceRouter.createRouter();
 
 export type WorkspaceRouter = typeof workspaceRouter;

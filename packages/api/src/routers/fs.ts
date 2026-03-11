@@ -50,9 +50,8 @@ const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "m4v", "mkv", "webm", "avi"]);
 /** Maximum text file size for preview reads (50 MB). */
 const READ_FILE_MAX_BYTES = 50 * 1024 * 1024;
 
-/** Schema for workspace/project scope. */
+/** Schema for project scope. */
 const fsScopeSchema = z.object({
-  workspaceId: z.string().trim().min(1),
   projectId: z.string().trim().optional(),
 });
 
@@ -81,9 +80,8 @@ const fsSearchSchema = fsScopeSchema.extend({
   maxDepth: z.number().int().min(0).max(50).optional(),
 });
 
-/** Schema for workspace search requests. */
+/** Schema for global search requests. */
 const fsSearchWorkspaceSchema = z.object({
-  workspaceId: z.string().trim().min(1),
   query: z.string(),
   includeHidden: z.boolean().optional(),
   limit: z.number().int().min(1).max(2000).optional(),
@@ -246,21 +244,20 @@ async function buildVideoThumbnail(input: {
 
 /** Resolve a filesystem path for the scoped input. */
 function resolveFsTarget(
-  scope: { workspaceId: string; projectId?: string },
+  scope: { projectId?: string },
   target: string
 ): string {
   if (!target?.trim()) {
     return resolveFsRootPath(scope);
   }
   return resolveScopedPath({
-    workspaceId: scope.workspaceId,
     projectId: scope.projectId,
     target,
   });
 }
 
 /** Resolve root path for scoped file system operations. */
-function resolveFsRootPath(scope: { workspaceId: string; projectId?: string }): string {
+function resolveFsRootPath(scope: { projectId?: string }): string {
   return resolveScopedRootPath(scope);
 }
 
@@ -792,7 +789,7 @@ export const fsRouter = t.router({
       const includeHidden = Boolean(input.includeHidden);
       const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
       const maxDepth = input.maxDepth ?? DEFAULT_SEARCH_MAX_DEPTH;
-      const projects = await readWorkspaceProjectTrees(input.workspaceId);
+      const projects = await readWorkspaceProjectTrees();
       const results: Array<{
         projectId: string;
         projectTitle: string;

@@ -87,7 +87,6 @@ export default function PlateDocViewer({
 
   const fileQuery = useQuery({
     ...trpc.fs.readFile.queryOptions({
-      workspaceId,
       projectId,
       uri: readUri,
     }),
@@ -141,7 +140,6 @@ export default function PlateDocViewer({
     try {
       const md = serializeMd(editor)
       await writeFileMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: readUri,
         content: md,

@@ -213,7 +213,7 @@
     "sub-agent-chat": "Sub-agent",
     "task-detail": "Task Detail",
     "canvas-list-page": "Canvas List",
-    "workspace-list-page": "Workspace Management",
+    "project-list-page": "Projects",
     "openInSettings": "Open in Settings"
   },
   "project": "Project",

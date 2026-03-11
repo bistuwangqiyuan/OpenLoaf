@@ -64,7 +64,7 @@ const cliModelSchema = z.object({
 });
 
 /** Skill / Agent scope enum. */
-const skillScopeSchema = z.enum(["workspace", "project", "global"]);
+const skillScopeSchema = z.enum(["project", "global"]);
 
 /** Skill summary payload. */
 const skillSummarySchema = z.object({
@@ -188,7 +188,7 @@ export const settingSchemas = {
         includeAllProjects: z.boolean().optional(),
         includeChildProjects: z.boolean().optional(),
         /** Filter agents by scope. Defaults to 'all'. */
-        scopeFilter: z.enum(['workspace', 'project', 'all']).optional(),
+        scopeFilter: z.enum(['global', 'project', 'all']).optional(),
       })
       .optional(),
     output: z.array(agentSummarySchema),
@@ -464,7 +464,6 @@ export const settingSchemas = {
   generateChatSuggestions: {
     input: z.object({
       projectId: z.string().optional(),
-      workspaceId: z.string().optional(),
       currentInput: z.string().optional(),
     }),
     output: z.object({
@@ -490,8 +489,8 @@ export const settingSchemas = {
   /** Infer board name via auxiliary model. */
   inferBoardName: {
     input: z.object({
-      workspaceId: z.string(),
       boardFolderUri: z.string(),
+      projectId: z.string().optional(),
       saasAccessToken: z.string().optional(),
     }),
     output: z.object({

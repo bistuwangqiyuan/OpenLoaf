@@ -94,6 +94,7 @@ export * from "../generated/routers/helpers/createRouter";
 
 // Export custom types
 export * from "./types/workspace";
+export * from "./types/appConfig";
 export * from "./types/basic";
 export * from "./types/event";
 export * from "./types/message";

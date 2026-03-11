@@ -186,7 +186,7 @@ export default function DesktopWidgetLibraryPanel({
   // Query workspace-level dynamic widgets (no projectId).
   const workspaceId = workspace?.id
   const workspaceWidgetQuery = useQuery({
-    ...trpc.dynamicWidget.list.queryOptions({ workspaceId: workspaceId ?? '' }),
+    ...trpc.dynamicWidget.list.queryOptions({}),
     enabled: Boolean(workspaceId),
     select: (data: { id: string; name: string; description?: string }[]) =>
       data.map((w) => ({ ...w, projectId: undefined as string | undefined })),
@@ -195,7 +195,7 @@ export default function DesktopWidgetLibraryPanel({
   // Query dynamic widgets from all projects.
   const dynamicWidgetQueries = useQueries({
     queries: projectRoots.map((p) => ({
-      ...trpc.dynamicWidget.list.queryOptions({ workspaceId: workspaceId ?? '', projectId: p.projectId }),
+      ...trpc.dynamicWidget.list.queryOptions({ projectId: p.projectId }),
       select: (data: { id: string; name: string; description?: string }[]) =>
         data.map((w) => ({ ...w, projectId: p.projectId as string | undefined })),
     })),
@@ -322,7 +322,6 @@ export default function DesktopWidgetLibraryPanel({
                   if (!workspace?.id) return;
                   const addTab = useTabs.getState().addTab;
                   addTab({
-                    workspaceId: workspace.id,
                     createNew: true,
                     title: t('library.aiAssistant'),
                     icon: "sparkles",
@@ -371,7 +370,7 @@ export default function DesktopWidgetLibraryPanel({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!confirm(t('library.confirmDelete', { name: dw.name }))) return;
-                      trpcClient.dynamicWidget.delete.mutate({ workspaceId: workspaceId ?? '', projectId: dw.projectId, widgetId: dw.id }).then(() => {
+                      trpcClient.dynamicWidget.delete.mutate({ projectId: dw.projectId, widgetId: dw.id }).then(() => {
                         refetchDynamicWidgets();
                       });
                     }}
@@ -399,7 +398,6 @@ export default function DesktopWidgetLibraryPanel({
                 if (!workspace?.id) return;
                 const addTab = useTabs.getState().addTab;
                 addTab({
-                  workspaceId: workspace.id,
                   createNew: true,
                   title: t('library.aiAssistant'),
                   icon: "sparkles",

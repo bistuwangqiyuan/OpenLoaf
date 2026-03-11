@@ -19,7 +19,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { fileInfoTool } from '@/ai/tools/fileInfoTool'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 
@@ -50,7 +50,7 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'file-info-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'file-info-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }

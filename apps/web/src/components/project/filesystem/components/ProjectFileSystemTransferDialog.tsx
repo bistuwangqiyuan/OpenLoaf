@@ -179,7 +179,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
       activeUri !== null && workspaceId
-        ? { workspaceId, projectId: activeProjectId, uri: activeUri }
+        ? { projectId: activeProjectId, uri: activeUri }
         : skipToken
     )
   );
@@ -254,7 +254,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       try {
         const targetUri = buildChildUri(activeUri, nextName);
         await renameMutation.mutateAsync({
-          workspaceId,
           projectId: activeProjectId,
           from: target.uri,
           to: targetUri,
@@ -433,7 +432,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
     try {
       const targetList = await queryClient.fetchQuery(
         trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: activeProjectId,
           uri: activeUri,
         })
@@ -460,14 +458,12 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         if (mode === "move") {
           if (targetUri === entry.uri) continue;
           await renameMutation.mutateAsync({
-            workspaceId,
             projectId: activeProjectId,
             from: entry.uri,
             to: targetUri,
           });
         } else {
           await copyMutation.mutateAsync({
-            workspaceId,
             projectId: activeProjectId,
             from: entry.uri,
             to: targetUri,
@@ -483,7 +479,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       invalidateUris.forEach((uri) => {
         queryClient.invalidateQueries({
           queryKey: trpc.fs.list.queryOptions({
-            workspaceId,
             projectId: activeProjectId,
             uri,
           }).queryKey,
@@ -543,7 +538,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       const targetName = getUniqueName(t('workspace:filesystem.newFolderDefaultName'), existingNames);
       const targetUri = buildChildUri(activeUri, targetName);
       await mkdirMutation.mutateAsync({
-        workspaceId,
         projectId: activeProjectId,
         uri: targetUri,
         recursive: true,

@@ -12,10 +12,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
-import { setWorkspaces } from "@openloaf/api/services/workspaceConfig";
-import type { Workspace } from "@openloaf/api";
 import { setOpenLoafRootOverride } from "@openloaf/config";
 import type { EmailConfigFile } from "../emailConfigStore";
 
@@ -31,21 +28,8 @@ const { getEmailConfigPath, readEmailConfigFile, writeEmailConfigFile } = emailC
 const configRoot = mkdtempSync(path.join(tmpdir(), "openloaf-email-config-"));
 setOpenLoafRootOverride(configRoot);
 
-const workspaceRoot = path.join(configRoot, "workspace-root");
-const workspace: Workspace = {
-  id: "workspace-test",
-  name: "Test Workspace",
-  type: "local",
-  isActive: true,
-  rootUri: pathToFileURL(workspaceRoot).href,
-  projects: {},
-  ignoreSkills: [],
-};
-
-setWorkspaces([workspace]);
-
-const configPath = getEmailConfigPath(workspace.id);
-const initial = readEmailConfigFile(workspace.id);
+const configPath = getEmailConfigPath();
+const initial = readEmailConfigFile();
 assert.deepEqual(initial.emailAccounts, []);
 assert.ok(existsSync(configPath));
 
@@ -58,7 +42,7 @@ const payload: EmailConfigFile = {
       smtp: { host: "smtp.example.com", port: 465, tls: true },
       auth: {
         type: "password",
-        envKey: "EMAIL_PASSWORD__workspace-test__user_example_com",
+        envKey: "EMAIL_PASSWORD__default__user_example_com",
       },
       sync: {
         mailboxes: {
@@ -71,13 +55,13 @@ const payload: EmailConfigFile = {
   privateSenders: [],
 };
 
-writeEmailConfigFile(payload, workspace.id);
-const persisted = readEmailConfigFile(workspace.id);
+writeEmailConfigFile(payload);
+const persisted = readEmailConfigFile();
 assert.equal(persisted.emailAccounts.length, 1);
 assert.equal(persisted.emailAccounts[0]?.emailAddress, "user@example.com");
 
 writeFileSync(configPath, "{not-json}", "utf-8");
-const fallback = readEmailConfigFile(workspace.id);
+const fallback = readEmailConfigFile();
 assert.equal(fallback.emailAccounts.length, 1);
 
 const raw = readFileSync(configPath, "utf-8");

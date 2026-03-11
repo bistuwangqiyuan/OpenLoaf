@@ -234,9 +234,9 @@ contextBridge.exposeInMainWorld('openloafElectron', {
       ipcRenderer.invoke('openloaf:calendar:list-calendars'),
     getReminderLists: (): Promise<CalendarResult<CalendarItem[]>> =>
       ipcRenderer.invoke('openloaf:calendar:list-reminders'),
-    setSyncRange: (payload: { workspaceId: string; range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
+    setSyncRange: (payload: { range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
       ipcRenderer.invoke('openloaf:calendar:set-sync-range', payload),
-    syncNow: (payload: { workspaceId: string; range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
+    syncNow: (payload: { range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
       ipcRenderer.invoke('openloaf:calendar:sync', payload),
     getEvents: (range: CalendarRange): Promise<CalendarResult<CalendarEvent[]>> =>
       ipcRenderer.invoke('openloaf:calendar:get-events', range),
@@ -425,6 +425,9 @@ ipcRenderer.on('openloaf:tray:navigate', (_event, detail) => {
 // 主进程请求关闭确认：转发到 web 端弹出 UI 对话框。
 ipcRenderer.on('openloaf:confirm-close', (_event, detail) => {
   try {
+    // 立即发送 ack，告知主进程 Web 端已收到请求并将弹出对话框，
+    // 使主进程取消超时保护，等待用户操作。
+    ipcRenderer.send('openloaf:confirm-close:ack');
     window.dispatchEvent(
       new CustomEvent('openloaf:confirm-close', { detail })
     );

@@ -39,20 +39,19 @@ export async function initSummaryScheduler(): Promise<void> {
       });
       return { taskId };
     },
-    runDailySummaryForWorkspace: async ({ workspaceId, dateKey, triggeredBy }) => {
-      const trees = await readWorkspaceProjectTrees(workspaceId);
+    runDailySummaryForAllProjects: async ({ dateKey, triggeredBy }) => {
+      const trees = await readWorkspaceProjectTrees();
       const nodes = collectProjectNodes(trees);
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const taskIds: string[] = [];
       for (const node of nodes) {
-        const rootPath = getProjectRootPath(node.projectId, workspaceId);
+        const rootPath = getProjectRootPath(node.projectId);
         if (!rootPath) continue;
         const taskId = randomUUID();
         taskIds.push(taskId);
         void runner.run({
           taskId,
           projectId: node.projectId,
-          workspaceId,
           rootPath,
           now: new Date(),
           triggeredBy,
@@ -68,8 +67,8 @@ export async function initSummaryScheduler(): Promise<void> {
         ? { taskId: result.taskId, status: result.status, metadata: result.metadata }
         : null;
     },
-    listTaskStatus: async ({ projectId, workspaceId }) => {
-      const results = await statusRepo.listStatuses?.({ projectId, workspaceId });
+    listTaskStatus: async ({ projectId }) => {
+      const results = await statusRepo.listStatuses?.({ projectId });
       return (results ?? []).map((record) => ({
         taskId: record.taskId,
         status: record.status,

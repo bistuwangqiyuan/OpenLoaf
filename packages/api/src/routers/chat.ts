@@ -154,7 +154,6 @@ export const chatRouter = t.router({
   listSessions: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().optional(),
         boardId: z.string().trim().min(1).nullable().optional(),
       }),
@@ -165,7 +164,7 @@ export const chatRouter = t.router({
       let projectIdFilter: string[] | null = null
       let projectTitleMap = new Map<string, string>()
 
-      const projectTrees = await readWorkspaceProjectTrees(input.workspaceId)
+      const projectTrees = await readWorkspaceProjectTrees()
       if (projectId) {
         const entry = findProjectNodeWithParent(projectTrees, projectId)
         if (!entry) return []
@@ -173,8 +172,8 @@ export const chatRouter = t.router({
       }
 
       try {
-        await syncWorkspaceProjectsFromDisk(ctx.prisma, input.workspaceId, projectTrees)
-        projectTitleMap = await getWorkspaceProjectTitleMap(ctx.prisma, input.workspaceId)
+        await syncWorkspaceProjectsFromDisk(ctx.prisma, undefined, projectTrees)
+        projectTitleMap = await getWorkspaceProjectTitleMap(ctx.prisma)
       } catch {
         projectTitleMap = new Map<string, string>()
       }
@@ -187,7 +186,6 @@ export const chatRouter = t.router({
       const sessions = await ctx.prisma.chatSession.findMany({
         where: {
           deletedAt: null,
-          workspaceId: input.workspaceId,
           ...(boardId !== undefined ? { boardId } : {}),
           ...(projectIdFilter ? { projectId: { in: projectIdFilter } } : {}),
         },
@@ -356,12 +354,11 @@ export const chatRouter = t.router({
     }),
 
   /**
-   * List chat sessions by workspace (for WorkspaceChatList)
+   * List chat sessions (for ChatList)
    */
   listByWorkspace: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().nullable().optional(),
         limit: z.number().optional(),
       }),
@@ -370,7 +367,6 @@ export const chatRouter = t.router({
       const sessions = await ctx.prisma.chatSession.findMany({
         where: {
           deletedAt: null,
-          workspaceId: input.workspaceId,
           projectId: input.projectId,
         },
         orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
@@ -409,7 +405,6 @@ export const chatRouter = t.router({
           errorMessage: true,
           projectId: true,
           messageCount: true,
-          workspaceId: true,
         },
       })
 

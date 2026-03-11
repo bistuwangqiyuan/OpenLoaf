@@ -188,7 +188,6 @@ export default function WidgetTool({
         {canRender && workspaceId ? (
           <WidgetPreview
             widgetId={widgetId}
-            workspaceId={workspaceId}
             projectId={projectId}
           />
         ) : null}

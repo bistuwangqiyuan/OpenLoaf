@@ -15,8 +15,6 @@ export const BOARD_COLLAB_WS_PATH = '/board/ws'
 /** Board collaboration query payload schema. */
 export const boardCollabQuerySchema = z
   .object({
-    /** Workspace id used for file resolution. */
-    workspaceId: z.string().min(1),
     /** Project id used for file resolution. */
     projectId: z.string().optional(),
     /** Board file uri for persistence. */

@@ -17,7 +17,7 @@ import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { videoConvertTool } from '@/ai/tools/videoConvertTools'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 
@@ -48,7 +48,7 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'video-convert-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'video-convert-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }

@@ -227,7 +227,6 @@ export default function DocViewer({
   /** Load binary payload from file system API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: readUri,
     }),
@@ -262,7 +261,6 @@ export default function DocViewer({
         uri,
         readUri,
         projectId,
-        workspaceId,
       });
       setStatus("error");
       initializingRef.current = false;
@@ -339,7 +337,6 @@ export default function DocViewer({
       const buffer = await blob.arrayBuffer();
       const contentBase64 = encodeArrayBufferToBase64(buffer);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri,
         contentBase64,

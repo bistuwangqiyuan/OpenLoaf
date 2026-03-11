@@ -29,12 +29,10 @@ export type OAuthTokenSet = {
 export type OAuthExchangeResult = {
   tokens: OAuthTokenSet;
   providerId: string;
-  workspaceId: string;
 };
 
 export type OAuthState = {
   providerId: string;
-  workspaceId: string;
   codeVerifier: string;
   redirectUri: string;
   timestamp: number;

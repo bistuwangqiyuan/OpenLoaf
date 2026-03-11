@@ -85,14 +85,13 @@ export function readAgentJson(
 
 /**
  * Resolve user's custom prompt.md by priority:
- * project/.openloaf/agents/master/ → workspace/.openloaf/agents/master/ → null.
+ * project/.openloaf/agents/master/ → null.
  * Returns null if no user override exists or if the content matches the builtin default.
  */
 export function resolveUserAgentOverride(
-  workspaceRootPath?: string,
   projectRootPath?: string,
 ): string | null {
-  const candidates = [projectRootPath, workspaceRootPath].filter(Boolean) as string[]
+  const candidates = [projectRootPath].filter(Boolean) as string[]
   for (const root of candidates) {
     const filePath = path.join(
       resolveAgentDir(root, DEFAULT_AGENT_FOLDER),

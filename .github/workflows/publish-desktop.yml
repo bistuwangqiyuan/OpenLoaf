@@ -260,6 +260,7 @@ jobs:
             apps/desktop/dist/*.zip
             apps/desktop/dist/*.zip.blockmap
             apps/desktop/dist/latest-mac.yml
+            apps/desktop/dist/latest-mac-arm64.yml
 
       - name: Upload platform metadata artifacts
         uses: actions/upload-artifact@v4

@@ -111,7 +111,6 @@ const ProjectIndex = React.memo(function ProjectIndex({
         // 逻辑：读取 desktop.openloaf 并初始化桌面布局。
         const result = await queryClient.fetchQuery(
           trpc.fs.readFile.queryOptions({
-            workspaceId,
             projectId,
             uri: desktopFileUri,
           })
@@ -190,7 +189,6 @@ const ProjectIndex = React.memo(function ProjectIndex({
       // 中文注释：编辑对话框保存时立即持久化桌面布局。
       const payload = serializeDesktopItems(nextItems);
       void saveDesktopMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: desktopFileUri,
         content: JSON.stringify(payload, null, 2),
@@ -247,7 +245,6 @@ const ProjectIndex = React.memo(function ProjectIndex({
     // 逻辑：保存当前桌面布局到 desktop.openloaf。
     const payload = serializeDesktopItems(items);
     await saveDesktopMutation.mutateAsync({
-      workspaceId,
       projectId,
       uri: desktopFileUri,
       content: JSON.stringify(payload, null, 2),

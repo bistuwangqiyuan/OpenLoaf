@@ -17,6 +17,7 @@ import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGro
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
 import { useProject } from "@/hooks/use-project";
 import { useProjects } from "@/hooks/use-projects";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { trpc } from "@/utils/trpc";
 import { PageTreePicker } from "@/components/layout/sidebar/ProjectTree";
 import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
@@ -181,12 +182,8 @@ const ProjectBasicSettings = memo(function ProjectBasicSettings({
   });
 
 
-  const workspaceId = useMemo(() => {
-    const activeTab = tabs.find((tab) => tab.id === activeTabId);
-    const rawWorkspaceId = activeTab?.workspaceId ?? "";
-    if (!rawWorkspaceId || rawWorkspaceId === "unknown") return undefined;
-    return rawWorkspaceId;
-  }, [activeTabId, tabs]);
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id || undefined;
 
   const cacheScope = useMemo(() => {
     if (projectId) return { projectId };

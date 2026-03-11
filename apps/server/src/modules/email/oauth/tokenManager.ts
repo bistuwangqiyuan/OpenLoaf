@@ -20,6 +20,12 @@ import type { OAuthTokenSet } from "./types";
 /** Buffer before expiry to trigger proactive refresh (5 minutes). */
 const EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
+/**
+ * Fixed scope key for env key naming (backward compatible).
+ * Previously this was workspaceId; now email is global.
+ */
+const ENV_KEY_SCOPE = "default";
+
 /** Convert email address into slug for env key (same logic as emailAccountService). */
 function toEmailSlug(emailAddress: string): string {
   return emailAddress
@@ -30,23 +36,23 @@ function toEmailSlug(emailAddress: string): string {
 }
 
 /** Build env key for OAuth refresh token. */
-function buildRefreshTokenKey(workspaceId: string, slug: string): string {
-  return `EMAIL_OAUTH_REFRESH__${workspaceId}__${slug}`;
+function buildRefreshTokenKey(slug: string): string {
+  return `EMAIL_OAUTH_REFRESH__${ENV_KEY_SCOPE}__${slug}`;
 }
 
 /** Build env key for OAuth access token. */
-function buildAccessTokenKey(workspaceId: string, slug: string): string {
-  return `EMAIL_OAUTH_ACCESS__${workspaceId}__${slug}`;
+function buildAccessTokenKey(slug: string): string {
+  return `EMAIL_OAUTH_ACCESS__${ENV_KEY_SCOPE}__${slug}`;
 }
 
 /** Build env key for OAuth token expiry timestamp. */
-function buildExpiresKey(workspaceId: string, slug: string): string {
-  return `EMAIL_OAUTH_EXPIRES__${workspaceId}__${slug}`;
+function buildExpiresKey(slug: string): string {
+  return `EMAIL_OAUTH_EXPIRES__${ENV_KEY_SCOPE}__${slug}`;
 }
 
 /** Build env key for OAuth provider id. */
-function buildProviderKey(workspaceId: string, slug: string): string {
-  return `EMAIL_OAUTH_PROVIDER__${workspaceId}__${slug}`;
+function buildProviderKey(slug: string): string {
+  return `EMAIL_OAUTH_PROVIDER__${ENV_KEY_SCOPE}__${slug}`;
 }
 
 /**
@@ -54,19 +60,18 @@ function buildProviderKey(workspaceId: string, slug: string): string {
  * Persists access token, refresh token, expiry, and provider id.
  */
 export function storeOAuthTokens(
-  workspaceId: string,
   emailAddress: string,
   providerId: string,
   tokens: OAuthTokenSet,
 ): void {
   const slug = toEmailSlug(emailAddress);
-  setEmailEnvValue(buildAccessTokenKey(workspaceId, slug), tokens.accessToken);
-  setEmailEnvValue(buildRefreshTokenKey(workspaceId, slug), tokens.refreshToken);
-  setEmailEnvValue(buildExpiresKey(workspaceId, slug), String(tokens.expiresAt));
-  setEmailEnvValue(buildProviderKey(workspaceId, slug), providerId);
+  setEmailEnvValue(buildAccessTokenKey(slug), tokens.accessToken);
+  setEmailEnvValue(buildRefreshTokenKey(slug), tokens.refreshToken);
+  setEmailEnvValue(buildExpiresKey(slug), String(tokens.expiresAt));
+  setEmailEnvValue(buildProviderKey(slug), providerId);
 
   logger.info(
-    { workspaceId, emailAddress, providerId },
+    { emailAddress, providerId },
     "OAuth tokens stored",
   );
 }
@@ -76,13 +81,12 @@ export function storeOAuthTokens(
  * Returns null if tokens are not found.
  */
 export function getOAuthTokens(
-  workspaceId: string,
   emailAddress: string,
 ): OAuthTokenSet | null {
   const slug = toEmailSlug(emailAddress);
-  const accessToken = getEmailEnvValue(buildAccessTokenKey(workspaceId, slug));
-  const refreshToken = getEmailEnvValue(buildRefreshTokenKey(workspaceId, slug));
-  const expiresRaw = getEmailEnvValue(buildExpiresKey(workspaceId, slug));
+  const accessToken = getEmailEnvValue(buildAccessTokenKey(slug));
+  const refreshToken = getEmailEnvValue(buildRefreshTokenKey(slug));
+  const expiresRaw = getEmailEnvValue(buildExpiresKey(slug));
 
   if (!accessToken || !refreshToken || !expiresRaw) {
     return null;
@@ -100,16 +104,15 @@ export function getOAuthTokens(
  * Remove all OAuth token entries from .env for a given email account.
  */
 export function removeOAuthTokens(
-  workspaceId: string,
   emailAddress: string,
 ): void {
   const slug = toEmailSlug(emailAddress);
-  removeEmailEnvValue(buildAccessTokenKey(workspaceId, slug));
-  removeEmailEnvValue(buildRefreshTokenKey(workspaceId, slug));
-  removeEmailEnvValue(buildExpiresKey(workspaceId, slug));
-  removeEmailEnvValue(buildProviderKey(workspaceId, slug));
+  removeEmailEnvValue(buildAccessTokenKey(slug));
+  removeEmailEnvValue(buildRefreshTokenKey(slug));
+  removeEmailEnvValue(buildExpiresKey(slug));
+  removeEmailEnvValue(buildProviderKey(slug));
 
-  logger.info({ workspaceId, emailAddress }, "OAuth tokens removed");
+  logger.info({ emailAddress }, "OAuth tokens removed");
 }
 
 /**
@@ -118,11 +121,10 @@ export function removeOAuthTokens(
  * Returns a valid OAuthTokenSet or throws if refresh fails.
  */
 export async function ensureValidAccessToken(
-  workspaceId: string,
   emailAddress: string,
   providerId: string,
 ): Promise<OAuthTokenSet> {
-  const tokens = getOAuthTokens(workspaceId, emailAddress);
+  const tokens = getOAuthTokens(emailAddress);
   if (!tokens) {
     throw new Error(`未找到 ${emailAddress} 的 OAuth 令牌。`);
   }
@@ -136,12 +138,12 @@ export async function ensureValidAccessToken(
 
   // 逻辑：令牌即将过期或已过期，执行刷新。
   logger.info(
-    { workspaceId, emailAddress, providerId },
+    { emailAddress, providerId },
     "OAuth access token expired, refreshing",
   );
 
   const refreshed = await refreshAccessToken(providerId, tokens.refreshToken);
-  storeOAuthTokens(workspaceId, emailAddress, providerId, refreshed);
+  storeOAuthTokens(emailAddress, providerId, refreshed);
 
   return refreshed;
 }

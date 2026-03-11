@@ -76,13 +76,11 @@ export async function saveBoardAssetFile(input: {
   const { file, fallbackName, workspaceId, projectId, boardFolderUri } = input;
   const assetsFolderUri = buildChildUri(boardFolderUri, BOARD_ASSETS_DIR_NAME);
   await trpcClient.fs.mkdir.mutate({
-    workspaceId,
     projectId,
     uri: assetsFolderUri,
     recursive: true,
   });
   const existing = await trpcClient.fs.list.query({
-    workspaceId,
     projectId,
     uri: assetsFolderUri,
   });
@@ -95,7 +93,6 @@ export async function saveBoardAssetFile(input: {
   const targetUri = buildChildUri(assetsFolderUri, uniqueName);
   const contentBase64 = await fileToBase64(file);
   await trpcClient.fs.writeBinary.mutate({
-    workspaceId,
     projectId,
     uri: targetUri,
     contentBase64,

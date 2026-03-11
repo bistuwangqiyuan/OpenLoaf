@@ -25,6 +25,7 @@ import { useTabView } from "@/hooks/use-tab-view";
 import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
+import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { MessageAction, MessageActions } from "@/components/ai-elements/message";
@@ -93,7 +94,8 @@ export default function ChatHeader({
   const { basic } = useBasicConfig();
   const { loggedIn: saasLoggedIn } = useSaasAuth();
   const tabView = useTabView(tabId);
-  const workspaceId = typeof tabView?.workspaceId === "string" ? tabView.workspaceId : "";
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id ?? "";
 
   // Quick launch: derive project context from tab chatParams.
   const quickLaunchProjectId = React.useMemo(() => {
@@ -300,7 +302,6 @@ export default function ChatHeader({
     quickLaunchProjectId,
     requestLeafMessageId,
     tabId,
-    workspaceId,
   ]);
 
   /** Submit feedback payload to SaaS. */

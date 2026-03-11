@@ -53,8 +53,6 @@ export type ChatImageRequest = {
   chatModelId?: string;
   /** Model source (optional, resolved from agent config). */
   chatModelSource?: ChatModelSource;
-  /** Workspace id. */
-  workspaceId?: string;
   /** Project id. */
   projectId?: string;
   /** Board id. */

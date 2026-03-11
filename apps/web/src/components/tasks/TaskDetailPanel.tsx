@@ -159,20 +159,17 @@ type TaskDetailPanelProps = {
   panelKey?: string
   tabId?: string
   taskId?: string
-  workspaceId?: string
   projectId?: string
 }
 
 export const TaskDetailPanel = memo(function TaskDetailPanel({
   taskId,
-  workspaceId,
   projectId,
 }: TaskDetailPanelProps) {
   const { t } = useTranslation('tasks')
   const { workspace } = useWorkspace()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<Tab>('plan')
-  const wsId = workspaceId ?? workspace?.id ?? ''
 
   const priorityLabels = useMemo(() => getPriorityLabels(t), [t])
   const statusLabels = useMemo(() => getStatusLabels(t), [t])
@@ -181,7 +178,7 @@ export const TaskDetailPanel = memo(function TaskDetailPanel({
 
   const { data: task, isLoading } = useQuery(
     trpc.scheduledTask.getTaskDetail.queryOptions(
-      taskId ? { id: taskId, workspaceId: wsId, projectId } : { id: '', workspaceId: wsId },
+      taskId ? { id: taskId, projectId } : { id: '' },
       { enabled: !!taskId },
     ),
   )

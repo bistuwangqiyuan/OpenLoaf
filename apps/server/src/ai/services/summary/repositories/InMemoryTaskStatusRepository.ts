@@ -30,14 +30,12 @@ export class InMemoryTaskStatusRepository implements TaskStatusRepository {
   /** List task statuses with optional filters. */
   async listStatuses(filter?: {
     projectId?: string;
-    workspaceId?: string;
     status?: TaskStatusValue[];
   }): Promise<TaskStatusRecord[]> {
     const records = Array.from(this.store.values());
     if (!filter) return records;
     return records.filter((record) => {
       if (filter.projectId && record.metadata?.projectId !== filter.projectId) return false;
-      if (filter.workspaceId && record.metadata?.workspaceId !== filter.workspaceId) return false;
       if (filter.status && !filter.status.includes(record.status)) return false;
       return true;
     });

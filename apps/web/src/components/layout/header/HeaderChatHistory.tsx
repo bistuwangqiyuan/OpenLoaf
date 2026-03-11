@@ -54,7 +54,7 @@ export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
   const addTab = useTabs((s) => s.addTab);
 
-  const { openSessionIds, sessionToTabId } = useOpenSessionIds(workspaceId);
+  const { openSessionIds, sessionToTabId } = useOpenSessionIds();
   const { sessions: allSessions, isLoading } = useWorkspaceChatSessions({ workspaceId });
   const sessions = React.useMemo(
     () => showProjectSessions ? allSessions : allSessions.filter((s) => !s.projectId),
@@ -95,7 +95,6 @@ export function HeaderChatHistory({ workspaceId }: HeaderChatHistoryProps) {
       // 场景 3：会话未打开 → 新建 Tab
       const matched = sessions.find((s) => s.id === sessionId);
       addTab({
-        workspaceId,
         chatSessionId: sessionId,
         chatLoadHistory: true,
         chatParams: matched?.projectId ? { projectId: matched.projectId } : undefined,

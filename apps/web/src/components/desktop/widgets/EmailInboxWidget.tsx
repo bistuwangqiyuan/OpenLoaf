@@ -37,7 +37,7 @@ export default function EmailInboxWidget() {
 
   const accountsQuery = useQuery(
     trpc.email.listAccounts.queryOptions(
-      workspaceId ? { workspaceId } : skipToken,
+      workspaceId ? {} : skipToken,
     ),
   );
   const accounts = (accountsQuery.data ?? []) as Array<{ emailAddress: string }>;

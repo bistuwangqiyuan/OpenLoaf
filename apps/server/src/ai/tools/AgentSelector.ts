@@ -22,18 +22,18 @@ const AGENT_FILE_NAME = 'AGENT.md'
 type AgentRoots = {
   projectRoot?: string
   parentRoots?: string[]
-  workspaceRoot?: string
+  globalRoot?: string
 }
 
 type AgentMatch = {
   name: string
   path: string
-  scope: 'project' | 'parent' | 'workspace' | 'global'
+  scope: 'project' | 'parent' | 'global'
   config: AgentConfig
 }
 
 type AgentSearchRoot = {
-  scope: 'project' | 'parent' | 'workspace' | 'global'
+  scope: 'project' | 'parent' | 'global'
   rootPath: string
 }
 
@@ -54,7 +54,7 @@ export function resolveAgentByName(
     const agentFiles = findAgentFiles(agentsRootPath)
     for (const filePath of agentFiles) {
       const scope =
-        searchRoot.scope === 'workspace' || searchRoot.scope === 'global'
+        searchRoot.scope === 'global'
           ? searchRoot.scope
           : 'project'
       const config = readAgentConfigFromPath(filePath, scope)
@@ -81,9 +81,6 @@ function buildSearchRoots(roots: AgentRoots): AgentSearchRoot[] {
     for (const r of roots.parentRoots) {
       if (r?.trim()) ordered.push({ scope: 'parent', rootPath: r.trim() })
     }
-  }
-  if (roots.workspaceRoot?.trim()) {
-    ordered.push({ scope: 'workspace', rootPath: roots.workspaceRoot.trim() })
   }
   ordered.push({
     scope: 'global',

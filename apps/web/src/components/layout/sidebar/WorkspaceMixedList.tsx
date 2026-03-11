@@ -80,7 +80,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   // Fetch chats
   const { data: chats, refetch: refetchChats } = useQuery(
     trpc.chat.listByWorkspace.queryOptions({
-      workspaceId,
       projectId: null,
       limit: expanded ? undefined : 50,
     })
@@ -89,7 +88,7 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   // Fetch boards from DB
   const { data: boards } = useQuery(
     trpc.board.list.queryOptions(
-      workspaceId ? { workspaceId } : ({ workspaceId: "" } as any),
+      workspaceId ? {} : ({ workspaceId: "" } as any),
     ),
   );
 
@@ -150,14 +149,13 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
   const handleChatClick = useCallback(
     (chatId: string, chatTitle: string) => {
       const existingTab = tabs.find(
-        (tab) => tab.workspaceId === workspaceId && tab.chatSessionId === chatId
+        (tab) => tab.chatSessionId === chatId
       );
 
       if (existingTab) {
         setActiveTab(existingTab.id);
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: chatTitle,
           icon: "\uD83D\uDCAC",
@@ -186,7 +184,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
       const baseId = `board:${boardFolderUri}`;
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false;
         const base = runtimeByTabId[tab.id]?.base;
         return base?.id === baseId;
       });
@@ -195,7 +192,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
         setActiveTab(existingTab.id);
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: board.title || t("canvasList.untitled"),
           icon: "\uD83C\uDFA8",
@@ -304,7 +300,6 @@ export function WorkspaceMixedList({ workspaceId }: WorkspaceMixedListProps) {
       const board = boards?.find((b) => b.id === renameTarget.boardId);
       if (!board) return;
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId,
         boardFolderUri: board.folderUri,
         saasAccessToken: getCachedAccessToken() ?? undefined,
       });

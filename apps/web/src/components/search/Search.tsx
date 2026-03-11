@@ -148,7 +148,6 @@ export function Search({
     ...trpc.fs.search.queryOptions(
       searchEnabled && scopedProjectId && scopedProjectRootUri && activeWorkspace?.id
         ? {
-            workspaceId: activeWorkspace.id,
             projectId: scopedProjectId,
             rootUri: scopedProjectRootUri,
             query: debouncedSearchValue,
@@ -164,7 +163,6 @@ export function Search({
     ...trpc.fs.searchWorkspace.queryOptions(
       searchEnabled && !scopedProjectId && activeWorkspace?.id
         ? {
-            workspaceId: activeWorkspace.id,
             query: debouncedSearchValue,
             includeHidden: false,
             limit: 20,
@@ -234,13 +232,11 @@ export function Search({
   const keepAllFilter = React.useCallback(() => 1, []);
   const openSingletonTab = React.useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
-      if (!activeWorkspace) return;
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
       const existing = state.tabs.find((tab) => {
-        if (tab.workspaceId !== activeWorkspace.id) return false;
         if (runtimeByTabId[tab.id]?.base?.id === input.baseId) return true;
         // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
         if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === tabTitle) return true;
@@ -255,7 +251,6 @@ export function Search({
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -267,7 +262,7 @@ export function Search({
       });
       handleOpenChange(false);
     },
-    [activeWorkspace, addTab, handleOpenChange, setActiveTab],
+    [addTab, handleOpenChange, setActiveTab],
   );
   /** Trigger AI chat with current search query. */
   const handleAiFallback = React.useCallback(() => {
@@ -291,7 +286,6 @@ export function Search({
         .getState()
         .tabs.find(
           (tab) =>
-            tab.workspaceId === activeWorkspace.id &&
             runtimeByTabId[tab.id]?.base?.id === baseId,
         );
       if (existing) {
@@ -306,7 +300,6 @@ export function Search({
         return;
       }
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: projectTitle || t('untitledProject'),
         icon: projectHierarchy.projectById.get(projectId)?.icon ?? undefined,
@@ -479,7 +472,7 @@ export function Search({
     queries: thumbnailGroups.map((group) => {
       const queryOptions = trpc.fs.thumbnails.queryOptions(
         group.uris.length && activeWorkspace?.id
-          ? { workspaceId: activeWorkspace.id, projectId: group.projectId, uris: group.uris }
+          ? { projectId: group.projectId, uris: group.uris }
           : skipToken,
       );
       return {

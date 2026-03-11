@@ -274,7 +274,6 @@ export default function ImageViewer({
 
   const imageQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),

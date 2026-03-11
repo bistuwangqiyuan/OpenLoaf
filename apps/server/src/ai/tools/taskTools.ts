@@ -53,9 +53,9 @@ export const taskManageTool = tool({
   description: taskManageToolDef.description,
   inputSchema: zodSchema(taskManageToolDef.parameters),
   execute: async (input) => {
-    const { workspaceRoot, projectRoot } = resolveToolRoots()
-    const scope = projectRoot ? 'project' : 'workspace'
-    const rootPath = projectRoot ?? workspaceRoot
+    const { globalRoot, projectRoot } = resolveToolRoots()
+    const scope = projectRoot ? 'project' : 'global'
+    const rootPath = projectRoot ?? globalRoot
     const action = input.action
 
     switch (action) {
@@ -135,7 +135,7 @@ export const taskManageTool = tool({
       case 'cancel': {
         if (!input.taskId) return errMsg('cancel 操作必须提供 taskId 参数')
 
-        const task = getTask(input.taskId, workspaceRoot, projectRoot)
+        const task = getTask(input.taskId, globalRoot, projectRoot)
         if (!task) return errMsg(`任务 ${input.taskId} 不存在`)
         if (!CANCEL_ALLOWED.has(task.status)) {
           return rejectMsg('cancel', input.taskId, task.status, 'todo, running, review')
@@ -149,13 +149,13 @@ export const taskManageTool = tool({
       case 'delete': {
         if (!input.taskId) return errMsg('delete 操作必须提供 taskId 参数')
 
-        const task = getTask(input.taskId, workspaceRoot, projectRoot)
+        const task = getTask(input.taskId, globalRoot, projectRoot)
         if (!task) return errMsg(`任务 ${input.taskId} 不存在`)
         if (!DELETE_ALLOWED.has(task.status)) {
           return rejectMsg('delete', input.taskId, task.status, 'done, cancelled（活跃任务请先 cancel）')
         }
 
-        deleteTask(input.taskId, workspaceRoot, projectRoot)
+        deleteTask(input.taskId, globalRoot, projectRoot)
         return okMsg(`任务 "${task.name}" 已删除。`, { taskId: input.taskId })
       }
 
@@ -163,7 +163,7 @@ export const taskManageTool = tool({
       case 'run': {
         if (!input.taskId) return errMsg('run 操作必须提供 taskId 参数')
 
-        const task = getTask(input.taskId, workspaceRoot, projectRoot)
+        const task = getTask(input.taskId, globalRoot, projectRoot)
         if (!task) return errMsg(`任务 ${input.taskId} 不存在`)
         if (task.status !== 'todo') {
           return rejectMsg('run', input.taskId, task.status, 'todo')
@@ -178,7 +178,7 @@ export const taskManageTool = tool({
         if (!input.taskId) return errMsg('resolve 操作必须提供 taskId 参数')
         if (!input.resolveAction) return errMsg('resolve 操作必须提供 resolveAction 参数（approve/reject/rework）')
 
-        const task = getTask(input.taskId, workspaceRoot, projectRoot)
+        const task = getTask(input.taskId, globalRoot, projectRoot)
         if (!task) return errMsg(`任务 ${input.taskId} 不存在`)
         if (task.status !== 'review') {
           return rejectMsg('resolve', input.taskId, task.status, 'review')
@@ -202,13 +202,13 @@ export const taskManageTool = tool({
       case 'archive': {
         if (!input.taskId) return errMsg('archive 操作必须提供 taskId 参数')
 
-        const task = getTask(input.taskId, workspaceRoot, projectRoot)
+        const task = getTask(input.taskId, globalRoot, projectRoot)
         if (!task) return errMsg(`任务 ${input.taskId} 不存在`)
         if (task.status !== 'done') {
           return rejectMsg('archive', input.taskId, task.status, 'done')
         }
 
-        archiveTask(input.taskId, workspaceRoot, projectRoot)
+        archiveTask(input.taskId, globalRoot, projectRoot)
         return okMsg(`任务 "${task.name}" 已归档。`, { taskId: input.taskId })
       }
 
@@ -216,7 +216,7 @@ export const taskManageTool = tool({
       case 'cancelAll': {
         const activeTasks = listTasksByStatus(
           ['todo', 'running', 'review'],
-          workspaceRoot,
+          globalRoot,
           projectRoot,
         )
 
@@ -241,7 +241,7 @@ export const taskManageTool = tool({
       case 'deleteAll': {
         // 安全规则：无论 LLM 传什么 statusFilter，都强制 intersect ['done', 'cancelled']
         const safeStatuses: Array<'done' | 'cancelled'> = ['done', 'cancelled']
-        const terminatedTasks = listTasksByStatus(safeStatuses, workspaceRoot, projectRoot)
+        const terminatedTasks = listTasksByStatus(safeStatuses, globalRoot, projectRoot)
 
         if (terminatedTasks.length === 0) {
           return okMsg('没有已终结的任务（done/cancelled）可删除。', { deleted: 0 })
@@ -250,7 +250,7 @@ export const taskManageTool = tool({
         let deleted = 0
         for (const task of terminatedTasks) {
           try {
-            deleteTask(task.id, workspaceRoot, projectRoot)
+            deleteTask(task.id, globalRoot, projectRoot)
             deleted++
           } catch {
             // skip individual failures
@@ -262,7 +262,7 @@ export const taskManageTool = tool({
 
       // ── archiveAll ──────────────────────────────────────────────
       case 'archiveAll': {
-        const doneTasks = listTasksByStatus(['done'], workspaceRoot, projectRoot)
+        const doneTasks = listTasksByStatus(['done'], globalRoot, projectRoot)
 
         if (doneTasks.length === 0) {
           return okMsg('没有已完成的任务需要归档。', { archived: 0 })
@@ -271,7 +271,7 @@ export const taskManageTool = tool({
         let archived = 0
         for (const task of doneTasks) {
           try {
-            archiveTask(task.id, workspaceRoot, projectRoot)
+            archiveTask(task.id, globalRoot, projectRoot)
             archived++
           } catch {
             // skip individual failures
@@ -293,10 +293,10 @@ export const taskStatusTool = tool({
   description: taskStatusToolDef.description,
   inputSchema: zodSchema(taskStatusToolDef.parameters),
   execute: async ({ actionName: _actionName, taskId }) => {
-    const { workspaceRoot, projectRoot } = resolveToolRoots()
+    const { globalRoot, projectRoot } = resolveToolRoots()
 
     if (taskId) {
-      const task = getTask(taskId, workspaceRoot, projectRoot)
+      const task = getTask(taskId, globalRoot, projectRoot)
       if (!task) {
         return JSON.stringify({ ok: false, error: `任务 ${taskId} 不存在` })
       }
@@ -308,7 +308,7 @@ export const taskStatusTool = tool({
 
     const activeTasks = listTasksByStatus(
       ['todo', 'running', 'review'],
-      workspaceRoot,
+      globalRoot,
       projectRoot,
     )
 

@@ -23,13 +23,13 @@ import {
   executeProjectQuery,
 } from "./projectTools";
 
-/** Build an isolated workspace root for tests. */
-async function setupWorkspace(): Promise<{ root: string }> {
+/** Build an isolated root directory for tests. */
+async function setupTestRoot(): Promise<{ root: string }> {
   const root = await mkdtemp(path.join(os.tmpdir(), "openloaf-project-tools-"));
   const configRoot = path.join(root, "config");
-  const workspaceRoot = path.join(root, "workspace");
+  const defaultRoot = path.join(root, "workspace");
   setOpenLoafRootOverride(configRoot);
-  setDefaultWorkspaceRootOverride(workspaceRoot);
+  setDefaultWorkspaceRootOverride(defaultRoot);
   return { root };
 }
 
@@ -42,7 +42,7 @@ function setToolContext(input: { projectId?: string }) {
   });
 }
 
-const { root } = await setupWorkspace();
+const { root } = await setupTestRoot();
 
 const parentResult = await executeProjectMutate({
   actionName: "create root project",

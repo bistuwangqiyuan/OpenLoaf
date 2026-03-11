@@ -36,8 +36,6 @@ export type {
 };
 
 export type MediaSubmitContext = {
-  /** Workspace id for storage scoping. */
-  workspaceId?: string;
   /** Project id for storage scoping. */
   projectId?: string;
   /** Save directory relative to project/workspace. */

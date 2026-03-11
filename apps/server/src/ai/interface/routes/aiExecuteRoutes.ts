@@ -97,7 +97,6 @@ function parseAiExecuteRequest(body: unknown): { request?: AiExecuteRequest; err
       params: normalizeParams(raw.params),
       trigger: toText(raw.trigger) || undefined,
       retry: typeof raw.retry === "boolean" ? raw.retry : undefined,
-      workspaceId: toText(raw.workspaceId) || undefined,
       projectId: toText(raw.projectId) || undefined,
       boardId: toText(raw.boardId) || undefined,
       imageSaveDir: toText(raw.imageSaveDir) || undefined,

@@ -110,7 +110,7 @@ export default function DesktopTileGridstack({
       : typeof activeTab?.chatParams?.projectId === "string"
         ? String(activeTab.chatParams.projectId)
         : undefined;
-  const workspaceId = workspace?.id ?? activeTab?.workspaceId;
+  const workspaceId = workspace?.id;
   const projectRootUri =
     typeof tabParams?.rootUri === "string" ? String(tabParams.rootUri) : undefined;
   const defaultRootUri = projectRootUri || workspace?.rootUri;

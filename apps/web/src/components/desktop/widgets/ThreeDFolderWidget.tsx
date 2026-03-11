@@ -151,7 +151,6 @@ export default function ThreeDFolderWidget({
     trpc.fs.list.queryOptions(
       resolvedFolder && workspaceId
         ? {
-            workspaceId,
             projectId: resolvedFolder.projectId,
             uri: resolvedFolder.fileUri,
             includeHidden: false,
@@ -241,8 +240,7 @@ export default function ThreeDFolderWidget({
       const baseId = `project:${input.projectId}`;
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
       const existing = tabs.find(
-        (tab) =>
-          tab.workspaceId === workspaceId && runtimeByTabId[tab.id]?.base?.id === baseId
+        (tab) => runtimeByTabId[tab.id]?.base?.id === baseId
       );
       const projectNode = projectRoots.find((node) => node.projectId === input.projectId);
       const baseParams = {
@@ -259,7 +257,6 @@ export default function ThreeDFolderWidget({
       }
 
       addTab({
-        workspaceId,
         createNew: true,
         title: projectNode?.title || t('threeDFolder.unnamedProject'),
         icon: projectNode?.icon ?? undefined,

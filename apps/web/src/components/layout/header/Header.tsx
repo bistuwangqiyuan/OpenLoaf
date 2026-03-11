@@ -174,7 +174,7 @@ export const Header = () => {
               className="h-8 w-8 shrink-0"
               variant="ghost"
               size="icon"
-              onClick={() => { if (workspaceId) openSettingsTab(workspaceId); }}
+              onClick={() => { if (workspaceId) openSettingsTab(); }}
             >
               <Settings className="h-4 w-4 text-orange-700/70 dark:text-orange-300/70" />
             </Button>

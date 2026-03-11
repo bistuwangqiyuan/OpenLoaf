@@ -49,7 +49,7 @@ type CalendarService = {
 };
 
 type SyncRange = { start: string; end: string };
-type SyncContext = { workspaceId: string; viewRange?: SyncRange };
+type SyncContext = { viewRange?: SyncRange };
 
 type SyncSourcePayload = {
   kind: "calendar" | "reminder";
@@ -142,7 +142,7 @@ export function createCalendarSync(args: { log: Logger; calendarService: Calenda
   const syncNow = async (override?: SyncContext) => {
     if (syncing) return;
     const context = override ?? lastContext;
-    if (!context?.workspaceId) return;
+    if (!context) return;
     const provider = resolveProvider();
     if (!provider) return;
     const serverUrl = process.env.OPENLOAF_SERVER_URL ?? "";
@@ -235,7 +235,6 @@ export function createCalendarSync(args: { log: Logger; calendarService: Calenda
         serverUrl,
         path: "calendar.syncFromSystem",
         payload: {
-          workspaceId: context.workspaceId,
           provider,
           range,
           sources,

@@ -181,7 +181,6 @@ function MessageHumanTextPart(props: {
     void queryClient
       .fetchQuery(
         trpc.fs.stat.queryOptions({
-          workspaceId,
           projectId: fileToken.projectId,
           uri,
         }),

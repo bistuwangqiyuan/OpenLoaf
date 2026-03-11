@@ -14,7 +14,6 @@ import {
   emailQueryToolDef,
 } from '@openloaf/api/types/tools/email'
 import { emailRouterImplementation } from '@/routers/email'
-import { getWorkspaceId } from '@/ai/shared/context/requestContext'
 
 // ---------------------------------------------------------------------------
 // Slim view types — 精简返回给 LLM 的数据
@@ -66,12 +65,6 @@ type UnreadStatsView = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function resolveWorkspaceId(): string {
-  const wid = getWorkspaceId()
-  if (!wid) throw new Error('workspaceId is required.')
-  return wid
-}
 
 async function createEmailCaller() {
   const ctx = await createContext({ context: {} as any })
@@ -125,16 +118,16 @@ function toMessageDetailView(row: any): MessageDetailView {
 
 async function executeListAccounts() {
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  const accounts = await caller.listAccounts({ workspaceId })
+
+  const accounts = await caller.listAccounts({})
   return { ok: true, data: { mode: 'list-accounts', accounts: accounts.map(toAccountView) } }
 }
 
 async function executeListMailboxes(accountEmail?: string) {
   if (!accountEmail) throw new Error('accountEmail is required for list-mailboxes.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  const mailboxes = await caller.listMailboxes({ workspaceId, accountEmail })
+
+  const mailboxes = await caller.listMailboxes({ accountEmail })
   return { ok: true, data: { mode: 'list-mailboxes', mailboxes: mailboxes.map(toMailboxView) } }
 }
 
@@ -147,9 +140,8 @@ async function executeListMessages(input: {
   if (!input.accountEmail) throw new Error('accountEmail is required for list-messages.')
   if (!input.mailbox) throw new Error('mailbox is required for list-messages.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
+
   const page = await caller.listMessages({
-    workspaceId,
     accountEmail: input.accountEmail,
     mailbox: input.mailbox,
     cursor: input.cursor ?? null,
@@ -174,9 +166,8 @@ async function executeListUnified(input: {
 }) {
   if (!input.scope) throw new Error('scope is required for list-unified.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
+
   const page = await caller.listUnifiedMessages({
-    workspaceId,
     scope: input.scope as any,
     accountEmail: input.accountEmail,
     mailbox: input.mailbox,
@@ -196,8 +187,8 @@ async function executeListUnified(input: {
 async function executeGetMessage(messageId?: string) {
   if (!messageId) throw new Error('messageId is required for get-message.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  const msg = await caller.getMessage({ workspaceId, id: messageId })
+
+  const msg = await caller.getMessage({ id: messageId })
   return { ok: true, data: { mode: 'get-message', message: toMessageDetailView(msg) } }
 }
 
@@ -209,9 +200,8 @@ async function executeSearch(input: {
   if (!input.accountEmail) throw new Error('accountEmail is required for search.')
   if (!input.query) throw new Error('query is required for search.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
+
   const page = await caller.searchMessages({
-    workspaceId,
     accountEmail: input.accountEmail,
     query: input.query,
     pageSize: input.pageSize ?? 10,
@@ -228,8 +218,8 @@ async function executeSearch(input: {
 
 async function executeUnreadStats() {
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  const stats = await caller.listUnifiedUnreadStats({ workspaceId })
+
+  const stats = await caller.listUnifiedUnreadStats({})
   const view: UnreadStatsView = {
     allInboxes: stats.allInboxes,
     flagged: stats.flagged,
@@ -248,9 +238,8 @@ async function executeSend(input: any) {
   if (!input.to?.length) throw new Error('to is required for send.')
   if (!input.subject) throw new Error('subject is required for send.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
+
   const result = await caller.sendMessage({
-    workspaceId,
     accountEmail: input.accountEmail,
     to: input.to,
     cc: input.cc,
@@ -266,8 +255,8 @@ async function executeSend(input: any) {
 async function executeMarkRead(messageId?: string) {
   if (!messageId) throw new Error('messageId is required for mark-read.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.markMessageRead({ workspaceId, id: messageId })
+
+  await caller.markMessageRead({ id: messageId })
   return { ok: true, data: { action: 'mark-read', id: messageId } }
 }
 
@@ -275,16 +264,16 @@ async function executeFlag(input: { messageId?: string; flagged?: boolean }) {
   if (!input.messageId) throw new Error('messageId is required for flag.')
   if (input.flagged === undefined) throw new Error('flagged is required for flag.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.setMessageFlagged({ workspaceId, id: input.messageId, flagged: input.flagged })
+
+  await caller.setMessageFlagged({ id: input.messageId, flagged: input.flagged })
   return { ok: true, data: { action: 'flag', id: input.messageId, flagged: input.flagged } }
 }
 
 async function executeDelete(messageId?: string) {
   if (!messageId) throw new Error('messageId is required for delete.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.deleteMessage({ workspaceId, id: messageId })
+
+  await caller.deleteMessage({ id: messageId })
   return { ok: true, data: { action: 'delete', id: messageId } }
 }
 
@@ -292,24 +281,24 @@ async function executeMove(input: { messageId?: string; toMailbox?: string }) {
   if (!input.messageId) throw new Error('messageId is required for move.')
   if (!input.toMailbox) throw new Error('toMailbox is required for move.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.moveMessage({ workspaceId, id: input.messageId, toMailbox: input.toMailbox })
+
+  await caller.moveMessage({ id: input.messageId, toMailbox: input.toMailbox })
   return { ok: true, data: { action: 'move', id: input.messageId, toMailbox: input.toMailbox } }
 }
 
 async function executeBatchMarkRead(messageIds?: string[]) {
   if (!messageIds?.length) throw new Error('messageIds is required for batch-mark-read.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.batchMarkRead({ workspaceId, ids: messageIds })
+
+  await caller.batchMarkRead({ ids: messageIds })
   return { ok: true, data: { action: 'batch-mark-read', count: messageIds.length } }
 }
 
 async function executeBatchDelete(messageIds?: string[]) {
   if (!messageIds?.length) throw new Error('messageIds is required for batch-delete.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.batchDelete({ workspaceId, ids: messageIds })
+
+  await caller.batchDelete({ ids: messageIds })
   return { ok: true, data: { action: 'batch-delete', count: messageIds.length } }
 }
 
@@ -317,8 +306,8 @@ async function executeBatchMove(input: { messageIds?: string[]; toMailbox?: stri
   if (!input.messageIds?.length) throw new Error('messageIds is required for batch-move.')
   if (!input.toMailbox) throw new Error('toMailbox is required for batch-move.')
   const caller = await createEmailCaller()
-  const workspaceId = resolveWorkspaceId()
-  await caller.batchMove({ workspaceId, ids: input.messageIds, toMailbox: input.toMailbox })
+
+  await caller.batchMove({ ids: input.messageIds, toMailbox: input.toMailbox })
   return {
     ok: true,
     data: { action: 'batch-move', count: input.messageIds.length, toMailbox: input.toMailbox },

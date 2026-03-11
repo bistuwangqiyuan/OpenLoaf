@@ -15,8 +15,6 @@ export type SchedulerTaskRecordInput = {
   id: string;
   /** Project id. */
   projectId: string;
-  /** Workspace id. */
-  workspaceId?: string | null;
   /** Task type. */
   type: string;
   /** Target dates. */
@@ -34,8 +32,6 @@ export type SchedulerTaskRecordInput = {
 export type SchedulerTaskRecordListInput = {
   /** Project id filter. */
   projectId?: string;
-  /** Workspace id filter. */
-  workspaceId?: string;
   /** Status filter list. */
   statuses?: string[];
   /** Page number (1-based). */
@@ -54,7 +50,6 @@ export async function createSchedulerTaskRecord(
     data: {
       id: input.id,
       projectId: input.projectId,
-      workspaceId: input.workspaceId ?? null,
       type: input.type,
       dates,
       payload,
@@ -84,7 +79,6 @@ export async function updateSchedulerTaskRecord(input: {
 export async function listSchedulerTaskRecords(input: SchedulerTaskRecordListInput) {
   const where: Record<string, unknown> = {};
   if (input.projectId) where.projectId = input.projectId;
-  if (input.workspaceId) where.workspaceId = input.workspaceId;
   if (Array.isArray(input.statuses) && input.statuses.length) {
     where.status = { in: input.statuses };
   }

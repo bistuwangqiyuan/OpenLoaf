@@ -85,7 +85,7 @@ export function SidebarFeedback() {
   const activeTab = React.useMemo(() => {
     if (!activeTabId) return null;
     const target = tabs.find((tab) => tab.id === activeTabId) ?? null;
-    if (activeWorkspace && target?.workspaceId !== activeWorkspace.id) return null;
+    // workspace filter removed (workspace concept simplified)
     return target;
   }, [activeTabId, tabs, activeWorkspace]);
 

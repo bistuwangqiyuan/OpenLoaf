@@ -2,14 +2,13 @@ model Board {
   id          String    @id          /// board_{yyyyMMdd}_{HHmmss}_{random8}
   title       String    @default("新画布")
   isPin       Boolean   @default(false)
-  workspaceId String
   projectId   String?
   folderUri   String                 /// 相对路径: .openloaf/boards/board_{id}/
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  @@index([workspaceId, deletedAt])
-  @@index([workspaceId, projectId])
+  @@index([deletedAt])
+  @@index([projectId])
   @@index([deletedAt, updatedAt])
 }

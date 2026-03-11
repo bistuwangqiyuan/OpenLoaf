@@ -186,20 +186,20 @@ export function useEmailPageState({ workspaceId }: EmailPageStateParams): EmailP
   React.useEffect(() => {
     if (!workspaceId || !core.hasConfiguredAccounts) return
     const subscription = trpcClient.email.onNewMail.subscribe(
-      { workspaceId },
+      {},
       {
         onData(_event) {
           if (core.unifiedMessagesQueryKey) {
             core.queryClient.invalidateQueries({ queryKey: core.unifiedMessagesQueryKey })
           }
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnreadCount.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnreadCount.queryOptions({}).queryKey,
           })
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
         },
         onError() {},

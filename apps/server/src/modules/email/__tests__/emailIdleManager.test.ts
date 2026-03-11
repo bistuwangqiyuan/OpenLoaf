@@ -11,10 +11,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
-import { setWorkspaces } from "@openloaf/api/services/workspaceConfig";
-import type { Workspace } from "@openloaf/api/types/workspace";
 import { setOpenLoafRootOverride } from "@openloaf/config";
 import { setEmailEnvValue } from "../emailEnvStore";
 import { writeEmailConfigFile, type EmailConfigFile } from "../emailConfigStore";
@@ -29,21 +26,6 @@ process.env.OPENLOAF_SERVER_ENV_PATH = path.join(tempRoot, ".env");
 process.env.EMAIL_IDLE_ENABLED = "1";
 process.env.EMAIL_IMAP_SKIP = "1";
 setOpenLoafRootOverride(tempRoot);
-
-const workspaceRoot = path.join(tempRoot, "workspace");
-const workspaceId = "workspace-idle-test";
-
-const workspace: Workspace = {
-  id: workspaceId,
-  name: "Idle Workspace",
-  type: "local",
-  isActive: true,
-  rootUri: pathToFileURL(workspaceRoot).href,
-  projects: {},
-  ignoreSkills: [],
-};
-
-setWorkspaces([workspace]);
 
 const emailConfigPayload: EmailConfigFile = {
   emailAccounts: [
@@ -60,7 +42,7 @@ const emailConfigPayload: EmailConfigFile = {
   privateSenders: [],
 };
 
-writeEmailConfigFile(emailConfigPayload, workspaceId);
+writeEmailConfigFile(emailConfigPayload);
 
 setEmailEnvValue("EMAIL_IDLE_SECRET", "secret");
 
