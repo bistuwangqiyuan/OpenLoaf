@@ -238,7 +238,7 @@ apps/server/src/ai/__tests__/agent-behavior/
 │   ├── .gitignore                  # 忽略运行时生成文件
 │   ├── settings.json               # 模型设置
 │   ├── providers.json.template     # Provider 模板
-│   ├── workspaces.json             # 工作区定义
+│   ├── workspaces.json             # 工作空间定义
 │   └── workspace/                  # 共享 workspace 基础
 │       ├── .openloaf/tasks/        # 任务元数据
 │       └── README.md               # 多域共用

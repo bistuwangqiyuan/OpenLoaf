@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import {
   ChevronsUpDown,
+  Sparkles,
   Lightbulb,
   LogIn,
   LogOut,
@@ -49,12 +50,13 @@ import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog"
 import { isElectronEnv } from "@/utils/is-electron-env"
 import { useGlobalOverlay } from "@/lib/globalShortcuts"
 
-/** 会员等级胶囊徽章样式 — 低透明彩色背景 + 对应文字色，light/dark 双套。 */
-const MEMBERSHIP_BADGE_STYLES: Record<string, string> = {
-  free: "bg-secondary text-secondary-foreground",
-  vip: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  svip: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
-  infinity: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400",
+
+/** 侧边栏等级徽章样式 — 使用更轻的浅色底，避免与 sidebar 背景相同，同时不过分抢眼。 */
+const SIDEBAR_MEMBERSHIP_BADGE_STYLES: Record<string, string> = {
+  free: "bg-foreground/[0.05] text-foreground/65 dark:bg-white/[0.06] dark:text-foreground/65",
+  vip: "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300",
+  svip: "bg-violet-500/10 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300",
+  infinity: "bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300",
 }
 
 export function SidebarUserAccount() {
@@ -103,6 +105,15 @@ export function SidebarUserAccount() {
     ? authUser?.name?.trim() || t('wechatUser')
     : baseAccountLabel
   const dropdownAccountLabel = isWechatLogin ? t('wechatLogin') : baseAccountLabel
+  const membershipLevel = userProfileQuery.data?.membershipLevel
+  const membershipLabel = membershipLevel
+    ? (MEMBERSHIP_LABELS[membershipLevel] ?? membershipLevel)
+    : null
+  const creditsBalanceLabel = userProfileQuery.data
+    ? Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()
+    : null
+  const hasSidebarMembershipInfo = Boolean(membershipLabel && creditsBalanceLabel)
+  const sidebarSecondaryLabel = sidebarAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))
   const avatarAlt = sidebarAccountLabel ?? "User"
   const displayAvatar = authUser?.avatarUrl
 
@@ -191,7 +202,7 @@ export function SidebarUserAccount() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="default"
-              className="h-12 rounded-lg border-none px-1.5 py-3 [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="h-12 rounded-lg border-none px-1.5 py-3 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:shadow-none [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground data-[state=open]:ring-0"
             >
               <Avatar className="size-8 rounded-md">
                 <AvatarImage src={displayAvatar || undefined} alt={avatarAlt} />
@@ -207,8 +218,22 @@ export function SidebarUserAccount() {
                 <div className="truncate text-sm font-medium leading-5">
                   {authUser?.name || "OpenLoaf"}
                 </div>
-                <div className="truncate text-[11px] text-muted-foreground leading-4">
-                  {sidebarAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))}
+                <div className="flex w-full items-center gap-1.5 overflow-hidden text-muted-foreground leading-4">
+                  {hasSidebarMembershipInfo ? (
+                    <>
+                      <span
+                        className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? "bg-foreground/[0.05] text-foreground/65"}`}
+                      >
+                        {membershipLabel}
+                      </span>
+                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] text-muted-foreground/75" title={t('credits')}>
+                        <Sparkles className="size-3 text-muted-foreground/65" />
+                        <span>{creditsBalanceLabel}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="truncate text-[11px]">{sidebarSecondaryLabel}</span>
+                  )}
                 </div>
               </div>
               <ChevronsUpDown className="text-muted-foreground size-4 group-data-[collapsible=icon]:hidden" />
@@ -238,18 +263,6 @@ export function SidebarUserAccount() {
                       <span className="min-w-0 truncate text-sm font-medium">
                         {authUser?.name || t('currentAccount')}
                       </span>
-                      {userProfileQuery.data && (
-                        <span
-                          className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${MEMBERSHIP_BADGE_STYLES[userProfileQuery.data.membershipLevel] ?? "bg-secondary text-secondary-foreground"}`}
-                        >
-                          {MEMBERSHIP_LABELS[userProfileQuery.data.membershipLevel] ?? userProfileQuery.data.membershipLevel}
-                        </span>
-                      )}
-                      {userProfileQuery.data && (
-                        <span className="ml-auto shrink-0 whitespace-nowrap text-[11px] leading-4 text-muted-foreground">
-                          {Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()} {t('credits')}
-                        </span>
-                      )}
                     </div>
                     <div className="truncate text-xs text-muted-foreground leading-4">{dropdownAccountLabel}</div>
                   </div>

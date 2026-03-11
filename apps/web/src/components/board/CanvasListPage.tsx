@@ -52,6 +52,12 @@ import {
   DropdownMenuTrigger,
 } from "@openloaf/ui/dropdown-menu";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@openloaf/ui/context-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -254,125 +260,155 @@ function BoardCard({
   const baseId = `board:${boardFolderUri}`;
   const isActive = activeBoardBaseId === baseId;
   const gradientIndex = hashCode(board.id) % PREVIEW_GRADIENTS.length;
+  const handleRenameSelect = () => {
+    onRename(board.id, board.title, board.folderUri);
+  };
+  const handleDuplicateSelect = () => {
+    onDuplicate(board.id);
+  };
+  const handleCopyPathSelect = () => {
+    const fullPath = boardFolderUri.startsWith("file://")
+      ? decodeURIComponent(new URL(boardFolderUri).pathname).replace(/\/$/, "")
+      : boardFolderUri.replace(/\/$/, "");
+    navigator.clipboard.writeText(fullPath);
+  };
+  const handleDeleteSelect = () => {
+    onDelete(board.id);
+  };
 
   return (
-    <motion.div
-      ref={inViewRef}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, delay: index * 0.04 }}
-      className={`group relative flex flex-col overflow-hidden rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-600 ${
-        isActive
-          ? "border-teal-400 dark:border-teal-500 shadow-sm ring-1 ring-teal-200 dark:ring-teal-700"
-          : "border-border"
-      }`}
-      onClick={() => onBoardClick(board)}
-    >
-      <div
-        className={`relative flex items-center justify-center h-36 ${
-          thumb ? "bg-muted/30" : `bg-gradient-to-br ${PREVIEW_GRADIENTS[gradientIndex]}`
-        }`}
-      >
-        {thumb ? (
-          <img
-            src={thumb}
-            alt={board.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 opacity-40">
-            <Palette className="h-8 w-8" />
-            <div className="flex gap-1">
-              <div className="h-1.5 w-6 rounded-full bg-current opacity-30" />
-              <div className="h-1.5 w-4 rounded-full bg-current opacity-20" />
-              <div className="h-1.5 w-8 rounded-full bg-current opacity-25" />
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <motion.div
+          ref={inViewRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: index * 0.04 }}
+          className={`group relative flex flex-col overflow-hidden rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-violet-300 dark:hover:border-violet-600 ${
+            isActive
+              ? "border-violet-400 dark:border-violet-500 shadow-sm ring-1 ring-violet-200 dark:ring-violet-700"
+              : "border-border"
+          }`}
+          onClick={() => onBoardClick(board)}
+        >
+          <div
+            className={`relative flex items-center justify-center h-36 ${
+              thumb ? "bg-muted/30" : `bg-gradient-to-br ${PREVIEW_GRADIENTS[gradientIndex]}`
+            }`}
+          >
+            {thumb ? (
+              <img
+                src={thumb}
+                alt={board.title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 opacity-40">
+                <Palette className="h-8 w-8" />
+                <div className="flex gap-1">
+                  <div className="h-1.5 w-6 rounded-full bg-current opacity-30" />
+                  <div className="h-1.5 w-4 rounded-full bg-current opacity-20" />
+                  <div className="h-1.5 w-8 rounded-full bg-current opacity-25" />
+                </div>
+              </div>
+            )}
+
+            {isThumbLoading && !thumb ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
+                <Loader2 className="h-5 w-5 animate-spin text-foreground/35" />
+              </div>
+            ) : null}
+
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameSelect();
+                    }}
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    {labels.rename}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicateSelect();
+                    }}
+                  >
+                    <CopyPlus className="mr-2 h-4 w-4" />
+                    {labels.duplicate}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopyPathSelect();
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    {labels.copyPath}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSelect();
+                    }}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {labels.delete}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-        )}
 
-        {isThumbLoading && !thumb ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
-            <Loader2 className="h-5 w-5 animate-spin text-foreground/35" />
-          </div>
-        ) : null}
-
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-7 w-7 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRename(board.id, board.title, board.folderUri);
-                }}
-              >
-                <Edit2 className="mr-2 h-4 w-4" />
-                {labels.rename}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDuplicate(board.id);
-                }}
-              >
-                <CopyPlus className="mr-2 h-4 w-4" />
-                {labels.duplicate}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const fullPath = boardFolderUri.startsWith("file://")
-                    ? decodeURIComponent(new URL(boardFolderUri).pathname).replace(/\/$/, "")
-                    : boardFolderUri.replace(/\/$/, "");
-                  navigator.clipboard.writeText(fullPath);
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                {labels.copyPath}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(board.id);
-                }}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {labels.delete}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1 px-3 py-2.5">
-        <span className="text-sm font-medium truncate">
-          {board.title || labels.untitled}
-        </span>
-        <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground">
-          <span>{formatBoardDate(board.updatedAt, lang)}</span>
-          {projectInfo ? (
-            <span className="flex items-center gap-1 shrink-0 truncate max-w-[50%]">
-              {projectInfo.icon ? (
-                <span className="text-xs leading-none">{projectInfo.icon}</span>
-              ) : (
-                <img src="/head_s.png" alt="" className="h-3.5 w-3.5 rounded-sm" />
-              )}
-              <span className="truncate">{projectInfo.name}</span>
+          <div className="flex flex-col gap-1 px-3 py-2.5">
+            <span className="text-sm font-medium truncate">
+              {board.title || labels.untitled}
             </span>
-          ) : null}
-        </div>
-      </div>
-    </motion.div>
+            <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground">
+              <span>{formatBoardDate(board.updatedAt, lang)}</span>
+              {projectInfo ? (
+                <span className="flex items-center gap-1 shrink-0 truncate max-w-[50%]">
+                  {projectInfo.icon ? (
+                    <span className="text-xs leading-none">{projectInfo.icon}</span>
+                  ) : (
+                    <img src="/head_s.png" alt="" className="h-3.5 w-3.5 rounded-sm" />
+                  )}
+                  <span className="truncate">{projectInfo.name}</span>
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </motion.div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-44">
+        <ContextMenuItem icon={Edit2} onSelect={handleRenameSelect}>
+          {labels.rename}
+        </ContextMenuItem>
+        <ContextMenuItem icon={CopyPlus} onSelect={handleDuplicateSelect}>
+          {labels.duplicate}
+        </ContextMenuItem>
+        <ContextMenuItem icon={Copy} onSelect={handleCopyPathSelect}>
+          {labels.copyPath}
+        </ContextMenuItem>
+        <ContextMenuItem icon={Trash2} onSelect={handleDeleteSelect} className="text-destructive">
+          {labels.delete}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -773,7 +809,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               <Button
                 variant={groupByTime ? "secondary" : "ghost"}
                 size="icon"
-                className={`h-8 w-8 rounded-full ${groupByTime ? "bg-teal-500/10 text-teal-700 dark:bg-teal-400/15 dark:text-teal-300" : ""}`}
+                className={`h-8 w-8 rounded-full ${groupByTime ? "bg-violet-500/10 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300" : ""}`}
                 onClick={() => setGroupByTime((v) => !v)}
               >
                 <CalendarDays className="h-4 w-4" />
@@ -784,7 +820,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full bg-teal-500/10 text-teal-700 hover:bg-teal-500/20 dark:bg-teal-400/15 dark:text-teal-300 dark:hover:bg-teal-400/25"
+            className="rounded-full bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:bg-violet-400/15 dark:text-violet-300 dark:hover:bg-violet-400/25"
             onClick={handleCreate}
             disabled={!canCreateBoard || createMutation.isPending}
           >
@@ -803,7 +839,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-full mt-1 bg-teal-500/10 text-teal-700 hover:bg-teal-500/20 dark:bg-teal-400/15 dark:text-teal-300 dark:hover:bg-teal-400/25"
+              className="rounded-full mt-1 bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:bg-violet-400/15 dark:text-violet-300 dark:hover:bg-violet-400/25"
               onClick={handleCreate}
               disabled={!canCreateBoard || createMutation.isPending}
             >
@@ -929,7 +965,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               </Button>
             </DialogClose>
             <Button
-              className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+              className="rounded-full bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:bg-violet-400/15 dark:text-violet-300 shadow-none transition-colors duration-150"
               onClick={handleRenameSave}
               disabled={updateMutation.isPending}
             >

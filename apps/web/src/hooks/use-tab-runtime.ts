@@ -20,6 +20,7 @@ import {
   type DockItem,
   type TerminalTab,
 } from "@openloaf/api/common";
+import { isProjectWindowMode } from "@/lib/window-mode";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
 import { BOARD_VIEWER_COMPONENT, LEFT_DOCK_DEFAULT_PERCENT, clampPercent } from "./tab-utils";
 import { isBrowserWindowItem, normalizeBrowserWindowItem } from "./browser-panel";
@@ -81,6 +82,12 @@ const DEFAULT_RUNTIME: TabRuntime = {
   stackHidden: false,
   activeStackItemId: "",
 };
+
+/** Resolve runtime storage by renderer mode to isolate project windows. */
+function resolveTabRuntimeStorage() {
+  if (typeof window === "undefined") return localStorage;
+  return isProjectWindowMode() ? window.sessionStorage : window.localStorage;
+}
 
 /** Return true when the stack contains a board viewer item. */
 function hasBoardStackItem(stack?: DockItem[]) {
@@ -619,7 +626,7 @@ export const useTabRuntime = create<TabRuntimeState>()(
     }),
     {
       name: TAB_RUNTIME_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(resolveTabRuntimeStorage),
       version: 1,
       partialize: (state) => ({ runtimeByTabId: state.runtimeByTabId }),
       // 逻辑：恢复持久化的 runtime，避免刷新后左侧面板/stack 丢失。

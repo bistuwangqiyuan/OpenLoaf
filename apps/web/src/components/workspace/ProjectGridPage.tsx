@@ -10,10 +10,10 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import {
+  ExternalLink,
   FolderOpen,
   Plus,
   Edit2,
@@ -30,10 +30,9 @@ import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, trpc } from "@/utils/trpc";
 
 import { useIsInView } from "@/hooks/use-is-in-view";
-import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useProjectLayout } from "@/hooks/use-project-layout";
+import { useProjectOpen } from "@/hooks/use-project-open";
 import { getDisplayPathFromUri } from "@/components/project/filesystem/utils/file-system-utils";
 import type { ProjectListItem } from "@openloaf/api/services/projectTreeService";
 import { Button } from "@openloaf/ui/button";
@@ -61,6 +60,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@openloaf/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@openloaf/ui/context-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -143,14 +149,13 @@ interface ProjectGridPageProps {
 export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
   const { t } = useTranslation("nav");
   const { t: tSettings } = useTranslation("settings");
-  const { t: tWorkspace } = useTranslation("workspace");
 
-  const addTab = useTabs((s) => s.addTab);
-  const setActiveTab = useTabs((s) => s.setActiveTab);
-  const tabs = useTabs((s) => s.tabs);
   const activeTabId = useTabs((s) => s.activeTabId);
   const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId);
-  const headerTitleExtraTarget = useHeaderSlot((s) => s.headerTitleExtraTarget);
+  const openProject = useProjectOpen();
+  const canOpenProjectWindow =
+    typeof window !== "undefined" &&
+    Boolean(window.openloafElectron?.openProjectWindow);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterProjectType, setFilterProjectType] = useState<string>("__all__");
@@ -259,41 +264,44 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
 
   const handleProjectClick = useCallback(
     (project: ProjectListItem) => {
-      const targetProjectId = project.projectId;
-      const baseId = `project:${targetProjectId}`;
-
-      const existingTab = tabs.find((tab) => {
-        const base = runtimeByTabId[tab.id]?.base;
-        return base?.id === baseId;
-      });
-
-      if (existingTab) {
-        setActiveTab(existingTab.id);
-        return;
-      }
-
-      const savedLayout = useProjectLayout
-        .getState()
-        .getProjectLayout(targetProjectId);
-      addTab({
-        createNew: true,
+      openProject({
+        projectId: project.projectId,
         title: project.title || t("workspaceListPage.untitled"),
+        rootUri: project.rootUri,
         icon: project.icon ?? undefined,
-        base: {
-          id: baseId,
-          component: "plant-page",
-          params: {
-            projectId: targetProjectId,
-            rootUri: project.rootUri,
-            projectTab: "files",
-          },
-        },
-        leftWidthPercent: savedLayout?.leftWidthPercent ?? 100,
-        rightChatCollapsed: savedLayout?.rightChatCollapsed ?? false,
-        chatParams: { projectId: targetProjectId },
       });
     },
-    [tabs, runtimeByTabId, addTab, setActiveTab, t],
+    [openProject, t],
+  );
+
+  const handleProjectOpenInSidebar = useCallback(
+    (project: ProjectListItem) => {
+      openProject(
+        {
+          projectId: project.projectId,
+          title: project.title || t("workspaceListPage.untitled"),
+          rootUri: project.rootUri,
+          icon: project.icon ?? undefined,
+        },
+        { mode: "sidebar" },
+      );
+    },
+    [openProject, t],
+  );
+
+  const handleProjectOpenInWindow = useCallback(
+    (project: ProjectListItem) => {
+      openProject(
+        {
+          projectId: project.projectId,
+          title: project.title || t("workspaceListPage.untitled"),
+          rootUri: project.rootUri,
+          icon: project.icon ?? undefined,
+        },
+        { mode: "window" },
+      );
+    },
+    [openProject, t],
   );
 
   const handleRenameSave = useCallback(() => {
@@ -328,7 +336,6 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
     : undefined;
   const activeProjectBaseId =
     activeBase?.component === "plant-page" ? activeBase.id : undefined;
-  const isActiveTab = activeTabId === tabId;
   const isInitialLoading = projectsQuery.isPending && filteredProjects.length === 0;
   const hasActiveFilter =
     Boolean(searchQuery.trim()) || filterProjectType !== "__all__";
@@ -346,138 +353,210 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
       const childCount = project.childCount;
 
       return (
-        <motion.div
-          key={project.projectId}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: index * 0.04 }}
-          className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-background/70 backdrop-blur-sm cursor-pointer shadow-none transition-colors duration-200 hover:border-sky-300/80 dark:bg-background/30 dark:hover:border-sky-600/80 ${
-            isActive
-              ? "border-sky-400 bg-sky-500/[0.04] dark:border-sky-500 dark:bg-sky-400/[0.08]"
-              : "border-border/70"
-          }`}
-          onClick={() => handleProjectClick(project)}
-        >
-          {/* Preview area */}
-          <div
-            className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${CARD_GRADIENTS[gradientIndex]}`}
-          >
-            <div className="flex flex-col items-center gap-2.5 opacity-40">
-              {project.icon ? (
-                <span className="text-4xl leading-none">{project.icon}</span>
-              ) : (
-                <FolderOpen className="h-8 w-8" />
-              )}
-              <div className="flex gap-1">
-                <div className="h-1.5 w-6 rounded-full bg-current opacity-30" />
-                <div className="h-1.5 w-4 rounded-full bg-current opacity-20" />
-                <div className="h-1.5 w-8 rounded-full bg-current opacity-25" />
+        <ContextMenu key={project.projectId}>
+          <ContextMenuTrigger asChild>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.04 }}
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-background/70 backdrop-blur-sm cursor-pointer shadow-none transition-colors duration-200 hover:border-sky-300/80 dark:bg-background/30 dark:hover:border-sky-600/80 ${
+                isActive
+                  ? "border-sky-400 bg-sky-500/[0.04] dark:border-sky-500 dark:bg-sky-400/[0.08]"
+                  : "border-border/70"
+              }`}
+              onClick={() => handleProjectClick(project)}
+            >
+              {/* Preview area */}
+              <div
+                className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${CARD_GRADIENTS[gradientIndex]}`}
+              >
+                <div className="flex flex-col items-center gap-2.5 opacity-40">
+                  {project.icon ? (
+                    <span className="text-4xl leading-none">{project.icon}</span>
+                  ) : (
+                    <FolderOpen className="h-8 w-8" />
+                  )}
+                  <div className="flex gap-1">
+                    <div className="h-1.5 w-6 rounded-full bg-current opacity-30" />
+                    <div className="h-1.5 w-4 rounded-full bg-current opacity-20" />
+                    <div className="h-1.5 w-8 rounded-full bg-current opacity-25" />
+                  </div>
+                </div>
+
+                {/* Badges */}
+                <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                  {project.isFavorite && (
+                    <span className="inline-flex items-center rounded-full bg-amber-500/90 p-1 text-white dark:bg-amber-400/90 dark:text-amber-950">
+                      <Star className="h-2.5 w-2.5 fill-current" />
+                    </span>
+                  )}
+                  {project.isGitProject && (
+                    <span className="inline-flex items-center rounded-full bg-black/50 p-1 text-white dark:bg-white/20">
+                      <GitBranch className="h-2.5 w-2.5" />
+                    </span>
+                  )}
+                  {project.depth > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-white/15">
+                      L{project.depth}
+                    </span>
+                  )}
+                </div>
+
+                {/* Dropdown menu overlay */}
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-6 w-6 rounded-full bg-background/80 backdrop-blur-sm shadow-none"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProjectOpenInSidebar(project);
+                        }}
+                      >
+                        <FolderOpen className="mr-2 h-4 w-4" />
+                        {t("projectTree.open")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!canOpenProjectWindow}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProjectOpenInWindow(project);
+                        }}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t("workspaceListPage.openInNewWindow")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameTarget({
+                            projectId: project.projectId,
+                            title: project.title,
+                            nextTitle: project.title,
+                          });
+                        }}
+                      >
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        {t("workspaceChatList.contextMenu.rename")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(
+                            project.projectId,
+                            !!project.isFavorite,
+                          );
+                        }}
+                      >
+                        <Star
+                          className={`mr-2 h-4 w-4 ${project.isFavorite ? "fill-amber-500 text-amber-500" : ""}`}
+                        />
+                        {project.isFavorite
+                          ? t("projectTree.unfavorite")
+                          : t("projectTree.favorite")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemove(project.projectId);
+                        }}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("projectTree.remove")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            </div>
 
-            {/* Badges */}
-            <div className="absolute top-2 left-2 flex items-center gap-1.5">
-              {project.isFavorite && (
-                <span className="inline-flex items-center rounded-full bg-amber-500/90 p-1 text-white dark:bg-amber-400/90 dark:text-amber-950">
-                  <Star className="h-2.5 w-2.5 fill-current" />
+              {/* Info area */}
+              <div className="flex flex-col gap-1 px-3.5 py-2.5">
+                <span className="flex items-center gap-1.5 truncate text-sm font-medium">
+                  {project.icon && (
+                    <span className="text-sm leading-none shrink-0">
+                      {project.icon}
+                    </span>
+                  )}
+                  {project.title || t("workspaceListPage.untitled")}
                 </span>
-              )}
-              {project.isGitProject && (
-                <span className="inline-flex items-center rounded-full bg-black/50 p-1 text-white dark:bg-white/20">
-                  <GitBranch className="h-2.5 w-2.5" />
-                </span>
-              )}
-              {project.depth > 0 && (
-                <span className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-white/15">
-                  L{project.depth}
-                </span>
-              )}
-            </div>
-
-            {/* Dropdown menu overlay */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-6 w-6 rounded-full bg-background/80 backdrop-blur-sm shadow-none"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRenameTarget({
-                        projectId: project.projectId,
-                        title: project.title,
-                        nextTitle: project.title,
-                      });
-                    }}
-                  >
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    {t("workspaceChatList.contextMenu.rename")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFavorite(
-                        project.projectId,
-                        !!project.isFavorite,
-                      );
-                    }}
-                  >
-                    <Star
-                      className={`mr-2 h-4 w-4 ${project.isFavorite ? "fill-amber-500 text-amber-500" : ""}`}
-                    />
-                    {project.isFavorite
-                      ? t("projectTree.unfavorite")
-                      : t("projectTree.favorite")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(project.projectId);
-                    }}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t("projectTree.remove")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Info area */}
-          <div className="flex flex-col gap-1 px-3.5 py-2.5">
-            <span className="flex items-center gap-1.5 truncate text-sm font-medium">
-              {project.icon && (
-                <span className="text-sm leading-none shrink-0">
-                  {project.icon}
-                </span>
-              )}
-              {project.title || t("workspaceListPage.untitled")}
-            </span>
-            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-              <span className="truncate">{displayPath}</span>
-              {childCount > 0 && (
-                <span className="shrink-0">
-                  {t("workspaceListPage.childCount", { count: childCount })}
-                </span>
-              )}
-            </div>
-          </div>
-        </motion.div>
+                <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                  <span className="truncate">{displayPath}</span>
+                  {childCount > 0 && (
+                    <span className="shrink-0">
+                      {t("workspaceListPage.childCount", { count: childCount })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-48">
+            <ContextMenuItem onSelect={() => handleProjectOpenInSidebar(project)}>
+              <FolderOpen className="mr-2 h-4 w-4" />
+              {t("projectTree.open")}
+            </ContextMenuItem>
+            <ContextMenuItem
+              disabled={!canOpenProjectWindow}
+              onSelect={() => handleProjectOpenInWindow(project)}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t("workspaceListPage.openInNewWindow")}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() =>
+                setRenameTarget({
+                  projectId: project.projectId,
+                  title: project.title,
+                  nextTitle: project.title,
+                })
+              }
+            >
+              <Edit2 className="mr-2 h-4 w-4" />
+              {t("workspaceChatList.contextMenu.rename")}
+            </ContextMenuItem>
+            <ContextMenuItem
+              onSelect={() =>
+                handleToggleFavorite(project.projectId, !!project.isFavorite)
+              }
+            >
+              <Star
+                className={`mr-2 h-4 w-4 ${project.isFavorite ? "fill-amber-500 text-amber-500" : ""}`}
+              />
+              {project.isFavorite
+                ? t("projectTree.unfavorite")
+                : t("projectTree.favorite")}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => handleRemove(project.projectId)}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t("projectTree.remove")}
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       );
     },
     [
+      canOpenProjectWindow,
       activeProjectBaseId,
       handleProjectClick,
+      handleProjectOpenInSidebar,
+      handleProjectOpenInWindow,
       handleToggleFavorite,
       handleRemove,
       t,
@@ -486,19 +565,8 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {isActiveTab && headerTitleExtraTarget
-        ? createPortal(
-            <div className="flex min-w-0 items-center gap-1.5 text-sm text-foreground/60">
-              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-sky-700/70 dark:text-sky-300/70" />
-              <span className="max-w-[240px] truncate font-medium text-foreground/85">
-                {tWorkspace("workspace.title")}
-              </span>
-            </div>,
-            headerTitleExtraTarget,
-          )
-        : null}
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-2">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-6 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative max-w-52">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
@@ -506,7 +574,7 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("search")}
-              className="h-8 rounded-full border-transparent bg-muted/40 pl-8 pr-7 text-sm focus:border-border"
+              className="h-8 pl-8 pr-7 text-sm rounded-full bg-muted/40 border-transparent focus:border-border"
             />
             {searchQuery && (
               <button
@@ -560,10 +628,12 @@ export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
             </TooltipContent>
           </Tooltip>
           <Button
-            className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
+            variant="ghost"
+            size="sm"
+            className="rounded-full bg-sky-500/10 text-sky-700 hover:bg-sky-500/20 dark:bg-sky-400/15 dark:text-sky-300 dark:hover:bg-sky-400/25"
             onClick={() => setIsCreateOpen(true)}
           >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            <Plus className="mr-1.5 h-4 w-4" />
             {t("workspaceListPage.addProject")}
           </Button>
         </div>

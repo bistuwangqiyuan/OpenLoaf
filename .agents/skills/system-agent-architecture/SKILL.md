@@ -6,7 +6,7 @@ version: 1.0.0
 
 # 系统 Agent 架构
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「工作区」。
+> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「项目」。
 
 ## 核心原则
 
@@ -545,4 +545,3 @@ Contents of /abs/path/.openloaf/memory/MEMORY.md
 ```bash
 node scripts/add-headers.mjs
 ```
-

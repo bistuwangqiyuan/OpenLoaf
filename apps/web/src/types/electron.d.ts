@@ -154,6 +154,12 @@ declare global {
   interface Window {
     openloafElectron?: {
       openBrowserWindow: (url: string) => Promise<{ id: number }>;
+      openProjectWindow?: (payload: {
+        projectId: string;
+        rootUri: string;
+        title: string;
+        icon?: string | null;
+      }) => Promise<{ id: number }>;
       getSystemLocale?: () => string;
       openExternal?: (url: string) => Promise<{ ok: true } | { ok: false; reason?: string }>;
       fetchWebMeta?: (payload: {

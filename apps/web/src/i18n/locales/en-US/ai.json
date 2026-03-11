@@ -215,7 +215,7 @@
   "image": {
     "noEditingSupport": "Current model does not support image editing",
     "noInputSupport": "Current model does not support image input",
-    "workspaceRequired": "Current tab is not bound to a workspace, cannot upload image",
+    "workspaceRequired": "Current tab is not bound to a project space, cannot upload image",
     "uploadFailed": "Image upload failed, please retry",
     "noServerUrl": "Image upload failed: server did not return address",
     "networkError": "Image upload failed, please check network connection",
@@ -418,7 +418,7 @@
     "confirm": "Enable"
   },
   "projectSelector": {
-    "workspace": "Workspace",
+    "workspace": "Project Space",
     "searchProject": "Search projects...",
     "noProjectFound": "No projects found",
     "projects": "Projects",

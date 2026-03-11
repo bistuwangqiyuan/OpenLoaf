@@ -9,7 +9,7 @@ description: >
 
 # Chat & AI Development
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「工作区」。
+> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「项目」。
 
 ## Overview
 

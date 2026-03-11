@@ -43,6 +43,7 @@ function normalizeTabMeta(input: unknown): TabMeta | undefined {
         : undefined,
     chatParams: tab.chatParams,
     chatLoadHistory: tab.chatLoadHistory,
+    projectShell: tab.projectShell,
     createdAt: tab.createdAt,
     lastActiveAt: tab.lastActiveAt,
   };

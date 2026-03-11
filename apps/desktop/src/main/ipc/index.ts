@@ -44,6 +44,7 @@ import { createCalendarSync } from '../calendar/calendarSync';
 import { resolveWindowIconInfo } from '../resolveWindowIcon';
 import { updateTrayBadge, refreshTrayMenu } from '../tray';
 import { setLanguage, getMinimizeToTray, setMinimizeToTray } from '../updateConfig';
+import { createProjectWindow } from '../windows/projectWindow';
 
 let ipcHandlersRegistered = false;
 
@@ -364,6 +365,37 @@ export function registerIpcHandlers(args: { log: Logger }) {
     const win = createBrowserWindowForUrl(payload?.url ?? '');
     return { id: win.id };
   });
+
+  // 在独立应用窗口中打开项目上下文。
+  ipcMain.handle(
+    'openloaf:open-project-window',
+    async (
+      _event,
+      payload: {
+        projectId?: string;
+        rootUri?: string;
+        title?: string;
+        icon?: string | null;
+      },
+    ) => {
+      const projectId = String(payload?.projectId ?? '').trim();
+      const rootUri = String(payload?.rootUri ?? '').trim();
+      const title = String(payload?.title ?? '').trim();
+      if (!projectId || !rootUri || !title) {
+        throw new Error('Invalid project window payload');
+      }
+      const webUrl = process.env.OPENLOAF_WEB_URL || (app.isPackaged ? 'app://localhost' : 'http://127.0.0.1:3000');
+      const win = createProjectWindow({
+        log: args.log,
+        webUrl,
+        projectId,
+        rootUri,
+        title,
+        icon: payload?.icon ?? undefined,
+      });
+      return { id: win.id };
+    },
+  );
 
   // 使用系统默认浏览器打开外部 URL。
   ipcMain.handle('openloaf:open-external', async (_event, payload: { url: string }) => {

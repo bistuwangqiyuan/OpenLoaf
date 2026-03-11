@@ -1,0 +1,17 @@
+model EntityVisitRecord {
+  id             String   @id /// Visit record id.
+  entityType     String   /// Entity type: project, chat, board.
+  entityId       String   /// Entity id within the entityType scope.
+  projectId      String?  /// Owning project id. For project visits this equals entityId.
+  dateKey        String   /// Natural day key in YYYY-MM-DD format.
+  firstTrigger   String   /// Trigger that created this daily record.
+  lastTrigger    String   /// Most recent trigger for this daily record.
+  firstVisitedAt DateTime /// First visit time within the day.
+  lastVisitedAt  DateTime /// Last visit time within the day.
+  createdAt      DateTime @default(now()) /// Record created time.
+  updatedAt      DateTime @updatedAt /// Record updated time.
+
+  @@unique([entityType, entityId, dateKey])
+  @@index([lastVisitedAt])
+  @@index([projectId, lastVisitedAt])
+}

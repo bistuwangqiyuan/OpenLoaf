@@ -29,6 +29,7 @@ import {
   findProjectNodeWithParent,
   getProjectMetaPath,
   hasProjectInSubtree,
+  listWorkspaceProjectPage,
   projectConfigSchema,
   readProjectConfig,
   readWorkspaceProjectTrees,
@@ -397,6 +398,23 @@ export const projectRouter = t.router({
   list: shieldedProcedure.query(async () => {
     return readWorkspaceProjectTrees();
   }),
+
+  /** List flattened projects with cursor pagination for grid views. */
+  listPaged: shieldedProcedure
+    .input(
+      z.object({
+        cursor: z.string().nullable().optional(),
+        pageSize: z.number().int().min(1).max(120).nullable().optional(),
+        search: z.string().nullable().optional(),
+        projectType: z
+          .enum(['code', 'document', 'data', 'design', 'research', 'general'])
+          .nullable()
+          .optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      return listWorkspaceProjectPage(input);
+    }),
 
   /** Check whether a directory path is a git project and detect project type. */
   checkPath: shieldedProcedure

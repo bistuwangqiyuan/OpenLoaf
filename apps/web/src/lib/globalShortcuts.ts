@@ -14,6 +14,8 @@ import { create } from "zustand";
 import i18next from "i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { getTabViewById } from "@/hooks/use-tab-view";
+import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 
 export type GlobalShortcutDefinition = {
@@ -277,6 +279,10 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
     if (!tabId) return;
     const runtime = useTabRuntime.getState().runtimeByTabId[tabId];
     if (!runtime?.base) return;
+    if (shouldDisableRightChat(getTabViewById(tabId))) {
+      event.preventDefault();
+      return;
+    }
 
     event.preventDefault();
     useTabRuntime.getState().setTabRightChatCollapsed(tabId, !runtime.rightChatCollapsed);

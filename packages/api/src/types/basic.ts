@@ -33,6 +33,8 @@ export const uiThemeManualSchema = z.enum(["light", "dark"]);
 // UI animation intensity setting.
 export const uiAnimationLevelSchema = z.enum(["low", "medium", "high"]);
 
+export const projectOpenModeSchema = z.enum(["sidebar", "window"]);
+
 /** CLI tool config schema. */
 export const cliToolConfigSchema = z.object({
   apiUrl: z.string(),
@@ -89,6 +91,7 @@ export const basicConfigSchema = z.object({
   uiAnimationLevel: uiAnimationLevelSchema,
   uiTheme: uiThemeSchema,
   uiThemeManual: uiThemeManualSchema,
+  projectOpenMode: projectOpenModeSchema,
   /** Show board debug overlay. */
   boardDebugEnabled: z.boolean(),
   /** Show chat preface viewer button. */

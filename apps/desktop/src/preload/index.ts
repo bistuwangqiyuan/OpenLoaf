@@ -10,6 +10,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 type OpenBrowserWindowResult = { id: number };
+type OpenProjectWindowResult = { id: number };
 type OkResult = { ok: true };
 type CountResult = { ok: true; count: number } | { ok: false };
 type ViewBounds = { x: number; y: number; width: number; height: number };
@@ -69,6 +70,14 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   // 请求主进程在独立窗口中打开外部 URL。
   openBrowserWindow: (url: string): Promise<OpenBrowserWindowResult> =>
     ipcRenderer.invoke('openloaf:open-browser-window', { url }),
+  // 请求主进程在独立应用窗口中打开一个项目上下文。
+  openProjectWindow: (payload: {
+    projectId: string;
+    rootUri: string;
+    title: string;
+    icon?: string | null;
+  }): Promise<OpenProjectWindowResult> =>
+    ipcRenderer.invoke('openloaf:open-project-window', payload),
   // 使用系统默认浏览器打开外部 URL。
   openExternal: (url: string): Promise<{ ok: true } | { ok: false; reason?: string }> =>
     ipcRenderer.invoke('openloaf:open-external', { url }),

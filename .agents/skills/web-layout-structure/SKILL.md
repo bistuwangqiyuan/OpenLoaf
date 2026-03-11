@@ -5,7 +5,7 @@ description: Use when working on or debugging the web app layout in apps/web/src
 
 # Web Layout Structure（apps/web/src/components/layout）
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」（顶层容器），代码 `project` = 产品「工作区」（项目文件夹）。
+> **术语映射**：代码 `workspace` = 产品「工作空间」（顶层容器），代码 `project` = 产品「项目」（项目文件夹）。
 
 ## Overview
 这个 skill 用来快速理解 Web 端整体布局的结构、渲染顺序和关键状态来源，避免在 Header / Sidebar / TabLayout / LeftDock / Chat 面板之间迷路。
@@ -46,8 +46,11 @@ RootLayout (app/layout.tsx)
 - 文件：`apps/web/src/components/layout/header/Header.tsx`
 - 结构：
   - 左侧：侧边栏开关 + 设置入口（`openSettingsTab`）
-  - 中间：`HeaderTabs`（工作区内标签页导航/管理）
+  - 中间：`PageTitle` + `HeaderTabs` 相关区域；Header 左侧标题保持纯文本，不在标题文案前渲染静态 icon，避免与可点击图标混淆
+  - 项目壳场景下，`PageTitle` 可回退到 `activeTab.projectShell.title`，避免项目数据尚未加载时出现空标题或 `Untitled`
+  - 设置按钮的选中态也要跟随当前前景页面：设置页可见时高亮设置按钮，不按底层 base 残留状态判断
   - 右侧：`StackDockMenuButton`、`ModeToggle`、聊天面板开关
+  - 全局设置页（前景 component = `settings-page`）必须隐藏并禁用右侧 chat 开关，避免在设置场景暴露聊天能力
 - Electron / macOS：使用 `--macos-traffic-lights-width` 调整标题栏空间
 
 ### Sidebar
@@ -55,9 +58,13 @@ RootLayout (app/layout.tsx)
 - 逻辑：
   - 使用 `@openloaf/ui/sidebar`，`SidebarProvider` 控制展开状态
   - 窄屏（<900px）直接隐藏侧边栏（`useIsNarrowScreen`）
+  - 当当前激活 tab 带有 `projectShell`，且前景不是全局 `settings-page` 时，主 Sidebar 会切换为 `ProjectSidebar`
   - `SidebarHeader` 放入口菜单（搜索、日历、AI、邮箱、技能等）
-  - `SidebarContent` 主要是 `SidebarProject`
+  - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）
+  - `ProjectSidebar` 负责项目内导航：返回项目空间、AI管理员、画布、看板、文件、设置、历史；底部历史列表会按 `projectId` 过滤，只显示当前项目访问记录
+  - `ProjectSidebar` 顶部不显示 `SidebarUserAccount`；返回按钮需要沿用账号项的高度（`h-12`）以保持节奏一致
   - `SidebarFooter` 为反馈入口
+  - “智能画布 / 项目空间”等主页面入口的高亮，需要以前景页面为准：有 stack 时看 `activeStackItemId` 对应的 component，没有 stack 才看 base；只有在前景页面缺失时才回退到 `activeViewType`
 
 ### MainContent（Tab Keep-Alive）
 - 文件：`apps/web/src/components/layout/MainContext.tsx`
@@ -78,6 +85,8 @@ RootLayout (app/layout.tsx)
   - 最小宽度：`LEFT_DOCK_MIN_PX` / `RIGHT_CHAT_MIN_PX`
   - 拖拽分割条会写入 `leftWidthPercent`（`useTabRuntime`）
   - `rightChatCollapsed` 决定右侧是否显示
+  - 前景页面为 `settings-page` 时，右侧 chat panel 必须视为强制隐藏，且不要激活右侧 panel host
+  - 项目壳 tab（`tab.projectShell` 存在）不能再走旧的“按会话 projectId 自动创建 / 更新 plant-page” fallback；否则项目 AI 管理员页会被错误改写成项目页
 
 ### LeftDock（Base + Stack）
 - 文件：`apps/web/src/components/layout/LeftDock.tsx`
@@ -90,6 +99,7 @@ RootLayout (app/layout.tsx)
   - `__customHeader`：自定义 Header（不渲染 StackHeader）
   - `__refreshKey`：强制 remount 面板
   - `__opaque`：是否使用纯背景
+  - 项目壳设置页通过 `project-settings-page` 作为 base component 挂进 LeftDock，不再走旧的 dialog 入口
 
 ### RightChatPanel
 - 文件：`apps/web/src/components/layout/TabLayout.tsx` 内 `RightChatPanel`
@@ -114,6 +124,7 @@ RootLayout (app/layout.tsx)
 - `useTabs`：tab 列表、activeTab、stack/base 元信息
 - `useTabRuntime`：运行时数据（leftWidthPercent、rightChatCollapsed、runtimeByTabId）
 - `panel-runtime`：左右面板的 mount/unmount 与 keep-alive 管理
+- 项目独立窗口会把 `useTabs` / `useTabRuntime` 的持久化切到 `sessionStorage`，主窗口仍使用 `localStorage`，避免两类窗口互相污染 tab 恢复状态
 
 ### 项目关联模型（Session 级别）
 
@@ -147,6 +158,7 @@ TabMeta
 1. `saveDockSnapshot(tabId, oldSessionId)` — 保存旧会话 dock
 2. `restoreDockSnapshot(tabId, newSessionId)` — 恢复新会话 dock
 3. 无快照 fallback：根据新会话 projectId 创建/更新 plant-page
+4. 如果当前 tab 是项目壳（`projectShell` 存在），必须跳过上述 fallback，保持当前项目 section 不被会话切换覆盖
 
 **同会话内切项目**（ChatInput 项目选择器）：
 - 已有 plant-page → 更新项目，**保留 `projectTab` 子页签**（files/canvas/tasks 等）

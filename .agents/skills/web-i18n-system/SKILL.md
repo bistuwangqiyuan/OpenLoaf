@@ -15,7 +15,7 @@ version: 0.1.0
 
 # OpenLoaf i18n System Skill
 
-> **术语映射**：翻译 UI 文案时注意 — 代码 `workspace` 对应产品「工作空间」，代码 `project` 对应产品「工作区」。
+> **术语映射**：翻译 UI 文案时注意 — 代码 `workspace` 对应产品「工作空间」，代码 `project` 对应产品「项目」。
 
 ## Overview
 
@@ -55,7 +55,7 @@ apps/web/src/i18n/
     │   ├── nav.json                  ← 侧边栏、导航
     │   ├── ai.json                   ← AI 对话界面
     │   ├── settings.json             ← 所有设置页
-    │   ├── workspace.json            ← 工作空间管理
+    │   ├── workspace.json            ← 项目标签、文件系统、账户与更新文案
     │   ├── tasks.json                ← 任务管理
     │   └── board.json                ← 画板工具
     ├── zh-TW/                        ← 繁体中文（同结构）
@@ -71,10 +71,10 @@ apps/web/src/i18n/
 | Namespace | 用途 | 核心 UI 组件 |
 |-----------|------|-----------|
 | **common** | 通用词汇（保存、取消、删除、加载中、搜索等）| 所有组件可用 |
-| **nav** | 侧边栏导航、工作区、项目菜单 | Sidebar、SidebarProject、SidebarWorkspace |
+| **nav** | 侧边栏导航、项目空间入口、项目菜单 | Sidebar、SidebarProject、SidebarUserAccount |
 | **ai** | AI 对话界面、消息、输入框、代理能力 | Chat、ChatInput、MessageHelper、ApprovalModeSelector |
 | **settings** | 所有设置页、偏好项 | SettingsPage、BasicSettings、ThirdPartyTools、ProviderDialog |
-| **workspace** | 工作空间操作、文件管理、选项卡 | WorkspaceManager、TabBar、FileExplorer |
+| **workspace** | 项目标签、文件系统、项目设置、账户与更新文案 | ProjectTabs、ProjectFileSystem、WorkspaceSettings、SidebarUserAccount |
 | **tasks** | 任务管理、看板、日程 | TaskBoardPage、TaskDetailPanel、ScheduledTaskDialog |
 | **board** | 画板工具、画布工具栏 | BoardToolbar、BoardCanvas |
 
@@ -82,6 +82,8 @@ apps/web/src/i18n/
 - 一个组件通常使用 1-2 个 namespace（如 `useTranslation(['ai', 'common'])` 同时使用 AI 和通用）
 - 按模块优先选择，不确定则加入 `common` 作为第二选项
 - 避免跨 namespace 重复定义相同 key
+
+**说明**：项目中心迁移后，`workspace.json` 不再承载“创建/切换工作空间”文案；这类旧 key 已移除。
 
 ---
 
@@ -446,7 +448,7 @@ const SECTION_TITLES = {
 | AI 对话 | `ai.json` | `chat.*`, `message.*`, `model.*` |
 | 通用按钮/操作 | `common.json` | `save`, `cancel`, `delete`, `copy` |
 | 设置页 | `settings.json` | `basic.*`, `appearance.*`, `provider.*` |
-| 工作空间 | `workspace.json` | `createWorkspace`, `selectProject` |
+| 项目 / 文件系统 / 账户更新 | `workspace.json` | `project.*`, `filesystem.*`, `settings.*`, `loggedIn` |
 | 任务看板 | `tasks.json` | `createTask`, `taskStatus.*` |
 | 画板 | `board.json` | `toolbar.*`, `canvas.*` |
 

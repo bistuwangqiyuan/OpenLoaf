@@ -14,10 +14,12 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_TAB_INFO, type DockItem } from "@openloaf/api/common";
 import { createChatSessionId } from "@/lib/chat-session-id";
+import { isProjectWindowMode } from "@/lib/window-mode";
 import { useChatRuntime } from "./use-chat-runtime";
 import { useTabRuntime } from "./use-tab-runtime";
 import type { TabMeta } from "./tab-types";
 import { LEFT_DOCK_DEFAULT_PERCENT, LEFT_DOCK_MIN_PX } from "./tab-utils";
+import type { ProjectShellState } from "@/lib/project-shell";
 
 export const TABS_STORAGE_KEY = "openloaf:tabs";
 export { LEFT_DOCK_DEFAULT_PERCENT, LEFT_DOCK_MIN_PX };
@@ -33,6 +35,7 @@ type AddTabInput = {
   chatSessionId?: string; // 聊天会话ID
   chatParams?: Record<string, unknown>; // 聊天参数
   chatLoadHistory?: boolean; // 是否加载聊天历史
+  projectShell?: ProjectShellState; // 项目上下文元信息
 };
 
 export interface TabsState {
@@ -70,6 +73,8 @@ export interface TabsState {
   ) => void;
   /** Merge chat params for a tab. */
   setTabChatParams: (tabId: string, patch: Record<string, unknown>) => void;
+  /** Set or clear project-shell state for a tab. */
+  setTabProjectShell: (tabId: string, projectShell: ProjectShellState | null) => void;
 }
 
 function generateId(prefix = "id") {
@@ -152,6 +157,12 @@ function normalizeTabSessionState(tab: TabMeta) {
   };
 }
 
+/** Resolve tab storage by renderer mode to isolate project windows. */
+function resolveTabsStorage() {
+  if (typeof window === "undefined") return localStorage;
+  return isProjectWindowMode() ? window.sessionStorage : window.localStorage;
+}
+
 export const useTabs = create<TabsState>()(
   persist(
     (set, get): TabsState => ({
@@ -172,6 +183,7 @@ export const useTabs = create<TabsState>()(
           chatSessionId: requestedChatSessionId,
           chatParams,
           chatLoadHistory,
+          projectShell,
         } = input;
 
         const normalizedBase = base?.component === "ai-chat" ? undefined : base;
@@ -200,6 +212,7 @@ export const useTabs = create<TabsState>()(
           chatParams,
           chatSessionProjectIds,
           chatLoadHistory: createdChatLoadHistory,
+          projectShell,
           createdAt: now,
           lastActiveAt: now,
         };
@@ -591,11 +604,23 @@ export const useTabs = create<TabsState>()(
           }),
         }));
       },
+      setTabProjectShell: (tabId, projectShell) => {
+        set((state) => ({
+          tabs: updateTabById(state.tabs, tabId, (tab) => {
+            const nextProjectShell = projectShell ?? undefined;
+            if (tab.projectShell === nextProjectShell) return tab;
+            return {
+              ...tab,
+              projectShell: nextProjectShell,
+            };
+          }),
+        }));
+      },
     }),
     {
       name: TABS_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
-      version: 9,
+      storage: createJSONStorage(resolveTabsStorage),
+      version: 10,
       migrate: (persisted: any) => {
         const now = Date.now();
         const tabs = Array.isArray(persisted?.tabs) ? persisted.tabs : [];
@@ -633,6 +658,10 @@ export const useTabs = create<TabsState>()(
               typeof tab?.chatParams === "object" && tab.chatParams ? tab.chatParams : undefined,
             chatLoadHistory:
               typeof tab?.chatLoadHistory === "boolean" ? tab.chatLoadHistory : undefined,
+            projectShell:
+              tab?.projectShell && typeof tab.projectShell === "object"
+                ? (tab.projectShell as ProjectShellState)
+                : undefined,
             createdAt: Number.isFinite(tab?.createdAt) ? tab.createdAt : now,
             lastActiveAt: Number.isFinite(tab?.lastActiveAt) ? tab.lastActiveAt : now,
           })).map((tab: TabMeta) => {

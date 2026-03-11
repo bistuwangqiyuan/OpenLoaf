@@ -128,7 +128,7 @@
 ### 3.2 运行时验证（优先级：P0）
 
 - [ ] 完整端到端测试：启动 server + web，验证基础流程可用
-- [ ] 验证 workspace.getActive 兼容层在前端正常工作
+- [ ] 验证 `WorkspaceBootstrap` 兼容副作用在前端正常工作（默认 cookie / 默认 AI 标签页）
 - [ ] 验证邮件系统在无 workspaceId 下正常收发
 - [ ] 验证日历系统正常
 - [ ] 验证 AI 聊天流程正常（创建会话、发送消息、工具调用）
@@ -142,7 +142,7 @@
 - [x] 逐步移除各组件对 `useWorkspace()` 的依赖（已清理 AI / Board / Calendar / Email / File / Desktop / Tasks / Settings / Project 等业务组件，前端兼容 hook 也已删除）
 - [x] 已移除 `WorkspaceProvider` 与 `workspaceContext.tsx`；前端 `useWorkspace()` compat hook 也已删除
 - [x] 移除 `workspace` tRPC 路由暴露，并清理前端 `trpc.workspace.*` 客户端调用
-- [ ] 清理 `workspace.json` i18n 中不再需要的翻译 key
+- [x] 清理 `workspace.json` i18n 中不再需要的翻译 key
 
 ### 3.4 新功能开发（优先级：P2）
 
@@ -226,4 +226,4 @@ OpenLoaf (全局单例)
 
 1. **Phase 1（已完成）** — 移除 `workspace` tRPC 路由与 `WorkspaceProvider`，保留轻量兼容层
 2. **Phase 2（已完成）** — 逐步移除组件中的 `useWorkspace()` 调用，替换为直接使用 projectId / rootUri
-3. **Phase 3（当前）** — 清理残余 `workspace` 翻译 key 与过时注释
+3. **Phase 3（当前）** — 清理过时注释与残余 `workspace` 文案

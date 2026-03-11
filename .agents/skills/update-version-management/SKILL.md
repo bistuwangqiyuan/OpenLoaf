@@ -55,7 +55,7 @@ packages/ 下各子包的消费者不同，**禁止将所有 packages/ 变更笼
 
 | 子目录/文件 | 主要消费者 | 判断方法 |
 |------------|-----------|----------|
-| `src/services/` | **Server** | 业务逻辑服务层（VFS、项目、工作区、git） |
+| `src/services/` | **Server** | 业务逻辑服务层（VFS、项目、工作空间、git） |
 | `src/routers/` | **Server** | tRPC 路由定义和辅助函数 |
 | `src/common/tabs.ts` | **Web** | Tab 常量定义（Sidebar/Header 消费） |
 | `src/common/model*.ts` | **Server** | AI 模型定义（Server AI 路由消费） |

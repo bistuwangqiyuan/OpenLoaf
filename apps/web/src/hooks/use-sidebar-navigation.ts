@@ -16,6 +16,7 @@ import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useProjectLayout } from '@/hooks/use-project-layout'
 import { useOpenSessionIds } from '@/hooks/use-open-session-ids'
+import { useProjectOpen } from '@/hooks/use-project-open'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
@@ -31,6 +32,7 @@ export function useSidebarNavigation() {
   const setActiveView = useNavigation((s) => s.setActiveView)
   const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat)
   const { sessionToTabId } = useOpenSessionIds()
+  const openProjectWithPreference = useProjectOpen()
 
   const currentTabSessionIds = activeTabId
     ? (() => {
@@ -115,43 +117,10 @@ export function useSidebarNavigation() {
       rootUri: string
       icon?: string | null
     }) => {
-      const baseId = `project:${input.projectId}`
-      const existingTab = tabs.find((tab) => {
-        const base = runtimeByTabId[tab.id]?.base
-        return base?.id === baseId
-      })
-
-      if (existingTab) {
-        startTransition(() => {
-          setActiveTab(existingTab.id)
-        })
-        return
-      }
-
-      const savedLayout = useProjectLayout
-        .getState()
-        .getProjectLayout(input.projectId)
-
-      addTab({
-        createNew: true,
-        title: input.title,
-        icon: input.icon ?? undefined,
-        base: {
-          id: baseId,
-          component: 'plant-page',
-          params: {
-            projectId: input.projectId,
-            rootUri: input.rootUri,
-            projectTab: 'files',
-          },
-        },
-        leftWidthPercent: savedLayout?.leftWidthPercent ?? 100,
-        rightChatCollapsed: savedLayout?.rightChatCollapsed ?? false,
-        chatParams: { projectId: input.projectId },
-      })
+      openProjectWithPreference(input, { section: 'assistant' })
       setActiveWorkspaceChat(null)
     },
-    [tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat],
+    [openProjectWithPreference, setActiveWorkspaceChat],
   )
 
   const openBoard = useCallback(

@@ -57,6 +57,7 @@ export function useViewAsTabView(): TabView | undefined {
     chatSessionIds: undefined,
     activeSessionIndex: undefined,
     chatSessionTitles: undefined,
+    projectShell: undefined,
     chatParams: undefined,
     chatLoadHistory: undefined,
     isPin: false,

@@ -67,6 +67,7 @@ const LazyTaskDetailPanel = React.lazy(() =>
 const LazyPlateDocViewer = React.lazy(() => import("@/components/file/PlateDocViewer"));
 const LazyStreamingPlateViewer = React.lazy(() => import("@/components/file/StreamingPlateViewer"));
 const LazyProjectPage = React.lazy(() => import("@/components/project/Project"));
+const LazyProjectSettingsPage = React.lazy(() => import("@/components/project/settings/ProjectSettingsPage"));
 const LazyCanvasListPage = React.lazy(() => import("@/components/board/CanvasListPage"));
 const LazyProjectGridPage = React.lazy(() => import("@/components/workspace/ProjectGridPage"));
 
@@ -153,6 +154,7 @@ export const ComponentMap: Record<string, PanelComponent> = {
   "task-detail": LazyTaskDetailPanel,
   "canvas-list-page": LazyCanvasListPage,
   "project-list-page": LazyProjectGridPage,
+  "project-settings-page": LazyProjectSettingsPage,
 };
 
 /**

@@ -71,15 +71,15 @@
     "webTitleOptional": "名称（可选）",
     "customNamePlaceholder": "自定义名称",
     "invalidUrl": "请输入有效网址",
-    "noWorkspaceDir": "未找到工作区目录",
+    "noWorkspaceDir": "未找到项目空间目录",
     "webFallbackTitle": "网页",
     "save": "保存"
   },
   "content": {
-    "noWorkspace": "未找到工作区",
+    "noWorkspace": "未找到项目空间",
     "noTab": "未找到当前标签页",
     "tabNotFound": "未找到标签页",
-    "openProjectTab": "请先打开一个工作区标签页",
+    "openProjectTab": "请先打开一个项目标签页",
     "selectFolder": "选择文件夹",
     "selectVideo": "选择视频",
     "setUrl": "设置网址"
@@ -89,14 +89,14 @@
   },
   "quickActions": {
     "cannotCreateCanvas": "当前看板不支持创建画布",
-    "noWorkspace": "未找到工作区",
+    "noWorkspace": "未找到项目空间",
     "noTab": "未找到当前标签页",
-    "openProjectTab": "请先打开一个工作区标签页",
-    "noProjectInfo": "当前标签页缺少工作区信息",
+    "openProjectTab": "请先打开一个项目标签页",
+    "noProjectInfo": "当前标签页缺少项目信息",
     "createCanvasFailed": "创建画布失败",
     "fetchingTerminalStatus": "正在获取终端状态",
     "terminalDisabled": "终端功能未开启",
-    "noWorkspaceDir": "未找到工作区目录",
+    "noWorkspaceDir": "未找到项目空间目录",
     "noRuntimeContext": "当前标签页无运行时上下文",
     "canvasName": "画布",
     "terminal": "终端",
@@ -118,7 +118,7 @@
     "loading": "加载中…",
     "messageCount": "{{count}} 封",
     "searchPlaceholder": "搜索邮件",
-    "noWorkspace": "未找到工作区",
+    "noWorkspace": "未找到项目空间",
     "loadingAccounts": "正在加载账号...",
     "noAccount": "未配置邮箱账号",
     "configureEmail": "去邮箱设置",
@@ -202,7 +202,7 @@
   },
   "threeDFolder": {
     "noFolderInfo": "未找到文件夹信息",
-    "unnamedProject": "未命名工作区"
+    "unnamedProject": "未命名项目"
   },
   "videoWidget": {
     "noFile": "未选择视频",

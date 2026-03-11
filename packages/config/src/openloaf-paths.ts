@@ -39,7 +39,7 @@ export function getDefaultWorkspaceRootDir(): string {
     (process.platform === "win32"
       ? resolveWindowsWorkspaceRoot()
       : resolveUnixWorkspaceRoot());
-  // 中文注释：默认工作区目录固定，缺失时自动创建。
+  // 中文注释：默认工作空间目录固定，缺失时自动创建。
   fs.mkdirSync(root, { recursive: true });
   return root;
 }

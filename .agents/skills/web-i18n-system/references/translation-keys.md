@@ -94,12 +94,12 @@
 - `sidebar.projectNamePlaceholder` — 我的项目
 - `sidebar.feedback` — 反馈
 
-### 工作空间菜单
-- `workspace.title` — 工作空间
-- `workspace.selectWorkspace` — 选择工作空间
-- `workspace.createWorkspace` — 新建工作空间
-- `workspace.workspaceSettings` — 工作空间设置
-- `workspace.exitWorkspace` — 退出工作空间
+### 项目空间入口（兼容命名）
+- `workspaceList` — 项目空间
+- `sidebarWorkspace` — 项目空间
+- `sidebar.projectFolder` — 项目列表
+- `sidebar.addProject` — 添加项目
+- `settings` — 设置
 
 ---
 
@@ -213,17 +213,18 @@ AI 聊天、代理、模型相关的所有 UI 文本。
 
 ---
 
-## workspace.json — 工作空间管理
+## workspace.json — 项目 / 文件系统 / 账户更新
 
-工作空间操作、文件管理、选项卡相关文本。
+项目标签、文件系统、项目设置、账户状态与更新提示相关文本。
 
-### 工作空间操作
-- `workspace.create` — 创建工作空间
-- `workspace.open` — 打开工作空间
-- `workspace.selectProject` — 选择项目
-- `workspace.newProject` — 新建项目
-- `workspace.projectList` — 项目列表
-- `workspace.recent` — 最近使用
+### 项目与账户
+- `workspace.defaultWorkspaceName` — 默认项目空间
+- `workspace.loggedIn` — 已登录
+- `workspace.notLoggedIn` — 未登录
+- `workspace.settings.accountInfo` — 账户信息
+- `workspace.settings.projectCount` — 项目数量
+- `project.tabHome` — 看板
+- `project.tabSettings` — 项目设置
 
 ### 文件管理
 - `file.name` — 文件名
@@ -240,6 +241,13 @@ AI 聊天、代理、模型相关的所有 UI 文本。
 - `folder.create` — 创建文件夹
 - `folder.delete` — 删除文件夹
 - `folder.rename` — 重命名文件夹
+
+### 项目文件系统
+- `filesystem.newFile` — 新建文件
+- `filesystem.newFolder` — 新建文件夹
+- `filesystem.copyPath` — 复制路径
+- `filesystem.openInTerminal` — 在终端中打开
+- `filesystem.convertToSubproject` — 转换为子项目
 
 ### 选项卡 & 编辑器
 - `tab.new` — 新建标签页

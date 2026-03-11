@@ -24,11 +24,13 @@ import { Chat } from "@/components/ai/Chat";
 import { ChatSessionBarItem } from "@/components/ai/session/ChatSessionBar";
 import { useTabs, LEFT_DOCK_MIN_PX, LEFT_DOCK_DEFAULT_PERCENT } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { useProjectLayout } from "@/hooks/use-project-layout";
 import { useTabView } from "@/hooks/use-tab-view";
 import { createChatSessionId } from "@/lib/chat-session-id";
 import { useChatRuntime, type ChatStatus } from "@/hooks/use-chat-runtime";
 import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
+import { useRecordEntityVisit } from "@/hooks/use-record-entity-visit";
 import { useSessionTitles } from "@/hooks/use-session-titles";
 import { LeftDock } from "./LeftDock";
 import type { TabMeta } from "@/hooks/tab-types";
@@ -100,11 +102,13 @@ type SessionIndicator = {
 // Render the right chat panel for a tab.
 function RightChatPanel({ tabId }: { tabId: string }) {
   const tab = useTabView(tabId);
+  const isActiveTab = useTabs((s) => s.activeTabId === tabId);
   const addTabSession = useTabs((s) => s.addTabSession);
   const removeTabSession = useTabs((s) => s.removeTabSession);
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
   const moveTabSession = useTabs((s) => s.moveTabSession);
   const setTabSessionTitles = useTabs((s) => s.setTabSessionTitles);
+  const { recordEntityVisit } = useRecordEntityVisit();
   const { sessions: remoteSessions } = useChatSessions({ tabId });
   useSessionTitles({ tabId, sessions: remoteSessions });
   const chatStatusBySessionId = useChatRuntime((s) => s.chatStatusBySessionId);
@@ -122,6 +126,10 @@ function RightChatPanel({ tabId }: { tabId: string }) {
     const match = remoteSessions.find((session) => session.id === activeSessionId);
     if (!match) return undefined;
     return new Date(match.updatedAt).getTime();
+  }, [activeSessionId, remoteSessions]);
+  const hasRemoteActiveSession = React.useMemo(() => {
+    if (!activeSessionId) return false;
+    return remoteSessions.some((session) => session.id === activeSessionId);
   }, [activeSessionId, remoteSessions]);
   const sessionIds = React.useMemo(() => {
     if (!tab) return [];
@@ -253,6 +261,46 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   }, [tab?.chatParams]);
   const prevActiveSessionIdRef = React.useRef(activeSessionId);
   const prevProjectIdRef = React.useRef(currentProjectId);
+  const prevVisitRef = React.useRef<{
+    isActive: boolean;
+    sessionId: string | null;
+    projectId: string | null;
+  }>({
+    isActive: false,
+    sessionId: null,
+    projectId: null,
+  });
+
+  React.useEffect(() => {
+    const prev = prevVisitRef.current;
+    const nextSessionId = activeSessionId ?? null;
+    const nextProjectId = currentProjectId || null;
+    const activated = isActiveTab && !prev.isActive;
+    const sessionChanged = prev.sessionId !== nextSessionId;
+    const projectChanged = prev.projectId !== nextProjectId;
+
+    prevVisitRef.current = {
+      isActive: isActiveTab,
+      sessionId: nextSessionId,
+      projectId: nextProjectId,
+    };
+
+    if (!isActiveTab || !nextSessionId || !hasRemoteActiveSession) return;
+    if (!activated && !sessionChanged && !projectChanged) return;
+
+    recordEntityVisit({
+      entityType: "chat",
+      entityId: nextSessionId,
+      projectId: nextProjectId,
+      trigger: "chat-open",
+    });
+  }, [
+    activeSessionId,
+    currentProjectId,
+    hasRemoteActiveSession,
+    isActiveTab,
+    recordEntityVisit,
+  ]);
 
   /** 从 projects 缓存查找 rootUri */
   const resolveProjectRootUri = React.useCallback((projectId: string) => {
@@ -318,6 +366,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
 
     if (!activeSessionId) return;
     if (!sessionChanged && !projectChanged) return;
+    if (tab?.projectShell) return;
 
     if (sessionChanged) {
       // —— 切换会话：save 旧 dock → restore 新 dock ——
@@ -342,6 +391,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
     currentProjectId,
     tabId,
     tab?.chatSessionProjectIds,
+    tab?.projectShell,
     saveDockSnapshot,
     restoreDockSnapshot,
     applyPlantPageForProject,
@@ -631,6 +681,7 @@ export function TabLayout({
   activeTabId: string;
 }) {
   const activeTab = useTabView(activeTabId);
+  const { recordEntityVisit } = useRecordEntityVisit();
   const stackHidden = Boolean(activeTab?.stackHidden);
   const setTabLeftWidthPercent = useTabRuntime((s) => s.setTabLeftWidthPercent);
   // 逻辑：按 MotionConfig / 系统偏好关闭侧边栏切换动画。
@@ -643,6 +694,14 @@ export function TabLayout({
   const [isDragging, setIsDragging] = React.useState(false);
   const [minLeftEnabled, setMinLeftEnabled] = React.useState(true);
   const activeTabIdRef = React.useRef<string | null>(null);
+  const projectVisitRef = React.useRef<{ tabId: string | null; projectId: string | null }>({
+    tabId: null,
+    projectId: null,
+  });
+  const boardVisitRef = React.useRef<{ tabId: string | null; boardId: string | null }>({
+    tabId: null,
+    boardId: null,
+  });
   const mountTimerRef = React.useRef<number | null>(null);
   const switchTokenRef = React.useRef(0);
   const prevLeftVisibleRef = React.useRef<boolean | null>(null);
@@ -693,7 +752,17 @@ export function TabLayout({
         setPanelActive("left", activeTabId, true);
       }
 
-      if (!hasPanel("right", activeTabId)) {
+      const activeRuntime = useTabRuntime.getState().runtimeByTabId[activeTabId];
+      const shouldHideRightChat = shouldDisableRightChat({
+        base: activeRuntime?.base,
+        stack: activeRuntime?.stack ?? [],
+        activeStackItemId:
+          activeRuntime?.activeStackItemId ?? activeRuntime?.stack?.at(-1)?.id ?? "",
+      });
+
+      if (shouldHideRightChat) {
+        setPanelActive("right", activeTabId, false);
+      } else if (!hasPanel("right", activeTabId)) {
         renderPanel("right", activeTabId, <RightChatPanel tabId={activeTabId} />, true);
       } else {
         setPanelActive("right", activeTabId, true);
@@ -706,7 +775,7 @@ export function TabLayout({
         mountTimerRef.current = null;
       }
     };
-  }, [activeTabId, reduceMotion]);
+  }, [activeTabId, activeTab?.activeStackItemId, activeTab?.base, activeTab?.stack, reduceMotion]);
 
   React.useLayoutEffect(() => {
     // App should never horizontally scroll; prevent focus/scrollIntoView from shifting the page.
@@ -715,6 +784,75 @@ export function TabLayout({
     const scrollingEl = document.scrollingElement as HTMLElement | null;
     if (scrollingEl && scrollingEl.scrollLeft !== 0) scrollingEl.scrollLeft = 0;
   }, [activeTabId]);
+
+  const activeBase = activeTab?.base;
+  const activeBaseParams = React.useMemo(
+    () => ((activeBase?.params ?? {}) as Record<string, unknown>),
+    [activeBase?.params],
+  );
+  const activePlantProjectId = React.useMemo(() => {
+    if (activeBase?.component !== "plant-page") return "";
+    const projectId = activeBaseParams.projectId;
+    return typeof projectId === "string" ? projectId.trim() : "";
+  }, [activeBase?.component, activeBaseParams]);
+  const activeBoardProjectId = React.useMemo(() => {
+    if (activeBase?.component !== "board-viewer") return "";
+    const projectId = activeBaseParams.projectId;
+    return typeof projectId === "string" ? projectId.trim() : "";
+  }, [activeBase?.component, activeBaseParams]);
+  const activeBoardEntityId = React.useMemo(() => {
+    if (activeBase?.component !== "board-viewer") return "";
+    const boardFolderUri = activeBaseParams.boardFolderUri;
+    if (typeof boardFolderUri === "string" && boardFolderUri.trim()) {
+      const normalized = boardFolderUri.trim().replace(/\/+$/u, "");
+      const parts = normalized.split("/").filter(Boolean);
+      return parts[parts.length - 1] ?? "";
+    }
+    const explicitBoardId = activeBaseParams.boardId;
+    return typeof explicitBoardId === "string" ? explicitBoardId.trim() : "";
+  }, [activeBase?.component, activeBaseParams]);
+
+  React.useEffect(() => {
+    const nextProjectId = activePlantProjectId || null;
+    const prev = projectVisitRef.current;
+    const shouldTrack = Boolean(nextProjectId)
+      && (prev.tabId !== activeTabId || prev.projectId !== nextProjectId);
+
+    projectVisitRef.current = {
+      tabId: activeTabId ?? null,
+      projectId: nextProjectId,
+    };
+
+    if (!nextProjectId || !shouldTrack) return;
+
+    recordEntityVisit({
+      entityType: "project",
+      entityId: nextProjectId,
+      projectId: nextProjectId,
+      trigger: "project-open",
+    });
+  }, [activePlantProjectId, activeTabId, recordEntityVisit]);
+
+  React.useEffect(() => {
+    const nextBoardId = activeBoardEntityId || null;
+    const prev = boardVisitRef.current;
+    const shouldTrack = Boolean(nextBoardId)
+      && (prev.tabId !== activeTabId || prev.boardId !== nextBoardId);
+
+    boardVisitRef.current = {
+      tabId: activeTabId ?? null,
+      boardId: nextBoardId,
+    };
+
+    if (!nextBoardId || !shouldTrack) return;
+
+    recordEntityVisit({
+      entityType: "board",
+      entityId: nextBoardId,
+      projectId: activeBoardProjectId || null,
+      trigger: "board-open",
+    });
+  }, [activeBoardEntityId, activeBoardProjectId, activeTabId, recordEntityVisit]);
 
   React.useLayoutEffect(() => {
     const container = containerRef.current;
@@ -752,7 +890,8 @@ export function TabLayout({
     Boolean(activeTab?.base) ||
     (!stackHidden && (activeTab?.stack?.length ?? 0) > 0);
   const storedLeftWidthPercent = hasLeftContent ? activeTab?.leftWidthPercent ?? 0 : 0;
-  const isRightCollapsed = Boolean(activeTab?.base) && Boolean(activeTab?.rightChatCollapsed);
+  const isRightChatDisabled = shouldDisableRightChat(activeTab);
+  const isRightCollapsed = Boolean(activeTab?.base) && (isRightChatDisabled || Boolean(activeTab?.rightChatCollapsed));
 
   const effectiveMinLeft = activeTab?.minLeftWidth ?? LEFT_DOCK_MIN_PX;
 

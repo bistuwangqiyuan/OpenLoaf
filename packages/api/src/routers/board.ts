@@ -13,6 +13,7 @@ import { promises as fs } from "node:fs";
 import sharp from "sharp";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { createBoardId } from "../common/boardId";
+import { recordEntityVisit } from "../services/entityVisitRecordService";
 import { resolveScopedRootPath } from "../services/vfsService";
 
 const BOARD_THUMBNAIL_FILE_NAME = "index.png";
@@ -21,6 +22,16 @@ const BOARD_THUMBNAIL_QUALITY = 60;
 
 const BOARD_FOLDER_PREFIX = "board_";
 const BOARD_FOLDER_PREFIX_LEGACY = "tnboard_";
+
+/** Extract the canonical board entity id from folderUri. */
+function resolveBoardEntityId(folderUri: string): string {
+  return folderUri.replace(/\/+$/u, "").split("/").filter(Boolean).pop() ?? "";
+}
+
+/** Extract the physical folder name from a board folderUri. */
+function resolveBoardFolderName(folderUri: string): string {
+  return folderUri.replace(/\/+$/u, "").split("/").filter(Boolean).pop() ?? "";
+}
 
 /** Extract a display title from a board folder name. */
 function extractBoardTitle(folderName: string): string {
@@ -117,6 +128,40 @@ async function syncBoardsFromDisk(
   }
 }
 
+/** Hard-delete a board record, related sessions, and folder. */
+async function hardDeleteBoardResources(
+  prisma: any,
+  board: { id: string; folderUri: string; projectId: string | null },
+): Promise<{ deletedSessions: number }> {
+  const deletedSessions = await prisma.$transaction(async (tx: any) => {
+    const deletedChatResult = await tx.chatSession.deleteMany({
+      where: { boardId: board.id },
+    });
+    await tx.board.delete({
+      where: { id: board.id },
+    });
+    return deletedChatResult.count as number;
+  });
+
+  try {
+    const rootPath = resolveScopedRootPath({
+      projectId: board.projectId ?? undefined,
+    });
+    // 逻辑：硬删除必须按 folderUri 反解目录名，兼容历史 tnboard_* 目录。
+    const boardDir = path.join(
+      rootPath,
+      ".openloaf",
+      "boards",
+      resolveBoardFolderName(board.folderUri),
+    );
+    await fs.rm(boardDir, { recursive: true, force: true });
+  } catch (error) {
+    console.warn("[board.hardDelete] failed to delete folder", error);
+  }
+
+  return { deletedSessions };
+}
+
 export const boardRouter = t.router({
   /** Create a new board with DB record and file structure. */
   create: shieldedProcedure
@@ -141,6 +186,19 @@ export const boardRouter = t.router({
           folderUri,
         },
       });
+
+      try {
+        await recordEntityVisit(ctx.prisma, {
+          entityType: "board",
+          entityId: resolveBoardEntityId(board.folderUri),
+          projectId: board.projectId ?? undefined,
+          trigger: "board-create",
+          visitedAt: now,
+        });
+      } catch (error) {
+        // 逻辑：进入记录失败不应阻断画布创建主流程。
+        console.warn("[board.create] failed to record entity visit", error);
+      }
 
       return board;
     }),
@@ -342,6 +400,18 @@ export const boardRouter = t.router({
         },
       });
 
+      try {
+        await recordEntityVisit(ctx.prisma, {
+          entityType: "board",
+          entityId: resolveBoardEntityId(board.folderUri),
+          projectId: board.projectId ?? undefined,
+          trigger: "board-create",
+        });
+      } catch (error) {
+        // 逻辑：进入记录失败不应阻断画布复制主流程。
+        console.warn("[board.duplicate] failed to record entity visit", error);
+      }
+
       return board;
     }),
 
@@ -376,35 +446,43 @@ export const boardRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const board = await ctx.prisma.board.findUnique({
         where: { id: input.boardId },
+        select: { id: true, folderUri: true, projectId: true },
       });
       if (!board) return { success: false };
 
-      // Delete DB record
-      await ctx.prisma.board.delete({
-        where: { id: input.boardId },
+      const { deletedSessions } = await hardDeleteBoardResources(ctx.prisma, board);
+      return {
+        success: true,
+        deletedSessions,
+      };
+    }),
+
+  /** Hard-delete all boards that are not attached to any project. */
+  clearUnboundBoards: shieldedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const boards = await ctx.prisma.board.findMany({
+        where: { projectId: null },
+        select: { id: true, folderUri: true, projectId: true },
       });
 
-      // Delete associated ChatSession (boardId = sessionId for board chat)
-      try {
-        await ctx.prisma.chatSession.deleteMany({
-          where: { boardId: input.boardId },
-        });
-      } catch (error) {
-        console.warn("[board.hardDelete] failed to delete chat session", error);
+      let deletedBoards = 0;
+      let deletedSessions = 0;
+
+      for (const board of boards) {
+        try {
+          const result = await hardDeleteBoardResources(ctx.prisma, board);
+          deletedBoards += 1;
+          deletedSessions += result.deletedSessions;
+        } catch (error) {
+          console.warn("[board.clearUnboundBoards] failed to delete board", error);
+        }
       }
 
-      // Delete file folder
-      try {
-        const rootPath = resolveScopedRootPath({
-          projectId: input.projectId,
-        });
-        const boardDir = path.join(rootPath, ".openloaf", "boards", input.boardId);
-        await fs.rm(boardDir, { recursive: true, force: true });
-      } catch (error) {
-        console.warn("[board.hardDelete] failed to delete folder", error);
-      }
-
-      return { success: true };
+      return {
+        deletedBoards,
+        deletedSessions,
+      };
     }),
 });
 

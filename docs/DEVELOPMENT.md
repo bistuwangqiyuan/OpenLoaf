@@ -11,6 +11,7 @@ OpenLoaf 开发规范。适用于核心开发者和外部贡献者。
 
 代码中的变量名和路由名保持 `workspace` / `project` 不变。
 其中 `workspace` 多表示兼容层或历史命名；面向用户的主要业务实体统一以“项目”为准。
+前端若仍需读取默认全局根目录，统一通过 `settings.getProjectStorageRoot`（或前端 `useProjectStorageRootQuery()` 封装）；兼容副作用统一由 `WorkspaceBootstrap` 维护，不再提供 `useWorkspace()` / `settings.getWorkspaceCompat` 前端入口。
 
 <strong>简体中文</strong> | <a href="./DEVELOPMENT_en.md">English</a>
 

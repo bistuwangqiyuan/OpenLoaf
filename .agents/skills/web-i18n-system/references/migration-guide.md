@@ -26,7 +26,7 @@ export function MyComponent() {
 
   return (
     <>
-      <h2>{tNav('workspace.title')}</h2>
+      <h2>{tNav('settings')}</h2>
       <button>{tCommon('save')}</button>
     </>
   );
@@ -539,7 +539,7 @@ export function MixedNamespaceComponent() {
 
   return (
     <div>
-      <h1>{tNav('workspace.title')}</h1>
+      <h1>{tNav('settings')}</h1>
       <button>{tCommon('save')}</button>
       <label>{tSettings('basic.language')}</label>
     </div>

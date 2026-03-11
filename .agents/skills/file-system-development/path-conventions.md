@@ -1,6 +1,6 @@
 # 文件路径规范
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」（顶层容器），代码 `project` = 产品「项目」（工作空间下的文件夹）。用户说「工作区」或「项目」都指 `project`。
+> **术语映射**：代码 `workspace` = 产品「工作空间」（顶层容器），代码 `project` = 产品「项目」（工作空间下的文件夹）。用户说「项目」通常指 `project`；若提到历史旧称，也按 `project` 处理。
 
 OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解析**的设计原则。前端永远不传递绝对路径或根目录路径，而是通过 ID 参数让服务端内部确定实际文件位置。
 
@@ -16,7 +16,7 @@ OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解
 
 ```
 ~/.openloaf/                        # OpenLoaf 根配置目录
-├── workspaces.json                 # 所有工作区配置
+├── workspaces.json                 # 所有工作空间配置
 ├── openloaf.db                     # SQLite 数据库
 ├── settings.json                   # 用户设置
 ├── providers.json                  # AI Provider 配置
@@ -27,11 +27,11 @@ OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解
 - **位置确定**：`getOpenLoafRootDir()` (`packages/config/src/openloaf-paths.ts`)
 - **数据库 URL**：默认 `file:~/.openloaf/openloaf.db`，可通过 `OPENLOAF_DATABASE_URL` 覆盖
 
-### 1.2 工作区目录
+### 1.2 工作空间目录
 
 ```
-<workspace_root>/                   # 工作区根目录
-├── .openloaf/                      # 工作区元数据
+<workspace_root>/                   # 工作空间根目录
+├── .openloaf/                      # 工作空间元数据
 │   ├── workspace.json              # 项目映射和排序
 │   └── boards/                     # 画布存储
 │       ├── board_20260309_xxx/
@@ -87,7 +87,7 @@ OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解
 - **boardId 格式**：`board_<yyyyMMdd>_<HHmmss>_<random8>` 或遗留格式 `tnboard_<title>`
 - **前端路径**：画布内资源存储相对于 board 目录的路径（如 `asset/video.mp4`）
 - **后端解析**：收到 `boardId` 后自动补前缀 `.openloaf/boards/<boardId>/`
-- **画布内聊天**：当 `boardId` + `chatSessionId` 同时存在时，聊天文件存储在画布目录下的 `chat-history/<sessionId>/`，而非项目/工作区级的 `chat-history/`
+- **画布内聊天**：当 `boardId` + `chatSessionId` 同时存在时，聊天文件存储在画布目录下的 `chat-history/<sessionId>/`，而非项目/工作空间级的 `chat-history/`
 
 ---
 
@@ -97,7 +97,7 @@ OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解
 
 | 作用域 | ID 参数 | 根目录确定方式 | 使用场景 |
 |--------|---------|---------------|---------|
-| Workspace | `workspaceId` | `workspaces.json` → `rootUri` | 工作区级文件操作 |
+| Workspace | `workspaceId` | `workspaces.json` → `rootUri` | 工作空间级文件操作 |
 | Project | `projectId` (+`workspaceId`) | `workspace.json` → 项目映射 | 项目级文件操作 |
 | Board | `boardId` (+`projectId`/`workspaceId`) | `<scope_root>/.openloaf/boards/<boardId>/` | 画布内资源 |
 | Board Chat | `boardId` + `sessionId` | `<board_dir>/chat-history/<sessionId>/` | 画布内聊天文件 |
@@ -106,7 +106,7 @@ OpenLoaf 的文件路径系统基于**作用域隔离 + ID 标识 + 服务端解
 
 服务端解析路径时的优先级：
 1. 若同时有 `projectId` + `workspaceId` → 基于**项目根目录**
-2. 若仅有 `workspaceId` → 基于**工作区根目录**
+2. 若仅有 `workspaceId` → 基于**工作空间根目录**
 3. `boardId` 作为额外前缀叠加（在上述根目录基础上补 `.openloaf/boards/<boardId>/`）
 
 ---
@@ -138,7 +138,7 @@ fetch(`/media/hls/manifest?path=${absolutePath}&rootPath=${rootPath}`)
 | 场景 | path | projectId | workspaceId | boardId | sessionId |
 |------|------|-----------|-------------|---------|-----------|
 | 项目内文件 | 项目相对路径 | ✅ | ✅ | - | - |
-| 工作区文件 | 工作区相对路径 | - | ✅ | - | - |
+| 工作空间文件 | 工作空间相对路径 | - | ✅ | - | - |
 | Board 内资源 | board 相对路径 | ✅/- | ✅ | ✅ | - |
 | 项目级 Chat 附件 | `.openloaf/chat-history/...` | ✅/- | ✅ | - | ✅ |
 | 画布内 Chat 附件 | `chat-history/<sessionId>/...` | ✅/- | ✅ | ✅ | ✅ |
@@ -154,7 +154,7 @@ fetch(`/media/hls/manifest?path=${absolutePath}&rootPath=${rootPath}`)
 | `resolveScopedPath()` | `packages/api/src/services/vfsService.ts` | 解析 5 种格式路径为绝对路径 |
 | `resolveScopedRootPath()` | 同上 | 获取作用域根目录 |
 | `getProjectRootPath()` | 同上 | 从 projectId 获取项目根 |
-| `getWorkspaceRootPathById()` | `packages/api/src/services/workspaceConfig.ts` | 从 workspaceId 获取工作区根 |
+| `getWorkspaceRootPathById()` | `packages/api/src/services/workspaceConfig.ts` | 从 workspaceId 获取工作空间根 |
 | `resolveScopedFilePath()` | `apps/server/src/modules/media/hlsService.ts` | HLS 专用路径解析（含 boardId 前缀） |
 
 ### 4.2 安全检查链
@@ -331,7 +331,7 @@ toFileUri(path)              // 本地路径 → file://（URL 编码）
 
 ### 7.2 前端传参
 
-1. **文件路径**：传项目/工作区/board 相对路径
+1. **文件路径**：传项目/工作空间/board 相对路径
 2. **ID 参数**：传 `workspaceId`、`projectId`、`boardId`
 3. **绝对路径**：仅在 Electron 环境通过 IPC 使用，HTTP API 禁止
 
@@ -340,7 +340,7 @@ toFileUri(path)              // 本地路径 → file://（URL 编码）
 1. **数据库**：存储相对路径或 `file://` URI（`folderUri`、`rootUri`）
 2. **画布文件**：存储相对于 board 目录的路径
 3. **Chat 消息**：存储 `@{相对路径}` 格式引用
-4. **配置文件**：工作区内项目用相对路径，跨工作区用 `file://` URI
+4. **配置文件**：工作空间内项目用相对路径，跨工作空间用 `file://` URI
 
 ### 7.4 禁止事项
 
@@ -358,7 +358,7 @@ toFileUri(path)              // 本地路径 → file://（URL 编码）
 |------|------|
 | `packages/config/src/openloaf-paths.ts` | 全局配置路径 |
 | `packages/api/src/services/vfsService.ts` | 核心路径解析 |
-| `packages/api/src/services/workspaceConfig.ts` | 工作区配置读写 |
+| `packages/api/src/services/workspaceConfig.ts` | 工作空间配置读写 |
 | `packages/api/src/services/workspaceProjectConfig.ts` | 项目配置读写 |
 | `packages/api/src/services/fileUri.ts` | URI 转换工具 |
 | `packages/api/src/routers/fs.ts` | 文件系统 tRPC 路由 |

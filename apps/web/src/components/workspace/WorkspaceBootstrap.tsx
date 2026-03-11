@@ -11,6 +11,8 @@
 
 import { useEffect } from "react";
 import { DEFAULT_TAB_INFO } from "@openloaf/api/common";
+import { openProjectShell } from "@/lib/project-shell";
+import { getProjectWindowBootstrapPayload } from "@/lib/window-mode";
 import { useTabs } from "@/hooks/use-tabs";
 import { useProjectStorageRootQuery } from "@/hooks/use-project-storage-root-uri";
 
@@ -32,6 +34,18 @@ export function WorkspaceBootstrap() {
     if (isLoading) return;
     if (activeTabId) return;
     if (tabs.length > 0) return;
+
+    const projectWindowPayload = getProjectWindowBootstrapPayload();
+    if (projectWindowPayload) {
+      openProjectShell({
+        projectId: projectWindowPayload.projectId,
+        rootUri: projectWindowPayload.rootUri,
+        title: projectWindowPayload.title,
+        icon: projectWindowPayload.icon,
+        section: "assistant",
+      });
+      return;
+    }
 
     // 逻辑：首次启动且无任何标签页时，补一个默认 AI 标签页，保持旧行为不变。
     addTab({

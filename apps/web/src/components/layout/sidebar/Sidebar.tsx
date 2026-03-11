@@ -12,7 +12,8 @@
 import { startTransition, useCallback } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
-import { SidebarProject } from "@/components/layout/sidebar/SidebarProject";
+import { SidebarHistory } from "@/components/layout/sidebar/SidebarHistory";
+import { ProjectSidebar } from "@/components/layout/sidebar/ProjectSidebar";
 import {
   Sidebar,
   SidebarContent,
@@ -32,22 +33,26 @@ import { useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
 import { SidebarUserAccount } from "@/components/layout/sidebar/SidebarUserAccount";
+import { BOARD_VIEWER_COMPONENT } from "@/hooks/tab-utils";
+
+const SIDEBAR_WORKSPACE_ACTIVE_CLASS =
+  "data-[active=true]:!bg-sidebar-accent data-[active=true]:!text-sidebar-accent-foreground";
 
 const SIDEBAR_WORKSPACE_COLOR_CLASS = {
   calendar:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 data-[active=true]:!bg-sky-100 dark:data-[active=true]:!bg-sky-500/25 data-[active=true]:!text-sky-700 dark:data-[active=true]:!text-sky-200 data-[active=true]:[&>svg]:!text-sky-600 dark:data-[active=true]:[&>svg]:!text-sky-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   scheduledTasks:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-rose-700/70 dark:[&>svg]:text-rose-300/70 hover:[&>svg]:text-rose-700 dark:hover:[&>svg]:text-rose-200 data-[active=true]:!bg-rose-100 dark:data-[active=true]:!bg-rose-500/25 data-[active=true]:!text-rose-700 dark:data-[active=true]:!text-rose-200 data-[active=true]:[&>svg]:!text-rose-600 dark:data-[active=true]:[&>svg]:!text-rose-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-rose-700/70 dark:[&>svg]:text-rose-300/70 hover:[&>svg]:text-rose-700 dark:hover:[&>svg]:text-rose-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   email:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 data-[active=true]:!bg-emerald-100 dark:data-[active=true]:!bg-emerald-500/25 data-[active=true]:!text-emerald-700 dark:data-[active=true]:!text-emerald-200 data-[active=true]:[&>svg]:!text-emerald-600 dark:data-[active=true]:[&>svg]:!text-emerald-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   workbench:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 data-[active=true]:!bg-emerald-100 dark:data-[active=true]:!bg-emerald-500/25 data-[active=true]:!text-emerald-700 dark:data-[active=true]:!text-emerald-200 data-[active=true]:[&>svg]:!text-emerald-600 dark:data-[active=true]:[&>svg]:!text-emerald-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-emerald-700/70 dark:[&>svg]:text-emerald-300/70 hover:[&>svg]:text-emerald-700 dark:hover:[&>svg]:text-emerald-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   aiAssistant:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 data-[active=true]:!bg-amber-100 dark:data-[active=true]:!bg-amber-500/25 data-[active=true]:!text-amber-700 dark:data-[active=true]:!text-amber-200 data-[active=true]:[&>svg]:!text-amber-600 dark:data-[active=true]:[&>svg]:!text-amber-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-amber-700/70 dark:[&>svg]:text-amber-300/70 hover:[&>svg]:text-amber-700 dark:hover:[&>svg]:text-amber-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   canvas:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 data-[active=true]:!bg-violet-100 dark:data-[active=true]:!bg-violet-500/25 data-[active=true]:!text-violet-700 dark:data-[active=true]:!text-violet-200 data-[active=true]:[&>svg]:!text-violet-600 dark:data-[active=true]:[&>svg]:!text-violet-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-violet-700/70 dark:[&>svg]:text-violet-300/70 hover:[&>svg]:text-violet-700 dark:hover:[&>svg]:text-violet-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
   workspace:
-    "group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 data-[active=true]:!bg-sky-100 dark:data-[active=true]:!bg-sky-500/25 data-[active=true]:!text-sky-700 dark:data-[active=true]:!text-sky-200 data-[active=true]:[&>svg]:!text-sky-600 dark:data-[active=true]:[&>svg]:!text-sky-300",
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-sky-700/70 dark:[&>svg]:text-sky-300/70 hover:[&>svg]:text-sky-700 dark:hover:[&>svg]:text-sky-200 ${SIDEBAR_WORKSPACE_ACTIVE_CLASS}`,
 } as const;
 
 const SIDEBAR_SEARCH_ICON_CLASS =
@@ -85,6 +90,7 @@ export const AppSidebar = ({
   const setTabBase = useTabRuntime((s) => s.setTabBase);
   const clearStack = useTabRuntime((s) => s.clearStack);
   const setActiveView = useNavigation((s) => s.setActiveView);
+  const activeViewType = useNavigation((s) => s.activeViewType);
   const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat);
   const isNarrow = useIsNarrowScreen(900);
   const nav = useSidebarNavigation();
@@ -93,14 +99,32 @@ export const AppSidebar = ({
     activeTabId
       ? tabs.find((tab) => tab.id === activeTabId)
       : null;
-  const activeBaseId = activeTab ? runtimeByTabId[activeTab.id]?.base?.id : undefined;
+  const activeRuntime = activeTab ? runtimeByTabId[activeTab.id] : undefined;
+  const activeBaseId = activeRuntime?.base?.id;
+  const activeBaseComponent = activeRuntime?.base?.component;
+  const activeStackComponent = activeRuntime?.stack?.find((item) => item.id === activeRuntime.activeStackItemId)?.component
+    ?? activeRuntime?.stack?.at(-1)?.component;
+  const activeForegroundComponent = activeStackComponent ?? activeBaseComponent;
+  const shouldShowProjectSidebar =
+    Boolean(activeTab?.projectShell) && activeForegroundComponent !== "settings-page";
   // 逻辑：ai-chat 的 base 会在 store 层被归一化为 undefined，需要用 title 兜底。
   const isMenuActive = (input: { baseId?: string; title?: string; component?: string }) => {
     if (!activeTab) return false;
+    // 逻辑：当前为单页面模式，stack 在前景时不再按底层 base 高亮 sidebar。
+    if (activeStackComponent) return false;
     if (input.baseId && activeBaseId === input.baseId) return true;
     if (input.component === "ai-chat" && !activeBaseId && activeTab.title === input.title) return true;
     return false;
   };
+  // 逻辑：Sidebar 选中态跟随当前前景页面；仅在前景页面缺失时，才回退到导航态。
+  const isCanvasViewerActive = activeForegroundComponent === BOARD_VIEWER_COMPONENT;
+  const isCanvasListActive =
+    activeForegroundComponent === CANVAS_LIST_TAB_INPUT.component ||
+    (!activeForegroundComponent && activeViewType === "canvas-list");
+  // 逻辑：项目空间同样按前景页面判断，避免设置页等覆盖层出现时误高亮。
+  const isProjectListActive =
+    activeForegroundComponent === PROJECT_LIST_TAB_INPUT.component ||
+    (!activeForegroundComponent && activeViewType === "workspace-list");
 
   const openSingletonTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
@@ -216,6 +240,10 @@ export const AppSidebar = ({
   // 逻辑：窄屏直接隐藏侧边栏，避免占用可用空间。
   if (isNarrow) return null;
 
+  if (shouldShowProjectSidebar) {
+    return <ProjectSidebar {...props} />;
+  }
+
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]! border-r-0!"
@@ -277,7 +305,7 @@ export const AppSidebar = ({
             <SidebarMenuButton
               tooltip={t('smartCanvas')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.canvas}
-              isActive={isMenuActive(CANVAS_LIST_TAB_INPUT)}
+              isActive={isCanvasListActive || isMenuActive(CANVAS_LIST_TAB_INPUT) || isCanvasViewerActive}
               onClick={() =>
                 openWorkspacePageTab({
                   ...CANVAS_LIST_TAB_INPUT,
@@ -292,9 +320,9 @@ export const AppSidebar = ({
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip={t('workspaceList')}
+              tooltip={t('sidebarWorkspace')}
               className={SIDEBAR_WORKSPACE_COLOR_CLASS.workspace}
-              isActive={isMenuActive(PROJECT_LIST_TAB_INPUT)}
+              isActive={isProjectListActive || isMenuActive(PROJECT_LIST_TAB_INPUT)}
               onClick={() =>
                 openWorkspacePageTab({
                   ...PROJECT_LIST_TAB_INPUT,
@@ -304,7 +332,7 @@ export const AppSidebar = ({
               type="button"
             >
               <Building2 className="h-4 w-4" />
-              <span className="flex-1 truncate">{t('workspaceList')}</span>
+              <span className="flex-1 truncate">{t('sidebarWorkspace')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -364,7 +392,7 @@ export const AppSidebar = ({
           className="flex-1 min-h-0 flex flex-col overflow-hidden"
           style={{ "--sidebar-accent": "var(--sidebar-project-accent)", "--sidebar-accent-foreground": "var(--sidebar-project-accent-fg)" } as React.CSSProperties}
         >
-          <SidebarProject />
+          <SidebarHistory />
         </div>
       </SidebarContent>
       <SidebarFooter />

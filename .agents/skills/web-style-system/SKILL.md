@@ -6,7 +6,7 @@ version: 0.1.0
 
 # Web Style System
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「工作区」。
+> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「项目」。
 
 ## Purpose
 

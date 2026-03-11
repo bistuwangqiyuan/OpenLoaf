@@ -80,7 +80,7 @@ function renderDockItem(
  * 兼容新旧导航系统
  */
 export interface LeftDockNewProps {
-  /** 工作区 ID */
+  /** 工作空间 ID */
   workspaceId: string;
   /** 基础面板（Left Dock 主内容） */
   base?: DockItem;

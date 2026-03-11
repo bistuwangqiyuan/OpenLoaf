@@ -24,6 +24,8 @@ export type TabsStateSnapshot = {
   activeStackItemIdByTabId?: Record<string, string>;
 };
 
+type ForegroundTabSnapshot = Pick<TabView, "base" | "stack" | "activeStackItemId">;
+
 /** Resolve the active stack item for a tab snapshot. */
 export function getActiveStackItem(state: TabsStateSnapshot, tabId: string) {
   const tab = state.tabs.find((item) => item.id === tabId);
@@ -34,6 +36,20 @@ export function getActiveStackItem(state: TabsStateSnapshot, tabId: string) {
     stack.at(-1)?.id ||
     "";
   return stack.find((item) => item.id === activeId) ?? stack.at(-1);
+}
+
+/** Resolve the foreground component currently visible in a tab. */
+export function getTabForegroundComponent(tab?: ForegroundTabSnapshot) {
+  const stack = Array.isArray(tab?.stack) ? tab.stack : [];
+  const activeId = tab?.activeStackItemId || stack.at(-1)?.id || "";
+  const activeItem = stack.find((item) => item.id === activeId) ?? stack.at(-1);
+  return activeItem?.component ?? tab?.base?.component;
+}
+
+/** Return true when the current foreground page should suppress the right chat panel. */
+export function shouldDisableRightChat(tab?: ForegroundTabSnapshot) {
+  const foreground = getTabForegroundComponent(tab);
+  return foreground === "settings-page" || foreground === "project-settings-page";
 }
 
 /** Return true when the active board stack is in full mode. */

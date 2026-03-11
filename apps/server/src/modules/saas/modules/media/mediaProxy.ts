@@ -176,7 +176,7 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         directory: resolvedDir,
       });
       if (saveDir.startsWith("file://")) {
-        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        // 逻辑：file:// URI 转工作空间相对路径，确保前端可通过 preview endpoint 加载。
         resultUrls = savedPaths.map((filePath) => {
           const relativePath = toGlobalRelativePath(filePath);
           return relativePath ?? path.basename(filePath);
@@ -205,7 +205,7 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         fileNameBase: taskId,
       });
       if (saveDir.startsWith("file://")) {
-        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        // 逻辑：file:// URI 转工作空间相对路径，确保前端可通过 preview endpoint 加载。
         const savedFilePath = path.join(resolvedDir, saved.fileName);
         const relativePath = toGlobalRelativePath(savedFilePath);
         resultUrls = [relativePath ?? saved.fileName];

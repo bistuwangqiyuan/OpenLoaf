@@ -150,7 +150,7 @@ export function Search({
         : skipToken,
     ),
   });
-  /** 工作区范围内的搜索结果。 */
+  /** 工作空间范围内的搜索结果。 */
   const workspaceSearchQuery = useQuery({
     ...trpc.fs.searchWorkspace.queryOptions(
       searchEnabled && !scopedProjectId
@@ -423,7 +423,7 @@ export function Search({
     () => buildRecentResults(recentProjectItems),
     [buildRecentResults, recentProjectItems],
   );
-  /** 工作区最近打开结果。 */
+  /** 工作空间最近打开结果。 */
   const recentGlobalResults = React.useMemo(
     () => buildRecentResults(recentGlobalItems),
     [buildRecentResults, recentGlobalItems],

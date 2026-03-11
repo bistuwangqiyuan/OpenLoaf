@@ -10,7 +10,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { History, PanelLeft, PanelRight, Settings, Sparkles, Search } from "lucide-react";
+import { PanelLeft, PanelRight, Settings, Sparkles, Search } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { useSidebar } from "@openloaf/ui/sidebar";
@@ -21,12 +21,13 @@ import { useGlobalOverlay, openSettingsTab } from "@/lib/globalShortcuts";
 import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
+import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { isElectronEnv } from "@/utils/is-electron-env";
+import { cn } from "@/lib/utils";
 
 import { PageTitle } from "./PageTitle";
 import { ModeToggle } from "./ModeToggle";
 import { Search as SearchDialog } from "@/components/search/Search";
-import { SidebarHoverPanel } from "@/components/layout/sidebar/SidebarHoverPanel";
 
 /** Format a shortcut string for tooltip display. */
 function formatShortcutLabel(shortcut: string, isMac: boolean): string {
@@ -99,7 +100,8 @@ export const Header = () => {
     ? "w-[max(7rem,calc(8rem-var(--macos-traffic-lights-width)))] "
     : "w-[6.5rem] ";
 
-  const canToggleChat = Boolean(activeTab?.base);
+  const isSettingsPageActive = shouldDisableRightChat(activeTab);
+  const canToggleChat = Boolean(activeTab?.base) && !isSettingsPageActive;
   const isChatCollapsed = Boolean(activeTab?.rightChatCollapsed);
   const sidebarShortcut = formatShortcutLabel("Mod+Shift+B", isMac);
   const chatShortcut = formatShortcutLabel("Mod+B", isMac);
@@ -166,12 +168,25 @@ export const Header = () => {
           <TooltipTrigger asChild>
             <Button
               data-no-drag="true"
-              className="h-8 w-8 shrink-0"
+              aria-pressed={isSettingsPageActive}
+              className={cn(
+                "h-8 w-8 shrink-0",
+                isSettingsPageActive
+                  ? "bg-orange-500/10 text-orange-700 hover:bg-orange-500/20 dark:bg-orange-400/15 dark:text-orange-300 dark:hover:bg-orange-400/25"
+                  : undefined,
+              )}
               variant="ghost"
               size="icon"
               onClick={() => openSettingsTab()}
             >
-              <Settings className="h-4 w-4 text-orange-700/70 dark:text-orange-300/70" />
+              <Settings
+                className={cn(
+                  "h-4 w-4 text-orange-700/70 dark:text-orange-300/70",
+                  isSettingsPageActive
+                    ? "text-orange-700 dark:text-orange-300"
+                    : undefined,
+                )}
+              />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
@@ -196,18 +211,6 @@ export const Header = () => {
       </div>
       <div className="flex shrink-0 h-(--header-height) items-center pr-2 relative">
         {hasActions && <div className="mx-1 h-5 w-px bg-foreground/20" />}
-        <SidebarHoverPanel type="all-chats" side="bottom" align="end">
-          <div data-no-drag="true">
-            <Button
-              className="h-8 shrink-0 gap-1 px-2 text-violet-700/70 hover:text-violet-700 dark:text-violet-300/70 dark:hover:text-violet-200"
-              variant="ghost"
-              size="sm"
-            >
-              <History className="h-4 w-4" />
-              <span className="text-xs">{t('header.chatHistory')}</span>
-            </Button>
-          </div>
-        </SidebarHoverPanel>
         <div data-no-drag="true">
           <ModeToggle />
         </div>
@@ -223,7 +226,7 @@ export const Header = () => {
               variant="ghost"
               size="icon"
               onClick={() => {
-                if (!activeTabId) return;
+                if (!activeTabId || !canToggleChat) return;
                 useTabRuntime.getState().setTabRightChatCollapsed(activeTabId, !isChatCollapsed);
               }}
             >

@@ -52,6 +52,7 @@ import {
   scheduledTaskSchemas,
 } from "./routers/absScheduledTask";
 import { boardRouter } from "./routers/board";
+import { visitRouter } from "./routers/visit";
 
 export const appRouterDefine = {
   ...internalAppRouter._def.procedures,
@@ -70,6 +71,7 @@ export const appRouterDefine = {
   dynamicWidget: dynamicWidgetRouter,
   scheduledTask: scheduledTaskRouter,
   board: boardRouter,
+  visit: visitRouter,
 };
 
 export const appRouter = t.router({
@@ -98,6 +100,7 @@ export * from "./types/toolResult";
 export * from "./types/setting";
 export * from "./types/storage";
 export * from "./types/boardCollab";
+export * from "./types/entityVisit";
 export * from "./common";
 export * from "./markdown/block-markdown";
 export * from "./services/vfsService";

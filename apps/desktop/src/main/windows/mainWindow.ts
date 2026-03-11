@@ -118,7 +118,7 @@ async function showErrorOnLoadingPage(win: BrowserWindow, error: string): Promis
 }
 
 /**
- * 根据当前屏幕工作区估算一个合适的默认窗口大小，并限制最小/最大值与宽高比。
+ * 根据当前屏幕可用区域估算一个合适的默认窗口大小，并限制最小/最大值与宽高比。
  */
 function getDefaultWindowSize(): { width: number; height: number } {
   const MIN_WIDTH = 800;

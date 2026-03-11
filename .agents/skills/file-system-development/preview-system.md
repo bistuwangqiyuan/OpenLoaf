@@ -162,7 +162,7 @@ type FileOpenInput = {
   entry: FileSystemEntry       // 目标条目
   tabId?: string | null        // Stack 模式需要
   projectId?: string           // 项目 ID
-  rootUri?: string             // 工作区根路径
+  rootUri?: string             // 工作空间根路径
   thumbnailSrc?: string        // 缩略图
   mode?: FileOpenMode          // 打开模式（默认 "stack"）
   confirmOpen?: (msg) => boolean  // 不支持类型确认回调
@@ -179,7 +179,7 @@ type FileOpenInput = {
 
 ```typescript
 type RecentOpenStore = {
-  workspace: RecentOpenItem[]                    // 工作区级
+  workspace: RecentOpenItem[]                    // 工作空间级
   projects: Record<string, RecentOpenItem[]>    // 项目级
 }
 // localStorage key: `openloaf:recent-open:${workspaceId}`

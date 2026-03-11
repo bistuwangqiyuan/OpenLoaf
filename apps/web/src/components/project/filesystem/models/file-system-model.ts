@@ -862,7 +862,7 @@ export function useProjectFileSystemModel({
       if (!activeTabId) return
       const targetUri = activeUri ?? normalizedRootUri ?? ''
       if (!targetUri && !rootUri) {
-        toast.error('未找到工作区目录')
+        toast.error('未找到项目目录')
         return
       }
       const folderUri = targetUri || ''
@@ -885,7 +885,7 @@ export function useProjectFileSystemModel({
       ? resolveFileUriFromRoot(rootUri, fallbackUri)
       : rootUri ?? "";
     if (!targetUri) {
-      toast.error("未找到工作区目录");
+      toast.error("未找到项目目录");
       return;
     }
     const res = await window.openloafElectron?.openPath?.({ uri: targetUri });
@@ -1077,7 +1077,7 @@ export function useProjectFileSystemModel({
       ? resolveFileUriFromRoot(rootUri, fallbackUri)
       : rootUri ?? "";
     if (!pwdUri) {
-      toast.error("未找到工作区目录");
+      toast.error("未找到项目目录");
       return;
     }
     pushStackItem(activeTabId, {

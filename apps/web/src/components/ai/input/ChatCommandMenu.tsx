@@ -80,7 +80,7 @@ const SKILL_GROUP_ITEM: MenuItem = {
 
 /** Display labels for skill scopes. */
 const SCOPE_LABELS: Record<SkillSummary["scope"], string> = {
-  workspace: "工作空间",
+  workspace: "项目空间",
   project: "项目",
 };
 
