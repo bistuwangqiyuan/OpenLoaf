@@ -10,12 +10,10 @@
 "use client";
 
 import { memo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { BoardCanvas } from "./core/BoardCanvas";
 import { BOARD_NODE_DEFINITIONS } from "./core/board-nodes";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { trpc } from "@/utils/trpc";
 
 export interface BoardFileViewerProps {
   /** Target board folder uri. */
@@ -44,10 +42,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
   tabId,
 }: BoardFileViewerProps) {
   const { t } = useTranslation("common");
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
   const runtimeStack = useTabRuntime((state) =>
     tabId ? state.runtimeByTabId[tabId]?.stack : undefined,
   );
@@ -64,11 +58,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
       ? runtimeActiveStackId || stack.at(-1)?.id || ""
       : stack.at(-1)?.id || "";
   const uiHidden = stackHidden && isStackItem && activeStackId === panelKey;
-  const resolvedWorkspaceId = workspaceCompatQuery.data?.id;
-
-  if (!resolvedWorkspaceId) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t("file.workspaceLoading")}</div>;
-  }
 
   if (!boardFolderUri || !boardFileUri) {
     return <div className="h-full w-full p-4 text-muted-foreground">未选择画布</div>;
@@ -78,7 +67,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
     <div className="h-full w-full bg-background">
       <BoardCanvas
         className="h-full w-full"
-        workspaceId={resolvedWorkspaceId}
         boardId={boardFolderUri}
         boardFolderUri={boardFolderUri}
         boardFileUri={boardFileUri}
