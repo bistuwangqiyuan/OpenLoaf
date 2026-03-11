@@ -10,7 +10,7 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import DesktopEditToolbar from "@/components/desktop/DesktopEditToolbar";
 import DesktopPage, { getInitialDesktopItems } from "@/components/desktop/DesktopPage";
 import type { DesktopItem } from "@/components/desktop/types";
@@ -30,6 +30,7 @@ import { queryClient, trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 
 interface DesktopHistorySnapshot {
   /** Past snapshots (oldest -> newest). */
@@ -46,12 +47,8 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
 }: {
   tabId?: string;
 }) {
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceId = workspaceCompatQuery.data?.id ?? "";
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri ?? "";
+  const workspaceRootUri = useProjectStorageRootUri() ?? "";
+  const workspaceId = "default";
   const globalActiveTabId = useTabs((state) => state.activeTabId);
   const activeTabId = ownTabId || globalActiveTabId;
   const setTabBaseParams = useTabRuntime((state) => state.setTabBaseParams);
@@ -77,7 +74,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   const loadedUriRef = React.useRef<string | null>(null);
   const saveDesktopMutation = useMutation(trpc.fs.writeFile.mutationOptions());
 
-  // 逻辑：桌面布局持久化文件路径（工作区根目录）。
+  // 逻辑：桌面布局持久化文件路径（默认项目存储根目录下的工作空间桌面文件）。
   const desktopFileUri = React.useMemo(
     () => (workspaceRootUri ? getWorkspaceDesktopFileUri(workspaceRootUri) : null),
     [workspaceRootUri]
@@ -115,7 +112,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   }, [desktopFileUri, workspaceId]);
 
   React.useEffect(() => {
-    // 逻辑：同步工作区上下文到自身 tab 的 base 参数，供桌面组件读取。
+    // 逻辑：同步工作空间上下文到自身 tab 的 base 参数，供桌面组件读取。
     // 使用 ownTabId 而非全局 activeTabId，避免切换 tab 时覆盖其他 tab 的 rootUri。
     if (!ownTabId) return;
     if (!workspaceId || !workspaceRootUri) return;
