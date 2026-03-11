@@ -336,7 +336,7 @@ function toFileUri(value: string): string {
 /** Resolve chat history folder URI from jsonl path or fallback root/session pair. */
 function resolveChatHistoryFolderUri(input: {
   jsonlPath: string;
-  workspaceRootUri: string;
+  scopeRootUri: string;
   sessionId: string;
 }): string {
   const trimmedJsonlPath = input.jsonlPath.trim();
@@ -356,10 +356,10 @@ function resolveChatHistoryFolderUri(input: {
     const folderPath = normalizedPath.replace(/\/[^/]*$/, "");
     if (folderPath) return toFileUri(folderPath);
   }
-  if (!input.workspaceRootUri || !input.sessionId) return "";
-  // 逻辑：回退到旧路径拼接方式，兼容未返回 jsonlPath 的场景。
+  if (!input.scopeRootUri || !input.sessionId) return "";
+  // 逻辑：回退到当前作用域根目录的旧路径拼接方式，兼容未返回 jsonlPath 的场景。
   return buildFileUriFromRoot(
-    input.workspaceRootUri,
+    input.scopeRootUri,
     `.openloaf/chat-history/${input.sessionId}`
   );
 }
@@ -380,11 +380,6 @@ export default function MarkdownViewer({
   __chatHistoryJsonlPath,
 }: MarkdownViewerProps) {
   const { t } = useTranslation('common');
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri ?? "";
   const hasInlineContent = typeof inlineContent === "string";
   const chatHistorySessionId =
     typeof __chatHistorySessionId === "string" ? __chatHistorySessionId.trim() : "";
@@ -460,7 +455,7 @@ export default function MarkdownViewer({
     // 逻辑：优先使用后端返回的 jsonlPath 反推目录，避免项目根与工作空间根不一致。
     const targetUri = resolveChatHistoryFolderUri({
       jsonlPath: chatHistoryJsonlPath,
-      workspaceRootUri,
+      scopeRootUri: rootUri ?? "",
       sessionId: chatHistorySessionId,
     });
     if (!targetUri) {
@@ -489,7 +484,7 @@ export default function MarkdownViewer({
     if (!res?.ok) {
       toast.error(res?.reason ?? t('file.openFileMgrFailed'));
     }
-  }, [chatHistoryJsonlPath, chatHistorySessionId, workspaceRootUri, tabId, projectId, pushStackItem]);
+  }, [chatHistoryJsonlPath, chatHistorySessionId, rootUri, tabId, projectId, pushStackItem]);
 
   /** Copy chat history jsonl file path for the current branch. */
   const handleCopyChatHistoryJsonlPath = async () => {

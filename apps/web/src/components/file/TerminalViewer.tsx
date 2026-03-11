@@ -10,7 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Terminal } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -383,11 +383,6 @@ export default function TerminalViewer({
 }: TerminalViewerProps) {
   const { t } = useTranslation('common');
   const terminalStatus = useTerminalStatus();
-  const workspaceCompatQuery = useQuery({
-    ...trpc.settings.getWorkspaceCompat.queryOptions(),
-    staleTime: 5 * 60 * 1000,
-  });
-  const workspaceRootUri = workspaceCompatQuery.data?.rootUri ?? "";
   const tabActive = useTabActive();
   const safeTabId = typeof tabId === "string" ? tabId : undefined;
   const resolvedPanelKey = panelKey ?? TERMINAL_WINDOW_PANEL_ID;
@@ -506,12 +501,12 @@ export default function TerminalViewer({
       return;
     }
     const activePwd = activeTab ? getTerminalTabPwdUri(activeTab) : "";
-    const fallbackPwd = activePwd || workspaceRootUri || "";
+    const fallbackPwd = activePwd || "";
     if (!fallbackPwd) {
       toast.error(t('terminal.noWorkspaceDir'));
       return;
     }
-    // 中文注释：默认沿用当前标签的 pwd，不存在则回退到 workspace 根目录。
+    // 中文注释：默认沿用当前终端标签的 pwd，避免重新依赖 workspace compat 根目录。
     const nextTab: TerminalTab = {
       id: createTerminalTabId(),
       title: getTerminalTabTitle({ id: "temp", params: { pwdUri: fallbackPwd } }),
@@ -519,7 +514,7 @@ export default function TerminalViewer({
       params: { pwdUri: fallbackPwd },
     };
     updateTerminalState([...tabsRef.current, nextTab], nextTab.id);
-  }, [activeTab, enabled, safeTabId, t, updateTerminalState, workspaceRootUri]);
+  }, [activeTab, enabled, safeTabId, t, updateTerminalState]);
 
   /** Select terminal tab by numeric index (1-based shortcut). */
   const selectTerminalTabByIndex = useCallback(
