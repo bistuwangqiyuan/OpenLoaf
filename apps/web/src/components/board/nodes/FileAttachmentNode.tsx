@@ -110,7 +110,6 @@ export function FileAttachmentNodeView({
   element,
 }: CanvasNodeViewProps<FileAttachmentNodeProps>) {
   const { fileContext } = useBoardContext();
-  const workspaceId = fileContext?.workspaceId ?? "";
 
   const projectRelativePath = useMemo(
     () => resolveProjectRelativePath(element.props.sourcePath, fileContext),
@@ -145,7 +144,6 @@ export function FileAttachmentNodeView({
           title: displayName,
           ext,
           projectId: effectiveProjectId,
-          workspaceId,
           rootUri: fileContext?.rootUri,
           boardId,
         },
@@ -163,7 +161,6 @@ export function FileAttachmentNodeView({
     fileContext?.rootUri,
     resolvedPath,
     viewerType,
-    workspaceId,
   ]);
 
   return (

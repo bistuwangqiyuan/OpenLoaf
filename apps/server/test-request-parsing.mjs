@@ -5,7 +5,6 @@
 // Simulate the actual request body from the user
 const actualRequest = {
   "projectId": "proj_b2acdf63-bd28-40d2-b2c1-1309ebb54b83",
-  "workspaceId": "a3c27df8-442d-4beb-b752-865253106e3e",
   "sessionId": "chat_20260304_214952_to6i5gyd",
   "clientId": "f1779da0-04f1-4cec-8dc0-dc5740f23048",
   "timezone": "Asia/Shanghai",

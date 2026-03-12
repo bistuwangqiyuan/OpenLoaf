@@ -1,4 +1,3 @@
-# OpenLoaf i18n Complete Key Directory
 
 ## Overview
 

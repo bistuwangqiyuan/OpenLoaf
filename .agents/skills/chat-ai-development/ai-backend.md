@@ -1,57 +1,14 @@
-# AI Agent 后端开发
 
-## 请求管线
-
-```
-HTTP SSE → AiExecuteController.execute()
-  → AiExecuteService.execute()
-    ├── CommandParser (指令解析: /summary-title 等)
-    ├── SkillSelector (/skill/name → 注入 data-skill part)
-    → ChatStreamUseCase → chatStreamService.runChatStream()
-      ├── initRequestContext()         — AsyncLocalStorage 设置
-      ├── resolveChatModel()           — 解析模型实例
-      ├── loadAndPrepareMessageChain() — 消息链构建
-      ├── buildSessionPrefaceText()    — system prompt 构建
-      ├── createMasterAgentRunner()    — ToolLoopAgent + Frame
-      → streamOrchestrator
-        ├── UIMessageStreamWriter  → SSE chunk 输出
-        ├── agent.stream(messages) → 工具循环执行
-        └── saveMessage()          → 消息持久化
-```
 
 ## ToolLoopAgent
 
 MasterAgent 使用 Vercel AI SDK 的 `ToolLoopAgent`，配置模型、system prompt 和工具集：
-
-```typescript
-// services/masterAgentRunner.ts
-const primaryDef = getPrimaryAgentDefinition();
-const toolIds = resolveToolIdsFromCapabilities(primaryDef.capabilities);
-
-new ToolLoopAgent({
-  model: input.model,
-  instructions: readMasterAgentBasePrompt(),
-  tools: buildToolset(toolIds),
-  experimental_repairToolCall: createToolCallRepair(),
-});
-```
 
 工具循环：模型生成 → tool_call → 工具执行 → 结果返回模型 → 继续生成（直到无 tool_call）
 
 ## Tool Registry
 
 `toolRegistry.ts` 使用静态映射 `TOOL_REGISTRY`，按 `ToolDef.id` 索引：
-
-```typescript
-const TOOL_REGISTRY: Record<string, ToolEntry> = {
-  [timeNowToolDef.id]: { tool: timeNowTool },
-  [shellToolDef.id]:   { tool: shellTool },
-  [readFileToolDef.id]: { tool: readFileTool },
-  // ...
-};
-
-export function buildToolset(toolIds: string[]) → Record<string, tool>
-```
 
 **现有工具**: timeNow, jsonRender, openUrl, browserSnapshot/Observe/Extract/Act/Wait, shell, shellCommand, execCommand, writeStdin, readFile, writeFile, listDir, updatePlan, subAgent, testApproval, imageGenerate, videoGenerate, chartRender (chart-render), officeExecute (office-execute)
 
@@ -69,7 +26,7 @@ export function buildToolset(toolIds: string[]) → Record<string, tool>
 | Getter | 内容 |
 |--------|------|
 | `getSessionId()` | 会话 ID |
-| `getWorkspaceId()` / `getProjectId()` | 作用域 |
+| `getProjectId()` | 项目作用域 |
 | `getClientId()` / `getTabId()` | 客户端标识 |
 | `getUiWriter()` | UI 流式写入器（工具推送 chunk） |
 | `getAbortSignal()` | 中止信号 |
@@ -120,53 +77,13 @@ export function buildToolset(toolIds: string[]) → Record<string, tool>
 
 子代理通过 `subAgentTool` 分发，由 `agentFactory.ts` 数据驱动创建，每个子代理是独立的 `ToolLoopAgent` 实例。
 
-### 创建流程
-
-```
-subAgentTool → agentManager.executeAgent()
-  → agentFactory.createSubAgent(input)
-    1. resolveEffectiveAgentName() — 处理 legacy 别名映射
-    2. resolveAgentType() — 判断类型：system | test-approval | dynamic | default
-    3. 按类型分支创建 ToolLoopAgent
-  → agentManager 管理生命周期（stream、消息持久化、resume）
-```
-
 ### Agent 模板
 
 系统 Agent 的提示词和配置存放在 `agent-templates/templates/<agentId>/`：
 
-```
-apps/server/src/ai/agent-templates/
-├── index.ts          # 导出
-├── registry.ts       # 模板注册表
-├── types.ts          # 类型定义
-└── templates/
-    ├── master/       # 主助手
-    ├── browser/      # 浏览器助手
-    ├── document/     # 文档助手
-    ├── shell/        # 终端助手
-    ├── email/        # 邮件助手
-    ├── calendar/     # 日历助手
-    ├── widget/       # 工作台组件助手
-    └── project/      # 项目助手
-```
-
 ### 子代理存储（统一化）
 
 每个子代理复用主对话的完整存储逻辑，存储在 session 子目录中：
-
-```
-<session-root>/
-├── messages.jsonl          # 主对话
-├── session.json
-└── agents/
-    ├── <agentId-A>/
-    │   ├── messages.jsonl  # 子代理完整对话（StoredMessage 格式）
-    │   └── session.json    # 子代理元数据 (title, task, agentType)
-    └── <agentId-B>/
-        ├── messages.jsonl
-        └── session.json
-```
 
 关键函数：
 - `registerAgentDir(parentSessionId, agentId)` — 注册 agent 子目录到 sessionDirCache，后续所有 chatFileStore 函数透明使用
@@ -192,11 +109,6 @@ apps/server/src/ai/agent-templates/
 
 模型定义存放在 `apps/web/src/lib/model-registry/providers/*.json`，当前仅保留聊天模型（无图像/视频），服务端通过 `modelRegistry.ts` 加载：
 
-```typescript
-getModelDefinition("deepseek", "deepseek-chat")   → ModelDefinition
-getProviderDefinition("deepseek")                → ProviderDefinition
-```
-
 内置 provider（默认 JSON 定义）：anthropic / moonshot / vercel / qwen / google / deepseek / xai / codex-cli / custom。
 
 云端模型通过 SaaS SDK `providerTemplates()` 获取供应商模板，转换时使用 `template.adapter ?? template.id` 作为 `adapterId`（`adapter` 字段决定使用哪个 AI SDK 适配器，与供应商 `id` 解耦）。
@@ -214,16 +126,6 @@ getProviderDefinition("deepseek")                → ProviderDefinition
 ### 路径 1：聊天 Agent Tool（推荐）
 
 Master Agent 通过 `image-generate` / `video-generate` 工具调用 SaaS API：
-
-```
-用户消息 → Master Agent → imageGenerateTool / videoGenerateTool
-  → getSaasAccessToken() 验证登录
-  → getMediaModelId('image'/'video') 获取模型
-  → submitMediaTask() → pollMediaTask() 轮询
-  → saveChatImageAttachment() 持久化
-  → 通过 uiWriter 推送进度事件：
-    data-media-generate-start / progress / end / error
-```
 
 错误处理：tool 在抛异常前通过 `uiWriter` 推送 `data-media-generate-error` 事件（含 `errorCode`），前端渲染对应 UI（登录按钮、积分不足提示等）。
 
@@ -260,13 +162,6 @@ Board 节点通过 `intent: "image"` + `responseMode: "json"` 走独立流程：
 ## SSE Streaming Output
 
 工具执行中推送自定义 data：
-
-```typescript
-const writer = getUiWriter();
-if (writer) {
-  writer.writeData({ type: "my-data", data: { ... } });
-}
-```
 
 关键文件: `streamOrchestrator.ts`（创建流式响应）、`requestContext.ts`（`getUiWriter()/setUiWriter()`）
 

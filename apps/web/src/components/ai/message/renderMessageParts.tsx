@@ -9,6 +9,10 @@
  */
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import {
+  MessageStreamMarkdown,
+  MESSAGE_STREAM_MARKDOWN_CLASSNAME,
+} from "./markdown/MessageStreamMarkdown";
 import { markdownComponents } from "./markdown/MarkdownComponents";
 import MessageTool from "./tools/MessageTool";
 import MessageFile from "./tools/MessageFile";
@@ -106,25 +110,7 @@ function renderTransientStatusBar(
 }
 
 export const MESSAGE_TEXT_CLASSNAME = cn(
-  // Avoid `w-full` + horizontal margins causing width overflow.
-  "min-w-0 w-full max-w-full px-1 font-sans prose prose-neutral dark:prose-invert break-words [overflow-wrap:anywhere]",
-  // Base text settings
-  "text-sm leading-relaxed",
-  // Element spacing adjustments
-  "prose-p:my-2 prose-p:leading-relaxed prose-p:first:mt-0 prose-p:last:mb-0",
-  "prose-headings:mt-4 prose-headings:mb-2 prose-headings:font-semibold prose-headings:tracking-tight prose-headings:first:mt-0",
-  "prose-h1:text-base prose-h2:text-[15px] prose-h3:text-sm prose-h4:text-sm",
-  "prose-ul:my-2 prose-ul:pl-5 prose-ol:my-2 prose-ol:pl-5 prose-li:my-0.5 prose-li:marker:text-muted-foreground",
-  // Code block styling (handled by components but resetting some defaults)
-  "prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0",
-  // Inline code styling
-  "prose-code:px-1 prose-code:py-0.5 prose-code:font-mono prose-code:text-[0.9em] prose-code:font-normal prose-code:bg-muted/50 prose-code:rounded-sm prose-code:before:content-none prose-code:after:content-none",
-  // Other elements
-  "prose-blockquote:not-italic prose-blockquote:border-l-primary/50 prose-blockquote:text-muted-foreground",
-  "prose-a:break-all prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
-  "prose-table:block prose-table:max-w-full prose-table:overflow-x-auto",
-  // Ensure media never overflows the chat width.
-  "prose-img:max-w-full prose-img:h-auto",
+  MESSAGE_STREAM_MARKDOWN_CLASSNAME,
 );
 
 /** 改写提示词的样式。 */
@@ -217,14 +203,12 @@ export function renderMessageParts(
         nodes.push(
           wrapPart(
             `text:${index}:${nextIndex}`,
-            cn(MESSAGE_TEXT_CLASSNAME, options?.textClassName),
-            <MessageResponse
-              components={markdownComponents}
-              parseIncompleteMarkdown
+            undefined,
+            <MessageStreamMarkdown
+              markdown={mergedText}
+              className={cn(MESSAGE_TEXT_CLASSNAME, options?.textClassName)}
               isAnimating={isAnimating}
-            >
-              {normalizedText}
-            </MessageResponse>,
+            />,
             motionProps,
           ),
         );

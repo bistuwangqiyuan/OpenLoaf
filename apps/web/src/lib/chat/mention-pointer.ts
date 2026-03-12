@@ -29,7 +29,6 @@ type ProjectTreeNode = {
 /** Dependencies for mention pointer handling. */
 type MentionPointerDownOptions = {
   activeTabId?: string | null;
-  workspaceId?: string;
   projectId?: string;
   projects: ProjectTreeNode[];
   pushStackItem: (tabId: string, item: any) => void;
@@ -126,10 +125,9 @@ export function handleChatMentionPointerDown(
   event: PointerEvent<HTMLElement>,
   options: MentionPointerDownOptions
 ) {
-  const { activeTabId, workspaceId, projectId: defaultProjectId, projects, pushStackItem } =
+  const { activeTabId, projectId: defaultProjectId, projects, pushStackItem } =
     options;
   if (!activeTabId) return;
-  if (!workspaceId) return;
   const target = event.target as HTMLElement | null;
   if (!target) return;
   if (target.closest("button")) return;

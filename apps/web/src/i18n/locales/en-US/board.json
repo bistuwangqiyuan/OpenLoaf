@@ -429,7 +429,11 @@
     "enterFullscreen": "Enter Fullscreen",
     "showAIPanel": "Show AI Panel",
     "hideAIPanel": "Hide AI Panel",
-    "screenshot": "Screenshot Canvas"
+    "screenshot": "Screenshot Canvas",
+    "openInFileSystem": "Open in File System",
+    "openBoardFolder": "Open Board Folder",
+    "openBoardFolderMissing": "Board folder not found",
+    "openBoardFolderFailed": "Unable to open board folder"
   },
   "aiToolbar": {
     "aiAssistant": "AI Assistant",

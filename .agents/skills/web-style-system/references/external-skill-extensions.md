@@ -8,8 +8,6 @@
 - 仅在需要额外知识覆盖时引入外部 skills。
 - 不把外部 skill 作为前置强依赖。
 
-## 1) Internal Skills (Recommended First)
-
 ### `skill-development`
 
 用途：
@@ -54,17 +52,7 @@
 
 检索（示例）：
 
-```bash
-NPM_CONFIG_CACHE=/tmp/npm-cache npx -y skills find "ui design system"
-NPM_CONFIG_CACHE=/tmp/npm-cache npx -y skills find "tabs layout glassmorphism"
-NPM_CONFIG_CACHE=/tmp/npm-cache npx -y skills find "accessibility web ui review"
-```
-
 安装（示例）：
-
-```bash
-npx skills add davila7/claude-code-templates@ui-design-system -g -y
-```
 
 ## 4) Usage Policy
 

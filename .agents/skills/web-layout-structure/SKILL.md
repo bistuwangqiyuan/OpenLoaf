@@ -22,26 +22,6 @@ description: Use when working on or debugging the web app layout in apps/web/src
 - `apps/web/src/app/page.tsx`：页面骨架（Header + Sidebar + MainContent）
 - `apps/web/src/components/layout/*`：具体布局与面板容器
 
-## Render Tree（高层结构）
-```
-RootLayout (app/layout.tsx)
-└─ Providers
-   └─ ServerConnectionGate
-      └─ StepUpGate
-         └─ grid[rows: auto 1fr]
-            └─ Page (app/page.tsx)
-               ├─ Header
-               └─ main row
-                  ├─ AppSidebar
-                  └─ SidebarInset
-                     └─ MainContent
-                        └─ TabLayout
-                           ├─ LeftDock (panel host)
-                           └─ RightChatPanel (panel host)
-```
-
-## Core Regions
-
 ### Header
 - 文件：`apps/web/src/components/layout/header/Header.tsx`
 - 结构：
@@ -49,6 +29,8 @@ RootLayout (app/layout.tsx)
   - 中间：`PageTitle` + `HeaderTabs` 相关区域；Header 左侧标题保持纯文本，不在标题文案前渲染静态 icon，避免与可点击图标混淆
   - 项目壳场景下，`PageTitle` 可回退到 `activeTab.projectShell.title`，避免项目数据尚未加载时出现空标题或 `Untitled`
   - 设置按钮的选中态也要跟随当前前景页面：设置页可见时高亮设置按钮，不按底层 base 残留状态判断
+  - `openSettingsTab()` 在项目模式下必须进入 `project-settings-page`，不能回退到全局 `settings-page`
+  - 旧的顶部“历史记录”按钮/弹层已废弃，不再作为 Header 入口保留
   - 右侧：`StackDockMenuButton`、`ModeToggle`、聊天面板开关
   - 全局设置页（前景 component = `settings-page`）必须隐藏并禁用右侧 chat 开关，避免在设置场景暴露聊天能力
 - Electron / macOS：使用 `--macos-traffic-lights-width` 调整标题栏空间
@@ -58,13 +40,26 @@ RootLayout (app/layout.tsx)
 - 逻辑：
   - 使用 `@openloaf/ui/sidebar`，`SidebarProvider` 控制展开状态
   - 窄屏（<900px）直接隐藏侧边栏（`useIsNarrowScreen`）
-  - 当当前激活 tab 带有 `projectShell`，且前景不是全局 `settings-page` 时，主 Sidebar 会切换为 `ProjectSidebar`
+  - 项目模式判断不要只依赖 `activeTab.projectShell`；统一通过 `apps/web/src/lib/project-mode.ts` 中的 `resolveProjectModeProjectShell()` / `isProjectMode()` 解析（优先 tab.projectShell，其次回退到独立项目窗口 URL bootstrap）
+  - 只要当前 renderer 处于项目模式，主 Sidebar 就应切换为 `ProjectSidebar`，避免项目独立窗口里新开的聊天、画布、设置页掉回主 Sidebar
   - `SidebarHeader` 放入口菜单（搜索、日历、AI、邮箱、技能等）
   - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）
   - `ProjectSidebar` 负责项目内导航：返回项目空间、AI管理员、画布、看板、文件、设置、历史；底部历史列表会按 `projectId` 过滤，只显示当前项目访问记录
+  - `ProjectSidebar` 需要把项目摘要卡片（项目 icon + 名称）放在 `SidebarFooter`，与“设置”一起构成底部区域；不要在 header 中重复渲染
+  - `ProjectSidebar` footer 中的项目摘要卡片支持副标题，当前用于显示项目类型
   - `ProjectSidebar` 顶部不显示 `SidebarUserAccount`；返回按钮需要沿用账号项的高度（`h-12`）以保持节奏一致
+  - 返回“项目空间”按钮保留在 header 顶部；项目名称和设置都放到底部 footer
+  - 当设置按钮需要显示在项目名称右侧时，footer 应改成单行布局：左侧项目卡片，右侧纯图标设置按钮
+  - `ProjectSidebar` 的激活 section 需要结合前景组件推断：`board-viewer` / `canvas-list-page` 归到 `canvas`，文件预览类组件归到 `files`，`project-settings-page` 归到 `settings`
   - `SidebarFooter` 为反馈入口
   - “智能画布 / 项目空间”等主页面入口的高亮，需要以前景页面为准：有 stack 时看 `activeStackItemId` 对应的 component，没有 stack 才看 base；只有在前景页面缺失时才回退到 `activeViewType`
+
+### Search Overlay
+- 文件：`apps/web/src/components/search/Search.tsx`
+- 逻辑：
+  - 搜索默认会读取当前活跃项目上下文；项目模式下必须强制收敛到当前项目，不允许退回“项目空间”全局搜索
+  - 项目模式下要隐藏全局 `Quick Open` 和“最近打开（项目空间）”，只保留当前项目文件搜索与当前项目最近打开
+  - 项目范围的输入前缀只在允许切回全局时才能被 Backspace/Delete 清空；项目模式下应保持锁定
 
 ### MainContent（Tab Keep-Alive）
 - 文件：`apps/web/src/components/layout/MainContext.tsx`
@@ -129,14 +124,6 @@ RootLayout (app/layout.tsx)
 ### 项目关联模型（Session 级别）
 
 项目关联是 **Session 级别**而非 Tab 级别，同一 Tab 下不同会话可以绑定不同项目。
-
-```
-TabMeta
-├── chatSessionIds: string[]                       ← 会话 ID 列表
-├── chatSessionProjectIds: Record<sessionId, projectId>  ← 每个会话的项目绑定
-├── chatParams.projectId                           ← 当前活跃会话的项目（自动同步）
-└── chatSessionTitles: Record<sessionId, title>
-```
 
 **核心机制**：`chatParams.projectId` 始终与活跃会话的 projectId 同步，所有下游消费者（Chat、ChatCoreProvider、use-chat-sessions、frontend-tool-executor 等）无需修改。
 

@@ -23,12 +23,12 @@ const schema = files
 assert.ok(schema.includes("model EmailMessage"), "EmailMessage model should exist.");
 
 const requiredFields = [
-  "workspaceId",
   "accountEmail",
   "mailboxPath",
-  "uid",
-  "bodyHtml",
-  "bodyText",
+  "externalId",
+  "messageId",
+  "from",
+  "to",
   "attachments",
 ];
 
@@ -40,8 +40,33 @@ for (const field of requiredFields) {
 }
 
 assert.ok(
-  schema.includes("@@unique([workspaceId, accountEmail, mailboxPath, uid])"),
-  "EmailMessage should define a unique index for mailbox UID."
+  !/\bworkspaceId\b/.test(schema),
+  "Email schema should no longer include workspaceId."
+);
+
+assert.ok(
+  !/\buid\b/.test(schema),
+  "EmailMessage should no longer include the legacy uid field."
+);
+
+assert.ok(
+  !/\bbodyHtml\b/.test(schema) && !/\bbodyText\b/.test(schema),
+  "EmailMessage body fields should live in the file store, not the DB schema."
+);
+
+assert.ok(
+  schema.includes("@@unique([accountEmail, mailboxPath, externalId])"),
+  "EmailMessage should define the current unique index for externalId."
+);
+
+assert.ok(
+  !schema.includes("@@unique([workspaceId, accountEmail, mailboxPath, uid])"),
+  "EmailMessage should not define the legacy workspace-scoped unique index."
+);
+
+assert.ok(
+  !schema.includes("@@unique([workspaceId, accountEmail, inReplyTo])"),
+  "EmailDraft should not define the legacy workspace-scoped reply unique index."
 );
 
 console.log("email schema tests passed.");

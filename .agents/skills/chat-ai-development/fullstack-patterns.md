@@ -1,65 +1,6 @@
-# 全栈开发模式
 
-## Adding a New Tool (5-Step Full-Stack)
-
-### Step 1: 定义 ToolDef（共享类型）
-
-```typescript
-// packages/api/src/types/tools/myTool.ts
-import { z } from "zod";
-
-export const myToolDef = {
-  id: "my_tool",
-  description: "描述工具用途，模型据此决定是否调用",
-  parameters: z.object({
-    query: z.string().describe("查询内容"),
-  }),
-} as const;
-```
-
-### Step 2: 实现工具逻辑
-
-```typescript
-// apps/server/src/ai/tools/myTool.ts
-import { tool, zodSchema } from "ai";
-import { myToolDef } from "@openloaf/api/types/tools/myTool";
-
-export const myTool = tool({
-  description: myToolDef.description,
-  inputSchema: zodSchema(myToolDef.parameters),
-  execute: async ({ query }) => {
-    return { ok: true, data: { result: "..." } };
-  },
-});
-```
-
-### Step 3: 注册到 toolRegistry
-
-```typescript
-// apps/server/src/ai/tools/toolRegistry.ts
-import { myTool } from "@/ai/tools/myTool";
-import { myToolDef } from "@openloaf/api/types/tools/myTool";
-
-const TOOL_REGISTRY = {
-  // ...existing
-  [myToolDef.id]: { tool: myTool },
-};
-```
 
 ### Step 4: 绑定到能力组（Capability Groups）
-
-```typescript
-// apps/server/src/ai/tools/capabilityGroups.ts
-{
-  id: "my-domain",
-  label: "我的能力组",
-  description: "描述用途",
-  toolIds: [
-    // ...existing
-    myToolDef.id,
-  ],
-}
-```
 
 如需系统 Agent 默认拥有此工具，在 `apps/server/src/ai/shared/systemAgentDefinitions.ts`
 把对应能力组 ID 加入 `capabilities`。
@@ -109,10 +50,6 @@ const TOOL_REGISTRY = {
 ### 3) 注册 & 授权范围
 
 **注册表**：`apps/server/src/ai/tools/toolRegistry.ts`
-
-```
-[xxxToolDef.id]: { tool: xxxTool }
-```
 
 **能力组 & Agent 可用工具**：
 - 能力组映射：`apps/server/src/ai/tools/capabilityGroups.ts`（把工具加入对应能力组）
@@ -182,43 +119,6 @@ const TOOL_REGISTRY = {
 
 子代理通过 `agentFactory.ts` 数据驱动创建，使用 `agent-templates` 管理模板。
 
-### Step 1: 在 API 类型中注册名称
-
-```typescript
-// packages/api/src/types/tools/subAgent.ts
-export const mySubAgentName = "MySubAgent";
-// 并添加到 subAgentToolDef.parameters.name 的 z.enum 中
-```
-
-### Step 2: 创建 Agent 模板
-
-```
-apps/server/src/ai/agent-templates/templates/my-agent/
-├── index.ts          # 导出模板配置
-└── prompt.zh.md      # 系统提示词（Markdown 格式）
-```
-
-```typescript
-// agent-templates/templates/my-agent/index.ts
-import type { AgentTemplate } from '../../types'
-import PROMPT from './prompt.zh.md'
-
-export const myAgentTemplate: AgentTemplate = {
-  id: 'my-agent',
-  name: 'MySubAgent',
-  prompt: PROMPT,
-  toolIds: [/* 只暴露必要工具 */],
-}
-```
-
-### Step 3: 注册到模板注册表
-
-```typescript
-// agent-templates/registry.ts
-import { myAgentTemplate } from './templates/my-agent'
-// 添加到 AGENT_TEMPLATE_REGISTRY
-```
-
 ### Step 4: 在 agentFactory 中添加创建分支
 
 在 `services/agentFactory.ts` 的 `resolveAgentType()` 或创建分支中处理新 Agent 类型。
@@ -257,105 +157,15 @@ import { myAgentTemplate } from './templates/my-agent'
 
 某些工具需要在前端执行操作（如打开浏览器面板），后端阻塞等待前端回执后继续 AI 循环。以 `open-url` 为典型案例。
 
-### 架构流程
-
-```
-AI Agent 调用工具
-    ↓
-后端 tool.execute()
-    → registerFrontendToolPending(toolCallId, timeoutSec)  ← 创建 Promise 阻塞
-    ↓ (工具调用流式推送到前端)
-前端 FrontendToolExecutor
-    → executeFromDataPart/executeFromToolPart
-    → handler 执行前端操作（如 pushStackItem 打开浏览器面板）
-    → postFrontendToolAck({ toolCallId, status, output })  ← POST /ai/tools/ack
-    ↓
-后端 frontendToolAckRoutes
-    → resolveFrontendToolPending(payload)  ← Promise resolve
-    ↓
-后端工具返回结果，AI 循环继续
-```
-
 ### 案例：open-url 工具
 
 **1. 共享类型定义**
 
-```typescript
-// packages/api/src/types/tools/browser.ts
-export const openUrlToolDef = {
-  id: "open-url",
-  parameters: z.object({
-    actionName: z.string().min(1),
-    url: z.string(),
-    title: z.string().optional(),
-    timeoutSec: z.number().int().positive().optional(),
-  }),
-}
-```
-
 **2. 后端工具**（阻塞等待前端回执）
-
-```typescript
-// apps/server/src/ai/tools/openUrl.ts
-export const openUrlTool = tool({
-  execute: async (input, options) => {
-    requireTabId()  // 前端执行工具必须有 tabId
-    const result = await registerFrontendToolPending({
-      toolCallId: options.toolCallId,
-      timeoutSec: normalizeTimeoutSec(input.timeoutSec),
-    })
-    // result.status: "success" | "timeout" | "failed"
-    return result
-  },
-})
-```
 
 **3. 前端执行器**（自动执行 + 回执）
 
-```typescript
-// apps/web/src/lib/chat/frontend-tool-executor.ts
-// 创建执行器并注册 handler
-const executor = createFrontendToolExecutor()
-registerDefaultFrontendToolHandlers(executor)
-
-// open-url handler 核心逻辑：
-executor.register("open-url", async ({ input, tabId }) => {
-  const url = normalizeUrl(input.url)
-  // 前端操作：推入浏览器面板到 Tab Stack
-  useTabRuntime.getState().pushStackItem(tabId, {
-    component: BROWSER_WINDOW_COMPONENT,
-    params: { __open: { url, title, viewKey } },
-  })
-  // Electron 环境等待页面加载完成
-  if (window.openloafElectron) {
-    await waitForWebContentsViewReady(viewKey)
-  }
-  return { status: "success", output: { url, viewKey } }
-})
-// handler 返回后，executor 自动 POST /ai/tools/ack
-```
-
 **4. 前端工具卡片**（消息中的可点击 UI）
-
-```typescript
-// apps/web/src/components/chat/message/tools/OpenUrlTool.tsx
-// UnifiedTool 中路由：toolKind === "open-url" → <OpenUrlTool />
-// 渲染为可点击链接，用户点击也可手动打开浏览器面板
-```
-
-### PendingRegistry 核心机制
-
-```typescript
-// apps/server/src/ai/tools/pendingRegistry.ts
-registerFrontendToolPending({ toolCallId, timeoutSec })
-  → 返回 Promise，超时自动 resolve 为 { status: "timeout" }
-  → 每个 toolCallId 只能注册一次
-
-resolveFrontendToolPending(payload)
-  → 找到 pending → resolve Promise → 返回 "resolved"
-  → 未找到 → 存为 early ack（30s TTL）→ 返回 "stored"
-  → early ack 解决前端回执先于后端注册的时序问题
-```
 
 ### 添加新的前端执行工具
 
@@ -382,15 +192,6 @@ resolveFrontendToolPending(payload)
 
 **后端推送事件：**
 
-```typescript
-// apps/server/src/ai/tools/mediaGenerateTools.ts
-const writer = getUiWriter()
-writer?.write({ type: 'data-media-generate-start', data: { toolCallId, kind, prompt } })
-writer?.write({ type: 'data-media-generate-progress', data: { toolCallId, progress } })
-writer?.write({ type: 'data-media-generate-end', data: { toolCallId, urls } })
-writer?.write({ type: 'data-media-generate-error', data: { toolCallId, errorCode } })
-```
-
 **前端监听（ChatCoreProvider.tsx）：**
 
 `handleMediaGenerateDataPart` 函数处理上述事件，更新 `AnyToolPart.mediaGenerate` 字段。
@@ -405,18 +206,6 @@ writer?.write({ type: 'data-media-generate-error', data: { toolCallId, errorCode
 2. `ChatCoreProvider.tsx` 中添加 `handleXxxDataPart` 函数处理事件
 3. `tool-utils.ts` 的 `AnyToolPart` 类型新增对应字段
 4. 创建专用渲染组件，在 `UnifiedTool.tsx` 中路由
-
-### Key Files
-
-```
-apps/server/src/ai/tools/pendingRegistry.ts      ← Promise 注册/回执/超时
-apps/server/src/ai/tools/openUrl.ts               ← open-url 后端实现
-apps/server/src/ai/interface/routes/frontendToolAckRoutes.ts  ← POST /ai/tools/ack
-apps/web/src/lib/chat/frontend-tool-executor.ts   ← 前端执行器 + handler 注册
-apps/web/src/components/chat/message/tools/OpenUrlTool.tsx    ← 前端工具卡片
-```
-
-## Debugging Tips
 
 ### 前端
 1. **消息检查**: `useChatState().messages` 查看完整消息数组

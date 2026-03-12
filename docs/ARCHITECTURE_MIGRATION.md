@@ -71,7 +71,7 @@
 | **Sidebar.tsx** | SidebarHeader 顶部渲染 `<SidebarUserAccount />`，移除原 SidebarWorkspace 引用 |
 | **WorkspaceBootstrap.tsx** | 兼容层启动器，仅负责默认 workspace cookie 与默认 AI 标签页初始化；底层直接读取项目存储根查询，不再依赖 `useWorkspace()` hook |
 | **Scope 替换** | 6 个组件中 `"workspace"` → `"global"`：`use-main-agent-model.ts`、`AgentDetailPanel.tsx`、`AgentManagement.tsx`、`ProjectAgentView.tsx`、`SkillsSettingsPanel.tsx`、`ScheduledTaskDialog.tsx` |
-| **workspaceId / useWorkspace 清理** | 继续清理 AI、Board、Calendar、Email、File、Desktop、Tasks、Settings、Project 页面中的 `workspaceId` 传递与 `useWorkspace()` 依赖；前端业务组件已不再直接依赖 `useWorkspace()`，当前仅保留 `WorkspaceBootstrap.tsx` 兼容副作用层；Calendar 页面/任务聚合/Electron 桥接类型、Email 页面/栈/下载链接/OAuth、Search 弹层 / recent-open 本地缓存、Markdown / Terminal 文件视图、AI Widget 工具的目录预览、Settings 中 Skills / Agent 管理页的目录定位逻辑，以及 BoardViewer / CanvasListPage / Sidebar 画布列表 / SidebarProject / DesktopTileGridstack / QuickActionsWidget / TestSetting 的全局根目录回退都已不再依赖前端 workspace compat 查询；AI 聊天侧的 `ChatSessionContext` / `ChatCoreProvider` / `Chat.ts` / `ChatInput` / `MessageList` / `MessageHelper` / `MessageHuman` / `ChatProjectSelector` 也已去除 `workspaceId` 传递，附件与 session files 上传仅依赖 `sessionId` + `projectId` |
+| **workspaceId / useWorkspace 清理** | 继续清理 AI、Board、Calendar、Email、File、Desktop、Tasks、Settings、Project 页面中的 `workspaceId` 传递与 `useWorkspace()` 依赖；前端业务组件已不再直接依赖 `useWorkspace()`，当前仅保留 `WorkspaceBootstrap.tsx` 兼容副作用层；Calendar 页面/任务聚合/Electron 桥接类型、Email 页面/栈/下载链接/OAuth、Search 弹层 / recent-open 本地缓存、Markdown / Terminal 文件视图、AI Widget 工具的目录预览、Settings 中 Skills / Agent 管理页的目录定位逻辑，以及 BoardViewer / CanvasListPage / Sidebar 画布列表 / SidebarProject / DesktopTileGridstack / QuickActionsWidget / TestSetting 的全局根目录回退都已不再依赖前端 workspace compat 查询；AI 聊天侧的 `ChatSessionContext` / `ChatCoreProvider` / `Chat.ts` / `ChatInput` / `MessageList` / `MessageHelper` / `MessageHuman` / `ChatProjectSelector` 也已去除 `workspaceId` 传递，附件与 session files 上传仅依赖 `sessionId` + `projectId`；本轮已完成 board 节点、协作层、媒体生成、chat projection 与预览链路的 `workspaceId` 收口 |
 | **Hooks** | `use-tabs.ts`（移除 workspaceId 字段及 workspaceTabs 逻辑）、`use-navigation.ts`、`use-sidebar-navigation.ts`、`use-chat-sessions.ts` 等 |
 | **i18n** | `nav.json`（3 语言）更新导航翻译 key |
 
@@ -170,11 +170,14 @@
 - [ ] 清理残留的 workspace 相关注释和死代码
   - 已继续清理 File Viewer / recent-open / attachment cache / Electron FS transfer / Widget tool 等注释与文案
   - 已删除 `apps/server/src/shared/errorMessages.ts` 中未引用的旧 `WORKSPACE_*` / `NO_WORKSPACE_ROOT` 错误键
-  - 非 board/sidebar 安全范围内，代码层 `workspaceId` 残留已清零；当前仅 board/media 调用侧仍会通过兼容 options bag 传旧 preview scope 字段
+  - 代码层 `workspaceId` 残留已清零；当前剩余主要集中在 legacy 兼容 helper、测试 schema 与技能文档中的历史说明
 - [ ] 更新 `.agents/skills/` 中引用 workspace 的 skill 文档
   - 已同步 `chat-ai-development/chat-frontend.md`
   - 已同步 `file-system-development/backend-api.md`
   - 已同步 `file-system-development/path-conventions.md`
+  - 已同步 `board-canvas-development/engine-api.md`
+  - 已同步 `board-canvas-development/performance-and-collab.md`
+  - 已同步 `board-canvas-development/media-generation.md`
 
 ---
 

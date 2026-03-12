@@ -17,6 +17,8 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { getTabViewById } from "@/hooks/use-tab-view";
 import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
+import { applyProjectShellToTab } from "@/lib/project-shell";
 
 export type GlobalShortcutDefinition = {
   id: string;
@@ -144,6 +146,19 @@ function openSingletonTab(
 export function openSettingsTab(settingsMenu?: string) {
   const { activeTabId } = useTabs.getState();
   if (!activeTabId) return;
+
+  const activeTab = useTabs.getState().getTabById(activeTabId);
+  const projectShell = resolveProjectModeProjectShell(activeTab?.projectShell, "settings");
+  if (projectShell) {
+    applyProjectShellToTab(activeTabId, {
+      ...projectShell,
+      section: "settings",
+    });
+    if (settingsMenu) {
+      useTabRuntime.getState().setTabBaseParams(activeTabId, { settingsMenu });
+    }
+    return;
+  }
 
   const { runtimeByTabId, setTabBase, setTabBaseParams } = useTabRuntime.getState();
   const runtime = runtimeByTabId[activeTabId];

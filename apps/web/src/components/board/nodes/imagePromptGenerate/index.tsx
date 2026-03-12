@@ -30,7 +30,6 @@ import { createChatSessionId } from "@/lib/chat-session-id";
 import { getWebClientId } from "@/lib/chat/streamClientId";
 import { getClientTimeZone } from "@/utils/time-zone";
 import type { OpenLoafUIMessage } from "@openloaf/api/types/message";
-import { getWorkspaceIdFromCookie } from "../../core/boardSession";
 import { toast } from "sonner";
 import {
   Select,
@@ -149,8 +148,6 @@ export function ImagePromptGenerateNodeView({
   const resizeRafRef = useRef<number | null>(null);
   /** Runtime running flag for this node. */
   const [isRunning, setIsRunning] = useState(false);
-  /** Workspace id used for SSE payload metadata. */
-  const resolvedWorkspaceId = useMemo(() => getWorkspaceIdFromCookie(), []);
   const errorText = element.props.errorText ?? "";
   const resultText = element.props.resultText ?? "";
   // 逻辑：输入以”连线关系”为准，同时支持 image 和 video 源节点。
@@ -351,7 +348,6 @@ export function ImagePromptGenerateNodeView({
           messages: [userMessage],
           clientId: getWebClientId() || undefined,
           timezone: getClientTimeZone(),
-          workspaceId: resolvedWorkspaceId || undefined,
           projectId: boardFolderScope?.projectId ?? fileContext?.projectId ?? undefined,
           boardId: fileContext?.boardId ?? undefined,
           trigger: "board-image-prompt",
@@ -407,7 +403,6 @@ export function ImagePromptGenerateNodeView({
       fileContext?.boardId,
       fileContext?.projectId,
       fileContext?.rootUri,
-      resolvedWorkspaceId,
     ]
   );
 

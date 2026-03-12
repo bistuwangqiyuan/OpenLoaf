@@ -116,7 +116,6 @@ function resolveImageSource(uri: string, fileContext?: BoardFileContext) {
   if (!projectPath) return "";
   return getPreviewEndpoint(projectPath, {
     projectId: fileContext?.projectId,
-    workspaceId: fileContext?.workspaceId,
   });
 }
 
@@ -393,7 +392,6 @@ export function ImageNodeView({
         // 逻辑：ImageNode 复用预览 URL，避免 data url 二次加载闪烁。
         const payload = await buildImageNodePayloadFromUri(resolvedOriginal, {
           projectId: fileContext?.projectId,
-          workspaceId: fileContext?.workspaceId,
           maxPreviewBytes: IMAGE_NODE_PREVIEW_MAX_BYTES,
           previewMode: "none",
         });

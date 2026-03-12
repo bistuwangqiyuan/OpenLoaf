@@ -69,11 +69,10 @@ export function isImageFile(file: File): boolean {
 export async function saveBoardAssetFile(input: {
   file: File;
   fallbackName: string;
-  workspaceId: string;
   projectId?: string;
   boardFolderUri: string;
 }): Promise<string> {
-  const { file, fallbackName, workspaceId, projectId, boardFolderUri } = input;
+  const { file, fallbackName, projectId, boardFolderUri } = input;
   const assetsFolderUri = buildChildUri(boardFolderUri, BOARD_ASSETS_DIR_NAME);
   await trpcClient.fs.mkdir.mutate({
     projectId,

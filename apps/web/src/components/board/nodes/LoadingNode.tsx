@@ -41,8 +41,6 @@ export type LoadingNodeProps = {
   promptText?: string;
   /** Chat model id (profileId:modelId). */
   chatModelId?: string;
-  /** Workspace id for file operations. */
-  workspaceId?: string;
   /** Project id for file operations. */
   projectId?: string;
   /** Save directory for generated assets. */
@@ -55,7 +53,6 @@ const LoadingNodeSchema = z.object({
   sourceNodeId: z.string().optional(),
   promptText: z.string().optional(),
   chatModelId: z.string().optional(),
-  workspaceId: z.string().optional(),
   projectId: z.string().optional(),
   saveDir: z.string().optional(),
 });
@@ -92,7 +89,6 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
   const taskType = element.props.taskType ?? "video_generate";
   const promptText = (element.props.promptText ?? "").trim();
   const sourceNodeId = element.props.sourceNodeId ?? "";
-  const workspaceId = element.props.workspaceId ?? "";
   const projectId = element.props.projectId ?? "";
 
   const promptLabel = promptText || t('loading.processing');
@@ -164,7 +160,6 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
                 resultUrls.map((resultUrl: string) =>
                   buildImageNodePayloadFromUri(resultUrl, {
                     projectId: projectId || undefined,
-                    workspaceId: workspaceId || undefined,
                   })
                 )
               );
@@ -257,7 +252,7 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
                 projectId,
                 uri: scopedPath,
               }),
-              workspaceId && projectId && relativePath
+              projectId && relativePath
                 ? trpcClient.fs.thumbnails.query({
                     projectId,
                     uris: [relativePath],
@@ -402,7 +397,6 @@ export const LoadingNodeDefinition: CanvasNodeDefinition<LoadingNodeProps> = {
     sourceNodeId: "",
     promptText: "",
     chatModelId: "",
-    workspaceId: "",
     projectId: "",
     saveDir: "",
   },

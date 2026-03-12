@@ -33,17 +33,7 @@ const SESSION_TITLE = '🧪 工具 UI 组件展示'
 
 async function main() {
   try {
-    // 1. Read workspaceId from the first existing chat session (if any)
-    let workspaceId: string | null = null
-    const existingSession = await prisma.chatSession.findFirst({
-      where: { workspaceId: { not: null } },
-      select: { workspaceId: true },
-    })
-    if (existingSession?.workspaceId) {
-      workspaceId = existingSession.workspaceId
-    }
-
-    // 2. Upsert the chat session
+    // 1. Upsert the global showcase chat session
     const messageCount = TOOL_SHOWCASE_GROUPS.length * 2 // user + assistant per group
     const now = new Date()
 
@@ -54,7 +44,6 @@ async function main() {
         title: SESSION_TITLE,
         isUserRename: true,
         isPin: true,
-        workspaceId,
         messageCount,
         createdAt: now,
         updatedAt: now,
@@ -70,7 +59,7 @@ async function main() {
 
     console.log(`✓ ChatSession upserted: ${SESSION_ID}`)
 
-    // 3. Write messages.jsonl
+    // 2. Write messages.jsonl
     const chatHistoryDir = resolveOpenLoafPath('chat-history', SESSION_ID)
     fs.mkdirSync(chatHistoryDir, { recursive: true })
 

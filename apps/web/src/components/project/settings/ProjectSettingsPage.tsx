@@ -174,6 +174,12 @@ export default function ProjectSettingsPage({
   }, [activeKey, allMenuItems]);
 
   useEffect(() => {
+    if (!isProjectSettingsMenuKey(settingsMenu)) return;
+    if (settingsMenu === activeKey) return;
+    setActiveKey(settingsMenu);
+  }, [activeKey, settingsMenu]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 

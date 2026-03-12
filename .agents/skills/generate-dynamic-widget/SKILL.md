@@ -6,8 +6,6 @@ description: >
   list/get → read-file → apply-patch → check for modifications.
 ---
 
-# Generate Dynamic Widget
-
 ## Overview
 
 动态 Widget 是用户通过 AI 生成的自包含桌面组件，存储在 `~/.openloaf/dynamic-widgets/<widget-id>/`。
@@ -32,84 +30,9 @@ description: >
 | `apply-patch` | 写入/覆盖文件（已有工具） | 是 |
 | `read-file` | 读取文件内容（已有工具） | 否 |
 
-## 工作流
-
-### 创建新 Widget
-
-```
-1. widget-init → 获得 widgetId + widgetDir + 文件列表
-2. apply-patch widgetDir/widget.tsx → 写入完整 React 组件
-3. apply-patch widgetDir/functions.ts → 写入完整服务端函数
-4. widget-check → 验证编译 + 前端显示预览
-```
-
-### 修改已有 Widget
-
-```
-1. widget-list 或 widget-get → 找到目标 widget
-2. read-file → 读取当前代码
-3. apply-patch → 修改文件
-4. widget-check → 验证 + 前端显示更新后的预览
-```
-
-### 查看 Widget 列表
-
-```
-1. widget-list → 返回所有 widget 信息
-```
-
-## widget-init 参数
-
-```typescript
-{
-  actionName: string,        // 本次调用目的
-  widgetName: string,        // kebab-case，如 "tesla-stock"
-  widgetDescription: string, // 中文描述
-  size?: {                   // Desktop Grid 单位（列×行），可选
-    defaultW, defaultH, minW, minH, maxW, maxH
-  },
-  functionNames: string[],   // 仅函数名，不含实现
-  envVars?: [{               // 环境变量（可选）
-    key, placeholder, comment?
-  }],
-}
-```
-
 ## widget.tsx 编写规范
 
 AI 用 `apply-patch` 写入完整的 `widget.tsx` 文件。文件必须：
-
-```tsx
-import type { WidgetProps } from '@openloaf/widget-sdk'
-import { useWidgetData, useWidgetTheme } from '@openloaf/widget-sdk'
-
-export default function Widget({ sdk }: WidgetProps) {
-  const { data, loading, error } = useWidgetData(sdk, 'functionName', {
-    refreshInterval: 60000,
-  })
-  const theme = useWidgetTheme(sdk)
-
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <div className="text-xs">加载中...</div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center text-destructive">
-        <div className="text-xs">{error}</div>
-      </div>
-    )
-  }
-
-  return (
-    // 你的 UI JSX
-  )
-}
-```
 
 关键规则：
 - 根元素保持 `h-full` 填满容器
@@ -121,36 +44,6 @@ export default function Widget({ sdk }: WidgetProps) {
 ## functions.ts 编写规范
 
 AI 用 `apply-patch` 写入完整的 `functions.ts` 文件。文件必须包含：
-
-```typescript
-import { config } from 'dotenv'
-import { resolve } from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = resolve(fileURLToPath(import.meta.url), '..')
-config({ path: resolve(__dirname, '.env') })
-
-export async function myFunction() {
-  // 实际实现
-  return { /* 可 JSON 序列化的对象 */ }
-}
-
-// 入口：根据命令行参数调用对应函数
-const functionName = process.argv[2]
-const fn: Record<string, () => Promise<unknown>> = { myFunction }
-const handler = fn[functionName]
-if (handler) {
-  handler()
-    .then((r) => console.log(JSON.stringify(r)))
-    .catch((e) => {
-      console.error(e.message)
-      process.exit(1)
-    })
-} else {
-  console.error(`Unknown function: ${functionName}`)
-  process.exit(1)
-}
-```
 
 关键规则：
 - 必须返回可 JSON 序列化的对象
@@ -177,23 +70,6 @@ if (handler) {
 | `sdk.chat(message)` | 触发 AI 聊天 |
 | `sdk.openTab(type, params?)` | 打开 tab |
 
-## 完整示例：天气 Widget
-
-### Step 1: widget-init
-
-```json
-{
-  "actionName": "初始化天气 Widget 脚手架",
-  "widgetName": "weather",
-  "widgetDescription": "实时天气 Widget",
-  "functionNames": ["getWeather"],
-  "envVars": [
-    { "key": "OPENWEATHER_API_KEY", "placeholder": "your_api_key_here", "comment": "OpenWeatherMap API Key" },
-    { "key": "WEATHER_CITY", "placeholder": "Beijing", "comment": "城市名称" }
-  ]
-}
-```
-
 ### Step 2: apply-patch widget.tsx
 
 完整的 React 组件代码（参考上方 widget.tsx 编写规范）。
@@ -201,15 +77,6 @@ if (handler) {
 ### Step 3: apply-patch functions.ts
 
 完整的服务端函数代码（参考上方 functions.ts 编写规范）。
-
-### Step 4: widget-check
-
-```json
-{
-  "actionName": "验证天气 Widget",
-  "widgetId": "dw_weather_1234567890"
-}
-```
 
 ## 安全与限制
 

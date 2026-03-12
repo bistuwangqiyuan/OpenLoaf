@@ -28,25 +28,6 @@ OpenLoaf 使用 **Prisma Migrate + 自定义 migrationRunner** 实现数据库 s
 
 ---
 
-## Architecture Overview
-
-```
-开发时                          构建时                        运行时
-────────                      ──────                      ──────
-prisma migrate dev            generate-migrations-index    migrationRunner
-  ↓                             ↓                            ↓
-prisma/migrations/            migrations.generated.ts      检查 _prisma_migrations 表
-  20260307000000_baseline/      (SQL 内嵌为字符串)             ↓
-  20260310_add_feature/           ↓                        执行未应用的迁移
-  ...                         esbuild bundle                 ↓
-                                ↓                          记录到 _prisma_migrations
-                              server.mjs (含所有迁移SQL)
-                                ↓
-                              prisma migrate deploy
-                                ↓
-                              seed.db (含 _prisma_migrations 记录)
-```
-
 ## Key Files
 
 | 文件 | 用途 |
@@ -62,42 +43,12 @@ prisma/migrations/            migrations.generated.ts      检查 _prisma_migrat
 
 ## 迁移文件结构
 
-```
-packages/db/prisma/migrations/
-  20260307000000_baseline/          ← 基线：当前完整 schema 的 CREATE TABLE
-    migration.sql
-  20260310090000_add_chat_pinned/   ← 增量变更
-    migration.sql
-  20260315120000_add_project_tags/  ← 增量变更
-    migration.sql
-```
-
 - 目录名格式：`YYYYMMDDHHMMSS_description`
 - 每个目录包含一个 `migration.sql`
 - **baseline 迁移**（`20260307000000_baseline`）是当前完整 schema 的快照
 - 迁移文件**必须提交到 Git**
 
 ---
-
-## Development Workflow
-
-### 新增 Schema 变更
-
-```bash
-# 1. 修改 Prisma schema 文件
-#    packages/db/prisma/schema/chat.prisma（或其他 .prisma 文件）
-
-# 2. 生成迁移文件（开发环境）
-pnpm run db:migrate
-# 等同于: prisma migrate dev --name <description>
-# 会提示输入迁移名称，自动生成 SQL 文件
-
-# 3. 重新生成 Prisma Client
-pnpm run db:generate
-
-# 4. 验证类型正确
-pnpm run check-types
-```
 
 ### 迁移 SQL 编写规范
 
@@ -125,40 +76,13 @@ pnpm run check-types
 
 `apps/server/scripts/build-prod.mjs` 的构建流程：
 
-```
-Step 1: pnpm --filter @openloaf/db db:generate-migrations-index
-        → 扫描 prisma/migrations/ 生成 migrations.generated.ts
-        → 每个迁移包含 { name, sql, checksum(sha256) }
-
-Step 2: esbuild bundle
-        → migrations.generated.ts 被内联到 server.mjs
-        → server.mjs 包含所有历史迁移 SQL
-
-Step 3: prisma migrate deploy (OPENLOAF_DATABASE_URL=file:dist/seed.db)
-        → 创建 seed.db 并应用所有迁移
-        → seed.db 中的 _prisma_migrations 表记录了所有已应用的迁移
-
-Step 4: 清理业务数据（保留 _prisma_migrations 表！）
-        → DELETE FROM 所有业务表
-        → VACUUM
-
-产出: dist/server.mjs + dist/seed.db
-```
-
 **关键**：清理 seed.db 时**不能删除 `_prisma_migrations` 表的数据**，否则新用户首次启动时 migrationRunner 会重复执行所有迁移导致 `table already exists` 错误。
 
 ---
 
-## Runtime Migration (migrationRunner)
-
 ### 执行时机
 
 server 启动时，在 `initDatabase()` 之前调用：
-
-```typescript
-const { applied } = await runPendingMigrations(prisma, embeddedMigrations)
-await initDatabase()  // WAL mode + busy_timeout
-```
 
 ### 三种用户场景
 
@@ -180,70 +104,23 @@ await initDatabase()  // WAL mode + busy_timeout
 
 迁移按目录名（时间戳）排序，逐个执行。用户从 v0.2.0 跳到 v0.5.0：
 
-```
-_prisma_migrations 中已有：001, 002, 003
-server.mjs 内嵌：001, 002, 003, 004, 005, 006, 007
-→ 执行 004, 005, 006, 007
-```
-
 无需关心用户跳过了多少个版本，所有未应用的迁移按序执行。
 
 ---
-
-## Database Backup & Rollback
 
 ### 备份时机
 
 增量更新下载新 server 前（`incrementalUpdate.ts`）：
 
-```
-检测到 server 有更新
-  → backupDatabase()
-    → 复制 openloaf.db → openloaf.db.pre-update.bak
-    → 复制 openloaf.db-wal → openloaf.db.pre-update.bak-wal（如存在）
-    → 复制 openloaf.db-shm → openloaf.db.pre-update.bak-shm（如存在）
-  → 下载并应用新 server
-```
-
 ### 恢复时机
 
 server 崩溃触发 `recordServerCrash()` 时：
 
-```
-server 异常退出 (exit code ≠ 0)
-  → recordServerCrash()
-    → 删除增量更新的 server/current
-    → restoreDatabase()  ← 恢复更新前的 DB 备份
-    → 崩溃版本加入黑名单
-    → 回退到打包版本的 server
-```
-
 ### 文件位置
-
-```
-~/.openloaf/
-  openloaf.db                      ← 生产数据库
-  openloaf.db.pre-update.bak       ← 更新前备份
-  openloaf.db.pre-update.bak-wal   ← WAL 备份
-  openloaf.db.pre-update.bak-shm   ← SHM 备份
-```
 
 ---
 
 ## _prisma_migrations Table Schema
-
-```sql
-CREATE TABLE "_prisma_migrations" (
-  "id"                    TEXT PRIMARY KEY NOT NULL,
-  "checksum"              TEXT NOT NULL,        -- SHA-256 of migration SQL
-  "finished_at"           DATETIME,
-  "migration_name"        TEXT NOT NULL,        -- e.g. "20260307000000_baseline"
-  "logs"                  TEXT,
-  "rolled_back_at"        DATETIME,
-  "started_at"            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "applied_steps_count"   INTEGER NOT NULL DEFAULT 0
-);
-```
 
 与 Prisma 官方 `prisma migrate deploy` 完全兼容。
 
@@ -263,17 +140,11 @@ CREATE TABLE "_prisma_migrations" (
 
 ---
 
-## Troubleshooting
-
 ### 迁移失败：table already exists
 
 **原因**：seed.db 中 `_prisma_migrations` 被清空，或老用户 baseline 未正确标记。
 
 **修复**：手动插入 baseline 记录：
-```sql
-INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, started_at, applied_steps_count)
-VALUES ('manual-baseline', '<checksum>', datetime('now'), '20260307000000_baseline', datetime('now'), 1);
-```
 
 ### 迁移失败：column already exists
 

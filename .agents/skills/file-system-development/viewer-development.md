@@ -1,6 +1,4 @@
-# Viewer Development
 
-## 添加新 Viewer：3 步流程
 
 ### Step 1: 创建 Viewer 组件
 

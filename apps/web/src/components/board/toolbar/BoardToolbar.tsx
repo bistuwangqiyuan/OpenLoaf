@@ -319,7 +319,6 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const { fileContext } = useBoardContext();
-  const workspaceId = fileContext?.workspaceId ?? "";
   const [videoPickerOpen, setVideoPickerOpen] = useState(false);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
   const imageImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -461,16 +460,15 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   /** Persist a file into the board assets folder. */
   const saveBoardAssetFile = useCallback(
     async (file: File, fallbackName: string) => {
-      if (!workspaceId || !fileContext?.boardFolderUri) return "";
+      if (!fileContext?.boardFolderUri) return "";
       return saveBoardAssetFileUtil({
         file,
         fallbackName,
-        workspaceId,
         projectId: fileContext?.projectId,
         boardFolderUri: fileContext.boardFolderUri,
       });
     },
-    [fileContext?.boardFolderUri, fileContext?.projectId, workspaceId]
+    [fileContext?.boardFolderUri, fileContext?.projectId]
   );
 
   // buildVideoPosterFromFile is now imported from board-asset.ts
@@ -937,7 +935,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         size: [maxWidth, maxHeight],
       });
     },
-    [engine, workspaceId]
+    [handleInsertRequest]
   );
 
   /** Open the project file picker for generic files. */

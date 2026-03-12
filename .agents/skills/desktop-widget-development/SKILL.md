@@ -3,8 +3,6 @@ name: desktop-widget-development
 description: Desktop 区域与 widget 组件开发指南。用于在 apps/web/src/components/desktop 添加或修改 widget 组件、调整 Desktop 布局与编辑交互、更新 widget catalog 或持久化逻辑时使用；也用于快速理解 Desktop 的基本架构与数据流。
 ---
 
-# Desktop Widget Development
-
 ## 目标
 
 - 指导在 `apps/web/src/components/desktop` 里新增/修改 widget 组件
@@ -93,19 +91,6 @@ description: Desktop 区域与 widget 组件开发指南。用于在 apps/web/sr
 ## 动态 Widget 系统
 
 除了内置的静态 widget，系统支持 AI 动态生成的 widget。动态 widget 存储在 `~/.openloaf/dynamic-widgets/` 目录下。
-
-### 架构
-
-```
-Widget（React .tsx）
-  ↕ @openloaf/widget-sdk（纯桥接，无 UI 依赖）
-  ↕ props callback
-DynamicWidgetRenderer（Client）/ WidgetTool（Chat 预览）
-  ↕ tRPC dynamicWidget router
-Server
-  - esbuild 编译 widget.tsx（external: react/react-dom/react-jsx-runtime）
-  - child_process.spawn 执行 functions.ts
-```
 
 ### 关键文件
 

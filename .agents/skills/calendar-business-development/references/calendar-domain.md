@@ -2,8 +2,6 @@
 
 仅记录业务字段约定与数据映射细节，避免界面描述。
 
-## 数据结构
-
 ### CalendarSource
 
 - `provider`: `local` 为本地来源，其他为系统来源。
@@ -59,10 +57,6 @@
 ## AI 工具数据流
 
 AI Agent 通过 `calendarTools.ts` 中的工具操作日历，数据流：
-
-```
-LLM → calendar-query/calendar-mutate → appRouter.createCaller(ctx).calendar → tRPC routers → Prisma → SQLite
-```
 
 ### 返回字段精简策略
 

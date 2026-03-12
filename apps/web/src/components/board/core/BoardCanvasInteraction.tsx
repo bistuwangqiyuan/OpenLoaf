@@ -706,9 +706,8 @@ export function BoardCanvasInteraction({
 
   /** Insert video files at a canvas point: save to board assets, capture poster, add nodes. */
   const insertVideoFilesAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     const videoFiles = files.filter(isVideoFile);
     if (videoFiles.length === 0) return;
     for (const [index, file] of videoFiles.entries()) {
@@ -716,7 +715,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: "video.mp4",
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });
@@ -755,9 +753,8 @@ export function BoardCanvasInteraction({
 
   /** Insert audio files at a canvas point: save to board assets, get duration, add nodes. */
   const insertAudioFilesAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     const audioFiles = files.filter(isAudioFile);
     if (audioFiles.length === 0) return;
     for (const [index, file] of audioFiles.entries()) {
@@ -765,7 +762,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: "audio.mp3",
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });
@@ -795,9 +791,8 @@ export function BoardCanvasInteraction({
 
   /** Insert generic file attachments at a canvas point. */
   const insertFileAttachmentsAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     if (files.length === 0) return;
     for (const [index, file] of files.entries()) {
       try {
@@ -805,7 +800,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: `file.${ext || "bin"}`,
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });

@@ -26,24 +26,9 @@ equipped with procedural knowledge that no model can fully possess.
 
 Every skill consists of a required SKILL.md file and optional bundled resources:
 
-```
-skill-name/
-├── SKILL.md (required)
-│   ├── YAML frontmatter metadata (required)
-│   │   ├── name: (required)
-│   │   └── description: (required)
-│   └── Markdown instructions (required)
-└── Bundled Resources (optional)
-    ├── scripts/          - Executable code (Python/Bash/etc.)
-    ├── references/       - Documentation intended to be loaded into context as needed
-    └── assets/           - Files used in output (templates, icons, fonts, etc.)
-```
-
 #### SKILL.md (required)
 
 **Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
-
-#### Bundled Resources (optional)
 
 ##### Scripts (`scripts/`)
 
@@ -139,10 +124,6 @@ When creating a new skill from scratch, always run the `init_skill.py` script. T
 
 Usage:
 
-```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
-```
-
 The script:
 
 - Creates the skill directory at the specified path
@@ -176,15 +157,7 @@ To complete SKILL.md, answer the following questions:
 
 Once the skill is ready, it should be packaged into a distributable zip file that gets shared with the user. The packaging process automatically validates the skill first to ensure it meets all requirements:
 
-```bash
-scripts/package_skill.py <path/to/skill-folder>
-```
-
 Optional output directory specification:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder> ./dist
-```
 
 The packaging script will:
 

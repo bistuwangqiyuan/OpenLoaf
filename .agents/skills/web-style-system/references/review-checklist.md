@@ -9,8 +9,6 @@
 - `P2`: 中优先问题，体验质量下降但可继续使用
 - `P3`: 低优先问题，建议优化项
 
-## Review Dimensions
-
 ## A. Layout Structure
 
 检查项：
@@ -88,13 +86,6 @@
 4. Minimal remediation batches
 
 每条问题格式：
-
-```text
-[P1] file:line
-问题：...
-影响：...
-修复方向：...
-```
 
 ## Minimal Remediation Batching
 

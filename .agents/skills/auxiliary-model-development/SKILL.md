@@ -6,8 +6,6 @@ description: >
   prompts, or updating the auxiliary model settings UI.
 ---
 
-# Auxiliary Model Development
-
 ## Overview
 
 辅助模型（Auxiliary Model）是 OpenLoaf 中独立于主 Chat Agent 的轻量级推理层。它在后台静默运行，为项目分类、对话标题生成、输入建议等场景提供快速推理，失败时自动兜底，**绝不阻塞主流程**。
@@ -17,38 +15,6 @@ description: >
 - **3 秒超时**：每次推理 hard timeout 3s，防止慢模型拖垮体验
 - **5 分钟缓存**：相同 capability + context 的结果在内存中缓存 5 分钟
 - **与主 Agent 分离**：使用独立的模型配置（`auxiliary-model.json`），不影响聊天模型
-
-## Architecture
-
-```
-用户操作 / 系统事件
-    │
-    ▼
-业务代码调用 auxiliaryInfer() / auxiliaryInferText()
-    │
-    ├─ 0. 日志：记录 capabilityKey + context（截断 200 字符）
-    │
-    ├─ 1. 检查内存缓存（SHA-256 hash key）
-    │     └─ 命中 → 日志 + 直接返回
-    │
-    ├─ 2. 读取 auxiliary-model.json 配置
-    │     └─ modelSource (saas/cloud/local) → 分支
-    │
-    ├─ 3a. SaaS 分支 → saasClient.auxiliary.infer() 委托云端
-    ├─ 3b. Local/Cloud 分支 → resolveChatModel() 解析模型实例
-    │
-    ├─ 4. 构建 prompt（promptOverride > customPrompt > defaultPrompt）
-    │
-    ├─ 5. 调用 Vercel AI SDK（3s 超时）
-    │     ├─ structured → generateObject(schema)
-    │     └─ text → generateText()
-    │
-    ├─ 6. 写入缓存（TTL 5min）+ 日志：记录输出结果
-    │
-    └─ 7. 返回结果（或 fallback + warn 日志）
-```
-
-## Key Files Map
 
 ### 核心层
 
@@ -98,44 +64,7 @@ description: >
 
 选择 `outputMode` 的决策树：
 
-```
-需要 JSON 结构化数据？
-  ├─ 是 → "structured"（使用 generateObject + Zod schema）
-  └─ 否
-      ├─ 需要纯文本/自然语言？→ "text"（使用 generateText）
-      ├─ 需要调用工具？→ "tool-call"（预留，暂未实现）
-      └─ 需要执行 skill？→ "skill"（预留，暂未实现）
-```
-
 **当前可用**：`structured` 和 `text`。`tool-call` / `skill` 为预留扩展。
-
-## Calling Convention
-
-### structured 模式 — `auxiliaryInfer()`
-
-```typescript
-import { auxiliaryInfer } from '@/ai/services/auxiliaryInferenceService'
-import { CAPABILITY_SCHEMAS } from '@/ai/services/auxiliaryCapabilities'
-
-const result = await auxiliaryInfer({
-  capabilityKey: 'project.classify',
-  context: '文件列表:\n- package.json\n- src/index.ts\n- tsconfig.json',
-  schema: CAPABILITY_SCHEMAS['project.classify'],
-  fallback: { type: 'general', icon: '📁', confidence: 0 },
-})
-```
-
-### text 模式 — `auxiliaryInferText()`
-
-```typescript
-import { auxiliaryInferText } from '@/ai/services/auxiliaryInferenceService'
-
-const result = await auxiliaryInferText({
-  capabilityKey: 'text.translate',
-  context: '请将以下文本翻译为英文：你好世界',
-  fallback: '',
-})
-```
 
 ### 关键参数
 
@@ -166,22 +95,6 @@ text 模式日志格式相同，在 capabilityKey 后追加 `(text)` 标记。
 ## Frontend Mutation Pattern
 
 前端调用辅助能力的 tRPC mutation 统一使用 `@tanstack/react-query` 的 `useMutation` + `trpc.xxx.mutationOptions()` 模式：
-
-```typescript
-import { useMutation } from '@tanstack/react-query'
-import { trpc } from '@/utils/trpc'
-
-// ✅ 正确
-const mutation = useMutation(
-  trpc.settings.inferProjectName.mutationOptions({
-    onSuccess: (data) => { /* 处理结果 */ },
-    onError: (err) => { toast.error(err.message) },
-  }),
-)
-
-// ❌ 错误 — 本项目不使用此模式
-const mutation = trpc.settings.inferProjectName.useMutation()
-```
 
 ## Adding a New Capability (Quick)
 

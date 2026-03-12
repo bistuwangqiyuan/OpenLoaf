@@ -24,6 +24,7 @@ import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { cn } from "@/lib/utils";
+import { isProjectMode } from "@/lib/project-mode";
 
 import { PageTitle } from "./PageTitle";
 import { ModeToggle } from "./ModeToggle";
@@ -101,6 +102,7 @@ export const Header = () => {
     : "w-[6.5rem] ";
 
   const isSettingsPageActive = shouldDisableRightChat(activeTab);
+  const projectMode = isProjectMode(activeTab?.projectShell);
   const canToggleChat = Boolean(activeTab?.base) && !isSettingsPageActive;
   const isChatCollapsed = Boolean(activeTab?.rightChatCollapsed);
   const sidebarShortcut = formatShortcutLabel("Mod+Shift+B", isMac);
@@ -164,35 +166,37 @@ export const Header = () => {
             {t('search')} (⌘K)
           </TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              data-no-drag="true"
-              aria-pressed={isSettingsPageActive}
-              className={cn(
-                "h-8 w-8 shrink-0",
-                isSettingsPageActive
-                  ? "bg-orange-500/10 text-orange-700 hover:bg-orange-500/20 dark:bg-orange-400/15 dark:text-orange-300 dark:hover:bg-orange-400/25"
-                  : undefined,
-              )}
-              variant="ghost"
-              size="icon"
-              onClick={() => openSettingsTab()}
-            >
-              <Settings
+        {!projectMode ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                data-no-drag="true"
+                aria-pressed={isSettingsPageActive}
                 className={cn(
-                  "h-4 w-4 text-orange-700/70 dark:text-orange-300/70",
+                  "h-8 w-8 shrink-0",
                   isSettingsPageActive
-                    ? "text-orange-700 dark:text-orange-300"
+                    ? "bg-orange-500/10 text-orange-700 hover:bg-orange-500/20 dark:bg-orange-400/15 dark:text-orange-300 dark:hover:bg-orange-400/25"
                     : undefined,
                 )}
-              />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={6}>
-            {settingsShortcut ? t('header.openSettingsWithShortcut', { shortcut: settingsShortcut }) : t('header.openSettings')}
-          </TooltipContent>
-        </Tooltip>
+                variant="ghost"
+                size="icon"
+                onClick={() => openSettingsTab()}
+              >
+                <Settings
+                  className={cn(
+                    "h-4 w-4 text-orange-700/70 dark:text-orange-300/70",
+                    isSettingsPageActive
+                      ? "text-orange-700 dark:text-orange-300"
+                      : undefined,
+                  )}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={6}>
+              {settingsShortcut ? t('header.openSettingsWithShortcut', { shortcut: settingsShortcut }) : t('header.openSettings')}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
       </div>
       <div className="flex min-w-0 items-center gap-2 overflow-hidden pl-1">
         <div className="min-w-0 shrink-0">

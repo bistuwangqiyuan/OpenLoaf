@@ -60,7 +60,6 @@ function resolveProjectRelativePath(path: string, fileContext?: BoardFileContext
 
 /** Open video in the file preview dialog (same as double-click). */
 async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileContext) {
-  const workspaceId = fileContext?.workspaceId ?? "";
   const boardId = fileContext?.boardId ?? "";
   const projectRelativePath = resolveProjectRelativePath(props.sourcePath, fileContext);
   const resolvedPath = projectRelativePath || props.sourcePath;
@@ -81,7 +80,6 @@ async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileCo
         width: metadata?.width ?? props.naturalWidth,
         height: metadata?.height ?? props.naturalHeight,
         projectId: fileContext?.projectId,
-        workspaceId,
         rootUri: fileContext?.rootUri,
         boardId,
       },
@@ -115,12 +113,11 @@ function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
 /** Build an HLS manifest URL for a project-relative video path. */
 function buildHlsManifestUrl(
   path: string,
-  ids: { projectId?: string; workspaceId?: string; boardId?: string },
+  ids: { projectId?: string; boardId?: string },
 ) {
   const baseUrl = resolveServerUrl();
   const query = new URLSearchParams({ path });
   if (ids.projectId) query.set("projectId", ids.projectId);
-  if (ids.workspaceId) query.set("workspaceId", ids.workspaceId);
   if (ids.boardId) query.set("boardId", ids.boardId);
   const prefix = baseUrl ? `${baseUrl}/media/hls/manifest` : "/media/hls/manifest";
   return `${prefix}?${query.toString()}`;
@@ -130,12 +127,11 @@ function buildHlsManifestUrl(
 function buildHlsQualityUrl(
   path: string,
   quality: string,
-  ids: { projectId?: string; workspaceId?: string; boardId?: string },
+  ids: { projectId?: string; boardId?: string },
 ) {
   const baseUrl = resolveServerUrl();
   const query = new URLSearchParams({ path, quality });
   if (ids.projectId) query.set("projectId", ids.projectId);
-  if (ids.workspaceId) query.set("workspaceId", ids.workspaceId);
   if (ids.boardId) query.set("boardId", ids.boardId);
   const prefix = baseUrl ? `${baseUrl}/media/hls/manifest` : "/media/hls/manifest";
   return `${prefix}?${query.toString()}`;
@@ -167,11 +163,10 @@ export function VideoNodeView({
   const ids = useMemo(
     () => ({
       projectId: effectiveProjectId,
-      workspaceId: fileContext?.workspaceId,
       // 逻辑：仅 board-relative 路径需要 boardId，否则服务端会错误拼接板路径前缀。
       boardId: isBoardRelativePath(element.props.sourcePath) ? fileContext?.boardId : undefined,
     }),
-    [effectiveProjectId, fileContext?.workspaceId, fileContext?.boardId, element.props.sourcePath],
+    [effectiveProjectId, fileContext?.boardId, element.props.sourcePath],
   );
 
   const handlePlayInline = useCallback(() => {

@@ -34,6 +34,7 @@ import { useIsNarrowScreen } from "@/hooks/use-mobile";
 import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
 import { SidebarUserAccount } from "@/components/layout/sidebar/SidebarUserAccount";
 import { BOARD_VIEWER_COMPONENT } from "@/hooks/tab-utils";
+import { isProjectMode } from "@/lib/project-mode";
 
 const SIDEBAR_WORKSPACE_ACTIVE_CLASS =
   "data-[active=true]:!bg-sidebar-accent data-[active=true]:!text-sidebar-accent-foreground";
@@ -105,8 +106,7 @@ export const AppSidebar = ({
   const activeStackComponent = activeRuntime?.stack?.find((item) => item.id === activeRuntime.activeStackItemId)?.component
     ?? activeRuntime?.stack?.at(-1)?.component;
   const activeForegroundComponent = activeStackComponent ?? activeBaseComponent;
-  const shouldShowProjectSidebar =
-    Boolean(activeTab?.projectShell) && activeForegroundComponent !== "settings-page";
+  const shouldShowProjectSidebar = isProjectMode(activeTab?.projectShell);
   // 逻辑：ai-chat 的 base 会在 store 层被归一化为 undefined，需要用 title 兜底。
   const isMenuActive = (input: { baseId?: string; title?: string; component?: string }) => {
     if (!activeTab) return false;

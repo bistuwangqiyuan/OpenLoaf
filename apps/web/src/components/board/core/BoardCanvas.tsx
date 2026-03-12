@@ -73,8 +73,6 @@ export type BoardCanvasProps = {
   nodes?: CanvasNodeDefinition<any>[];
   /** Initial elements inserted once when mounted. */
   initialElements?: CanvasElement[];
-  /** Workspace id for storage isolation. */
-  workspaceId?: string;
   /** Project id used for file resolution. */
   projectId?: string;
   /** Project root uri for attachment resolution. */
@@ -188,7 +186,6 @@ export function BoardCanvas({
   engine: externalEngine,
   nodes,
   initialElements,
-  workspaceId,
   projectId,
   rootUri,
   boardId,
@@ -200,7 +197,6 @@ export function BoardCanvas({
   className,
 }: BoardCanvasProps) {
   const projectStorageRootUri = useProjectStorageRootUri();
-  const resolvedWorkspaceId = workspaceId?.trim() || "default";
   // 逻辑：全局画布统一回退到默认项目存储根，不再依赖 workspace compat 查询。
   const resolvedRootUri = rootUri?.trim() || projectStorageRootUri;
   const queryClient = useQueryClient();
@@ -685,7 +681,6 @@ export function BoardCanvas({
           closeImagePreview,
         }}
         fileContext={{
-          workspaceId: resolvedWorkspaceId || undefined,
           projectId,
           rootUri: resolvedRootUri,
           boardId: resolvedBoardId || undefined,
@@ -695,7 +690,6 @@ export function BoardCanvas({
         <BoardCanvasCollab
           engine={engine}
           initialElements={initialElements}
-          workspaceId={resolvedWorkspaceId}
           projectId={projectId}
           rootUri={resolvedRootUri}
           boardFolderUri={boardFolderUri}

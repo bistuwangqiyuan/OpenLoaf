@@ -21,7 +21,7 @@ const META_USER_AGENT =
 export type WebMetaCaptureInput = {
   /** Target url. */
   url: string;
-  /** Workspace/project root uri. */
+  /** Project storage or project root uri. */
   rootUri: string;
 };
 

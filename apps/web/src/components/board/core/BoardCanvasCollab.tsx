@@ -57,8 +57,6 @@ type BoardCanvasCollabProps = {
   engine: CanvasEngine;
   /** Initial elements injected when the board is empty. */
   initialElements?: CanvasElement[];
-  /** Workspace id for storage isolation. */
-  workspaceId: string;
   /** Project id used for file resolution. */
   projectId?: string;
   /** Project root uri for attachment resolution. */
@@ -234,7 +232,6 @@ function buildBoardDocPayload(
 export function BoardCanvasCollab({
   engine,
   initialElements,
-  workspaceId,
   projectId,
   rootUri,
   boardFolderUri,
@@ -333,7 +330,7 @@ export function BoardCanvasCollab({
     } catch {
       // 逻辑：写入失败时仍使用内存 docId，避免阻断协作。
     }
-  }, [metaFileUri, projectId, workspaceId]);
+  }, [metaFileUri, projectId]);
 
   /** Load or create the board doc id persisted in meta file. */
   const readOrCreateDocId = useCallback(async (): Promise<string> => {
@@ -354,7 +351,7 @@ export function BoardCanvasCollab({
       // 逻辑：缺少 meta 文件时生成内存 docId，延迟到首次修改时写入。
     }
     return createBoardDocId();
-  }, [metaFileUri, projectId, queryClient, workspaceId]);
+  }, [metaFileUri, projectId, queryClient]);
 
   /** Resolve a unique asset file name inside the board folder. */
   const resolveUniqueAssetName = useCallback(async (fileName: string) => {
@@ -374,7 +371,7 @@ export function BoardCanvasCollab({
     } catch {
       return safeName;
     }
-  }, [assetsFolderUri, projectId, queryClient, workspaceId]);
+  }, [assetsFolderUri, projectId, queryClient]);
 
   /** Persist an image file into the board assets folder. */
   const saveBoardAssetFile = useCallback(async (file: File) => {
@@ -393,7 +390,7 @@ export function BoardCanvasCollab({
       contentBase64,
     });
     return `${BOARD_ASSETS_DIR_NAME}/${uniqueName}`;
-  }, [assetsFolderUri, projectId, resolveUniqueAssetName, workspaceId]);
+  }, [assetsFolderUri, projectId, resolveUniqueAssetName]);
 
   /** Register a new transcoding task and return its id. */
   const registerTranscodeTask = useCallback(
@@ -522,7 +519,7 @@ export function BoardCanvasCollab({
   }, [engine, boardFolderUri]);
 
   useEffect(() => {
-    if (!workspaceId || !boardFolderUri) {
+    if (!boardFolderUri) {
       engine.setImagePayloadBuilder(null);
       return;
     }
@@ -563,7 +560,7 @@ export function BoardCanvasCollab({
     return () => {
       engine.setImagePayloadBuilder(null);
     };
-  }, [boardFolderUri, engine, saveBoardAssetFile, workspaceId]);
+  }, [boardFolderUri, engine, saveBoardAssetFile]);
 
   useEffect(() => {
     if (!rootUri) {
@@ -597,7 +594,6 @@ export function BoardCanvasCollab({
   }, [engine, rootUri]);
 
   useEffect(() => {
-    if (!workspaceId) return;
     if (!boardFolderUri && !boardFileUri) return;
     let disposed = false;
     let doc: Y.Doc | null = null;

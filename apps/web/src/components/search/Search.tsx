@@ -26,6 +26,7 @@ import { useTabView } from "@/hooks/use-tab-view";
 import { useProjects } from "@/hooks/use-projects";
 import { useDebounce } from "@/hooks/use-debounce";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
 import { WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { trpc } from "@/utils/trpc";
 import { useQueries, skipToken, useQuery } from "@tanstack/react-query";
@@ -77,6 +78,11 @@ export function Search({
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
+  const activeProjectShell = React.useMemo(
+    () => resolveProjectModeProjectShell(activeTab?.projectShell),
+    [activeTab?.projectShell],
+  );
+  const projectMode = Boolean(activeProjectShell);
   const { data: projects = [] } = useProjects();
   /** 当前搜索框输入值。 */
   const [searchValue, setSearchValue] = React.useState("");
@@ -117,20 +123,25 @@ export function Search({
   /** 当前激活 Tab 的聊天参数。 */
   const activeChatParams = activeTab?.chatParams as Record<string, unknown> | undefined;
   const activeProjectId = React.useMemo(() => {
+    const shellProjectId =
+      typeof activeProjectShell?.projectId === "string" ? activeProjectShell.projectId : null;
     const baseProjectId =
       typeof activeBaseParams?.projectId === "string" ? activeBaseParams.projectId : null;
     const chatProjectId =
       typeof activeChatParams?.projectId === "string" ? activeChatParams.projectId : null;
-    return baseProjectId ?? chatProjectId ?? null;
-  }, [activeBaseParams, activeChatParams]);
+    return shellProjectId ?? baseProjectId ?? chatProjectId ?? null;
+  }, [activeBaseParams, activeChatParams, activeProjectShell?.projectId]);
   const scopedProjectTitle = React.useMemo(() => {
     if (!scopedProjectId) return null;
     return projectHierarchy.projectById.get(scopedProjectId)?.title;
   }, [projectHierarchy, scopedProjectId]);
   const scopedProjectRootUri = React.useMemo(() => {
     if (!scopedProjectId) return null;
-    return projectHierarchy.rootUriById.get(scopedProjectId) ?? null;
-  }, [projectHierarchy, scopedProjectId]);
+    return (
+      projectHierarchy.rootUriById.get(scopedProjectId) ??
+      (activeProjectShell?.projectId === scopedProjectId ? activeProjectShell.rootUri : null)
+    );
+  }, [activeProjectShell?.projectId, activeProjectShell?.rootUri, projectHierarchy, scopedProjectId]);
   /** 是否触发搜索查询。 */
   const searchEnabled = Boolean(debouncedSearchValue);
   /** 缓存搜索结果，避免请求中列表闪烁。 */
@@ -153,7 +164,7 @@ export function Search({
   /** 工作空间范围内的搜索结果。 */
   const workspaceSearchQuery = useQuery({
     ...trpc.fs.searchWorkspace.queryOptions(
-      searchEnabled && !scopedProjectId
+      searchEnabled && !scopedProjectId && !projectMode
         ? {
             query: debouncedSearchValue,
             includeHidden: false,
@@ -361,10 +372,10 @@ export function Search({
       closeResetTimerRef.current = null;
     }
     setIsClosing(false);
-    if (projectCleared) return;
-    // 逻辑：搜索开启时同步当前项目范围。
+    if (projectCleared && !projectMode) return;
+    // 逻辑：项目模式下全局搜索必须收敛到当前项目，不允许回退到项目空间范围。
     setScopedProjectId(activeProjectId);
-  }, [activeProjectId, open, projectCleared]);
+  }, [activeProjectId, open, projectCleared, projectMode]);
   React.useEffect(() => {
     return () => {
       if (closeResetTimerRef.current) {
@@ -611,7 +622,7 @@ export function Search({
         onValueChange={handleSearchValueChange}
         placeholder={t('searchPlaceholder')}
         projectTitle={scopedProjectTitle}
-        onClearProject={handleClearProject}
+        onClearProject={projectMode ? undefined : handleClearProject}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
       />
@@ -637,81 +648,83 @@ export function Search({
         ) : null}
         {showQuickOpen ? (
           <>
-            <CommandGroup heading={t('quickOpen')}>
-              <CommandItem
-                value="calendar"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:calendar",
-                    component: "calendar-page",
-                    title: t('calendar'),
-                    icon: "🗓️",
-                  })
-                }
-              >
-                <CalendarDays className="h-5 w-5" />
-                <span>{t('calendar')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>L</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="inbox"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:inbox",
-                    component: "inbox-page",
-                    title: t('inbox'),
-                    icon: "📥",
-                  })
-                }
-              >
-                <Inbox className="h-5 w-5" />
-                <span>{t('inbox')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>I</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="workbench"
-                onSelect={() => openSingletonTab(WORKBENCH_TAB_INPUT)}
-              >
-                <Sparkles className="h-5 w-5" />
-                <span>{t('workbench')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>T</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="template"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:template",
-                    component: "template-page",
-                    title: t('template'),
-                    icon: "📄",
-                  })
-                }
-              >
-                <LayoutTemplate className="h-5 w-5" />
-                <span>{t('template')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>J</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
+            {!projectMode ? (
+              <CommandGroup heading={t('quickOpen')}>
+                <CommandItem
+                  value="calendar"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:calendar",
+                      component: "calendar-page",
+                      title: t('calendar'),
+                      icon: "🗓️",
+                    })
+                  }
+                >
+                  <CalendarDays className="h-5 w-5" />
+                  <span>{t('calendar')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>L</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="inbox"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:inbox",
+                      component: "inbox-page",
+                      title: t('inbox'),
+                      icon: "📥",
+                    })
+                  }
+                >
+                  <Inbox className="h-5 w-5" />
+                  <span>{t('inbox')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>I</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="workbench"
+                  onSelect={() => openSingletonTab(WORKBENCH_TAB_INPUT)}
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>{t('workbench')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>T</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="template"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:template",
+                      component: "template-page",
+                      title: t('template'),
+                      icon: "📄",
+                    })
+                  }
+                >
+                  <LayoutTemplate className="h-5 w-5" />
+                  <span>{t('template')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>J</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
+            ) : null}
             {recentProjectResults.length > 0 ? (
               <CommandGroup heading={t('recentOpenProject', { title: recentProjectHeading })}>
                 {recentProjectResults.map((result) =>
@@ -719,7 +732,7 @@ export function Search({
                 )}
               </CommandGroup>
             ) : null}
-            {!scopedProjectId && recentGlobalResults.length > 0 ? (
+            {!projectMode && !scopedProjectId && recentGlobalResults.length > 0 ? (
               <CommandGroup heading={t('recentOpenWorkspace')}>
                 {recentGlobalResults.map((result) => renderFileResult(result))}
               </CommandGroup>

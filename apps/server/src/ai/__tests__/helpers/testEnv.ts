@@ -54,7 +54,8 @@ export function setMinimalRequestContext() {
  *
  * 两步复制策略：
  * 1. 复制共享基础 fixtures（workspace/.openloaf/tasks、README.md、配置文件）
- * 2. 扫描各域 tests/{domain}/workspace/ 并 overlay（master 项目结构、tools 文档文件、email 数据等）
+ * 2. 扫描各域 tests/{domain}/workspace/ 并 overlay（master 项目结构、tools 文档文件等）
+ * 3. 叠加各域根级配置 fixture（如 email.json）
  *
  * 合并后的 workspace 结构完整，测试行为不受影响。
  *
@@ -91,6 +92,12 @@ export function setupE2eTestEnv(): string {
     const domainWorkspace = path.join(testsDir, domain, 'workspace')
     if (existsSync(domainWorkspace)) {
       cpSync(domainWorkspace, destWorkspace, { recursive: true })
+    }
+
+    const domainEmailConfig = path.join(testsDir, domain, 'email.json')
+    if (existsSync(domainEmailConfig)) {
+      // 逻辑：邮件配置已迁移到全局根目录，测试时直接覆盖 tempRoot/email.json。
+      cpSync(domainEmailConfig, path.join(tempRoot, 'email.json'))
     }
   }
 

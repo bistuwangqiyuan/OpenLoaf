@@ -10,33 +10,13 @@
 
 工具描述是 LLM 判断是否调用该工具的核心依据。description 字段应遵循以下结构：
 
-```
-"触发：<何时调用>。用途：<具体做什么>。返回：<返回值格式>。不适用：<何时不要用>。"
-```
-
 ### Before/After 示例
 
 **问题**：Agent 查询项目时使用了 `list-dir` 而非 `project-query`，因为 `project-query` 的描述没有明确和用户常用说法的对应。
 
 **Before**（`packages/api/src/types/tools/db.ts`）：
-```typescript
-export const projectQueryToolDef = {
-  id: "project-query",
-  description:
-    "触发：当你需要读取项目列表/树或某个项目摘要信息时调用。用途：list 返回项目树与扁平列表，get 返回项目摘要。返回：...",
-  // ...
-}
-```
 
 **After**：
-```typescript
-export const projectQueryToolDef = {
-  id: "project-query",
-  description:
-    "触发：当用户询问"有哪些项目"、"项目列表"、"我的项目"等应用层项目信息时调用，而非文件系统目录。用途：list 返回项目树与扁平列表，get 返回项目摘要。返回：...",
-  // ...
-}
-```
 
 **关键点**：
 - 在"触发"部分添加用户常见的自然语言说法
@@ -58,66 +38,6 @@ export const projectQueryToolDef = {
 
 **文件位置**：`apps/server/src/ai/agent-templates/templates/master/prompt.zh.md`
 
-### prompt.zh.md 结构说明
-
-```markdown
-你是 OpenLoaf AI 助手...
-
-<behavior>
-# 沟通
-...
-</behavior>
-
-<tools>
-# 工具使用
-
-## 核心原则
-...
-
-## 选择策略          ← 最常修改的位置
-...
-
-## 审批
-...
-
-## 返回值处理
-...
-
-## 异常处理
-...
-
-## 媒体生成（image-generate / video-generate）
-...
-
-## 交互式组件（jsx-create / request-user-input）
-...
-</tools>
-
-<execution>
-...
-</execution>
-
-<delegation>
-...
-</delegation>
-
-<task-creation>
-...
-</task-creation>
-
-<planning>
-...
-</planning>
-
-<output>
-...
-</output>
-
-<skills>
-...
-</skills>
-```
-
 ### 修改位置选择
 
 | 修复目标 | 添加位置 |
@@ -132,21 +52,8 @@ export const projectQueryToolDef = {
 **问题**：Agent 被问"有哪些项目"时使用了 `list-dir` 而非 `project-query`。
 
 **Before**（`<tools>` 的 `## 选择策略` 末尾）：
-```markdown
-## 选择策略
-- 最小权限：只读优先 → 写入 → 破坏性操作。
-- ...
-- Shell 工具中，搜索文本/文件优先使用 `rg`。
-```
 
 **After**：
-```markdown
-## 选择策略
-- 最小权限：只读优先 → 写入 → 破坏性操作。
-- ...
-- Shell 工具中，搜索文本/文件优先使用 `rg`。
-- 用户提及"项目"（项目列表、有哪些项目、我的项目）时使用 `project-query`，不要用 `list-dir`。`list-dir` 仅用于文件系统目录浏览。
-```
 
 **关键点**：
 - 在 `## 选择策略` 末尾追加一行规则
@@ -158,18 +65,12 @@ export const projectQueryToolDef = {
 **问题**：Agent 查询时间时使用了 `shell-command`（运行 `date`）而非 `time-now`。
 
 **添加到 `## 选择策略`**：
-```markdown
-- 查询当前时间/日期使用 `time-now`，不要用 `shell-command` 运行 date 命令。
-```
 
 ### 添加工具使用鼓励
 
 **问题**：Agent 没有调用任何工具，直接文本回复。
 
 **添加到 `## 核心原则`**：
-```markdown
-- 当用户请求涉及数据查询、文件操作、系统信息等可用工具覆盖的能力时，必须调用工具获取实际数据，不得凭记忆或猜测回答。
-```
 
 ---
 
@@ -177,33 +78,11 @@ export const projectQueryToolDef = {
 
 **文件位置**：`apps/server/src/ai/tools/toolRegistry.ts`
 
-### TOOL_ALIASES 格式
-
-```typescript
-const TOOL_ALIASES: Record<string, string> = {
-  shell: "shell-command",
-  exec: "shell-command",
-  run: "shell-command",
-  "write-file": "apply-patch",
-  "edit-file": "apply-patch",
-  search: "grep-files",
-  find: "grep-files",
-  "create-task": "task-manage",
-};
-```
-
 ### 添加新别名
 
 **问题**：LLM 试图调用不存在的工具名 `query-projects`（而实际工具名是 `project-query`）。
 
 **修复**：在 TOOL_ALIASES 中添加映射：
-```typescript
-const TOOL_ALIASES: Record<string, string> = {
-  // ... 现有别名
-  "query-projects": "project-query",
-  "query-project": "project-query",
-};
-```
 
 **判断依据**：
 - 检查失败用例中 `metadata.toolCalls` 是否有调用了不存在工具的记录
@@ -216,49 +95,11 @@ const TOOL_ALIASES: Record<string, string> = {
 
 **文件位置**：`apps/server/src/ai/agent-templates/templates/master/index.ts`
 
-### toolIds 列表结构
-
-```typescript
-export const masterTemplate: AgentTemplate = {
-  id: 'master',
-  toolIds: [
-    // system
-    'time-now',
-    'update-plan',
-    'jsx-create',
-    // agent
-    'spawn-agent',
-    'send-input',
-    'wait-agent',
-    'abort-agent',
-    // file-read
-    'read-file',
-    'list-dir',
-    'grep-files',
-    // file-write
-    'apply-patch',
-    // shell
-    'shell-command',
-    // web
-    'open-url',
-    // ... 其他工具
-  ],
-  // ...
-}
-```
-
 ### 添加缺失的工具
 
 **问题**：测试期望 Agent 调用 `email-query`，但 Master 的 toolIds 中没有这个工具（说明测试预期 Agent 可以直接查邮件）。
 
 **修复**：在合适的分类注释下添加工具 ID：
-```typescript
-toolIds: [
-  // ... 现有工具
-  // email（新增）
-  'email-query',
-],
-```
 
 **注意**：
 - 添加前先确认工具确实注册在 `TOOL_REGISTRY` 中
@@ -294,48 +135,13 @@ toolIds: [
 
 ---
 
-## 6. 验证技巧
-
-### 使用 --filter-pattern 精确重跑
-
-```bash
-cd apps/server
-
-# 单个用例（按前缀过滤）
-pnpm run test:ai:behavior -- --filter-pattern "master-001"
-
-# 多个用例（正则匹配）
-pnpm run test:ai:behavior -- --filter-pattern "master-00[1-3]"
-
-# 包含关键词
-pnpm run test:ai:behavior -- --filter-pattern "project"
-```
-
 ### 使用 --repeat 测试稳定性
 
 修复后建议用 `--repeat 2` 验证稳定性（LLM 有非确定性）：
 
-```bash
-cd apps/server
-pnpm run test:ai:behavior -- --filter-pattern "master-001" --repeat 2
-```
-
 如果 2 次中有 1 次失败，说明修复还不够稳定，需要进一步加强。
 
 ### 快速验证单个修复
-
-```bash
-cd apps/server
-
-# 1. 修改代码后，只跑目标用例（代码改动立即生效）
-pnpm run test:ai:behavior -- --filter-pattern "master-001"
-
-# 2. 读取输出确认
-cat .behavior-test-output.json | jq '.results.results[0].success'
-
-# 3. 查看 Web UI 结果矩阵
-pnpm run test:ai:behavior:view
-```
 
 底层命令为 `node --no-warnings --env-file=.env --import tsx/esm scripts/run-behavior-test.mjs`，封装了 `promptfoo eval` 调用。
 
@@ -390,16 +196,8 @@ pnpm run test:ai:behavior:view
 ### Before/After 示例
 
 **Before**（过于严格，容易误判）：
-```yaml
-- type: llm-rubric
-  value: "回复必须包含文件大小（字节数），并以 KB 为单位显示"
-```
 
 **After**（有容错，覆盖合理变体）：
-```yaml
-- type: llm-rubric
-  value: "回复应展示文件的基本信息（如大小、类型），或指出文件未找到/路径不存在（提示检查路径也可接受）"
-```
 
 ---
 
@@ -407,33 +205,13 @@ pnpm run test:ai:behavior:view
 
 当 WRONG_TOOL 失败且根因是两个工具功能有交叉时，在**被错误调用**的工具 description 末尾添加排他说明。
 
-### 抽象模式
-
-```
-不适用：<场景描述>时改用 <正确工具>。
-```
-
 ### 完整 Before/After 示例（excel-mutate 案例）
 
 **问题**：用户要求"将 CSV 转为 Excel"，Agent 错误调用了 `excel-mutate`（用于修改 Excel 内容），应使用 `doc-convert`（格式转换工具）。
 
 **Before**（`packages/api/src/types/tools/office.ts`）：
-```typescript
-export const excelMutateToolDef = {
-  id: 'excel-mutate',
-  description:
-    '触发：当用户要求修改 Excel 表格内容（增删改单元格、添加公式、格式化等）时调用。用途：在指定 Excel 文件上执行修改操作。返回：修改结果。',
-}
-```
 
 **After**：
-```typescript
-export const excelMutateToolDef = {
-  id: 'excel-mutate',
-  description:
-    '触发：当用户要求修改 Excel 表格内容（增删改单元格、添加公式、格式化等）时调用。用途：在指定 Excel 文件上执行修改操作。返回：修改结果。不适用：仅需读取时改用 excel-query；格式转换（如 CSV→Excel、Excel→CSV/JSON）改用 doc-convert。',
-}
-```
 
 ### 适用场景
 

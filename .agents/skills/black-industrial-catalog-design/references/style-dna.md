@@ -1,4 +1,3 @@
-# Black Industrial Catalog Style DNA
 
 ## Positioning
 
@@ -64,8 +63,6 @@
 - 数字和规格可以更窄更硬
 - 层级主要靠 `字号 + 间距 + 位置 + 明度`
 
-## Layout
-
 ### Structural Rules
 
 - 使用强栅格，桌面优先 `12 列`
@@ -100,8 +97,6 @@
 - 明亮温暖的消费级商业摄影
 - 过度 CG 光效
 - 悬浮在彩色背景上的产品渲染
-
-## Component Grammar
 
 ### Directory Navigation
 
@@ -174,8 +169,6 @@
 - 大视差
 - blur 发光
 - 漂浮感强的连续表演
-
-## Do / Don't
 
 ### Do
 

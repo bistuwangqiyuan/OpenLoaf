@@ -1,78 +1,14 @@
-# Tool Development
 
-## CanvasTool 接口
-
-```typescript
-// tools/ToolTypes.ts
-type ToolContext = {
-  engine: CanvasEngine       // 引擎实例
-  event: PointerEvent        // 原始事件
-  screenPoint: CanvasPoint   // 屏幕坐标
-  worldPoint: CanvasPoint    // 世界坐标（已转换）
-}
-
-type CanvasTool = {
-  id: string
-  onPointerDown?: (ctx: ToolContext) => void
-  onPointerMove?: (ctx: ToolContext) => void
-  onPointerUp?: (ctx: ToolContext) => void
-  onKeyDown?: (event: KeyboardEvent, engine: CanvasEngine) => void
-}
-```
-
-## 添加新工具：3 步
-
-### Step 1: 实现 CanvasTool
-
-```typescript
-// tools/MyTool.ts
-import type { CanvasTool, ToolContext } from './ToolTypes'
-
-export class MyTool implements CanvasTool {
-  id = 'my-tool'
-
-  onPointerDown(ctx: ToolContext) {
-    const { engine, worldPoint, event } = ctx
-    // worldPoint 已经过坐标转换，直接用于画布计算
-  }
-
-  onPointerMove(ctx: ToolContext) { /* 拖拽逻辑 */ }
-  onPointerUp(ctx: ToolContext) { /* 完成交互 */ }
-  onKeyDown(event: KeyboardEvent, engine: CanvasEngine) { /* 快捷键 */ }
-}
-```
 
 ### Step 2: 注册到 CanvasEngine
 
 在 `CanvasEngine` 构造函数中：
 
-```typescript
-this.tools.register(new MyTool())
-```
-
 ### Step 3: 添加快捷键（可选）
 
 在 `ToolManager.ts` 的 `TOOL_SHORTCUTS` 中：
 
-```typescript
-const TOOL_SHORTCUTS: Record<string, string> = {
-  a: 'select', w: 'hand', p: 'pen', k: 'highlighter', e: 'eraser',
-  m: 'my-tool',  // 新增
-}
-```
-
 ## ToolManager 事件流
-
-```
-PointerEvent (浏览器)
-  ↓
-ToolManager.handlePointerDown(event)
-  ├─ isBoardUiTarget(event.target) → 跳过（UI 元素）
-  ├─ 坐标转换: clientX/Y → screenPoint → worldPoint
-  ├─ pendingInsert 检查 → 放置节点并返回
-  ├─ 中键(button=1) → 临时 HandTool
-  └─ getActiveTool().onPointerDown(ctx)
-```
 
 **关键行为**:
 - **中键特例**: 按下自动切入 HandTool，松开恢复原工具

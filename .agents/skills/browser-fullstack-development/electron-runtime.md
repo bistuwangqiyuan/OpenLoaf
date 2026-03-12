@@ -1,4 +1,3 @@
-# Electron Runtime (WebContentsView & IPC)
 
 ## Overview
 

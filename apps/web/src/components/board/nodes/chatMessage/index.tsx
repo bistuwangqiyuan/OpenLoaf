@@ -308,7 +308,7 @@ export function ChatMessageNodeView({
                     {imgPart.urls.map((url, urlIdx) => (
                       <img
                         key={urlIdx}
-                        src={getPreviewEndpoint(url, { workspaceId: fileContext?.workspaceId })}
+                        src={getPreviewEndpoint(url, { projectId: fileContext?.projectId })}
                         alt=""
                         className="max-w-full rounded-lg border border-border/30"
                         loading="lazy"

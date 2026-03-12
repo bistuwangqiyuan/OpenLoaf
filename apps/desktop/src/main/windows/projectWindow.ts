@@ -101,14 +101,13 @@ export function createProjectWindow(args: CreateProjectWindowArgs) {
   const isMac = process.platform === "darwin";
   const isWindows = process.platform === "win32";
   const windowIcon = resolveWindowIconPath();
-  const parent = BrowserWindow.getAllWindows()[0] ?? undefined;
 
   const win = new BrowserWindow({
     width,
     height,
     minWidth: 800,
     minHeight: 640,
-    parent,
+    // 中文注释：项目独立窗口必须是顶层窗口；一旦挂 parent，会导致层级被绑定且拖动联动。
     backgroundColor: "#0f1115",
     ...(windowIcon ? { icon: windowIcon } : {}),
     ...(isMac
@@ -147,6 +146,7 @@ export function createProjectWindow(args: CreateProjectWindowArgs) {
   const targetUrl = buildProjectWindowUrl(args);
   args.log(`[project-window] loading ${targetUrl}`);
   void win.loadURL(targetUrl);
+  focusProjectWindow(win);
 
   projectWindowsByProjectId.set(args.projectId, win);
   win.on("closed", () => {

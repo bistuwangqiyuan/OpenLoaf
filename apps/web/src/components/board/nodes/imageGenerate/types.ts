@@ -30,6 +30,10 @@ export type ImageGenerateNodeProps = {
   resultImages?: string[];
   /** Error text for failed runs. */
   errorText?: string;
+  /** Render as a read-only chat projection. */
+  readOnlyProjection?: boolean;
+  /** Projection status for chat tool mapping. */
+  projectionStatus?: "generating" | "done" | "error";
 };
 
 /** Schema for image generation node props. */
@@ -44,4 +48,6 @@ export const ImageGenerateNodeSchema = z.object({
   parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   resultImages: z.array(z.string()).optional(),
   errorText: z.string().optional(),
+  readOnlyProjection: z.boolean().optional(),
+  projectionStatus: z.enum(["generating", "done", "error"]).optional(),
 });

@@ -13,7 +13,7 @@ import { create } from "zustand";
 export type BoardChatStreamEntry = {
   /** Accumulated streaming text. */
   text: string;
-  /** Collected tool result parts. */
+  /** Ordered streamed parts and data events. */
   parts: unknown[];
   /** Stream status. */
   status: "streaming" | "complete" | "error";
@@ -63,10 +63,24 @@ export const useBoardChatStore = create<BoardChatStoreState>((set, get) => ({
     set((state) => {
       const entry = state.streams[elementId];
       if (!entry || entry.status !== "streaming") return state;
+      const currentParts = Array.isArray(entry.parts) ? [...entry.parts] : [];
+      const last = currentParts.at(-1);
+      if (last && typeof last === "object" && !Array.isArray(last) && (last as any).type === "text") {
+        currentParts[currentParts.length - 1] = {
+          ...(last as Record<string, unknown>),
+          text: `${String((last as any).text ?? "")}${delta}`,
+        };
+      } else {
+        currentParts.push({ type: "text", text: delta });
+      }
       return {
         streams: {
           ...state.streams,
-          [elementId]: { ...entry, text: entry.text + delta },
+          [elementId]: {
+            ...entry,
+            text: entry.text + delta,
+            parts: currentParts,
+          },
         },
       };
     });

@@ -80,7 +80,6 @@ export function AudioNodeView({
   element,
 }: CanvasNodeViewProps<AudioNodeProps>) {
   const { fileContext } = useBoardContext();
-  const workspaceId = fileContext?.workspaceId ?? "";
 
   const projectRelativePath = useMemo(
     () => resolveProjectRelativePath(element.props.sourcePath, fileContext),
@@ -111,9 +110,8 @@ export function AudioNodeView({
     }
     return getPreviewEndpoint(resolvedPath, {
       projectId: effectiveProjectId,
-      workspaceId: fileContext?.workspaceId,
     });
-  }, [effectiveProjectId, fileContext?.workspaceId, resolvedPath]);
+  }, [effectiveProjectId, resolvedPath]);
 
   const handleOpenPreview = useCallback(() => {
     if (!resolvedPath) return;
@@ -126,7 +124,6 @@ export function AudioNodeView({
           name: displayName,
           title: displayName,
           projectId: effectiveProjectId,
-          workspaceId,
           rootUri: fileContext?.rootUri,
           boardId,
         },
@@ -142,7 +139,6 @@ export function AudioNodeView({
     element.props.sourcePath,
     fileContext?.rootUri,
     resolvedPath,
-    workspaceId,
   ]);
 
   return (

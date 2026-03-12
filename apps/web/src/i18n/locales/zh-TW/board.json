@@ -429,7 +429,11 @@
     "enterFullscreen": "進入全螢幕",
     "showAIPanel": "顯示 AI 面板",
     "hideAIPanel": "收起 AI 面板",
-    "screenshot": "截圖畫布"
+    "screenshot": "截圖畫布",
+    "openInFileSystem": "在檔案系統中打開",
+    "openBoardFolder": "打開畫布資料夾",
+    "openBoardFolderMissing": "未找到畫布資料夾",
+    "openBoardFolderFailed": "無法打開畫布資料夾"
   },
   "aiToolbar": {
     "aiAssistant": "AI小助手",

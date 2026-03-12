@@ -20,6 +20,7 @@ import { useProjectOpen } from '@/hooks/use-project-open'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
+import { resolveProjectModeProjectShell } from '@/lib/project-mode'
 
 export function useSidebarNavigation() {
   const addTab = useTabs((s) => s.addTab)
@@ -33,6 +34,11 @@ export function useSidebarNavigation() {
   const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat)
   const { sessionToTabId } = useOpenSessionIds()
   const openProjectWithPreference = useProjectOpen()
+  const activeTab = activeTabId
+    ? tabs.find((item) => item.id === activeTabId)
+    : undefined
+  const activeProjectShell = resolveProjectModeProjectShell(activeTab?.projectShell)
+  const activeProjectId = activeProjectShell?.projectId
 
   const currentTabSessionIds = activeTabId
     ? (() => {
@@ -50,7 +56,7 @@ export function useSidebarNavigation() {
 
   const openChat = useCallback(
     (chatId: string, chatTitle: string, input?: { projectId?: string | null }) => {
-      const projectId = input?.projectId?.trim() || undefined
+      const projectId = input?.projectId?.trim() || activeProjectId
 
       // 逻辑：优先复用当前 Tab 中已存在的会话，避免打断用户当前的多会话上下文。
       if (activeTabId && currentTabSessionIds.has(chatId)) {
@@ -100,6 +106,7 @@ export function useSidebarNavigation() {
     },
     [
       activeTabId,
+      activeProjectId,
       addTab,
       currentTabSessionIds,
       sessionToTabId,
@@ -131,6 +138,7 @@ export function useSidebarNavigation() {
       rootUri: string
       projectId?: string | null
     }) => {
+      const resolvedProjectId = input.projectId?.trim() || activeProjectId
       const boardFolderUri = buildFileUriFromRoot(input.rootUri, input.folderUri)
       const boardFileUri = buildFileUriFromRoot(
         input.rootUri,
@@ -163,14 +171,14 @@ export function useSidebarNavigation() {
             boardFolderUri,
             boardFileUri,
             boardId: input.boardId,
-            projectId: input.projectId ?? undefined,
+            projectId: resolvedProjectId,
             rootUri: input.rootUri,
           },
         },
       })
       setActiveWorkspaceChat(null)
     },
-    [tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat],
+    [activeProjectId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat],
   )
 
   const openTempChat = useCallback(() => {

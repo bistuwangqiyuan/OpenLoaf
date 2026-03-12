@@ -1,4 +1,3 @@
-# Figma Spec
 
 ## File Structure
 
@@ -7,8 +6,6 @@
 1. `00 Foundations`
 2. `01 Components`
 3. `02 Product Page Templates`
-
-## Foundations
 
 ### Color Styles
 
@@ -75,8 +72,6 @@ Mobile：
 
 - `Helvetica Neue`
 - `Nimbus Sans`
-
-## Components
 
 ### Directory Nav
 

@@ -1,4 +1,3 @@
-# Project Map (Outside-In)
 
 ## 1. Monorepo Root
 
@@ -10,8 +9,6 @@
   - `pnpm dev:web`
   - `pnpm dev:server`
   - `pnpm check-types`
-
-## 2. Apps Layer
 
 ### `apps/web` (Primary Design Target)
 
@@ -39,8 +36,6 @@
 ### `apps/openloaf-office-plugins`
 
 - 独立插件域，不属于本技能的 web 主设计面。
-
-## 3. Packages Layer
 
 ### `packages/ui`
 

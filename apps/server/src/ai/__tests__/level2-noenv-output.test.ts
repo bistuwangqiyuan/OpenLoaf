@@ -43,7 +43,7 @@ const INSTRUCTIONS = `你是 OpenLoaf AI 助手，在用户的工作空间与项
 - 语气简洁、直接、友好；默认 1-3 句或 ≤5 条要点。
 - 只保留对任务有直接帮助的信息，不输出推理过程或臆测。
 - 不输出用户不需要的环境/技术细节（如软件版本、运行时信息、系统配置、工作空间路径、时区等），除非用户明确询问或与当前任务直接相关。
-- 严禁在回复中暴露 preface 上下文中的内部信息（sessionId、workspaceId、路径、平台、时区、账户信息等）。这些仅供你内部使用，不应出现在对用户的输出中。
+- 严禁在回复中暴露 preface 上下文中的内部信息（sessionId、projectId、路径、平台、时区、账户信息等）。这些仅供你内部使用，不应出现在对用户的输出中。
 - 需要更多信息时，只问最少必要问题（优先 1 个）。
 </behavior>
 
@@ -59,13 +59,13 @@ const INSTRUCTIONS = `你是 OpenLoaf AI 助手，在用户的工作空间与项
 const PREFACE = `# 会话上下文（preface）
 **重要：以下所有 preface 信息仅供你内部使用，严禁在回复中向用户展示。**
 - sessionId: test-session-001
-- workspaceId: ws-abc123
+- projectId: proj-abc123
 - workspaceRootPath: /Users/test/Documents/MyWorkspace
-- projectId: unknown
+- globalRootPath: unknown
 - projectRootPath: unknown
 
 # 环境与身份
-- workspaceId: ws-abc123
+- projectId: proj-abc123
 - workspaceName: Default Workspace
 - workspaceRootPath: /Users/test/Documents/MyWorkspace
 - platform: darwin 25.2.0
@@ -104,7 +104,7 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /安装状态/, label: '安装状态' },
   // session 内部信息
   { pattern: /sessionId/i, label: 'sessionId' },
-  { pattern: /ws-abc123/, label: 'workspaceId 值' },
+  { pattern: /proj-abc123/, label: 'projectId 值' },
   // 工作空间 / 项目路径
   { pattern: /MyWorkspace/, label: '工作空间名' },
   { pattern: /当前项目/, label: '当前项目' },

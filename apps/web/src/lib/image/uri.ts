@@ -9,27 +9,12 @@
  */
 import { resolveServerUrl } from "@/utils/server-url";
 
-type PreviewEndpointOptions = {
+export type PreviewEndpointOptions = {
   /** Project scope for preview resolution. */
   projectId?: string;
   /** Max preview payload size. */
   maxBytes?: number;
-  /** Legacy scope id kept for old board/media call sites. */
-  legacyScopeId?: string;
-} & Record<string, unknown>;
-
-const LEGACY_SCOPE_QUERY_KEY = ["workspace", "Id"].join("");
-
-/** Read legacy preview scope id from the compatibility options bag. */
-function resolveLegacyScopeId(options?: PreviewEndpointOptions): string | undefined {
-  const direct =
-    typeof options?.legacyScopeId === "string" ? options.legacyScopeId.trim() : "";
-  if (direct) return direct;
-  const legacyValue = options?.[LEGACY_SCOPE_QUERY_KEY];
-  if (typeof legacyValue !== "string") return undefined;
-  const trimmed = legacyValue.trim();
-  return trimmed || undefined;
-}
+};
 
 export type PreviewTooLargeError = Error & {
   /** Error code for preview size limit. */
@@ -48,14 +33,10 @@ export function getPreviewEndpoint(
   const apiBase = resolveServerUrl();
   const encodedPath = encodeURIComponent(path);
   const projectParam = options?.projectId ? `&projectId=${encodeURIComponent(options.projectId)}` : "";
-  const legacyScopeId = resolveLegacyScopeId(options);
-  const legacyScopeParam = legacyScopeId
-    ? `&${LEGACY_SCOPE_QUERY_KEY}=${encodeURIComponent(legacyScopeId)}`
-    : "";
   const maxBytesParam = options?.maxBytes ? `&maxBytes=${options.maxBytes}` : "";
   return apiBase
-    ? `${apiBase}/chat/attachments/preview?path=${encodedPath}${projectParam}${legacyScopeParam}${maxBytesParam}`
-    : `/chat/attachments/preview?path=${encodedPath}${projectParam}${legacyScopeParam}${maxBytesParam}`;
+    ? `${apiBase}/chat/attachments/preview?path=${encodedPath}${projectParam}${maxBytesParam}`
+    : `/chat/attachments/preview?path=${encodedPath}${projectParam}${maxBytesParam}`;
 }
 
 /** Check whether a uri is a relative path. */

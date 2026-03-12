@@ -190,9 +190,16 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
     ),
   });
 
-  const items = useMemo(
+  const rawItems = useMemo(
     () => historyQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [historyQuery.data],
+  );
+  const items = useMemo(
+    () =>
+      normalizedProjectId
+        ? rawItems.filter((item) => item.projectId === normalizedProjectId)
+        : rawItems,
+    [normalizedProjectId, rawItems],
   );
   const groupedItems = useMemo(
     () => groupSidebarHistoryItems(items, t),

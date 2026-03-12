@@ -1,4 +1,3 @@
-# Next.js Tailwind Blueprint
 
 ## Goal
 
@@ -7,8 +6,6 @@
 - 页面容器独立
 - 不污染现有全局布局
 - 风格先跑通，再接业务数据
-
-## Implementation Strategy
 
 ### 1. Start from an Isolated Route
 
@@ -28,18 +25,6 @@
 ### 2. Use Page-Level CSS Variables
 
 在页面根节点声明局部变量：
-
-```tsx
-const theme = {
-  "--te-bg": "#000000",
-  "--te-panel": "#0f0f10",
-  "--te-card": "#e5e5e5",
-  "--te-card-2": "#cbcbcb",
-  "--te-text": "#f5f5f5",
-  "--te-text-muted": "#a1a1a1",
-  "--te-line": "rgba(255,255,255,0.10)",
-} as CSSProperties;
-```
 
 好处：
 
@@ -70,8 +55,6 @@ const theme = {
 
 先验证构图，不要为了等图把页面结构卡住。
 
-## Tailwind Rules
-
 ### Typography
 
 - 标题使用 `font-light`
@@ -99,8 +82,6 @@ const theme = {
   - `duration-200`
 - 位移控制在 `-translate-y-0.5` 或更轻
 
-## Responsive Strategy
-
 ### Desktop
 
 - 让 Hero 保持大空气感
@@ -115,13 +96,6 @@ const theme = {
 - 保留黑场和轻字体，不要为了移动端变成普通电商页
 
 ## Suggested File Layout
-
-```text
-apps/web/src/app/teenage-opxy/page.tsx
-apps/web/src/components/template/DirectoryHeader.tsx
-apps/web/src/components/template/HardwareHero.tsx
-apps/web/src/components/template/SpecList.tsx
-```
 
 如果只是风格验证，允许先全部写在单文件里。确认方向后再拆分。
 

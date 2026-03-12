@@ -21,16 +21,21 @@ import {
   isProjectShellSection,
   type ProjectShellState,
 } from "@/lib/project-shell";
+import { buildProjectHierarchyIndex } from "@/lib/project-tree";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
 import { isProjectWindowMode } from "@/lib/window-mode";
+import { useProjects } from "@/hooks/use-projects";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@openloaf/ui/sidebar";
 import { SidebarHistory } from "@/components/layout/sidebar/SidebarHistory";
+import { ProjectSidebarProjectCard } from "@/components/layout/sidebar/ProjectSidebarProjectCard";
 
 const ACTIVE_CLASS =
   "data-[active=true]:!bg-sidebar-accent data-[active=true]:!text-sidebar-accent-foreground";
@@ -47,10 +52,24 @@ const ITEM_CLASS = {
   files:
     `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-cyan-700/70 dark:[&>svg]:text-cyan-300/70 hover:[&>svg]:text-cyan-700 dark:hover:[&>svg]:text-cyan-200 ${ACTIVE_CLASS}`,
   settings:
-    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-orange-700/70 dark:[&>svg]:text-orange-300/70 hover:[&>svg]:text-orange-700 dark:hover:[&>svg]:text-orange-200 ${ACTIVE_CLASS}`,
+    `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-slate-700/70 dark:[&>svg]:text-slate-300/70 hover:[&>svg]:text-slate-700 dark:hover:[&>svg]:text-slate-200 ${ACTIVE_CLASS}`,
   history:
     `group/menu-item sidebar-menu-icon-tilt text-sidebar-foreground/80 [&>svg]:text-rose-700/70 dark:[&>svg]:text-rose-300/70 hover:[&>svg]:text-rose-700 dark:hover:[&>svg]:text-rose-200 ${ACTIVE_CLASS}`,
 } as const;
+
+const FILE_FOREGROUND_COMPONENTS = new Set([
+  "file-viewer",
+  "image-viewer",
+  "code-viewer",
+  "markdown-viewer",
+  "pdf-viewer",
+  "doc-viewer",
+  "sheet-viewer",
+  "video-viewer",
+  "plate-doc-viewer",
+  "streaming-plate-viewer",
+  "streaming-code-viewer",
+]);
 
 /** Resolve the current project-shell section from the active tab view. */
 function resolveActiveProjectSection(
@@ -62,8 +81,16 @@ function resolveActiveProjectSection(
     activeTab?.stack?.at(-1)?.component ??
     activeTab?.base?.component;
 
-  if (foregroundComponent === "project-settings-page") {
+  if (foregroundComponent === "project-settings-page" || foregroundComponent === "settings-page") {
     return "settings";
+  }
+
+  if (foregroundComponent === "board-viewer" || foregroundComponent === "canvas-list-page") {
+    return "canvas";
+  }
+
+  if (foregroundComponent && FILE_FOREGROUND_COMPONENTS.has(foregroundComponent)) {
+    return "files";
   }
 
   if (activeTab?.base?.component === "plant-page") {
@@ -80,16 +107,29 @@ function resolveActiveProjectSection(
 }
 
 export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  const { t } = useTranslation("nav");
+  const { t } = useTranslation(["nav", "settings"]);
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
-  const projectShell = activeTab?.projectShell;
+  const { data: projects = [] } = useProjects();
+  const projectShell = React.useMemo(
+    () => resolveProjectModeProjectShell(activeTab?.projectShell),
+    [activeTab?.projectShell],
+  );
   const projectWindowMode = isProjectWindowMode();
+  const projectHierarchy = React.useMemo(
+    () => buildProjectHierarchyIndex(projects),
+    [projects],
+  );
 
   const activeSection = React.useMemo(() => {
     if (!projectShell) return "assistant";
     return resolveActiveProjectSection(projectShell, activeTab);
   }, [activeTab, projectShell]);
+  const projectTypeLabel = React.useMemo(() => {
+    if (!projectShell) return null;
+    const projectType = projectHierarchy.projectById.get(projectShell.projectId)?.projectType ?? "general";
+    return t(`project.typeLabel.${projectType}`, { ns: "settings" });
+  }, [projectHierarchy.projectById, projectShell, t]);
 
   const handleSelectSection = React.useCallback(
     (section: ProjectShellSection) => {
@@ -119,8 +159,8 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
       {...props}
     >
       <SidebarHeader className="gap-2">
-        <SidebarMenu>
-          {!projectWindowMode ? (
+        {!projectWindowMode ? (
+          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 size="default"
@@ -135,7 +175,9 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 </span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          ) : null}
+          </SidebarMenu>
+        ) : null}
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip={t("projectSidebar.assistant")}
@@ -186,18 +228,6 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip={t("projectSidebar.settings")}
-              className={ITEM_CLASS.settings}
-              isActive={activeSection === "settings"}
-              onClick={() => handleSelectSection("settings")}
-              type="button"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="flex-1 truncate">{t("projectSidebar.settings")}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
               tooltip={t("projectSidebar.history")}
               className={ITEM_CLASS.history}
               isActive={activeSection === "history"}
@@ -223,6 +253,30 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarHistory projectId={projectShell.projectId} />
         </div>
       </SidebarContent>
+      <SidebarFooter>
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <ProjectSidebarProjectCard
+              title={projectShell.title}
+              icon={projectShell.icon}
+              subtitle={projectTypeLabel}
+            />
+          </div>
+          <SidebarMenu className="w-auto">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip={t("projectSidebar.settings")}
+                className={`${ITEM_CLASS.settings} h-12 w-12 justify-center p-0`}
+                isActive={activeSection === "settings"}
+                onClick={() => handleSelectSection("settings")}
+                type="button"
+              >
+                <Settings className="h-4 w-4" />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }

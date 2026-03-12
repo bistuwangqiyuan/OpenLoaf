@@ -10,7 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { Camera, Maximize2, Minimize2, MoreHorizontal, Wrench } from "lucide-react";
+import { Camera, FolderOpen, Maximize2, Minimize2, MoreHorizontal, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { DockItem } from "@openloaf/api/common";
@@ -28,6 +28,7 @@ import {
   getDisplayFileName,
   isBoardFolderName,
 } from "@/lib/file-name";
+import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { trpcClient } from "@/utils/trpc";
@@ -141,6 +142,59 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     typeof runtimeActiveStackId === "string"
       ? runtimeActiveStackId || stack.at(-1)?.id || ""
       : stack.at(-1)?.id || "";
+  const isElectron = typeof window !== "undefined" && Boolean(window.openloafElectron?.openPath);
+
+  /** Open the current board folder in system file manager or stack preview. */
+  const handleOpenBoardFolder = useCallback(async () => {
+    const boardFolderUri = typeof (item.params as any)?.boardFolderUri === "string"
+      ? ((item.params as any).boardFolderUri as string).trim()
+      : "";
+    const rootUri = typeof (item.params as any)?.rootUri === "string"
+      ? ((item.params as any).rootUri as string).trim()
+      : "";
+    const projectId = typeof (item.params as any)?.projectId === "string"
+      ? ((item.params as any).projectId as string).trim()
+      : "";
+
+    if (!boardFolderUri) {
+      toast.error(t("panelHeader.openBoardFolderMissing"));
+      return;
+    }
+
+    const resolvedBoardFolderUri = resolveFileUriFromRoot(rootUri || undefined, boardFolderUri).trim();
+    const hasResolvedUriScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolvedBoardFolderUri);
+    if (!resolvedBoardFolderUri || !hasResolvedUriScheme) {
+      toast.error(t("panelHeader.openBoardFolderFailed"));
+      return;
+    }
+
+    if (isElectron) {
+      const result = await window.openloafElectron?.openPath?.({ uri: resolvedBoardFolderUri });
+      if (!result?.ok) {
+        toast.error(result?.reason ?? t("panelHeader.openBoardFolderFailed"));
+      }
+      return;
+    }
+
+    if (!tabId) {
+      toast.error(t("panelHeader.openBoardFolderFailed"));
+      return;
+    }
+
+    // 逻辑：网页版不走系统文件管理器，改为把当前画布目录作为独立根目录推入 stack。
+    useTabRuntime.getState().pushStackItem(tabId, {
+      id: `board-folder:${resolvedBoardFolderUri}`,
+      sourceKey: `board-folder:${resolvedBoardFolderUri}`,
+      component: "folder-tree-preview",
+      title: title || t("panelHeader.openBoardFolder"),
+      params: {
+        rootUri: resolvedBoardFolderUri,
+        currentUri: "",
+        currentEntryKind: "folder",
+        projectId: projectId || undefined,
+      },
+    });
+  }, [isElectron, item.params, t, tabId, title]);
 
   /** Export the current board panel to an image. */
   const handleExportBoard = useCallback(async () => {
@@ -331,6 +385,12 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
           {toggleShortcut ? (
             <span className="ml-auto pl-4 text-xs text-muted-foreground">{toggleShortcut}</span>
           ) : null}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void handleOpenBoardFolder()}>
+          <FolderOpen className="mr-2 h-4 w-4" />
+          {isElectron
+            ? t("panelHeader.openInFileSystem")
+            : t("panelHeader.openBoardFolder")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void handleExportBoard()}>
           <Camera className="mr-2 h-4 w-4" />

@@ -3,8 +3,6 @@ name: calendar-business-development
 description: Use when developing or debugging calendar business logic in this repo, including event/reminder sources, system calendar sync, recurrence handling, data mapping, and AI calendar tools (calendar-query/calendar-mutate) in packages/ui/src/calendar, apps/web/src/components/calendar, and apps/server/src/ai/tools.
 ---
 
-# Calendar Business Development
-
 ## Overview
 
 聚焦本项目日历业务逻辑：事件/提醒事项、来源与权限、系统日历同步、重复事件处理、数据映射与导出、AI 工具集成。仅覆盖业务流，不描述界面/样式。
@@ -15,8 +13,6 @@ description: Use when developing or debugging calendar business logic in this re
 - **CalendarItemRecord（持久化记录）**：从 `trpc.calendar.listItems` 返回，字段含 `sourceId/startAt/endAt/recurrenceRule/externalId/completedAt`。
 - **CalendarEvent（日历引擎事件）**：`@openloaf/ui/calendar` 使用的事件结构，业务字段塞进 `event.data`。
 - **重复事件字段**：`rrule/exdates/recurrenceId/uid`，配合 `RecurrenceEditScope` 处理。
-
-## 业务流与规则
 
 ### 1) 权限与同步（系统日历）
 
@@ -72,7 +68,7 @@ AI Agent 通过两个工具操作日历数据，定义在 `packages/api/src/type
   - `action=delete`：需要 itemId，软删除（设置 deletedAt）。
   - `action=toggle-completed`：需要 itemId + completed，切换提醒事项完成状态。
 - **设计约束**：不暴露 `syncFromSystem`（系统同步由 Electron 层触发）、不暴露 `recurrenceRule`（对 LLM 太复杂）。
-- **数据流**：工具通过 `appRouter.createCaller(ctx).calendar` 调用 tRPC，`getWorkspaceId()` 获取 workspaceId。
+- **数据流**：工具通过 `appRouter.createCaller(ctx).calendar` 调用 tRPC；当前请求作用域从 `RequestContext` 的 `projectId` 读取，不再依赖历史工作空间 getter。
 
 ## 实战检查清单（修改业务逻辑时）
 
@@ -81,7 +77,7 @@ AI Agent 通过两个工具操作日历数据，定义在 `packages/api/src/type
 - 系统事件的写入必须落库，避免刷新后回滚。
 - 日期范围变更必须同步 `setCalendarSyncRange`。
 - 修改重复事件必须走 `scope` 逻辑，避免破坏原系列。
-- AI 工具返回字段已精简，不含 `workspaceId/createdAt/updatedAt/externalId` 等系统字段。
+- AI 工具返回字段已精简，不含 `projectId/createdAt/updatedAt/externalId` 等系统字段。
 - AI 工具 `update` 操作会自动合并现有数据，LLM 只需传要修改的字段。
 
 ## Quick Reference
