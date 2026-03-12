@@ -202,7 +202,7 @@ function FeatureIntroDialog({
 /** Quick launch bar shown at bottom of full-page empty state. */
 function QuickLaunchBar({ projectId }: { projectId?: string }) {
   const { t } = useTranslation('ai')
-  const { t: tWorkspace } = useTranslation('workspace')
+  const { t: tProject } = useTranslation('project')
   const { tabId } = useChatSession()
   const { data: projectData, invalidateProject } = useProject(projectId || undefined)
   const [introFeature, setIntroFeature] = React.useState<"index" | "tasks" | null>(null)
@@ -303,7 +303,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
         {items.map((item, index) => {
           const Icon = item.icon
           const label = projectId
-            ? tWorkspace((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
+            ? tProject((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
             : t((item as (typeof QUICK_LAUNCH_ITEMS)[number]).labelKey)
           const isInactive = projectId && !isAllActive
             && (item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).featureGated

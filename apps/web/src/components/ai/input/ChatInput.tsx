@@ -551,9 +551,9 @@ export function ChatInputBox({
                 onChipClick={handleChipClick}
                 onPasteFiles={uploadFileToSession ? async (files) => {
                   for (const file of files) {
-                    const absPath = await uploadFileToSession(file);
-                    if (absPath) {
-                      insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+                    const storedPath = await uploadFileToSession(file);
+                    if (storedPath) {
+                      insertTextAtSelection(`@{${storedPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
                     }
                   }
                 } : undefined}
@@ -741,7 +741,7 @@ export default function ChatInput({
   const { projectId, tabId, sessionId } = useChatSession();
   const hasReasoningModel = useHasPreferredReasoningModel(projectId);
 
-  /** 上传文件到 session files 目录，返回绝对路径（用于系统文件拖拽场景）。 */
+  /** 上传文件到 session files 目录，返回可持久化的相对路径。 */
   const uploadFileToSession = useCallback(
     async (file: File): Promise<string | null> => {
       const formData = new FormData();

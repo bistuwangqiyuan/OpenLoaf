@@ -26,7 +26,7 @@ const openloafConfigSchema = z.object({
     .optional(),
   support: z
     .object({
-      workspace: z.boolean(),
+      global: z.boolean(),
       project: z.boolean(),
     })
     .optional(),

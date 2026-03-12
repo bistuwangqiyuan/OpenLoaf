@@ -79,12 +79,12 @@ export function ProjectSettingsHeader({
   isLoading,
   pageTitle,
 }: ProjectSettingsHeaderProps) {
-  const { t } = useTranslation(["workspace", "settings"]);
+  const { t } = useTranslation(["project", "settings"]);
   if (isLoading) return null;
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-base font-semibold">{t("workspace:project.settingsHeader")}</span>
+      <span className="text-base font-semibold">{t("project:project.settingsHeader")}</span>
       <span className="text-xs text-muted-foreground truncate">
         {pageTitle}
       </span>
@@ -104,7 +104,7 @@ export default function ProjectSettingsPage({
   rootUri,
   settingsMenu,
 }: ProjectSettingsPageProps) {
-  const { t } = useTranslation(["workspace", "settings"]);
+  const { t } = useTranslation(["project", "settings"]);
   const [activeKey, setActiveKey] = useState<ProjectSettingsMenuKey>(() =>
     isProjectSettingsMenuKey(settingsMenu) ? settingsMenu : "basic"
   );

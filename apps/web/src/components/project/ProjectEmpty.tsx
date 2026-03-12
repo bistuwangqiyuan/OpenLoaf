@@ -18,7 +18,7 @@ interface ProjectEmptyProps {
 
 /** Project empty state. */
 export default function ProjectEmpty({ title, hint }: ProjectEmptyProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   return (
     <div className="h-full w-full flex items-center justify-center">
       <div className="max-w-md rounded-2xl border border-dashed border-border/70 bg-card/60 px-6 py-8 text-center">

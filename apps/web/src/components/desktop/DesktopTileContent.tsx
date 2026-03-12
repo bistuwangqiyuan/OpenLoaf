@@ -68,7 +68,7 @@ export default function DesktopTileContent({
         setSearchOpen(true);
         return;
       }
-      if (iconKey === "settings" && scope === "workspace") {
+      if (iconKey === "settings" && scope === "global") {
         openSettingsTab();
         return;
       }

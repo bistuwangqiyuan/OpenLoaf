@@ -77,6 +77,7 @@ import {
   getDisplayFileName,
   isBoardFolderName,
 } from "@/lib/file-name";
+import { buildBoardChatTabState } from "@/components/board/utils/board-chat-tab";
 import { Switch } from "@openloaf/ui/switch";
 import {
   getDisplayPathFromUri,
@@ -827,10 +828,12 @@ export const PageTreeMenu = ({
 
     const resolvedRootUri = projectRootById.get(node.projectId ?? "") ?? undefined;
     if (isBoardFolderName(node.name)) {
+      const boardId = node.uri.split("/").filter(Boolean).pop() ?? node.uri;
       addTab({
         createNew: true,
         title: displayName,
         icon: "📄",
+        ...buildBoardChatTabState(boardId, node.projectId),
         leftWidthPercent: 70,
         base: {
           id: baseId,

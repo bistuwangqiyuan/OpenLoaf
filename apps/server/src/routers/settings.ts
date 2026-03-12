@@ -66,21 +66,17 @@ function normalizeIgnoreSkills(values?: unknown): string[] {
   return Array.from(new Set(trimmed));
 }
 
-/** Normalize global ignore keys, accepting legacy workspace: prefix. */
+/** Normalize global ignore keys. */
 function normalizeGlobalIgnoreKeys(values?: unknown): string[] {
   const keys = normalizeIgnoreSkills(values);
   return Array.from(new Set(keys.map(normalizeGlobalIgnoreKey).filter(Boolean)));
 }
 
-/** Normalize a global ignore key, accepting legacy workspace: prefix. */
+/** Normalize a global ignore key. */
 function normalizeGlobalIgnoreKey(ignoreKey: string): string {
   const trimmed = ignoreKey.trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("global:")) return trimmed;
-  if (trimmed.startsWith("workspace:")) {
-    const legacyKey = trimmed.slice("workspace:".length).trim();
-    return legacyKey ? `global:${legacyKey}` : "";
-  }
   if (trimmed.includes(":")) return "";
   return `global:${trimmed}`;
 }
@@ -495,10 +491,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
             throw new Error("Global skills cannot be deleted from settings.");
           }
           if (input.scope === "project") {
-            // 项目页只允许删除当前项目技能，禁止全局/父项目。
-            if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Global skills cannot be deleted here.");
-            }
+            // 项目页只允许删除当前项目技能，禁止父项目。
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();
               if (prefix && prefix !== input.projectId) {
@@ -727,9 +720,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
             throw new Error("Global agents cannot be deleted from settings.");
           }
           if (input.scope === "project") {
-            if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Global agents cannot be deleted here.");
-            }
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();
               if (prefix && prefix !== input.projectId) {

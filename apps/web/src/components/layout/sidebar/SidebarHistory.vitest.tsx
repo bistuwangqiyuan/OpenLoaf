@@ -16,6 +16,8 @@ import { SidebarHistory } from "./SidebarHistory";
 const translationMap: Record<string, string> = {
   historySection: "History",
   historyEmpty: "No history yet",
+  historySortByFirstVisit: "Sort by first visit",
+  historySortByLastVisit: "Sort by recent visit",
   historyToday: "Today",
   historyYesterday: "Yesterday",
   historyLast7Days: "Last 7 Days",
@@ -47,6 +49,10 @@ const runtimeState = {
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => translationMap[key] ?? key,
+    i18n: {
+      resolvedLanguage: "en-US",
+      language: "en-US",
+    },
   }),
 }));
 
@@ -62,8 +68,8 @@ vi.mock("@/utils/trpc", () => ({
   trpc: {
     visit: {
       listSidebarHistory: {
-        infiniteQueryOptions: () => ({
-          queryKey: ["visit", "listSidebarHistory"],
+        infiniteQueryOptions: (input: unknown) => ({
+          queryKey: ["visit", "listSidebarHistory", input],
           queryFn: vi.fn(),
         }),
       },
@@ -95,6 +101,18 @@ vi.mock("@openloaf/ui/sidebar", () => ({
   SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SidebarGroupAction: ({
+    children,
+    onClick,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button type="button" onClick={onClick} {...props}>
+      {children}
+    </button>
+  ),
   SidebarMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarMenuButton: ({
@@ -118,6 +136,31 @@ function buildHistoryPage(items: SidebarHistoryPage["items"]): SidebarHistoryPag
     pageSize: 30,
     hasMore: false,
   };
+}
+
+function formatVisitedAtForTest(value: Date): string {
+  const now = new Date();
+  const sameDay =
+    value.getFullYear() === now.getFullYear()
+    && value.getMonth() === now.getMonth()
+    && value.getDate() === now.getDate();
+  if (sameDay) {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(value);
+  }
+
+  const sameYear = value.getFullYear() === now.getFullYear();
+  return new Intl.DateTimeFormat("en-US", {
+    ...(sameYear ? {} : { year: "numeric" }),
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
 }
 
 describe("SidebarHistory", () => {
@@ -145,7 +188,10 @@ describe("SidebarHistory", () => {
     vi.useRealTimers();
   });
 
-  it("renders grouped history rows and delegates clicks by entity type", () => {
+  it("renders flat history rows and delegates clicks by entity type", () => {
+    const chatVisitedAt = new Date("2026-03-11T11:30:00.000Z");
+    const projectVisitedAt = new Date("2026-03-10T10:00:00.000Z");
+    const boardVisitedAt = new Date("2026-03-01T08:00:00.000Z");
     useInfiniteQueryMock.mockReturnValue({
       data: {
         pages: [buildHistoryPage([
@@ -158,7 +204,8 @@ describe("SidebarHistory", () => {
             projectId: "proj_alpha",
             projectTitle: "Attached Project",
             dateKey: "2026-03-11",
-            firstVisitedAt: new Date("2026-03-11T11:30:00.000Z"),
+            firstVisitedAt: chatVisitedAt,
+            lastVisitedAt: chatVisitedAt,
           },
           {
             recordId: "visit_project",
@@ -167,9 +214,10 @@ describe("SidebarHistory", () => {
             projectId: "proj_alpha",
             title: "Alpha Project",
             icon: "📁",
-            rootUri: "file:///workspace/projects/alpha",
+            rootUri: "file:///project-root/projects/alpha",
             dateKey: "2026-03-10",
-            firstVisitedAt: new Date("2026-03-10T10:00:00.000Z"),
+            firstVisitedAt: projectVisitedAt,
+            lastVisitedAt: projectVisitedAt,
           },
           {
             recordId: "visit_board",
@@ -182,7 +230,8 @@ describe("SidebarHistory", () => {
             projectId: null,
             projectTitle: null,
             dateKey: "2026-03-01",
-            firstVisitedAt: new Date("2026-03-01T08:00:00.000Z"),
+            firstVisitedAt: boardVisitedAt,
+            lastVisitedAt: boardVisitedAt,
           },
         ])],
       },
@@ -195,14 +244,17 @@ describe("SidebarHistory", () => {
     render(<SidebarHistory />);
 
     expect(screen.getByText("History")).toBeInTheDocument();
-    expect(screen.getByText("Today")).toBeInTheDocument();
-    expect(screen.getByText("Yesterday")).toBeInTheDocument();
-    expect(screen.getByText("Earlier")).toBeInTheDocument();
+    expect(screen.queryByText("Today")).not.toBeInTheDocument();
+    expect(screen.queryByText("Yesterday")).not.toBeInTheDocument();
+    expect(screen.queryByText("Earlier")).not.toBeInTheDocument();
     expect(screen.getAllByText("Project")[0]).toBeInTheDocument();
     expect(screen.getByText("Chat")).toBeInTheDocument();
     expect(screen.getByText("Canvas")).toBeInTheDocument();
     expect(screen.getByText("Attached Project")).toBeInTheDocument();
     expect(screen.queryByText("Chat · Attached Project")).not.toBeInTheDocument();
+    expect(screen.getByText(formatVisitedAtForTest(chatVisitedAt))).toBeInTheDocument();
+    expect(screen.getByText(formatVisitedAtForTest(projectVisitedAt))).toBeInTheDocument();
+    expect(screen.getByText(formatVisitedAtForTest(boardVisitedAt))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Alpha Chat/i }));
     expect(openChatMock).toHaveBeenCalledWith("chat_alpha", "Alpha Chat", {
@@ -213,7 +265,7 @@ describe("SidebarHistory", () => {
     expect(openProjectMock).toHaveBeenCalledWith({
       projectId: "proj_alpha",
       title: "Alpha Project",
-      rootUri: "file:///workspace/projects/alpha",
+      rootUri: "file:///project-root/projects/alpha",
       icon: "📁",
     });
 
@@ -242,6 +294,7 @@ describe("SidebarHistory", () => {
             projectTitle: null,
             dateKey: "2026-03-11",
             firstVisitedAt: new Date("2026-03-11T11:30:00.000Z"),
+            lastVisitedAt: new Date("2026-03-11T11:30:00.000Z"),
           },
         ])],
       },
@@ -255,5 +308,88 @@ describe("SidebarHistory", () => {
 
     await Promise.resolve();
     expect(fetchNextPageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles history sorting to last visit time from the header action", () => {
+    const defaultPage = buildHistoryPage([
+      {
+        recordId: "visit_chat_beta",
+        entityType: "chat",
+        entityId: "chat_beta",
+        chatId: "chat_beta",
+        title: "Beta Chat",
+        projectId: null,
+        projectTitle: null,
+        dateKey: "2026-03-11",
+        firstVisitedAt: new Date("2026-03-11T09:00:00.000Z"),
+        lastVisitedAt: new Date("2026-03-11T09:00:00.000Z"),
+      },
+      {
+        recordId: "visit_chat_alpha",
+        entityType: "chat",
+        entityId: "chat_alpha",
+        chatId: "chat_alpha",
+        title: "Alpha Chat",
+        projectId: null,
+        projectTitle: null,
+        dateKey: "2026-03-11",
+        firstVisitedAt: new Date("2026-03-11T08:00:00.000Z"),
+        lastVisitedAt: new Date("2026-03-11T10:00:00.000Z"),
+      },
+    ]);
+    const lastVisitedPage = buildHistoryPage([
+      {
+        recordId: "visit_chat_alpha",
+        entityType: "chat",
+        entityId: "chat_alpha",
+        chatId: "chat_alpha",
+        title: "Alpha Chat",
+        projectId: null,
+        projectTitle: null,
+        dateKey: "2026-03-11",
+        firstVisitedAt: new Date("2026-03-11T08:00:00.000Z"),
+        lastVisitedAt: new Date("2026-03-11T10:00:00.000Z"),
+      },
+      {
+        recordId: "visit_chat_beta",
+        entityType: "chat",
+        entityId: "chat_beta",
+        chatId: "chat_beta",
+        title: "Beta Chat",
+        projectId: null,
+        projectTitle: null,
+        dateKey: "2026-03-11",
+        firstVisitedAt: new Date("2026-03-11T09:00:00.000Z"),
+        lastVisitedAt: new Date("2026-03-11T09:00:00.000Z"),
+      },
+    ]);
+
+    useInfiniteQueryMock.mockImplementation((options: { queryKey?: unknown[] }) => {
+      const input = options.queryKey?.[2] as { sortBy?: string } | undefined;
+      const page = input?.sortBy === "lastVisitedAt" ? lastVisitedPage : defaultPage;
+      return {
+        data: { pages: [page] },
+        isPending: false,
+        hasNextPage: false,
+        isFetchingNextPage: false,
+        fetchNextPage: fetchNextPageMock,
+      };
+    });
+
+    render(<SidebarHistory />);
+
+    expect(useInfiniteQueryMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        queryKey: ["visit", "listSidebarHistory", expect.objectContaining({ sortBy: "firstVisitedAt" })],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sort by recent visit" }));
+
+    expect(useInfiniteQueryMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        queryKey: ["visit", "listSidebarHistory", expect.objectContaining({ sortBy: "lastVisitedAt" })],
+      }),
+    );
   });
 });

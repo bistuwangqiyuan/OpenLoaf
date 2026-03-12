@@ -63,6 +63,7 @@ import {
   setPanelActive,
   syncPanelTabs,
 } from "@/lib/panel-runtime";
+import { buildBoardChatTabState } from "@/components/board/utils/board-chat-tab";
 
 /** Recursively find a project node by id in a tree. */
 function findProjectInTree(
@@ -106,6 +107,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   const addTabSession = useTabs((s) => s.addTabSession);
   const removeTabSession = useTabs((s) => s.removeTabSession);
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
+  const setTabChatParams = useTabs((s) => s.setTabChatParams);
   const moveTabSession = useTabs((s) => s.moveTabSession);
   const setTabSessionTitles = useTabs((s) => s.setTabSessionTitles);
   const { recordEntityVisit } = useRecordEntityVisit();
@@ -254,11 +256,59 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   const restoreDockSnapshot = useTabRuntime((s) => s.restoreDockSnapshot);
   const setTabBase = useTabRuntime((s) => s.setTabBase);
   const setTabLeftWidthPercent = useTabRuntime((s) => s.setTabLeftWidthPercent);
+  const boardBaseParams = React.useMemo(
+    () =>
+      tab?.base?.component === "board-viewer"
+        ? (tab.base.params as Record<string, unknown> | undefined)
+        : undefined,
+    [tab?.base],
+  );
+  const boardChatSessionId = React.useMemo(() => {
+    const boardId = boardBaseParams?.boardId;
+    return typeof boardId === "string" ? boardId.trim() : "";
+  }, [boardBaseParams]);
+  const isBoardChatTab = boardChatSessionId.length > 0;
   const currentProjectId = React.useMemo(() => {
     const params = tab?.chatParams as Record<string, unknown> | undefined;
-    const pid = params?.projectId;
+    const pid = boardBaseParams?.projectId ?? params?.projectId;
     return typeof pid === "string" ? pid.trim() : "";
-  }, [tab?.chatParams]);
+  }, [boardBaseParams, tab?.chatParams]);
+
+  React.useEffect(() => {
+    if (!tabId || !isBoardChatTab) return;
+
+    if (activeSessionId !== boardChatSessionId) {
+      setActiveTabSession(tabId, boardChatSessionId, {
+        loadHistory: true,
+        replaceCurrent: true,
+      });
+    }
+
+    const currentChatParams =
+      typeof tab?.chatParams === "object" && tab.chatParams
+        ? (tab.chatParams as Record<string, unknown>)
+        : {};
+    const nextChatParams = buildBoardChatTabState(
+      boardChatSessionId,
+      currentProjectId || null,
+    ).chatParams;
+    const same =
+      Object.keys(nextChatParams).length === Object.keys(currentChatParams).length
+      && Object.entries(nextChatParams).every(([key, value]) => currentChatParams[key] === value);
+
+    if (!same) {
+      setTabChatParams(tabId, nextChatParams);
+    }
+  }, [
+    activeSessionId,
+    boardChatSessionId,
+    currentProjectId,
+    isBoardChatTab,
+    setActiveTabSession,
+    setTabChatParams,
+    tab?.chatParams,
+    tabId,
+  ]);
   const prevActiveSessionIdRef = React.useRef(activeSessionId);
   const prevProjectIdRef = React.useRef(currentProjectId);
   const prevVisitRef = React.useRef<{
@@ -285,6 +335,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
       projectId: nextProjectId,
     };
 
+    if (isBoardChatTab) return;
     if (!isActiveTab || !nextSessionId || !hasRemoteActiveSession) return;
     if (!activated && !sessionChanged && !projectChanged) return;
 
@@ -297,6 +348,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   }, [
     activeSessionId,
     currentProjectId,
+    isBoardChatTab,
     hasRemoteActiveSession,
     isActiveTab,
     recordEntityVisit,
@@ -462,11 +514,11 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   }, [renameSessionId, renameValue, setTabSessionTitles, tabId, updateSession]);
 
 
-  const showNewSessionButton = sessionList.length > 0;
-  const showCloseSessionButton = sessionList.length > 1;
-  const showSessionIndex = sessionList.length > 1;
+  const showNewSessionButton = !isBoardChatTab && sessionList.length > 0;
+  const showCloseSessionButton = !isBoardChatTab && sessionList.length > 1;
+  const showSessionIndex = !isBoardChatTab && sessionList.length > 1;
   const activeIndex = sessionList.findIndex((s) => s.sessionId === activeSessionId);
-  const useAccordion = sessionList.length > 1 && activeIndex >= 0;
+  const useAccordion = !isBoardChatTab && sessionList.length > 1 && activeIndex >= 0;
   const sessionsAbove = useAccordion ? sessionList.slice(0, activeIndex) : [];
   const sessionsBelow = useAccordion ? sessionList.slice(activeIndex + 1) : [];
   const resolvedActiveSessionId =
@@ -535,7 +587,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
   );
   // Render the pinned new-session bar.
   // Only show for project chats (not workspace chats)
-  const newSessionBar = currentProjectId ? (
+  const newSessionBar = currentProjectId && !isBoardChatTab ? (
     <button
       type="button"
       className={cn(
@@ -573,6 +625,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
               sessionId={session.sessionId}
               loadHistory={shouldLoadHistory}
               tabId={tab?.id}
+              enableMultiSession={!isBoardChatTab}
               {...(tab?.chatParams ?? {})}
               onSessionChange={handleSessionChange}
               onNewSession={showNewSessionButton ? handleNewSession : undefined}

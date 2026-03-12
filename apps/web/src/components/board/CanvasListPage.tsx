@@ -23,6 +23,7 @@ import { useIsInView } from "@/hooks/use-is-in-view";
 import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
+import { buildBoardChatTabState } from "./utils/board-chat-tab";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { getCachedAccessToken } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
@@ -657,6 +658,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
           createNew: true,
           title: board.title || t("canvasList.untitled"),
           icon: "🎨",
+          ...buildBoardChatTabState(board.id, board.projectId),
           leftWidthPercent: 100,
           base: {
             id: baseId,

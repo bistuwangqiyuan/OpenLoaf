@@ -10,6 +10,7 @@
 import path from "node:path";
 import {
   existsSync,
+  readdirSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -17,17 +18,18 @@ import {
 } from "node:fs";
 import { z } from "zod";
 import {
+  getAppConfig,
   getDefaultProjectStoragePath,
 } from "./appConfigService";
 import { normalizeFileUri, resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
 
-/** Legacy project registry directory name. */
-const WORKSPACE_PROJECT_CONFIG_DIR = ".openloaf";
-/** Legacy project registry file name. */
-const WORKSPACE_PROJECT_CONFIG_FILE = "workspace.json";
+const PROJECT_REGISTRY_CONFIG_DIR = ".openloaf";
+const PROJECT_REGISTRY_CONFIG_FILE = "project-registry.json";
+const PROJECT_META_DIR = ".openloaf";
+const PROJECT_META_FILE = "project.json";
 
-/** Legacy top-level project registry schema. */
-export const workspaceProjectConfigSchema = z
+/** Top-level project registry schema. */
+export const projectRegistryConfigSchema = z
   .object({
     schema: z.number().optional(),
     projects: z.record(z.string(), z.string()).optional(),
@@ -35,35 +37,35 @@ export const workspaceProjectConfigSchema = z
   })
   .passthrough();
 
-export type WorkspaceProjectConfig = z.infer<typeof workspaceProjectConfigSchema>;
+export type ProjectRegistryConfig = z.infer<typeof projectRegistryConfigSchema>;
 
-type WorkspaceProjectContext = {
+type ProjectRegistryContext = {
   /** Root path on disk. */
   rootPath: string;
   /** Raw config data. */
-  config: WorkspaceProjectConfig;
+  config: ProjectRegistryConfig;
 };
 
-/** Build legacy workspace.json path from the project storage root. */
-function resolveWorkspaceProjectConfigPath(rootPath: string): string {
-  return path.join(rootPath, WORKSPACE_PROJECT_CONFIG_DIR, WORKSPACE_PROJECT_CONFIG_FILE);
+/** Build the project registry path from the project storage root. */
+function resolveProjectRegistryConfigPath(rootPath: string): string {
+  return path.join(rootPath, PROJECT_REGISTRY_CONFIG_DIR, PROJECT_REGISTRY_CONFIG_FILE);
 }
 
-/** Read legacy workspace.json safely. */
-function readWorkspaceProjectConfig(rootPath: string): WorkspaceProjectConfig | null {
-  const filePath = resolveWorkspaceProjectConfigPath(rootPath);
+/** Read project-registry.json safely. */
+function readProjectRegistryConfig(rootPath: string): ProjectRegistryConfig | null {
+  const filePath = resolveProjectRegistryConfigPath(rootPath);
   if (!existsSync(filePath)) return null;
   try {
     const raw = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
-    return workspaceProjectConfigSchema.parse(raw);
+    return projectRegistryConfigSchema.parse(raw);
   } catch {
     return null;
   }
 }
 
-/** Write legacy workspace.json atomically. */
-function writeWorkspaceProjectConfig(rootPath: string, payload: WorkspaceProjectConfig): void {
-  const filePath = resolveWorkspaceProjectConfigPath(rootPath);
+/** Write project-registry.json atomically. */
+function writeProjectRegistryConfig(rootPath: string, payload: ProjectRegistryConfig): void {
+  const filePath = resolveProjectRegistryConfigPath(rootPath);
   const dirPath = path.dirname(filePath);
   mkdirSync(dirPath, { recursive: true });
   const tmpPath = `${filePath}.${Date.now()}.tmp`;
@@ -71,9 +73,9 @@ function writeWorkspaceProjectConfig(rootPath: string, payload: WorkspaceProject
   renameSync(tmpPath, filePath);
 }
 
-/** Normalize legacy top-level project mapping and order. */
-function normalizeWorkspaceProjectConfig(
-  raw: WorkspaceProjectConfig,
+/** Normalize top-level project mapping and order. */
+function normalizeProjectRegistryConfig(
+  raw: ProjectRegistryConfig,
 ): { projects: Record<string, string>; order: string[] } {
   const projects: Record<string, string> = {};
   for (const [projectId, value] of Object.entries(raw.projects ?? {})) {
@@ -108,7 +110,7 @@ function isPathInside(rootPath: string, targetPath: string): boolean {
 }
 
 /** Convert a stored project entry into a file:// root URI. */
-function resolveWorkspaceProjectEntry(rootPath: string, value: string): string | null {
+function resolveProjectRegistryEntry(rootPath: string, value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith("file://")) return trimmed;
@@ -118,8 +120,8 @@ function resolveWorkspaceProjectEntry(rootPath: string, value: string): string |
   return toFileUriWithoutEncoding(candidatePath);
 }
 
-/** Convert a project root URI into a legacy workspace.json entry. */
-function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
+/** Convert a project root URI into a stored registry entry. */
+function toProjectRegistryEntry(rootPath: string, rootUri: string): string {
   const cleanedRootUri = (() => {
     const trimmed = rootUri.trim();
     const fileIndex = trimmed.indexOf("file://");
@@ -135,19 +137,74 @@ function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
   return relativePath || ".";
 }
 
-/** Ensure legacy workspace.json exists for top-level project registry. */
-function ensureProjectRegistryConfig(): WorkspaceProjectContext | null {
+/** Discover top-level projects directly under the storage root. */
+function discoverStorageRootProjects(rootPath: string): Array<[string, string]> {
+  const entries: Array<[string, string]> = [];
+  let children: ReturnType<typeof readdirSync>;
+  try {
+    children = readdirSync(rootPath, { withFileTypes: true });
+  } catch {
+    return entries;
+  }
+
+  for (const child of children) {
+    if (!child.isDirectory()) continue;
+    const projectRootPath = path.join(rootPath, child.name);
+    const metaPath = path.join(projectRootPath, PROJECT_META_DIR, PROJECT_META_FILE);
+    if (!existsSync(metaPath)) continue;
+    try {
+      const raw = JSON.parse(readFileSync(metaPath, "utf-8")) as { projectId?: string };
+      const projectId = typeof raw.projectId === "string" ? raw.projectId.trim() : "";
+      if (!projectId) continue;
+      entries.push([projectId, toFileUriWithoutEncoding(projectRootPath)]);
+    } catch {
+      // ignore invalid project metadata
+    }
+  }
+
+  return entries;
+}
+
+/** Build initial registry entries from existing config and on-disk projects. */
+function resolveInitialProjectRegistryEntries(rootPath: string): Array<[string, string]> {
+  const nextEntries = new Map<string, string>();
+  const configProjects = getAppConfig().projects ?? {};
+
+  for (const [projectId, value] of Object.entries(configProjects)) {
+    const trimmedId = projectId.trim();
+    const trimmedValue = value?.trim();
+    if (!trimmedId || !trimmedValue) continue;
+    const rootUri = resolveProjectRegistryEntry(rootPath, trimmedValue);
+    if (!rootUri) continue;
+    nextEntries.set(trimmedId, rootUri);
+  }
+
+  for (const [projectId, rootUri] of discoverStorageRootProjects(rootPath)) {
+    if (nextEntries.has(projectId)) continue;
+    nextEntries.set(projectId, rootUri);
+  }
+
+  return Array.from(nextEntries.entries());
+}
+
+/** Ensure project-registry.json exists for top-level project registry. */
+function ensureProjectRegistryConfig(): ProjectRegistryContext | null {
   const rootPath = getDefaultProjectStoragePath();
-  let config = readWorkspaceProjectConfig(rootPath);
+  let config = readProjectRegistryConfig(rootPath);
   let shouldWrite = false;
 
   if (!config) {
-    config = { schema: 1, projects: {}, order: [] };
+    const entries = resolveInitialProjectRegistryEntries(rootPath);
+    const projects = Object.fromEntries(
+      entries.map(([projectId, rootUri]) => [projectId, toProjectRegistryEntry(rootPath, rootUri)]),
+    );
+    const order = entries.map(([projectId]) => projectId);
+    config = { schema: 1, projects, order };
     shouldWrite = true;
   }
 
   if (shouldWrite) {
-    writeWorkspaceProjectConfig(rootPath, config);
+    writeProjectRegistryConfig(rootPath, config);
   }
 
   return {
@@ -160,12 +217,12 @@ function ensureProjectRegistryConfig(): WorkspaceProjectContext | null {
 export function getProjectRegistryEntries(): Array<[string, string]> {
   const context = ensureProjectRegistryConfig();
   if (!context) return [];
-  const { projects, order } = normalizeWorkspaceProjectConfig(context.config);
+  const { projects, order } = normalizeProjectRegistryConfig(context.config);
   const entries: Array<[string, string]> = [];
   for (const projectId of order) {
     const raw = projects[projectId];
     if (!raw) continue;
-    const rootUri = resolveWorkspaceProjectEntry(context.rootPath, raw);
+    const rootUri = resolveProjectRegistryEntry(context.rootPath, raw);
     if (!rootUri) continue;
     entries.push([projectId, rootUri]);
   }
@@ -184,17 +241,17 @@ export function upsertProjectRegistryEntry(
 ): void {
   const context = ensureProjectRegistryConfig();
   if (!context) return;
-  const normalized = normalizeWorkspaceProjectConfig(context.config);
+  const normalized = normalizeProjectRegistryConfig(context.config);
   const nextProjects = { ...normalized.projects };
   const nextOrder = [...normalized.order];
   const trimmedId = projectId.trim();
   const trimmedUri = rootUri.trim();
   if (!trimmedId || !trimmedUri) return;
-  nextProjects[trimmedId] = toWorkspaceProjectEntry(context.rootPath, trimmedUri);
+  nextProjects[trimmedId] = toProjectRegistryEntry(context.rootPath, trimmedUri);
   if (!nextOrder.includes(trimmedId)) {
     nextOrder.push(trimmedId);
   }
-  writeWorkspaceProjectConfig(context.rootPath, {
+  writeProjectRegistryConfig(context.rootPath, {
     ...context.config,
     schema: 1,
     projects: nextProjects,
@@ -206,13 +263,13 @@ export function upsertProjectRegistryEntry(
 export function removeProjectRegistryEntry(projectId: string): void {
   const context = ensureProjectRegistryConfig();
   if (!context) return;
-  const normalized = normalizeWorkspaceProjectConfig(context.config);
+  const normalized = normalizeProjectRegistryConfig(context.config);
   const trimmedId = projectId.trim();
   if (!trimmedId || !normalized.projects[trimmedId]) return;
   const nextProjects = { ...normalized.projects };
   delete nextProjects[trimmedId];
   const nextOrder = normalized.order.filter((id) => id !== trimmedId);
-  writeWorkspaceProjectConfig(context.rootPath, {
+  writeProjectRegistryConfig(context.rootPath, {
     ...context.config,
     schema: 1,
     projects: nextProjects,
@@ -232,10 +289,10 @@ export function setProjectRegistryEntries(
     const trimmedId = projectId?.trim();
     const trimmedUri = rootUri?.trim();
     if (!trimmedId || !trimmedUri) continue;
-    projects[trimmedId] = toWorkspaceProjectEntry(context.rootPath, trimmedUri);
+    projects[trimmedId] = toProjectRegistryEntry(context.rootPath, trimmedUri);
     order.push(trimmedId);
   }
-  writeWorkspaceProjectConfig(context.rootPath, {
+  writeProjectRegistryConfig(context.rootPath, {
     ...context.config,
     schema: 1,
     projects,

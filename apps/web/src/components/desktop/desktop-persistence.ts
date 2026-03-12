@@ -84,8 +84,8 @@ export function getDesktopFileUri(rootUri: string): string {
   return buildChildUri(metaDir, DESKTOP_FILE_NAME);
 }
 
-/** Build the desktop persistence file uri under the workspace root. */
-export function getWorkspaceDesktopFileUri(rootUri: string): string {
+/** Build the desktop persistence file uri under the global desktop root. */
+export function getGlobalDesktopFileUri(rootUri: string): string {
   const metaDir = buildChildUri(rootUri, ".openloaf");
   return buildChildUri(metaDir, DESKTOP_FILE_NAME);
 }

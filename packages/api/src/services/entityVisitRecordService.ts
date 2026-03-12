@@ -20,14 +20,17 @@ import type {
   SidebarHistoryItem,
   SidebarHistoryPage,
   SidebarHistoryProjectItem,
+  SidebarHistorySort,
 } from "../types/entityVisit";
 
 type SidebarHistoryCursor = {
-  /** First visited timestamp used by the cursor. */
-  firstVisitedAt: Date;
+  /** Active sort timestamp used by the cursor. */
+  sortVisitedAt: Date;
   /** Stable record id used as a tiebreaker. */
   id: string;
 };
+
+type SidebarHistorySortField = "firstVisitedAt" | "lastVisitedAt";
 
 type SidebarHistorySourceRow = {
   id: string;
@@ -36,6 +39,7 @@ type SidebarHistorySourceRow = {
   projectId: string | null;
   dateKey: string;
   firstVisitedAt: Date;
+  lastVisitedAt: Date;
 };
 
 type SidebarHistoryResolvedRow = {
@@ -72,6 +76,7 @@ type BoardVisitRecord = {
 const DEFAULT_SIDEBAR_HISTORY_PAGE_SIZE = 30;
 const MAX_SIDEBAR_HISTORY_PAGE_SIZE = 100;
 const SIDEBAR_HISTORY_SCAN_MULTIPLIER = 4;
+const DEFAULT_SIDEBAR_HISTORY_SORT: SidebarHistorySort = "firstVisitedAt";
 
 export type EntityVisitRecordClient = {
   entityVisitRecord: {
@@ -108,9 +113,13 @@ export type EntityVisitRecordClient = {
         OR?: Array<
           | { firstVisitedAt: { lt: Date } }
           | { firstVisitedAt: Date; id: { lt: string } }
+          | { lastVisitedAt: { lt: Date } }
+          | { lastVisitedAt: Date; id: { lt: string } }
         >;
       };
-      orderBy: [{ firstVisitedAt: "desc" }, { id: "desc" }];
+      orderBy:
+        | [{ firstVisitedAt: "desc" }, { id: "desc" }]
+        | [{ lastVisitedAt: "desc" }, { id: "desc" }];
       take: number;
       select: {
         id: true;
@@ -119,6 +128,7 @@ export type EntityVisitRecordClient = {
         projectId: true;
         dateKey: true;
         firstVisitedAt: true;
+        lastVisitedAt: true;
       };
     }) => Promise<SidebarHistorySourceRow[]>;
   };
@@ -165,11 +175,16 @@ function normalizeSidebarHistoryPageSize(pageSize?: number | null): number {
   return Math.min(normalized, MAX_SIDEBAR_HISTORY_PAGE_SIZE);
 }
 
+/** Normalize sidebar history sort mode into a supported field. */
+function normalizeSidebarHistorySort(sortBy?: SidebarHistorySort): SidebarHistorySortField {
+  return sortBy === "lastVisitedAt" ? "lastVisitedAt" : DEFAULT_SIDEBAR_HISTORY_SORT;
+}
+
 /** Encode a stable sidebar history cursor. */
-function encodeSidebarHistoryCursor(row: SidebarHistorySourceRow): string {
+function encodeSidebarHistoryCursor(row: SidebarHistorySourceRow, sortField: SidebarHistorySortField): string {
   return Buffer.from(
     JSON.stringify({
-      firstVisitedAt: row.firstVisitedAt.toISOString(),
+      sortVisitedAt: row[sortField].toISOString(),
       id: row.id,
     }),
     "utf-8",
@@ -181,15 +196,15 @@ function decodeSidebarHistoryCursor(cursor?: string | null): SidebarHistoryCurso
   if (!cursor) return null;
   try {
     const decoded = JSON.parse(Buffer.from(cursor, "base64url").toString("utf-8")) as {
-      firstVisitedAt?: string;
+      sortVisitedAt?: string;
       id?: string;
     };
     const id = decoded.id?.trim();
-    const firstVisitedAt = decoded.firstVisitedAt ? new Date(decoded.firstVisitedAt) : null;
-    if (!id || !firstVisitedAt || Number.isNaN(firstVisitedAt.getTime())) {
+    const sortVisitedAt = decoded.sortVisitedAt ? new Date(decoded.sortVisitedAt) : null;
+    if (!id || !sortVisitedAt || Number.isNaN(sortVisitedAt.getTime())) {
       return null;
     }
-    return { id, firstVisitedAt };
+    return { id, sortVisitedAt };
   } catch {
     return null;
   }
@@ -223,13 +238,20 @@ function buildProjectVisitInfoMap(nodes: ProjectNode[]): Map<string, ProjectVisi
 /** Fetch a raw visit batch after the provided cursor. */
 async function fetchSidebarHistoryRows(
   prisma: EntityVisitRecordClient,
-  input: { cursor: SidebarHistoryCursor | null; take: number; projectId?: string },
+  input: {
+    cursor: SidebarHistoryCursor | null;
+    take: number;
+    projectId?: string;
+    sortField: SidebarHistorySortField;
+  },
 ): Promise<SidebarHistorySourceRow[]> {
   const where: {
     projectId?: string;
     OR?: Array<
       | { firstVisitedAt: { lt: Date } }
       | { firstVisitedAt: Date; id: { lt: string } }
+      | { lastVisitedAt: { lt: Date } }
+      | { lastVisitedAt: Date; id: { lt: string } }
     >;
   } = {};
 
@@ -238,18 +260,28 @@ async function fetchSidebarHistoryRows(
   }
 
   if (input.cursor) {
-    where.OR = [
-      { firstVisitedAt: { lt: input.cursor.firstVisitedAt } },
-      {
-        firstVisitedAt: input.cursor.firstVisitedAt,
-        id: { lt: input.cursor.id },
-      },
-    ];
+    where.OR = input.sortField === "lastVisitedAt"
+      ? [
+          { lastVisitedAt: { lt: input.cursor.sortVisitedAt } },
+          {
+            lastVisitedAt: input.cursor.sortVisitedAt,
+            id: { lt: input.cursor.id },
+          },
+        ]
+      : [
+          { firstVisitedAt: { lt: input.cursor.sortVisitedAt } },
+          {
+            firstVisitedAt: input.cursor.sortVisitedAt,
+            id: { lt: input.cursor.id },
+          },
+        ];
   }
 
   return prisma.entityVisitRecord.findMany({
     where: Object.keys(where).length > 0 ? where : undefined,
-    orderBy: [{ firstVisitedAt: "desc" }, { id: "desc" }],
+    orderBy: input.sortField === "lastVisitedAt"
+      ? [{ lastVisitedAt: "desc" }, { id: "desc" }]
+      : [{ firstVisitedAt: "desc" }, { id: "desc" }],
     take: input.take,
     select: {
       id: true,
@@ -258,6 +290,7 @@ async function fetchSidebarHistoryRows(
       projectId: true,
       dateKey: true,
       firstVisitedAt: true,
+      lastVisitedAt: true,
     },
   });
 }
@@ -311,6 +344,7 @@ async function resolveSidebarHistoryBatch(
         projectId: projectInfo.projectId,
         dateKey: row.dateKey,
         firstVisitedAt: row.firstVisitedAt,
+        lastVisitedAt: row.lastVisitedAt,
         title: projectInfo.title,
         icon: projectInfo.icon,
         rootUri: projectInfo.rootUri,
@@ -332,6 +366,7 @@ async function resolveSidebarHistoryBatch(
         projectId: projectInfo?.projectId ?? null,
         dateKey: row.dateKey,
         firstVisitedAt: row.firstVisitedAt,
+        lastVisitedAt: row.lastVisitedAt,
         title: chat.title,
         projectTitle: projectInfo?.title ?? null,
       };
@@ -353,6 +388,7 @@ async function resolveSidebarHistoryBatch(
       projectId: projectInfo?.projectId ?? null,
       dateKey: row.dateKey,
       firstVisitedAt: row.firstVisitedAt,
+      lastVisitedAt: row.lastVisitedAt,
       title: board.title,
       folderUri: board.folderUri,
       rootUri,
@@ -425,6 +461,7 @@ export async function listSidebarHistoryPage(
 ): Promise<SidebarHistoryPage> {
   const pageSize = normalizeSidebarHistoryPageSize(input.pageSize);
   const projectId = normalizeOptionalId(input.projectId);
+  const sortField = normalizeSidebarHistorySort(input.sortBy);
   const targetCount = pageSize + 1;
   const scanTake = Math.max(pageSize * SIDEBAR_HISTORY_SCAN_MULTIPLIER, pageSize + 1);
   const projectTrees = options?.projectTrees ?? (await readProjectTrees());
@@ -440,6 +477,7 @@ export async function listSidebarHistoryPage(
       cursor: scanCursor,
       take: scanTake,
       projectId,
+      sortField,
     });
 
     if (batch.length === 0) {
@@ -458,7 +496,7 @@ export async function listSidebarHistoryPage(
     const lastRow = batch[batch.length - 1];
     scanCursor = lastRow
       ? {
-          firstVisitedAt: lastRow.firstVisitedAt,
+          sortVisitedAt: lastRow[sortField],
           id: lastRow.id,
         }
       : scanCursor;
@@ -473,7 +511,7 @@ export async function listSidebarHistoryPage(
   const hasMore = resolvedRows.length > pageSize;
   const lastPageRow = pageRows.length > 0 ? pageRows[pageRows.length - 1] : null;
   const nextCursor = hasMore && lastPageRow
-    ? encodeSidebarHistoryCursor(lastPageRow.row)
+    ? encodeSidebarHistoryCursor(lastPageRow.row, sortField)
     : null;
 
   return {

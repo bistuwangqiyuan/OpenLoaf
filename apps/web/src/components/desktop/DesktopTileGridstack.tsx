@@ -53,7 +53,7 @@ import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 
 interface DesktopTileGridstackProps {
   item: DesktopItem;
-  /** Desktop scope (workspace or project). */
+  /** Desktop scope (global or project). */
   scope: DesktopScope;
   editMode: boolean;
   onEnterEditMode: () => void;

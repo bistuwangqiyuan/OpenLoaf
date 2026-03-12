@@ -59,7 +59,7 @@ export interface Tab {
  */
 export const WORKBENCH_TAB_INPUT = {
   baseId: "base:workbench",
-  component: "workspace-desktop",
+  component: "global-desktop",
   titleKey: "nav:workbench",
   icon: "bot",
 } as const;

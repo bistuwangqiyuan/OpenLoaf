@@ -146,7 +146,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
 }: FileSystemContextMenuProps) {
   const { t } = useTranslation(['workspace']);
   const isMultiSelection = selectedEntries.length > 1;
-  const toggleHiddenLabel = showHidden ? t('workspace:filesystem.showHiddenActive') : t('workspace:filesystem.showHidden');
+  const toggleHiddenLabel = showHidden ? t('project:filesystem.showHiddenActive') : t('project:filesystem.showHidden');
   const shouldShowEnterBoardFolder =
     menuContextEntry?.kind === "folder" && isBoardFolderName(menuContextEntry.name);
   const shouldShowEntryFileManager =
@@ -170,7 +170,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.openTransferDialog(selectedEntries, "copy")
                 )}
               >
-                {t('workspace:filesystem.copyTo')}
+                {t('project:filesystem.copyTo')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={ArrowRightLeft}
@@ -179,7 +179,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.openTransferDialog(selectedEntries, "move")
                 )}
               >
-                {t('workspace:filesystem.moveTo')}
+                {t('project:filesystem.moveTo')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -187,7 +187,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.danger}
                 onSelect={withMenuSelectGuard(() => actions.deleteEntries(selectedEntries))}
               >
-                {t('workspace:filesystem.delete')}
+                {t('project:filesystem.delete')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={Trash}
@@ -196,7 +196,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.deleteEntriesPermanent(selectedEntries)
                 )}
               >
-                {t('workspace:filesystem.permanentDelete')}
+                {t('project:filesystem.permanentDelete')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -208,7 +208,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   )
                 )}
               >
-                {t('workspace:filesystem.refresh')}
+                {t('project:filesystem.refresh')}
               </ContextMenuItem>
             </>
           ) : (
@@ -218,7 +218,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
                 onSelect={withMenuSelectGuard(() => actions.openEntry(menuContextEntry))}
               >
-                {t('workspace:filesystem.open')}
+                {t('project:filesystem.open')}
               </ContextMenuItem>
               {shouldShowEnterBoardFolder ? (
                 <ContextMenuItem
@@ -228,7 +228,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                     actions.enterBoardFolder(menuContextEntry)
                   )}
                 >
-                  {t('workspace:filesystem.enterBoardFolder')}
+                  {t('project:filesystem.enterBoardFolder')}
                 </ContextMenuItem>
               ) : null}
               {shouldShowEntryFileManager ? (
@@ -239,7 +239,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                     actions.openInFileManager(menuContextEntry)
                   )}
                 >
-                  {t('workspace:filesystem.openInFileManager')}
+                  {t('project:filesystem.openInFileManager')}
                 </ContextMenuItem>
               ) : null}
               {shouldShowEntryTerminal ? (
@@ -248,7 +248,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
                   onSelect={withMenuSelectGuard(() => actions.openTerminal(menuContextEntry))}
                 >
-                  {t('workspace:filesystem.openInTerminal')}
+                  {t('project:filesystem.openInTerminal')}
                 </ContextMenuItem>
               ) : null}
               {shouldShowConvertToSubproject ? (
@@ -259,7 +259,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                     actions.convertFolderToSubproject(menuContextEntry)
                   )}
                 >
-                  {t('workspace:filesystem.convertToSubproject')}
+                  {t('project:filesystem.convertToSubproject')}
                 </ContextMenuItem>
               ) : null}
               <ContextMenuItem
@@ -271,7 +271,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   )
                 )}
               >
-                {t('workspace:filesystem.refresh')}
+                {t('project:filesystem.refresh')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -281,7 +281,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.openTransferDialog(menuContextEntry, "copy")
                 )}
               >
-                {t('workspace:filesystem.copyTo')}
+                {t('project:filesystem.copyTo')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={ArrowRightLeft}
@@ -290,14 +290,14 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.openTransferDialog(menuContextEntry, "move")
                 )}
               >
-                {t('workspace:filesystem.moveTo')}
+                {t('project:filesystem.moveTo')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={ClipboardCopy}
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.neutral}
                 onSelect={withMenuSelectGuard(() => actions.copyPath(menuContextEntry))}
               >
-                {t('workspace:filesystem.copyPath')}
+                {t('project:filesystem.copyPath')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -305,14 +305,14 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.warning}
                 onSelect={withMenuSelectGuard(() => actions.requestRename(menuContextEntry))}
               >
-                {t('workspace:filesystem.rename')}
+                {t('project:filesystem.rename')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={Trash2}
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.danger}
                 onSelect={withMenuSelectGuard(() => actions.deleteEntry(menuContextEntry))}
               >
-                {t('workspace:filesystem.delete')}
+                {t('project:filesystem.delete')}
               </ContextMenuItem>
               <ContextMenuItem
                 icon={Trash}
@@ -321,7 +321,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                   actions.deleteEntryPermanent(menuContextEntry)
                 )}
               >
-                {t('workspace:filesystem.permanentDelete')}
+                {t('project:filesystem.permanentDelete')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -329,7 +329,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
                 onSelect={withMenuSelectGuard(() => actions.showInfo(menuContextEntry))}
               >
-                {t('workspace:filesystem.properties')}
+                {t('project:filesystem.properties')}
               </ContextMenuItem>
             </>
           )
@@ -340,7 +340,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               iconClassName={FILESYSTEM_MENU_ICON_CLASS.success}
               onSelect={withMenuSelectGuard(() => actions.refreshList())}
             >
-              {t('workspace:filesystem.refresh')}
+              {t('project:filesystem.refresh')}
             </ContextMenuItem>
             <ContextMenuItem
               icon={showHidden ? Eye : EyeOff}
@@ -354,7 +354,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               iconClassName={FILESYSTEM_MENU_ICON_CLASS.neutral}
               onSelect={withMenuSelectGuard(actions.copyPathAtCurrent)}
             >
-              {t('workspace:filesystem.copyPath')}
+              {t('project:filesystem.copyPath')}
             </ContextMenuItem>
             <ContextMenuItem
               icon={ClipboardPaste}
@@ -362,7 +362,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               onSelect={withMenuSelectGuard(actions.paste)}
               disabled={clipboardSize === 0}
             >
-              {t('workspace:filesystem.paste')}
+              {t('project:filesystem.paste')}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -370,14 +370,14 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               iconClassName={FILESYSTEM_MENU_ICON_CLASS.success}
               onSelect={withMenuSelectGuard(actions.createFolder)}
             >
-              {t('workspace:filesystem.newFolder')}
+              {t('project:filesystem.newFolder')}
             </ContextMenuItem>
             <ContextMenuItem
               icon={FilePlus}
               iconClassName={FILESYSTEM_MENU_ICON_CLASS.success}
               onSelect={withMenuSelectGuard(actions.createDocument)}
             >
-              {t('workspace:filesystem.newDocument')}
+              {t('project:filesystem.newDocument')}
             </ContextMenuItem>
             <ContextMenuSeparator />
             {showTerminal ? (
@@ -386,7 +386,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
                 iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
                 onSelect={withMenuSelectGuard(actions.openTerminalAtCurrent)}
               >
-                {t('workspace:filesystem.openInTerminal')}
+                {t('project:filesystem.openInTerminal')}
               </ContextMenuItem>
             ) : null}
             <ContextMenuItem
@@ -394,7 +394,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
               iconClassName={FILESYSTEM_MENU_ICON_CLASS.info}
               onSelect={withMenuSelectGuard(actions.openInFileManagerAtCurrent)}
             >
-              {t('workspace:filesystem.openInFileManager')}
+              {t('project:filesystem.openInFileManager')}
             </ContextMenuItem>
           </>
         )}

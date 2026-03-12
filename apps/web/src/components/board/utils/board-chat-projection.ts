@@ -19,6 +19,7 @@ import { resolveFileName } from "@/lib/image/uri";
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
 import { normalizeToolInput } from "@/components/ai/message/tools/shared/tool-utils";
 import {
+  collapseBoardChatMessageGroup,
   getBoardChatMessageChildIds,
   layoutBoardChatMessageGroup,
   updateBoardChatPartMeta,
@@ -76,6 +77,8 @@ type BoardChatProjectionPart =
       size: [number, number];
     };
 
+export type BoardChatProjectionDescriptor = BoardChatProjectionPart;
+
 type MediaGenerateSnapshot = {
   status: "generating" | "done" | "error";
   kind?: "image" | "video";
@@ -125,7 +128,7 @@ type ProjectionEngine = {
     getElementById: (id: string) => CanvasElement | null | undefined;
     getElements: () => CanvasElement[];
     transact: (fn: () => void) => void;
-    updateElement: (id: string, patch: Partial<CanvasNodeElement>) => void;
+    updateElement: (id: string, patch: Partial<CanvasElement>) => void;
     updateNodeProps: (id: string, patch: Record<string, unknown>) => void;
     deleteElement: (id: string) => void;
     deleteElements: (ids: string[]) => void;
@@ -321,10 +324,10 @@ export function buildBoardChatProjectionParts(rawParts: unknown[]): BoardChatLog
 }
 
 /** Build projected board node descriptors from logical message parts. */
-async function buildProjectionDescriptors(input: {
+export async function buildBoardChatProjectionDescriptors(input: {
   parts: ReturnType<typeof buildBoardChatProjectionParts>;
   projectId?: string;
-}): Promise<BoardChatProjectionPart[]> {
+}): Promise<BoardChatProjectionDescriptor[]> {
   const nextParts: BoardChatProjectionPart[] = [];
   let textIndex = 0;
   let fileIndex = 0;
@@ -489,11 +492,12 @@ export async function projectBoardChatMessageParts(input: {
   groupId: string;
   rawParts: unknown[];
   projectId?: string;
+  collapseSinglePart?: boolean;
 }): Promise<void> {
   const group = input.engine.doc.getElementById(input.groupId);
   if (!group || group.kind !== "node") return;
   const logicalParts = buildBoardChatProjectionParts(Array.isArray(input.rawParts) ? input.rawParts : []);
-  const descriptors = await buildProjectionDescriptors({
+  const descriptors = await buildBoardChatProjectionDescriptors({
     parts: logicalParts,
     projectId: input.projectId,
   });
@@ -566,6 +570,10 @@ export async function projectBoardChatMessageParts(input: {
 
   input.engine.selection.setSelection(selectionSnapshot);
   layoutBoardChatMessageGroup(input.engine, input.groupId);
+
+  if (input.collapseSinglePart && nextChildIds.length === 1) {
+    collapseBoardChatMessageGroup(input.engine, input.groupId);
+  }
 }
 
 /** Resolve stored board chat part key from node meta. */

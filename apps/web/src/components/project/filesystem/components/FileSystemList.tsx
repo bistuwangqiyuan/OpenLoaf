@@ -151,11 +151,11 @@ function resolveEntryDisplayName(entry: FileSystemEntry) {
 /** Resolve list type label for an entry. */
 function resolveEntryTypeLabel(entry: FileSystemEntry, t: (key: string) => string) {
   if (entry.kind === "folder") {
-    return isBoardFolderName(entry.name) ? t('workspace:filesystem.typeBoard') : t('workspace:filesystem.typeFolder');
+    return isBoardFolderName(entry.name) ? t('project:filesystem.typeBoard') : t('project:filesystem.typeFolder');
   }
   const ext = getEntryExt(entry);
-  if (!ext) return t('workspace:filesystem.typeFile');
-  if (isBoardFileExt(ext)) return t('workspace:filesystem.typeBoard');
+  if (!ext) return t('project:filesystem.typeFile');
+  if (isBoardFileExt(ext)) return t('project:filesystem.typeBoard');
   const override = FILE_TYPE_LABEL_OVERRIDES[ext];
   if (override) return override;
   return ext.toUpperCase();
@@ -462,7 +462,7 @@ const FileSystemList = memo(function FileSystemList({
       parentUri !== null && parentUri !== undefined
         ? {
             uri: parentUri,
-            name: t('workspace:filesystem.parentDir'),
+            name: t('project:filesystem.parentDir'),
             kind: "folder",
           }
         : null,

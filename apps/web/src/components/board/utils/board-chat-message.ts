@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import type { CanvasElement, CanvasNodeElement } from "../engine/types";
+import type { CanvasConnectorElement, CanvasElement, CanvasNodeElement } from "../engine/types";
 
 export type BoardChatMessageStatus = "streaming" | "complete" | "error";
 
@@ -35,8 +35,8 @@ export type BoardChatPartMeta = {
   projectionKind: string;
 };
 
-const BOARD_CHAT_MESSAGE_META_KEY = "boardChatMessage";
-const BOARD_CHAT_PART_META_KEY = "boardChatPart";
+export const BOARD_CHAT_MESSAGE_META_KEY = "boardChatMessage";
+export const BOARD_CHAT_PART_META_KEY = "boardChatPart";
 const MESSAGE_GROUP_GAP = 12;
 const MESSAGE_GROUP_MIN_WIDTH = 280;
 const MESSAGE_GROUP_MIN_HEIGHT = 48;
@@ -204,6 +204,64 @@ export function layoutBoardChatMessageGroup(engine: {
   });
 }
 
+/** Delete related connectors for a board chat message element set. */
+function deleteBoardChatConnectors(
+  engine: {
+    doc: {
+      getElements: () => CanvasElement[];
+      deleteElements: (ids: string[]) => void;
+    };
+  },
+  elementIds: Set<string>,
+): void {
+  const connectorIds = engine.doc
+    .getElements()
+    .filter((element): element is CanvasConnectorElement => element.kind === "connector")
+    .filter((element) => {
+      const sourceId = "elementId" in element.source ? element.source.elementId : null;
+      const targetId = "elementId" in element.target ? element.target.elementId : null;
+      return (
+        (sourceId ? elementIds.has(sourceId) : false)
+        || (targetId ? elementIds.has(targetId) : false)
+      );
+    })
+    .map((element) => element.id);
+  if (connectorIds.length > 0) {
+    engine.doc.deleteElements(connectorIds);
+  }
+}
+
+/** Delete one board chat message element, handling both group and single-node forms. */
+export function deleteBoardChatMessageElement(engine: {
+  batch: (fn: () => void) => void;
+  doc: {
+    getElementById: (id: string) => CanvasElement | null | undefined;
+    getElements: () => CanvasElement[];
+    transact: (fn: () => void) => void;
+    deleteElements: (ids: string[]) => void;
+  };
+}, elementId: string): void {
+  const element = engine.doc.getElementById(elementId);
+  if (!element || element.kind !== "node") return;
+  const deleteSet = new Set<string>([elementId]);
+
+  if (Array.isArray((element.props as { childIds?: string[] }).childIds)) {
+    const elements = engine.doc.getElements();
+    const childIds = getBoardChatMessageChildIds(
+      element as CanvasNodeElement<{ childIds?: string[] }>,
+      elements,
+    );
+    childIds.forEach((childId) => deleteSet.add(childId));
+  }
+
+  engine.batch(() => {
+    engine.doc.transact(() => {
+      deleteBoardChatConnectors(engine, deleteSet);
+      engine.doc.deleteElements(Array.from(deleteSet));
+    });
+  });
+}
+
 /** Delete a board chat message group with all projected child nodes and related connectors. */
 export function deleteBoardChatMessageGroup(engine: {
   batch: (fn: () => void) => void;
@@ -214,24 +272,85 @@ export function deleteBoardChatMessageGroup(engine: {
     deleteElements: (ids: string[]) => void;
   };
 }, groupId: string): void {
-  const group = engine.doc.getElementById(groupId);
-  if (!group || group.kind !== "node") return;
-  const elements = engine.doc.getElements();
-  const childIds = getBoardChatMessageChildIds(group as CanvasNodeElement<{ childIds?: string[] }>, elements);
-  const deleteSet = new Set<string>([groupId, ...childIds]);
+  deleteBoardChatMessageElement(engine, groupId);
+}
 
-  elements.forEach((element) => {
-    if (element.kind !== "connector") return;
-    const sourceId = "elementId" in element.source ? element.source.elementId : null;
-    const targetId = "elementId" in element.target ? element.target.elementId : null;
-    if ((sourceId && deleteSet.has(sourceId)) || (targetId && deleteSet.has(targetId))) {
-      deleteSet.add(element.id);
-    }
-  });
+/** Collapse a single-child board chat group into a standalone message node. */
+export function collapseBoardChatMessageGroup(engine: {
+  batch: (fn: () => void) => void;
+  selection: {
+    getSelectedIds: () => string[];
+    setSelection: (ids: string[]) => void;
+  };
+  doc: {
+    getElementById: (id: string) => CanvasElement | null | undefined;
+    getElements: () => CanvasElement[];
+    transact: (fn: () => void) => void;
+    updateElement: (id: string, patch: Partial<CanvasElement>) => void;
+    deleteElement: (id: string) => void;
+  };
+}, groupId: string): string | null {
+  const group = engine.doc.getElementById(groupId);
+  if (!group || group.kind !== "node") return null;
+
+  const groupMeta = getBoardChatMessageMeta(group);
+  if (!groupMeta) return null;
+
+  const childIds = getBoardChatMessageChildIds(
+    group as CanvasNodeElement<{ childIds?: string[] }>,
+    engine.doc.getElements(),
+  );
+  if (childIds.length !== 1) return null;
+
+  const childId = childIds[0]!;
+  const child = engine.doc.getElementById(childId);
+  if (!child || child.kind !== "node") return null;
+
+  const childMeta = { ...((child.meta as Record<string, unknown> | undefined) ?? {}) };
+  delete childMeta.groupId;
+  delete childMeta[BOARD_CHAT_PART_META_KEY];
+
+  const selectedIds = engine.selection.getSelectedIds();
+  const nextSelectedIds = Array.from(new Set(
+    selectedIds.map((id) => (id === groupId ? childId : id)),
+  ));
 
   engine.batch(() => {
     engine.doc.transact(() => {
-      engine.doc.deleteElements(Array.from(deleteSet));
+      engine.doc.updateElement(childId, {
+        xywh: [group.xywh[0], group.xywh[1], child.xywh[2], child.xywh[3]],
+        zIndex: group.zIndex ?? child.zIndex,
+        meta: {
+          ...childMeta,
+          [BOARD_CHAT_MESSAGE_META_KEY]: {
+            ...groupMeta,
+          },
+        },
+      });
+
+      engine.doc
+        .getElements()
+        .filter((element): element is CanvasConnectorElement => element.kind === "connector")
+        .forEach((element) => {
+          const nextSource =
+            "elementId" in element.source && element.source.elementId === groupId
+              ? { ...element.source, elementId: childId }
+              : element.source;
+          const nextTarget =
+            "elementId" in element.target && element.target.elementId === groupId
+              ? { ...element.target, elementId: childId }
+              : element.target;
+          if (nextSource === element.source && nextTarget === element.target) return;
+          engine.doc.updateElement(element.id, {
+            source: nextSource,
+            target: nextTarget,
+          } as Partial<CanvasConnectorElement>);
+        });
+
+      engine.doc.deleteElement(groupId);
     });
   });
+
+  engine.selection.setSelection(nextSelectedIds);
+  return childId;
 }

@@ -78,7 +78,10 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
   input.onStatusChange("streaming");
 
   let projectionChain = Promise.resolve();
-  const queueProjection = (rawParts: unknown[]) => {
+  const queueProjection = (
+    rawParts: unknown[],
+    options?: { collapseSinglePart?: boolean },
+  ) => {
     const snapshot = Array.isArray(rawParts) ? [...rawParts] : [];
     projectionChain = projectionChain
       .catch(() => undefined)
@@ -88,6 +91,7 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
           groupId: input.messageGroupElementId,
           rawParts: snapshot,
           projectId: input.projectId,
+          collapseSinglePart: options?.collapseSinglePart,
         }),
       )
       .catch(() => undefined);
@@ -135,16 +139,16 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Request failed");
       store.errorStream(input.messageGroupElementId, errorText);
-      await queueProjection([{ type: "text", text: errorText }]);
       input.onStatusChange("error", errorText);
+      await queueProjection([{ type: "text", text: errorText }], { collapseSinglePart: true });
       store.removeStream(input.messageGroupElementId);
       return;
     }
 
     if (!response.body) {
       store.errorStream(input.messageGroupElementId, "No response body");
-      await queueProjection([{ type: "text", text: "No response body" }]);
       input.onStatusChange("error", "No response body");
+      await queueProjection([{ type: "text", text: "No response body" }], { collapseSinglePart: true });
       store.removeStream(input.messageGroupElementId);
       return;
     }
@@ -204,18 +208,19 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
                 : errorData?.message ?? "Unknown error";
               store.errorStream(input.messageGroupElementId, errorText);
               const currentStream = useBoardChatStore.getState().getStream(input.messageGroupElementId);
+              input.onStatusChange("error", errorText);
               await queueProjection(
                 (currentStream?.parts?.length ?? 0) > 0
                   ? currentStream?.parts ?? []
                   : [{ type: "text", text: errorText }],
+                { collapseSinglePart: true },
               );
-              input.onStatusChange("error", errorText);
               store.removeStream(input.messageGroupElementId);
               return;
             } catch {
               store.errorStream(input.messageGroupElementId, "Stream error");
-              await queueProjection([{ type: "text", text: "Stream error" }]);
               input.onStatusChange("error", "Stream error");
+              await queueProjection([{ type: "text", text: "Stream error" }], { collapseSinglePart: true });
               store.removeStream(input.messageGroupElementId);
               return;
             }
@@ -223,13 +228,16 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
           case "d": {
             // finish
             store.completeStream(input.messageGroupElementId);
+            input.onStatusChange("complete");
             await projectionChain;
             const finalParts = await loadFinalMessageParts({
               sessionId: input.sessionId,
               messageId: input.assistantMessageId,
             }).catch(() => null);
-            await queueProjection(finalParts ?? (store.getStream(input.messageGroupElementId)?.parts ?? []));
-            input.onStatusChange("complete");
+            await queueProjection(
+              finalParts ?? (store.getStream(input.messageGroupElementId)?.parts ?? []),
+              { collapseSinglePart: true },
+            );
             store.removeStream(input.messageGroupElementId);
             return;
           }
@@ -245,27 +253,27 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
     const currentStream = store.getStream(input.messageGroupElementId);
     if (currentStream && currentStream.status === "streaming") {
       store.completeStream(input.messageGroupElementId);
+      input.onStatusChange("complete");
       await projectionChain;
       const finalParts = await loadFinalMessageParts({
         sessionId: input.sessionId,
         messageId: input.assistantMessageId,
       }).catch(() => null);
-      await queueProjection(finalParts ?? currentStream.parts);
-      input.onStatusChange("complete");
+      await queueProjection(finalParts ?? currentStream.parts, { collapseSinglePart: true });
       store.removeStream(input.messageGroupElementId);
     }
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "AbortError") {
       store.errorStream(input.messageGroupElementId, "Cancelled");
-      await queueProjection([{ type: "text", text: "Cancelled" }]);
       input.onStatusChange("error", "Cancelled");
+      await queueProjection([{ type: "text", text: "Cancelled" }], { collapseSinglePart: true });
       store.removeStream(input.messageGroupElementId);
       return;
     }
     const errorText = err instanceof Error ? err.message : "Unknown error";
     store.errorStream(input.messageGroupElementId, errorText);
-    await queueProjection([{ type: "text", text: errorText }]);
     input.onStatusChange("error", errorText);
+    await queueProjection([{ type: "text", text: errorText }], { collapseSinglePart: true });
     store.removeStream(input.messageGroupElementId);
   }
 }

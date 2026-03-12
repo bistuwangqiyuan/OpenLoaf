@@ -141,12 +141,12 @@ function groupProjectsByType(
   });
 }
 
-interface ProjectGridPageProps {
+interface ProjectListPageProps {
   tabId: string;
   panelKey: string;
 }
 
-export default function ProjectGridPage({ tabId }: ProjectGridPageProps) {
+export default function ProjectListPage({ tabId }: ProjectListPageProps) {
   const { t } = useTranslation("nav");
   const { t: tSettings } = useTranslation("settings");
 

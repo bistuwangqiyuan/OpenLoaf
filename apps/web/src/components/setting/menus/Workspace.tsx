@@ -63,7 +63,7 @@ function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg:
 }
 
 export function WorkspaceSettings() {
-  const { t } = useTranslation("workspace", { keyPrefix: "workspace" });
+  const { t } = useTranslation("project", { keyPrefix: "global" });
   const { loggedIn } = useSaasAuth();
   const projectsQuery = useProjects();
 

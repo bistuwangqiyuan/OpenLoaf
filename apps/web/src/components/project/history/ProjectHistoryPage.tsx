@@ -90,7 +90,7 @@ const ProjectHistoryHeader = memo(function ProjectHistoryHeader({
   isLoading,
   pageTitle,
 }: ProjectHistoryHeaderProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   if (isLoading) {
     return null;
   }
@@ -107,7 +107,7 @@ const ProjectHistoryHeader = memo(function ProjectHistoryHeader({
 const ProjectHistory = memo(function ProjectHistory({
   isLoading,
 }: ProjectHistoryProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const { sessions, isLoading: isSessionsLoading, scopeProjectId } = useChatSessions();
   const activeTabId = useTabs((s) => s.activeTabId);

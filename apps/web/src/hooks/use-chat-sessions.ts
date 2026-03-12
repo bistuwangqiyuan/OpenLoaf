@@ -75,16 +75,28 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   const activeTabId = useTabs((s) => s.activeTabId);
   const resolvedTabId = input?.tabId ?? activeTabId ?? undefined;
   const tab = useTabView(resolvedTabId);
+  const boardBaseParams =
+    tab?.base?.component === "board-viewer"
+      ? (tab.base.params as Record<string, unknown> | undefined)
+      : undefined;
+  const scopedBoardId = normalizeOptionalId(boardBaseParams?.boardId)
+    ?? normalizeOptionalId((tab?.chatParams as Record<string, unknown> | undefined)?.boardId);
   // 有 chatParams.projectId 的 tab（项目聊天、plant-page 等）按项目范围过滤会话。
   const scopedProjectId = normalizeOptionalId(
-    (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,
+    boardBaseParams?.projectId
+      ?? (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,
   );
   const listInput = useMemo(() => {
-    // 逻辑：聊天面板仅展示未绑定 board 的会话。
+    if (scopedBoardId) {
+      return scopedProjectId
+        ? { projectId: scopedProjectId, boardId: scopedBoardId }
+        : { boardId: scopedBoardId };
+    }
+    // 逻辑：普通聊天面板仅展示未绑定 board 的会话；board tab 则改为只读自己的 board session。
     return scopedProjectId
       ? { projectId: scopedProjectId, boardId: null }
       : { boardId: null };
-  }, [scopedProjectId]);
+  }, [scopedBoardId, scopedProjectId]);
 
   const query = useQuery({
     ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),

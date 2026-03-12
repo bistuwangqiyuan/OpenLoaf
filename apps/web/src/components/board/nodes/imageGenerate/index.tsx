@@ -61,6 +61,8 @@ import { ImageGenerateNodeSchema, type ImageGenerateNodeProps } from "./types";
 import { normalizeOutputCount, normalizeTextValue } from "./utils";
 import { AdvancedSettingsPanel } from "./AdvancedSettingsPanel";
 import { ModelSelect } from "./ModelSelect";
+import { getBoardChatMessageMeta } from "../../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../../utils/board-chat-toolbar";
 
 export { IMAGE_GENERATE_NODE_TYPE };
 
@@ -962,5 +964,10 @@ export const ImageGenerateNodeDefinition: CanvasNodeDefinition<ImageGenerateNode
     resizable: false,
     connectable: "auto",
     minSize: { w: 340, h: 280 },
+  },
+  toolbar: (ctx) => {
+    if (!ctx.element.props.readOnlyProjection) return [];
+    const messageMeta = getBoardChatMessageMeta(ctx.element);
+    return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
   },
 };

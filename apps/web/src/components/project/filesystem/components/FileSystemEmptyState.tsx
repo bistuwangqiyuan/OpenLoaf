@@ -54,9 +54,9 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
     <div className="flex h-full items-center justify-center translate-y-2">
       <div className="flex w-full flex-col items-center gap-4">
         <EmptyState
-          title={t('workspace:filesystem.noFilesHere')}
+          title={t('project:filesystem.noFilesHere')}
           description={
-            showEmptyActions ? t('workspace:filesystem.noFilesDesc') : t('workspace:filesystem.noFilesSelectDesc')
+            showEmptyActions ? t('project:filesystem.noFilesDesc') : t('project:filesystem.noFilesSelectDesc')
           }
           icons={[Folder, FileText, FolderOpen]}
           className="border-0 hover:border-0"
@@ -69,7 +69,7 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
                     onCreateDocument?.();
                   }}
                 >
-                  {t('workspace:filesystem.createDocument')}
+                  {t('project:filesystem.createDocument')}
                 </Button>
               </>
             ) : null
@@ -108,7 +108,7 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
               }}
             >
               <ArrowLeftIcon />
-              {t('workspace:filesystem.backToParent')}
+              {t('project:filesystem.backToParent')}
             </Button>
           </div>
         ) : null}
@@ -126,8 +126,8 @@ const FileSystemSearchEmptyState = memo(function FileSystemSearchEmptyState({
   return (
     <div className="flex h-full items-center justify-center translate-y-2">
       <EmptyState
-        title={t('workspace:filesystem.searchNoResults')}
-        description={t('workspace:filesystem.searchNoResultsDesc', { query })}
+        title={t('project:filesystem.searchNoResults')}
+        description={t('project:filesystem.searchNoResultsDesc', { query })}
         icons={[Search]}
         className="border-0 hover:border-0"
       />

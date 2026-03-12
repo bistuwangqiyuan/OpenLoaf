@@ -53,7 +53,7 @@ async function readWidgetPackage(widgetDir: string) {
         maxW: number
         maxH: number
       }
-      support?: { workspace: boolean; project: boolean }
+      support?: { global: boolean; project: boolean }
     }
   }
 }

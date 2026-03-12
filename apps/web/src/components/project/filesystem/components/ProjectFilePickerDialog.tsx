@@ -326,7 +326,7 @@ export function ProjectFilePickerDialog({
         );
       if (selections.length === 0) return;
       if (selections.length !== targetEntries.length) {
-        toast.error(t('workspace:filesystem.cannotResolvePath'));
+        toast.error(t('project:filesystem.cannotResolvePath'));
         return;
       }
       if (selections.length === 1) {
@@ -403,13 +403,13 @@ export function ProjectFilePickerDialog({
     >
       <DialogContent className="w-[70vw] h-[80vh] max-w-none sm:max-w-none flex flex-col">
         <DialogHeader>
-          <DialogTitle>{title ?? t('workspace:filesystem.selectFileTitle')}</DialogTitle>
+          <DialogTitle>{title ?? t('project:filesystem.selectFileTitle')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-2 md:grid-cols-[280px_minmax(0,1fr)] flex-1 min-h-0 overflow-hidden">
           <div className="rounded-2xl border border-border/60 bg-card/60 p-3 min-h-0 overflow-y-auto">
-            <div className="mb-2 flex h-6 items-center text-xs text-muted-foreground">{t('workspace:filesystem.projectLabel')}</div>
+            <div className="mb-2 flex h-6 items-center text-xs text-muted-foreground">{t('project:filesystem.projectLabel')}</div>
             {projectOptions.length === 0 ? (
-              <div className="text-xs text-muted-foreground">{t('workspace:filesystem.noProject')}</div>
+              <div className="text-xs text-muted-foreground">{t('project:filesystem.noProject')}</div>
             ) : (
               <PageTreePicker
                 projects={projectTree}
@@ -424,7 +424,7 @@ export function ProjectFilePickerDialog({
                 <BreadcrumbList>
                   {breadcrumbItems.length === 0 ? (
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{t('workspace:filesystem.selectProject')}</BreadcrumbPage>
+                      <BreadcrumbPage>{t('project:filesystem.selectProject')}</BreadcrumbPage>
                     </BreadcrumbItem>
                   ) : (
                     breadcrumbItems.map((item, index) => {
@@ -450,7 +450,7 @@ export function ProjectFilePickerDialog({
                 </BreadcrumbList>
               </Breadcrumb>
               <div className="text-[11px] text-muted-foreground">
-                {filterHint ?? t('workspace:filesystem.filterHintDefault')}
+                {filterHint ?? t('project:filesystem.filterHintDefault')}
               </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -487,7 +487,7 @@ export function ProjectFilePickerDialog({
               className="rounded-full shadow-none transition-colors duration-150"
               onClick={handleImportFromComputer}
             >
-              {t('workspace:filesystem.importFromComputer')}
+              {t('project:filesystem.importFromComputer')}
             </Button>
           ) : (
             <span />
@@ -499,7 +499,7 @@ export function ProjectFilePickerDialog({
                 variant="ghost"
                 className="rounded-full shadow-none transition-colors duration-150"
               >
-                {t('workspace:filesystem.cancel')}
+                {t('project:filesystem.cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -508,7 +508,7 @@ export function ProjectFilePickerDialog({
               className="rounded-full bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-400 shadow-none transition-colors duration-150"
               onClick={() => handleConfirm()}
             >
-              {t('workspace:filesystem.selectConfirmLabel')}
+              {t('project:filesystem.selectConfirmLabel')}
             </Button>
           </div>
         </DialogFooter>

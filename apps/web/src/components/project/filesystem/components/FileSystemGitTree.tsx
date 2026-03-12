@@ -461,21 +461,21 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
               className="py-1 pl-8 text-xs text-muted-foreground"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.loading')}
+              {t('project:filesystem.loading')}
             </div>
           ) : listQuery.isError ? (
             <div
               className="py-1 pl-8 text-xs text-destructive"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.loadError')}
+              {t('project:filesystem.loadError')}
             </div>
           ) : childNodes.length === 0 ? (
             <div
               className="py-1 pl-8 text-xs text-muted-foreground"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.emptyParens')}
+              {t('project:filesystem.emptyParens')}
             </div>
           ) : (
             childNodes.map((child) => (

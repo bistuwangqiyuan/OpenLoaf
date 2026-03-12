@@ -332,36 +332,36 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
         >
           <Tooltip>
             <TooltipTrigger asChild>
-              <ToolbarToggleItem value="grid" size="sm" className={toggleItemBase} aria-label={t('workspace:filesystem.gridView')}>
+              <ToolbarToggleItem value="grid" size="sm" className={toggleItemBase} aria-label={t('project:filesystem.gridView')}>
                 <LayoutGrid className={iconSize} />
               </ToolbarToggleItem>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.gridView')}</TooltipContent>
+            <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.gridView')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <ToolbarToggleItem value="list" size="sm" className={toggleItemBase} aria-label={t('workspace:filesystem.listView')}>
+              <ToolbarToggleItem value="list" size="sm" className={toggleItemBase} aria-label={t('project:filesystem.listView')}>
                 <LayoutList className={iconSize} />
               </ToolbarToggleItem>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.listView')}</TooltipContent>
+            <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.listView')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <ToolbarToggleItem value="columns" size="sm" className={toggleItemBase} aria-label={t('workspace:filesystem.columnsView')}>
+              <ToolbarToggleItem value="columns" size="sm" className={toggleItemBase} aria-label={t('project:filesystem.columnsView')}>
                 <Columns2 className={iconSize} />
               </ToolbarToggleItem>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.columnsView')}</TooltipContent>
+            <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.columnsView')}</TooltipContent>
           </Tooltip>
           {isTreeViewEnabled ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <ToolbarToggleItem value="tree" size="sm" className={toggleItemBase} aria-label={t('workspace:filesystem.treeView')}>
+                <ToolbarToggleItem value="tree" size="sm" className={toggleItemBase} aria-label={t('project:filesystem.treeView')}>
                   <FolderTree className={iconSize} />
                 </ToolbarToggleItem>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.treeView')}</TooltipContent>
+              <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.treeView')}</TooltipContent>
             </Tooltip>
           ) : null}
         </ToolbarToggleGroup>
@@ -376,13 +376,13 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
             variant="ghost"
             size="icon"
             className={`${btnBase} ${sortField === "name" ? "text-foreground" : "text-foreground/50 hover:text-foreground"}`}
-            aria-label={t('workspace:filesystem.sortByName')}
+            aria-label={t('project:filesystem.sortByName')}
             onClick={onSortByName}
           >
             {sortField === "name" && sortOrder === "asc" ? <ArrowUpAZ className={iconSize} /> : <ArrowDownAZ className={iconSize} />}
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.sortByName')}</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.sortByName')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -390,13 +390,13 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
             variant="ghost"
             size="icon"
             className={`${btnBase} ${sortField === "mtime" ? "text-foreground" : "text-foreground/50 hover:text-foreground"}`}
-            aria-label={t('workspace:filesystem.sortByTime')}
+            aria-label={t('project:filesystem.sortByTime')}
             onClick={onSortByTime}
           >
             {sortField === "mtime" && sortOrder === "asc" ? <ArrowUpWideNarrow className={iconSize} /> : <ArrowDownWideNarrow className={iconSize} />}
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.sortByTime')}</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.sortByTime')}</TooltipContent>
       </Tooltip>
 
       <div className="mx-1 h-5 w-px bg-foreground/20" />
@@ -404,27 +404,27 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
       {/* Actions */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className={`${btnBase} text-amber-600/80 dark:text-amber-400/80 hover:text-amber-600 dark:hover:text-amber-400`} aria-label={t('workspace:filesystem.newFolder')} onClick={onCreateFolder}>
+          <Button variant="ghost" size="icon" className={`${btnBase} text-amber-600/80 dark:text-amber-400/80 hover:text-amber-600 dark:hover:text-amber-400`} aria-label={t('project:filesystem.newFolder')} onClick={onCreateFolder}>
             <FolderPlus className={iconSize} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.newFolder')}</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.newFolder')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className={`${btnBase} text-green-600/80 dark:text-green-400/80 hover:text-green-600 dark:hover:text-green-400`} aria-label={t('workspace:filesystem.newDocument')} onClick={onCreateDocument}>
+          <Button variant="ghost" size="icon" className={`${btnBase} text-green-600/80 dark:text-green-400/80 hover:text-green-600 dark:hover:text-green-400`} aria-label={t('project:filesystem.newDocument')} onClick={onCreateDocument}>
             <FilePlus className={iconSize} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.newDocument')}</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.newDocument')}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className={`${btnBase} text-purple-600/80 dark:text-purple-400/80 hover:text-purple-600 dark:hover:text-purple-400`} aria-label={t('workspace:filesystem.addFile')} onClick={() => uploadInputRef.current?.click()}>
+          <Button variant="ghost" size="icon" className={`${btnBase} text-purple-600/80 dark:text-purple-400/80 hover:text-purple-600 dark:hover:text-purple-400`} aria-label={t('project:filesystem.addFile')} onClick={() => uploadInputRef.current?.click()}>
             <Upload className={iconSize} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.addFile')}</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.addFile')}</TooltipContent>
       </Tooltip>
       <input
         ref={uploadInputRef}
@@ -452,14 +452,14 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
               variant="ghost"
               size="icon"
               className={`${btnBase} text-foreground/50 hover:text-foreground ${isSearchVisible ? "w-0 overflow-hidden opacity-0 pointer-events-none" : "opacity-100"}`}
-              aria-label={t('workspace:filesystem.searchLabel')}
+              aria-label={t('project:filesystem.searchLabel')}
               onClick={() => onSearchOpenChange(true)}
             >
               <Search className={iconSize} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
-            {t('workspace:filesystem.searchWithShortcut', { shortcut: searchShortcutLabel })}
+            {t('project:filesystem.searchWithShortcut', { shortcut: searchShortcutLabel })}
           </TooltipContent>
         </Tooltip>
         <div
@@ -470,7 +470,7 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
           <Input
             ref={searchInputRef}
             className="h-7 w-44 border-0 bg-transparent px-2 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
-            placeholder={t('workspace:filesystem.searchFiles')}
+            placeholder={t('project:filesystem.searchFiles')}
             type="search"
             value={searchValue}
             onChange={(event) => onSearchValueChange(event.target.value)}
@@ -493,19 +493,19 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
           <div className="mx-1 h-5 w-px bg-foreground/20" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className={`${btnBase} text-foreground/50 hover:text-foreground disabled:opacity-30`} aria-label={t('workspace:filesystem.undo')} disabled={!canUndo} onClick={onUndo}>
+              <Button variant="ghost" size="icon" className={`${btnBase} text-foreground/50 hover:text-foreground disabled:opacity-30`} aria-label={t('project:filesystem.undo')} disabled={!canUndo} onClick={onUndo}>
                 <Undo2 className={iconSize} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.undo')}</TooltipContent>
+            <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.undo')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className={`${btnBase} text-foreground/50 hover:text-foreground disabled:opacity-30`} aria-label={t('workspace:filesystem.redo')} disabled={!canRedo} onClick={onRedo}>
+              <Button variant="ghost" size="icon" className={`${btnBase} text-foreground/50 hover:text-foreground disabled:opacity-30`} aria-label={t('project:filesystem.redo')} disabled={!canRedo} onClick={onRedo}>
                 <Redo2 className={iconSize} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>{t('workspace:filesystem.redo')}</TooltipContent>
+            <TooltipContent side="bottom" sideOffset={6}>{t('project:filesystem.redo')}</TooltipContent>
           </Tooltip>
         </>
       ) : null}

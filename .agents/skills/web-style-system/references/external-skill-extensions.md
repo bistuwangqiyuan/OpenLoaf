@@ -1,61 +1,60 @@
-# External Skill Extensions (Optional)
+# External Skill Extensions
 
-本文件提供“可选扩展”，不是硬依赖。
+本文件只记录“什么时候值得补充外部 skill”，不是必须执行的步骤。
 
-原则：
+## Code Links
 
-- 优先使用当前仓库已有 skills 完成主流程。
-- 仅在需要额外知识覆盖时引入外部 skills。
-- 不把外部 skill 作为前置强依赖。
+| 入口 | 作用 |
+|------|------|
+| [SKILL.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/web-style-system/SKILL.md) | Web 风格系统总览 |
+| [project-map.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/web-style-system/references/project-map.md) | 当前 web 代码入口地图 |
+| [style-dna-layout-tabs.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/web-style-system/references/style-dna-layout-tabs.md) | 当前站点风格母版 |
+| [apps/web/src/components/layout](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/layout) | layout 结构入口 |
+| [apps/web/src/components](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components) | 主要组件目录 |
 
-### `skill-development`
+## 使用原则
 
-用途：
+- 优先使用当前仓库已有的 skill 完成主流程
+- 只有在现有 skill 覆盖不足，或者用户明确要求扩展能力时，才考虑外部 skill
+- 外部 skill 只能作为补充参考，最终输出仍要回收为 OpenLoaf 自己的设计语义与实现约束
 
-- 维护 skill 结构、frontmatter、触发语句与 progressive disclosure 质量。
+## 先看仓库内可联动的 skill
 
-### `web-layout-structure`
+| skill | 适用场景 |
+|------|----------|
+| `skill-development` | 调整 skill 结构、front matter、progressive disclosure 质量 |
+| `web-layout-structure` | 需要先理解 `layout`、`sidebar`、`dock` 结构再做风格改造 |
+| `frontend-design` | 需要为新页面或组件产出强风格的实现方案 |
+| `web-design-guidelines` | 需要做 UI/UX 评审或一致性审查 |
+| `find-skills` | 需要检索或安装额外 skill |
 
-用途：
+## 外部候选的使用条件
 
-- 快速锁定 `apps/web/src/components/layout` 渲染树与状态流。
+只有在下面任一情况成立时，才值得继续看外部候选：
 
-### `frontend-design`
+- 仓库内 skill 无法覆盖特定设计方法论
+- 需要额外的无障碍、设计系统或审计知识
+- 用户明确要求引入外部最佳实践
 
-用途：
+候选方向可包括：
 
-- 在 Build Mode 提供可执行的视觉与交互表达建议。
+- 设计系统规划
+- UI 审计
+- 可访问性审计
+- 风格重构方法论
 
-### `web-design-guidelines`
+## 评估标准
 
-用途：
+引入外部 skill 前，至少检查：
 
-- 在 Review Mode 做通用 UI/UX 合规检查。
+- 是否与当前任务直接相关，而不是泛泛重复已有 skill
+- 输出风格是否容易映射回当前仓库的 token、layout 和组件约束
+- 是否会引入与现有规范冲突的术语或分层方式
+- 是否需要额外安装或联网检索；若需要，应先确认这一步真的有价值
 
-### `find-skills`
+## Working Rules
 
-用途：
-
-- 查询并安装外部技能扩展。
-
-## 2) External Skills Candidates
-
-以下为可选候选（检索结果）：
-
-- `davila7/claude-code-templates@ui-design-system`
-- `figma/mcp-server-guide@create-design-system-rules`
-- `wondelai/skills@refactoring-ui`
-- `mblode/agent-skills@audit-ui`
-- `davila7/claude-code-templates@accessibility-auditor`
-
-## 3) Discovery and Install Commands
-
-检索（示例）：
-
-安装（示例）：
-
-## 4) Usage Policy
-
-- 当仓库内技能可覆盖任务时，不引入外部依赖。
-- 当用户明确要求或现有技能不足时，再推荐外部安装。
-- 外部 skill 输出需回收为本仓库规范语义，避免风格漂移。
+- 只写规则和代码链接，不放示例代码
+- 仓库内 skill 足够时，不主动推荐外部依赖
+- 需要外部 skill 时，先说明缺口在哪里，再给候选方向
+- 外部 skill 给出的建议必须经过本仓库规则过滤，不能原样当作最终规范

@@ -20,11 +20,11 @@ OpenLoaf 的文件系统由**预览查看器**（11 种 Viewer 组件）、**文
 
 | 文件 | 内容 | 查阅时机 |
 |------|------|----------|
-| [viewer-development.md](viewer-development.md) | Viewer 开发指南、类型映射、Props 模式、错误处理 | 添加/修改文件查看器 |
-| [file-operations.md](file-operations.md) | Model API、CRUD、拖拽、历史、选择、重命名 | 文件操作功能开发 |
-| [preview-system.md](preview-system.md) | Store、打开模式、类型路由、最近打开 | 预览/打开逻辑修改 |
-| [backend-api.md](backend-api.md) | tRPC fs 路由 API 速查 | 后端文件操作开发 |
-| [path-conventions.md](path-conventions.md) | 文件路径规范、作用域隔离、安全原则、各模块路径处理 | 涉及文件路径传递/解析的所有开发 |
+| [viewer-development.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/viewer-development.md) | Viewer 开发指南、类型映射、Props 模式、错误处理 | 添加/修改文件查看器 |
+| [file-operations.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/file-operations.md) | Model API、CRUD、拖拽、历史、选择、重命名 | 文件操作功能开发 |
+| [preview-system.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/preview-system.md) | Store、打开模式、类型路由、最近打开 | 预览/打开逻辑修改 |
+| [backend-api.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/backend-api.md) | tRPC fs 路由 API 速查 | 后端文件操作开发 |
+| [path-conventions.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/path-conventions.md) | 文件路径规范、作用域隔离、安全原则、各模块路径处理 | 涉及文件路径传递/解析的所有开发 |
 
 ## Skill Sync Policy
 

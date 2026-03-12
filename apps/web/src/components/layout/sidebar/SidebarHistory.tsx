@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { FolderOpen, MessageSquare, Palette } from "lucide-react";
+import type { SidebarHistoryItem, SidebarHistorySort } from "@openloaf/api";
+import { ArrowUpDown, FolderOpen, MessageSquare, Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { SidebarHistoryItem } from "@openloaf/api";
 import { useIsInView } from "@/hooks/use-is-in-view";
 import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
 import { useTabs } from "@/hooks/use-tabs";
@@ -12,6 +12,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { trpc } from "@/utils/trpc";
 import {
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
@@ -26,17 +27,6 @@ const LOAD_MORE_IN_VIEW_MARGIN = "240px 0px";
 type SidebarHistoryProps = {
   /** Filter rows to the current project when rendering inside project shell. */
   projectId?: string;
-};
-
-type SidebarHistoryGroupKey = "today" | "yesterday" | "last7Days" | "earlier";
-
-type SidebarHistoryGroup = {
-  /** Group key. */
-  key: SidebarHistoryGroupKey;
-  /** Translated group title. */
-  title: string;
-  /** Group items. */
-  items: SidebarHistoryItem[];
 };
 
 /** Sidebar history loading skeleton. */
@@ -64,59 +54,6 @@ function SidebarHistorySkeleton() {
   );
 }
 
-/** Normalize a date value to the start of the local day. */
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-/** Resolve the history group key from a visit timestamp. */
-function resolveHistoryGroupKey(value: Date): SidebarHistoryGroupKey {
-  const todayStart = startOfDay(new Date()).getTime();
-  const targetStart = startOfDay(value).getTime();
-  const diffDays = Math.floor((todayStart - targetStart) / (24 * 60 * 60 * 1000));
-
-  if (diffDays <= 0) return "today";
-  if (diffDays === 1) return "yesterday";
-  if (diffDays < 7) return "last7Days";
-  return "earlier";
-}
-
-/** Group sidebar history items by coarse time buckets. */
-function groupSidebarHistoryItems(
-  items: SidebarHistoryItem[],
-  t: (key: string) => string,
-): SidebarHistoryGroup[] {
-  const grouped = new Map<SidebarHistoryGroupKey, SidebarHistoryItem[]>();
-
-  for (const item of items) {
-    const groupKey = resolveHistoryGroupKey(new Date(item.firstVisitedAt));
-    const bucket = grouped.get(groupKey);
-    if (bucket) {
-      bucket.push(item);
-      continue;
-    }
-    grouped.set(groupKey, [item]);
-  }
-
-  const order: SidebarHistoryGroupKey[] = ["today", "yesterday", "last7Days", "earlier"];
-  const titleKeyMap: Record<SidebarHistoryGroupKey, string> = {
-    today: "historyToday",
-    yesterday: "historyYesterday",
-    last7Days: "historyLast7Days",
-    earlier: "historyEarlier",
-  };
-
-  return order.flatMap((groupKey) => {
-    const bucket = grouped.get(groupKey);
-    if (!bucket?.length) return [];
-    return [{
-      key: groupKey,
-      title: t(titleKeyMap[groupKey]),
-      items: bucket,
-    }];
-  });
-}
-
 /** Resolve a safe display title for the history row. */
 function resolveHistoryItemTitle(item: SidebarHistoryItem, t: (key: string) => string): string {
   const trimmed = item.title.trim();
@@ -140,6 +77,41 @@ function resolveHistoryItemProjectTitle(item: SidebarHistoryItem): string {
     return "";
   }
   return item.projectTitle?.trim() ?? "";
+}
+
+/** Format the visit time shown on the trailing edge of the history row. */
+function formatHistoryItemVisitedAt(value: Date, locale?: string): string {
+  const now = new Date();
+  const sameDay =
+    value.getFullYear() === now.getFullYear()
+    && value.getMonth() === now.getMonth()
+    && value.getDate() === now.getDate();
+  if (sameDay) {
+    return new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(value);
+  }
+
+  const sameYear = value.getFullYear() === now.getFullYear();
+  // 逻辑：移除时间分组后，较早记录需要同时保留日期和时间，避免列表信息丢失。
+  return new Intl.DateTimeFormat(locale, {
+    ...(sameYear ? {} : { year: "numeric" }),
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+}
+
+/** Resolve the active timestamp shown for the current history sort mode. */
+function resolveHistoryItemVisitedAt(
+  item: SidebarHistoryItem,
+  sortBy: SidebarHistorySort,
+): Date {
+  return sortBy === "lastVisitedAt" ? new Date(item.lastVisitedAt) : new Date(item.firstVisitedAt);
 }
 
 /** Resolve the board entity id from runtime base params. */
@@ -169,18 +141,24 @@ function renderHistoryItemIcon(item: SidebarHistoryItem) {
 }
 
 export function SidebarHistory({ projectId }: SidebarHistoryProps) {
-  const { t } = useTranslation("nav");
+  const { t, i18n } = useTranslation("nav");
   const { t: tCommon } = useTranslation("common");
   const nav = useSidebarNavigation();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const normalizedProjectId = projectId?.trim() || undefined;
   const shouldShowProjectTitle = !normalizedProjectId;
+  const [sortBy, setSortBy] = useState<SidebarHistorySort>("firstVisitedAt");
+  const nextSortBy = sortBy === "firstVisitedAt" ? "lastVisitedAt" : "firstVisitedAt";
+  const sortButtonLabel = sortBy === "firstVisitedAt"
+    ? t("historySortByLastVisit")
+    : t("historySortByFirstVisit");
 
   const historyQuery = useInfiniteQuery({
     ...trpc.visit.listSidebarHistory.infiniteQueryOptions(
       {
         pageSize: SIDEBAR_HISTORY_PAGE_SIZE,
         projectId: normalizedProjectId,
+        sortBy,
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -200,10 +178,6 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
         ? rawItems.filter((item) => item.projectId === normalizedProjectId)
         : rawItems,
     [normalizedProjectId, rawItems],
-  );
-  const groupedItems = useMemo(
-    () => groupSidebarHistoryItems(items, t),
-    [items, t],
   );
 
   const hasMore = Boolean(historyQuery.hasNextPage);
@@ -286,7 +260,18 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
 
   return (
     <SidebarGroup className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-3">
-      <SidebarGroupLabel className="px-2">{t("historySection")}</SidebarGroupLabel>
+      <div className="relative">
+        <SidebarGroupLabel className="px-2 pr-8">{t("historySection")}</SidebarGroupLabel>
+        <SidebarGroupAction
+          type="button"
+          aria-label={sortButtonLabel}
+          title={sortButtonLabel}
+          className={sortBy === "lastVisitedAt" ? "text-sidebar-foreground" : "text-sidebar-foreground/70"}
+          onClick={() => setSortBy(nextSortBy)}
+        >
+          <ArrowUpDown className="h-4 w-4" />
+        </SidebarGroupAction>
+      </div>
       <SidebarGroupContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {items.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground/70">
@@ -294,47 +279,49 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
-            {groupedItems.map((group) => (
-              <div key={group.key} className="pb-4">
-                <div className="px-2 pb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/55">
-                  {group.title}
-                </div>
-                <SidebarMenu>
-                  {group.items.map((item) => {
-                    const projectTitle = shouldShowProjectTitle
-                      ? resolveHistoryItemProjectTitle(item)
-                      : "";
-                    return (
-                      <SidebarMenuItem key={item.recordId}>
-                        <SidebarMenuButton
-                          type="button"
-                          isActive={isItemActive(item)}
-                          className="h-auto min-h-12 items-center gap-3 px-2.5 py-2"
-                          onClick={() => handleHistoryItemClick(item)}
-                        >
-                          {renderHistoryItemIcon(item)}
-                          <div className="min-w-0 flex-1">
-                            <div className="w-full truncate font-medium">
-                              {resolveHistoryItemTitle(item, t)}
-                            </div>
-                            <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground/70">
-                              <span className="shrink-0">
-                                {resolveHistoryItemSubtitle(item, t)}
-                              </span>
-                              {projectTitle ? (
-                                <span className="min-w-0 flex-1 truncate text-right text-muted-foreground/60">
-                                  {projectTitle}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </div>
-            ))}
+            <SidebarMenu>
+              {items.map((item) => {
+                const projectTitle = shouldShowProjectTitle
+                  ? resolveHistoryItemProjectTitle(item)
+                  : "";
+                const visitedAtLabel = formatHistoryItemVisitedAt(
+                  resolveHistoryItemVisitedAt(item, sortBy),
+                  i18n.resolvedLanguage || i18n.language,
+                );
+                return (
+                  <SidebarMenuItem key={item.recordId}>
+                    <SidebarMenuButton
+                      type="button"
+                      isActive={isItemActive(item)}
+                      className="h-auto min-h-12 items-center gap-3 px-2.5 py-2"
+                      onClick={() => handleHistoryItemClick(item)}
+                    >
+                      {renderHistoryItemIcon(item)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate font-medium">
+                            {resolveHistoryItemTitle(item, t)}
+                          </span>
+                          {projectTitle ? (
+                            <span className="max-w-[45%] truncate text-[11px] text-muted-foreground/60">
+                              {projectTitle}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground/70">
+                          <span className="shrink-0">
+                            {resolveHistoryItemSubtitle(item, t)}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-right text-muted-foreground/60">
+                            {visitedAtLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
             {hasMore ? (
               <div
                 ref={loadMoreInViewRef}

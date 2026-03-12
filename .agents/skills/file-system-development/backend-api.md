@@ -6,7 +6,7 @@
 当前 `fs` 路由已经切到**项目中心**语义：
 
 - 大多数接口只接收 `projectId?` + `uri`
-- **不再要求** `workspaceId`
+- **不再要求**旧的工作空间兼容字段
 - 未传 `projectId` 时，服务端回退到全局根目录 `~/.openloaf`
 - `searchWorkspace` 这个路由名仍是 legacy 命名，但当前语义是“跨所有已注册项目搜索”
 
@@ -90,7 +90,7 @@ Electron 环境下把本地文件导入当前 scope。
 
 | 错误 | 正确做法 |
 |------|----------|
-| 继续传 `workspaceId` | 新代码统一只传 `projectId?` |
+| 继续传旧的工作空间兼容字段 | 新代码统一只传 `projectId?` |
 | 把 `rootPath` 传给前端/HTTP | 前端只传 `uri` / `rootUri` / `projectId` |
 | 误以为未传 `projectId` 就是项目存储根 | 实际回退到全局根 `~/.openloaf` |
 | `searchWorkspace` 当成单工作空间搜索 | 当前语义是跨所有已注册项目搜索 |

@@ -368,7 +368,7 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
   /** Resolve the viewer content for tree view selection. */
   const treeViewer = useMemo(() => {
     if (!treeSelectedEntry) {
-      return <div className="h-full w-full p-4 text-muted-foreground">{t('workspace:filesystem.noFileSelected')}</div>;
+      return <div className="h-full w-full p-4 text-muted-foreground">{t('project:filesystem.noFileSelected')}</div>;
     }
     // 逻辑：树视图单击使用统一预览入口的嵌入模式。
     const content = openFilePreview({
@@ -379,7 +379,7 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
       mode: "embed",
     });
     if (!content || typeof content === "boolean") {
-      return <div className="h-full w-full p-4 text-muted-foreground">{t('workspace:filesystem.cannotPreview')}</div>;
+      return <div className="h-full w-full p-4 text-muted-foreground">{t('project:filesystem.cannotPreview')}</div>;
     }
     return <>{content}</>;
   }, [projectId, rootUri, t, treeSelectedEntry]);
@@ -476,16 +476,16 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
     async (entry: FileSystemEntry) => {
       if (entry.kind !== "folder") return;
       if (!canConvertToSubproject) {
-        toast.error(t('workspace:filesystem.convertLevelError'));
+        toast.error(t('project:filesystem.convertLevelError'));
         return;
       }
       if (!projectId || !rootUri) {
-        toast.error(t('workspace:filesystem.convertProjectNotReady'));
+        toast.error(t('project:filesystem.convertProjectNotReady'));
         return;
       }
       const targetRootUri = resolveFileUriFromRoot(rootUri, entry.uri);
       if (!targetRootUri) {
-        toast.error(t('workspace:filesystem.convertInvalidPath'));
+        toast.error(t('project:filesystem.convertInvalidPath'));
         return;
       }
       try {
@@ -495,12 +495,12 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
           parentProjectId: projectId,
           enableVersionControl: false,
         });
-        toast.success(t('workspace:filesystem.convertSuccess'));
+        toast.success(t('project:filesystem.convertSuccess'));
         await queryClient.invalidateQueries({
           queryKey: getProjectsQueryKey(),
         });
       } catch (err: any) {
-        toast.error(err?.message ?? t('workspace:filesystem.convertFailed'));
+        toast.error(err?.message ?? t('project:filesystem.convertFailed'));
       }
     },
     [canConvertToSubproject, createProjectMutation, projectId, queryClient, rootUri, t]
@@ -538,7 +538,7 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
   }, [toolbarSnapshot, toolbarStorageKey]);
 
   if (!rootUri) {
-    return <div className="p-4 text-sm text-muted-foreground">{t('workspace:filesystem.noProjectDir')}</div>;
+    return <div className="p-4 text-sm text-muted-foreground">{t('project:filesystem.noProjectDir')}</div>;
   }
 
   return (
@@ -821,7 +821,7 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
         </FileSystemContextMenu>
         <DragDropOverlay
           open={model.isDragActive}
-          title={t('workspace:filesystem.dropToAdd')}
+          title={t('project:filesystem.dropToAdd')}
           radiusClassName="rounded-2xl"
         />
       </section>

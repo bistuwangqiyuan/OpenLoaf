@@ -89,7 +89,6 @@ export * from "../generated/routers/helpers/createRouter";
 // export * as zodSchemas from "../generated/zod/schemas/index";
 
 // Export custom types
-export * from "./types/workspace";
 export * from "./types/appConfig";
 export * from "./types/basic";
 export * from "./types/event";
@@ -111,7 +110,7 @@ export { BaseTabRouter, tabSchemas };
 
 // Export chat router components
 export { BaseChatRouter, chatSchemas };
-export type { ChatUIMessage, ChatSessionSummary } from "./routers/chat";
+export type { ChatUIMessage, ChatSessionSummary, CopySessionToBoardResult } from "./routers/chat";
 
 // Export setting router components
 export { BaseSettingRouter, settingSchemas };

@@ -11,7 +11,7 @@
 
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Bug, History, Lightbulb, MessageSquarePlus, PanelLeft, X } from "lucide-react";
+import { Bug, History, Lightbulb, MessageSquarePlus, Palette, PanelLeft, X } from "lucide-react";
 import { QUICK_LAUNCH_ITEMS, PROJECT_QUICK_LAUNCH_ITEMS } from "./quick-launch-items";
 import { useProject } from "@/hooks/use-project";
 import SessionList from "@/components/ai/session/SessionList";
@@ -42,6 +42,7 @@ import { Button } from "@openloaf/ui/button";
 import { getAccessToken, resolveSaasBaseUrl } from "@/lib/saas-auth";
 import { resolveServerUrl } from "@/utils/server-url";
 import { isElectronEnv } from "@/utils/is-electron-env";
+import { CopyChatToCanvasDialog } from "./CopyChatToCanvasDialog";
 
 interface ChatHeaderProps {
   className?: string;
@@ -71,7 +72,7 @@ export default function ChatHeader({
   enableMultiSession,
 }: ChatHeaderProps) {
   const { t: tAi } = useTranslation('ai');
-  const { t: tWorkspace } = useTranslation('workspace');
+  const { t: tProject } = useTranslation('project');
   const { sessionId: activeSessionId, tabId, leafMessageId: activeLeafMessageId } = useChatSession();
   const { newSession, selectSession } = useChatActions();
   const { messages } = useChatState();
@@ -81,6 +82,8 @@ export default function ChatHeader({
   const [prefaceLoading, setPrefaceLoading] = React.useState(false);
   /** Chat feedback dialog open state. */
   const [chatFeedbackOpen, setChatFeedbackOpen] = React.useState(false);
+  /** Copy current chat into a board dialog state. */
+  const [copyToCanvasOpen, setCopyToCanvasOpen] = React.useState(false);
   /** Chat feedback input content. */
   const [chatFeedbackContent, setChatFeedbackContent] = React.useState("");
   /** Chat feedback submitting state. */
@@ -445,7 +448,7 @@ export default function ChatHeader({
             ).map((item) => {
               const Icon = item.icon;
               const label = quickLaunchProjectId
-                ? tWorkspace((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
+                ? tProject((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
                 : tAi((item as (typeof QUICK_LAUNCH_ITEMS)[number]).labelKey);
               return (
                 <button
@@ -493,6 +496,17 @@ export default function ChatHeader({
             label={tAi("chatFeedback.button")}
           >
             <Lightbulb size={16} />
+          </MessageAction>
+        ) : null}
+        {messages.length > 0 && activeSessionId ? (
+          <MessageAction
+            aria-label={tAi("copyToCanvas.button")}
+            onClick={() => setCopyToCanvasOpen(true)}
+            className="shrink-0"
+            tooltip={tAi("copyToCanvas.button")}
+            label={tAi("copyToCanvas.button")}
+          >
+            <Palette size={16} />
           </MessageAction>
         ) : null}
       </div>
@@ -633,6 +647,11 @@ export default function ChatHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <CopyChatToCanvasDialog
+        open={copyToCanvasOpen}
+        onOpenChange={setCopyToCanvasOpen}
+        sourceSessionId={activeSessionId ?? ""}
+      />
     </div>
   );
 }

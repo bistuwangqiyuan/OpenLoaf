@@ -82,7 +82,7 @@ const FileSystemParentEntryCard = memo(function FileSystemParentEntryCard({
     >
       <FolderIcon className="h-11 w-11" showArrow />
       <span className="line-clamp-2 min-h-[2rem] w-full break-words leading-4">
-        {t('workspace:filesystem.parentDir')}
+        {t('project:filesystem.parentDir')}
       </span>
     </button>
   );

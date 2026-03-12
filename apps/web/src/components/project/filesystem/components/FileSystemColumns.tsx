@@ -108,12 +108,12 @@ function resolveEntryTypeLabel(
 ) {
   if (entry.kind === "folder") {
     return isBoardFolderName(entry.name)
-      ? t('workspace:filesystem.typeBoard')
-      : t('workspace:filesystem.typeFolder');
+      ? t('project:filesystem.typeBoard')
+      : t('project:filesystem.typeFolder');
   }
   const ext = getEntryExt(entry);
-  if (!ext) return t('workspace:filesystem.typeFile');
-  if (isBoardFileExt(ext)) return t('workspace:filesystem.typeBoard');
+  if (!ext) return t('project:filesystem.typeFile');
+  if (isBoardFileExt(ext)) return t('project:filesystem.typeBoard');
   const override = COLUMN_TYPE_LABEL_OVERRIDES[ext];
   if (override) return override;
   return ext.toUpperCase();
@@ -753,11 +753,11 @@ const FileSystemColumns = memo(function FileSystemColumns({
             <div className="flex-1 min-h-0 overflow-y-auto px-2 py-1">
               {column.isLoading ? (
                 <div className="px-2 py-1 text-xs text-muted-foreground">
-                  {t('workspace:filesystem.loading')}
+                  {t('project:filesystem.loading')}
                 </div>
               ) : column.entries.length === 0 ? (
                 <div className="px-2 py-1 text-xs text-muted-foreground">
-                  {t('workspace:filesystem.emptyContent')}
+                  {t('project:filesystem.emptyContent')}
                 </div>
               ) : (
                 <div className="flex flex-col gap-0.5">

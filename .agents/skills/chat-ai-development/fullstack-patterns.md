@@ -144,7 +144,9 @@
 
 技能文件存放在 `.agents/skills/<name>/SKILL.md`，由 `services/skillsLoader.ts` 扫描加载。
 
-**加载优先级**: workspace → parent projects → current project（后者覆盖前者）
+**摘要扫描顺序**: global → parent projects → current project
+
+**运行时命中优先级**: current project → parent projects → global
 
 **使用流程**:
 1. 用户消息中输入 `/skill/name`

@@ -94,7 +94,7 @@ const COMPONENT_TO_TAB_ID: Record<string, WorkspaceSwitchTabId> = {
   "calendar-page": "calendar",
   "email-page": "email",
   "scheduled-tasks-page": "scheduled",
-  "workspace-desktop": "workbench",
+  "global-desktop": "workbench",
   "canvas-list-page": "canvas",
 };
 

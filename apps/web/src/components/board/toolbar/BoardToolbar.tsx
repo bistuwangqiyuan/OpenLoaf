@@ -131,7 +131,8 @@ const prefixSvgIds = (svg: string, prefix: string) => {
   const safePrefix = prefix.replace(/:/g, "");
   return svg
     .replace(/id="([^"]+)"/g, `id="${safePrefix}-$1"`)
-    .replace(/url\\(#([^)]+)\\)/g, `url(#${safePrefix}-$1)`)
+    // 逻辑：同步重写 defs 引用，避免 SSR/多实例场景下 filter/gradient id 冲突后失效。
+    .replace(/url\(#([^)]+)\)/g, `url(#${safePrefix}-$1)`)
     .replace(/xlink:href="#([^"]+)"/g, `xlink:href="#${safePrefix}-$1"`)
     .replace(/href="#([^"]+)"/g, `href="#${safePrefix}-$1"`);
 };
@@ -1046,6 +1047,8 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   /** 中间插入工具图标 hover 旋转样式。 */
   const insertIconClassName =
     "origin-center transition-transform duration-150 ease-out group-hover:-rotate-15";
+  /** 底部持久工具按钮统一使用更紧凑的圆角，避免选中态出现过胖的椭圆。 */
+  const persistentToolButtonClassName = "group h-10 w-9 overflow-hidden rounded-[12px]";
 
   return (
     <div
@@ -1069,7 +1072,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               title={selectTitle}
               active={isSelectTool}
               onPointerDown={() => handleToolChange("select")}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
             >
               <SelectIcon
                 size={toolbarIconSize}
@@ -1086,7 +1089,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               title={handTitle}
               active={isHandTool}
               onPointerDown={() => handleToolChange("hand")}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
             >
               <HandIcon
                 size={toolbarIconSize}
@@ -1119,7 +1122,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 setHoverGroup("pen");
                 handleToolChange("pen", { keepPanel: true });
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <BrushToolIcon
@@ -1219,7 +1222,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 setHoverGroup("highlighter");
                 handleToolChange("highlighter", { keepPanel: true });
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <HighlighterToolIcon
@@ -1307,7 +1310,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 if (isLocked) return;
                 handleToolChange("eraser");
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <EraserToolIcon

@@ -33,6 +33,7 @@ import {
   registerAgentDir,
   readSessionJson,
 } from '@/ai/services/chat/repositories/chatFileStore'
+import { copySessionToBoard } from '@/ai/services/chat/copySessionToBoard'
 import { promises as fsPromises } from 'node:fs'
 import nodePath from 'node:path'
 import { getErrorMessage } from '@/shared/errorMessages'
@@ -355,6 +356,19 @@ export class ChatRouterImpl extends BaseChatRouter {
             parts: Array.isArray(msg.parts) ? msg.parts : [],
             metadata: msg.metadata ?? null,
           }
+        }),
+
+      copySessionToBoard: shieldedProcedure
+        .input(z.object({
+          sourceSessionId: z.string().min(1),
+          targetBoardId: z.string().min(1).optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          return copySessionToBoard({
+            sourceSessionId: input.sourceSessionId,
+            targetBoardId: input.targetBoardId,
+            prisma: ctx.prisma as any,
+          })
         }),
 
       getSessionPreface: shieldedProcedure

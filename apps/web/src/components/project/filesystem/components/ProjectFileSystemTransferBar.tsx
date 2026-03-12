@@ -32,7 +32,7 @@ export default function ProjectFileSystemTransferBar({
     <div className="pointer-events-auto absolute bottom-4 right-4 z-20 flex flex-col gap-1 rounded-md border border-border/60 bg-background/90 px-3 py-2 text-xs shadow-sm">
       <div className="flex items-center gap-2">
         <span className="max-w-[220px] truncate" title={transfer.currentName}>
-          {transfer.currentName || t('workspace:filesystem.transferring')}
+          {transfer.currentName || t('project:filesystem.transferring')}
         </span>
         <span className="tabular-nums text-foreground/70">{percent}%</span>
         {transfer.status === "failed" ? (
@@ -41,7 +41,7 @@ export default function ProjectFileSystemTransferBar({
             className="text-xs text-primary transition-colors hover:text-primary/80"
             onClick={onRetry}
           >
-            {t('workspace:filesystem.retry')}
+            {t('project:filesystem.retry')}
           </button>
         ) : null}
       </div>

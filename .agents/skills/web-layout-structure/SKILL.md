@@ -43,7 +43,8 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - 项目模式判断不要只依赖 `activeTab.projectShell`；统一通过 `apps/web/src/lib/project-mode.ts` 中的 `resolveProjectModeProjectShell()` / `isProjectMode()` 解析（优先 tab.projectShell，其次回退到独立项目窗口 URL bootstrap）
   - 只要当前 renderer 处于项目模式，主 Sidebar 就应切换为 `ProjectSidebar`，避免项目独立窗口里新开的聊天、画布、设置页掉回主 Sidebar
   - `SidebarHeader` 放入口菜单（搜索、日历、AI、邮箱、技能等）
-  - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）
+  - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）；历史列表不再按日期分组，而是直接平铺，第一行显示“标题 + 项目名”，第二行显示“类型 + 访问时间”
+  - `SidebarHistory` 标题右侧保留排序按钮，默认按首次访问时间排序；点击后切到按最近访问时间排序，同时列表右侧时间也切换到对应时间字段
   - `ProjectSidebar` 负责项目内导航：返回项目空间、AI管理员、画布、看板、文件、设置、历史；底部历史列表会按 `projectId` 过滤，只显示当前项目访问记录
   - `ProjectSidebar` 需要把项目摘要卡片（项目 icon + 名称）放在 `SidebarFooter`，与“设置”一起构成底部区域；不要在 header 中重复渲染
   - `ProjectSidebar` footer 中的项目摘要卡片支持副标题，当前用于显示项目类型

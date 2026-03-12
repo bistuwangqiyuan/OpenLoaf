@@ -23,7 +23,7 @@ import {
 import { filterDesktopItemsByScope } from "@/components/desktop/desktop-support";
 import {
   deserializeDesktopItems,
-  getWorkspaceDesktopFileUri,
+  getGlobalDesktopFileUri,
   serializeDesktopItems,
 } from "@/components/desktop/desktop-persistence";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -41,19 +41,19 @@ interface DesktopHistorySnapshot {
   suspended: boolean;
 }
 
-/** Render workspace-level desktop with persistence at workspace root. */
-const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
+/** Render global desktop with persistence at the global project root. */
+const GlobalDesktop = React.memo(function GlobalDesktop({
   tabId: ownTabId,
 }: {
   tabId?: string;
 }) {
-  const workspaceRootUri = useProjectStorageRootUri() ?? "";
+  const globalRootUri = useProjectStorageRootUri() ?? "";
   const globalActiveTabId = useTabs((state) => state.activeTabId);
   const activeTabId = ownTabId || globalActiveTabId;
   const setTabBaseParams = useTabRuntime((state) => state.setTabBaseParams);
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
   const [items, setItems] = React.useState<DesktopItem[]>(() =>
-    ensureLayoutByBreakpoint(getInitialDesktopItems("workspace"))
+    ensureLayoutByBreakpoint(getInitialDesktopItems("global"))
   );
   const [editMode, setEditMode] = React.useState(false);
   const [viewBreakpoint, setViewBreakpoint] = React.useState<DesktopBreakpoint>("lg");
@@ -73,10 +73,10 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   const loadedUriRef = React.useRef<string | null>(null);
   const saveDesktopMutation = useMutation(trpc.fs.writeFile.mutationOptions());
 
-  // 逻辑：桌面布局持久化文件路径（默认项目存储根目录下的工作空间桌面文件）。
+  // 逻辑：桌面布局持久化文件路径（默认项目存储根目录下的全局桌面文件）。
   const desktopFileUri = React.useMemo(
-    () => (workspaceRootUri ? getWorkspaceDesktopFileUri(workspaceRootUri) : null),
-    [workspaceRootUri]
+    () => (globalRootUri ? getGlobalDesktopFileUri(globalRootUri) : null),
+    [globalRootUri]
   );
 
   React.useEffect(() => {
@@ -87,7 +87,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
 
     const loadDesktop = async () => {
       try {
-        // 逻辑：读取 workspace/desktop.openloaf 并初始化桌面布局。
+        // 逻辑：读取全局 desktop.openloaf 并初始化桌面布局。
         const result = await queryClient.fetchQuery(
           trpc.fs.readFile.queryOptions({
             uri: desktopFileUri,
@@ -95,7 +95,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
         );
         const parsed = deserializeDesktopItems(result.content);
         if (!parsed || !alive) return;
-        const scopedItems = filterDesktopItemsByScope("workspace", parsed);
+        const scopedItems = filterDesktopItemsByScope("global", parsed);
         setItems(ensureLayoutByBreakpoint(scopedItems));
       } catch {
         // ignore missing desktop file
@@ -110,12 +110,12 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   }, [desktopFileUri]);
 
   React.useEffect(() => {
-    // 逻辑：同步工作空间上下文到自身 tab 的 base 参数，供桌面组件读取。
+    // 逻辑：同步全局桌面上下文到自身 tab 的 base 参数，供桌面组件读取。
     // 使用 ownTabId 而非全局 activeTabId，避免切换 tab 时覆盖其他 tab 的 rootUri。
     if (!ownTabId) return;
-    if (!workspaceRootUri) return;
-    setTabBaseParams(ownTabId, { rootUri: workspaceRootUri });
-  }, [ownTabId, setTabBaseParams, workspaceRootUri]);
+    if (!globalRootUri) return;
+    setTabBaseParams(ownTabId, { rootUri: globalRootUri });
+  }, [globalRootUri, ownTabId, setTabBaseParams]);
 
   /** Update edit mode state. */
   const handleSetEditMode = React.useCallback(
@@ -324,7 +324,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
       <div className="min-h-0 flex-1">
         <DesktopPage
             items={items}
-            scope="workspace"
+            scope="global"
             editMode={editMode}
             activeBreakpoint={viewBreakpoint}
             editBreakpointLock={editBreakpointLock}
@@ -345,4 +345,4 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   );
 });
 
-export default WorkspaceDesktop;
+export default GlobalDesktop;

@@ -18,7 +18,7 @@ import zhCNCommon from './locales/zh-CN/common.json';
 import zhCNNav from './locales/zh-CN/nav.json';
 import zhCNAi from './locales/zh-CN/ai.json';
 import zhCNSettings from './locales/zh-CN/settings.json';
-import zhCNWorkspace from './locales/zh-CN/workspace.json';
+import zhCNProject from './locales/zh-CN/project.json';
 import zhCNTasks from './locales/zh-CN/tasks.json';
 import zhCNBoard from './locales/zh-CN/board.json';
 import zhCNCalendar from './locales/zh-CN/calendar.json';
@@ -29,7 +29,7 @@ import zhTWCommon from './locales/zh-TW/common.json';
 import zhTWNav from './locales/zh-TW/nav.json';
 import zhTWAi from './locales/zh-TW/ai.json';
 import zhTWSettings from './locales/zh-TW/settings.json';
-import zhTWWorkspace from './locales/zh-TW/workspace.json';
+import zhTWProject from './locales/zh-TW/project.json';
 import zhTWTasks from './locales/zh-TW/tasks.json';
 import zhTWBoard from './locales/zh-TW/board.json';
 import zhTWCalendar from './locales/zh-TW/calendar.json';
@@ -40,7 +40,7 @@ import enUSCommon from './locales/en-US/common.json';
 import enUSNav from './locales/en-US/nav.json';
 import enUSAi from './locales/en-US/ai.json';
 import enUSSettings from './locales/en-US/settings.json';
-import enUSWorkspace from './locales/en-US/workspace.json';
+import enUSProject from './locales/en-US/project.json';
 import enUSTasks from './locales/en-US/tasks.json';
 import enUSBoard from './locales/en-US/board.json';
 import enUSCalendar from './locales/en-US/calendar.json';
@@ -71,7 +71,7 @@ i18n.use(initReactI18next).init({
   lng: getInitialLanguage(),
   fallbackLng: 'zh-CN',
   debug: false,
-  ns: ['common', 'nav', 'ai', 'settings', 'workspace', 'tasks', 'board', 'calendar', 'desktop'],
+  ns: ['common', 'nav', 'ai', 'settings', 'project', 'tasks', 'board', 'calendar', 'desktop'],
   defaultNS: 'common',
   resources: {
     'zh-CN': {
@@ -79,7 +79,7 @@ i18n.use(initReactI18next).init({
       nav: zhCNNav,
       ai: zhCNAi,
       settings: zhCNSettings,
-      workspace: zhCNWorkspace,
+      project: zhCNProject,
       tasks: zhCNTasks,
       board: zhCNBoard,
       calendar: zhCNCalendar,
@@ -90,7 +90,7 @@ i18n.use(initReactI18next).init({
       nav: zhTWNav,
       ai: zhTWAi,
       settings: zhTWSettings,
-      workspace: zhTWWorkspace,
+      project: zhTWProject,
       tasks: zhTWTasks,
       board: zhTWBoard,
       calendar: zhTWCalendar,
@@ -101,7 +101,7 @@ i18n.use(initReactI18next).init({
       nav: enUSNav,
       ai: enUSAi,
       settings: enUSSettings,
-      workspace: enUSWorkspace,
+      project: enUSProject,
       tasks: enUSTasks,
       board: enUSBoard,
       calendar: enUSCalendar,

@@ -1,5 +1,5 @@
 {
-  "workspace": {
+  "global": {
     "loggedOut": "已登出",
     "devModeNoUpdate": "開發模式不支援更新檢查",
     "envNoUpdate": "目前環境不支援更新檢查",

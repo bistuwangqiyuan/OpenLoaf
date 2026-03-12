@@ -49,6 +49,8 @@ import {
   BOARD_TOOLBAR_ITEM_BLUE,
   BOARD_TOOLBAR_ITEM_GREEN,
 } from "../ui/board-style-system";
+import { getBoardChatMessageMeta } from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 
 /** Max bytes for image node preview fetches. */
 const IMAGE_NODE_PREVIEW_MAX_BYTES = 100 * 1024;
@@ -167,7 +169,7 @@ async function downloadOriginalImage(
 
 /** Build toolbar items for image nodes. */
 function createImageToolbarItems(ctx: CanvasToolbarContext<ImageNodeProps>) {
-  return [
+  const baseItems = [
     {
       id: "download",
       label: i18next.t('board:imageNode.toolbar.download'),
@@ -183,6 +185,12 @@ function createImageToolbarItems(ctx: CanvasToolbarContext<ImageNodeProps>) {
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
+  const messageMeta = getBoardChatMessageMeta(ctx.element);
+  if (!messageMeta) return baseItems;
+  const chatItems = createBoardChatMessageToolbarItems(ctx, messageMeta);
+  return (messageMeta.status ?? "streaming") === "complete"
+    ? [...chatItems, ...baseItems]
+    : chatItems;
 }
 
 /** Connector templates offered by the image node. */

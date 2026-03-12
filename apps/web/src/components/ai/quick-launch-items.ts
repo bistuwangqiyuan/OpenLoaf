@@ -12,7 +12,7 @@ import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Palette, Settings }
 
 export const QUICK_LAUNCH_ITEMS = [
   {
-    baseId: "base:workbench", component: "workspace-desktop", labelKey: "quickLaunch.workbench", icon: LayoutDashboard, titleKey: "quickLaunch.workbench", tabIcon: "bot",
+    baseId: "base:workbench", component: "global-desktop", labelKey: "quickLaunch.workbench", icon: LayoutDashboard, titleKey: "quickLaunch.workbench", tabIcon: "bot",
     iconColor: "text-amber-700/70 dark:text-amber-300/70 group-hover:text-amber-700 dark:group-hover:text-amber-200",
     bgColor: "bg-amber-500/10 dark:bg-amber-400/10 group-hover:bg-amber-500/20 dark:group-hover:bg-amber-400/20",
   },

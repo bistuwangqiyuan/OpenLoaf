@@ -1,5 +1,5 @@
 {
-  "workspace": {
+  "global": {
     "loggedOut": "Logged out",
     "devModeNoUpdate": "Update check is not supported in development mode",
     "envNoUpdate": "Update check is not supported in current environment",

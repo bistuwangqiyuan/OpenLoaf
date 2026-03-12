@@ -65,15 +65,15 @@ const FileSystemPreviewPanel = memo(function FileSystemPreviewPanel({
           />
         </div>
         <div className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-2 text-xs">
-          <div className="text-muted-foreground">{t('workspace:filesystem.columnName')}</div>
+          <div className="text-muted-foreground">{t('project:filesystem.columnName')}</div>
           <div className="break-all text-foreground">{previewDisplayName}</div>
-          <div className="text-muted-foreground">{t('workspace:filesystem.columnType')}</div>
+          <div className="text-muted-foreground">{t('project:filesystem.columnType')}</div>
           <div className="break-all text-foreground">{previewTypeLabel}</div>
-          <div className="text-muted-foreground">{t('workspace:filesystem.columnSize')}</div>
+          <div className="text-muted-foreground">{t('project:filesystem.columnSize')}</div>
           <div className="break-all text-foreground">{previewSizeLabel}</div>
-          <div className="text-muted-foreground">{t('workspace:filesystem.columnCreated')}</div>
+          <div className="text-muted-foreground">{t('project:filesystem.columnCreated')}</div>
           <div className="break-all text-foreground">{previewCreatedLabel}</div>
-          <div className="text-muted-foreground">{t('workspace:filesystem.columnModified')}</div>
+          <div className="text-muted-foreground">{t('project:filesystem.columnModified')}</div>
           <div className="break-all text-foreground">{previewUpdatedLabel}</div>
         </div>
       </div>

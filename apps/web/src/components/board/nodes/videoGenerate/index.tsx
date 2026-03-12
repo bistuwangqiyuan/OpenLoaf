@@ -56,6 +56,8 @@ import { VideoGenerateNodeSchema, type VideoGenerateNodeProps } from "./types";
 import { isEmptyParamValue, normalizeTextValue, resolveParameterDefaults } from "./utils";
 import { ModelSelect } from "./ModelSelect";
 import { AdvancedSettingsPanel } from "./AdvancedSettingsPanel";
+import { getBoardChatMessageMeta } from "../../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../../utils/board-chat-toolbar";
 
 export { VIDEO_GENERATE_NODE_TYPE };
 
@@ -1042,5 +1044,10 @@ export const VideoGenerateNodeDefinition: CanvasNodeDefinition<VideoGenerateNode
     resizable: false,
     connectable: "anchors",
     minSize: { w: 320, h: 280 },
+  },
+  toolbar: (ctx) => {
+    if (!ctx.element.props.readOnlyProjection) return [];
+    const messageMeta = getBoardChatMessageMeta(ctx.element);
+    return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
   },
 };

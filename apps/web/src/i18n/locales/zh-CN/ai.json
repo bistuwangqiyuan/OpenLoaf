@@ -212,6 +212,26 @@
     "exportFailed": "会话导出失败，请稍后重试",
     "exportFailedWithMessage": "会话导出失败：{{message}}"
   },
+  "copyToCanvas": {
+    "button": "复制到画布",
+    "title": "复制对话到画布",
+    "description": "会将当前对话复制一份到画布中，原始对话会保留不变。",
+    "targetMode": "导入位置",
+    "createNew": "新建画布",
+    "useExisting": "已有画布",
+    "targetBoard": "目标画布",
+    "targetPlaceholder": "请选择画布",
+    "emptyBoards": "当前范围内还没有可导入的画布",
+    "sessionMissing": "未找到当前会话",
+    "targetRequired": "请选择目标画布",
+    "rootMissing": "未找到画布目录",
+    "confirm": "复制",
+    "cancel": "取消",
+    "submitting": "复制中…",
+    "successNew": "已复制到新画布",
+    "successExisting": "已复制到画布",
+    "failed": "复制到画布失败"
+  },
   "image": {
     "noEditingSupport": "当前模型不支持图片编辑",
     "noInputSupport": "当前模型不支持图片输入",

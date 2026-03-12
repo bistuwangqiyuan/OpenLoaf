@@ -40,7 +40,7 @@ export default function ProjectTitle({
   onUpdateTitle,
   onUpdateIcon,
 }: ProjectTitleProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(currentTitle ?? projectTitle ?? "");

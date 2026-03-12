@@ -116,7 +116,7 @@ export default function WidgetCheckTool({
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId
     let desktopTabId: string | null = null
     for (const [tid, runtime] of Object.entries(runtimeByTabId)) {
-      if (runtime?.base?.component === 'workspace-desktop') {
+      if (runtime?.base?.component === 'global-desktop') {
         desktopTabId = tid
         break
       }

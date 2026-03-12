@@ -51,7 +51,7 @@
 
 - 项目面板固定传 `scope: "project"`。
 - 全局面板固定传 `scope: "global"`。
-- 前端不会再传 `scope: "workspace"`。
+- 前端只会传 `project` / `global` 两种 scope。
 - 实际写入哪一层配置由服务端根据 scope 决定。
 
 ## 删除

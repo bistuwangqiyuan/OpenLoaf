@@ -14,19 +14,20 @@ import i18next from 'i18next'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
-import { useProjectLayout } from '@/hooks/use-project-layout'
 import { useOpenSessionIds } from '@/hooks/use-open-session-ids'
 import { useProjectOpen } from '@/hooks/use-project-open'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
 import { resolveProjectModeProjectShell } from '@/lib/project-mode'
+import { buildBoardChatTabState } from '@/components/board/utils/board-chat-tab'
 
 export function useSidebarNavigation() {
   const addTab = useTabs((s) => s.addTab)
   const activeTabId = useTabs((s) => s.activeTabId)
   const setActiveTab = useTabs((s) => s.setActiveTab)
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession)
+  const setTabChatParams = useTabs((s) => s.setTabChatParams)
   const setSessionProjectId = useTabs((s) => s.setSessionProjectId)
   const tabs = useTabs((s) => s.tabs)
   const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId)
@@ -152,6 +153,12 @@ export function useSidebarNavigation() {
       })
 
       if (existingTab) {
+        const boardChatState = buildBoardChatTabState(input.boardId, resolvedProjectId)
+        setActiveTabSession(existingTab.id, boardChatState.chatSessionId, {
+          loadHistory: true,
+          replaceCurrent: true,
+        })
+        setTabChatParams(existingTab.id, boardChatState.chatParams)
         startTransition(() => {
           setActiveTab(existingTab.id)
         })
@@ -163,6 +170,7 @@ export function useSidebarNavigation() {
         createNew: true,
         title: input.title,
         icon: '\uD83C\uDFA8',
+        ...buildBoardChatTabState(input.boardId, resolvedProjectId),
         leftWidthPercent: 100,
         base: {
           id: baseId,
@@ -178,7 +186,16 @@ export function useSidebarNavigation() {
       })
       setActiveWorkspaceChat(null)
     },
-    [activeProjectId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveWorkspaceChat],
+    [
+      activeProjectId,
+      tabs,
+      runtimeByTabId,
+      addTab,
+      setActiveTab,
+      setActiveTabSession,
+      setTabChatParams,
+      setActiveWorkspaceChat,
+    ],
   )
 
   const openTempChat = useCallback(() => {

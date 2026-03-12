@@ -91,19 +91,32 @@ function createFakeClient(seed?: {
         if (conditions.length > 0) {
           rows = rows.filter((row) =>
             conditions.some((condition) => {
-              if ("lt" in condition.firstVisitedAt) {
+              if ("lastVisitedAt" in condition && "lt" in condition.lastVisitedAt) {
+                return row.lastVisitedAt.getTime() < condition.lastVisitedAt.lt.getTime();
+              }
+              if ("lastVisitedAt" in condition && condition.lastVisitedAt instanceof Date) {
+                return (
+                  row.lastVisitedAt.getTime() === condition.lastVisitedAt.getTime()
+                  && "id" in condition
+                  && row.id < condition.id.lt
+                );
+              }
+              if ("firstVisitedAt" in condition && "lt" in condition.firstVisitedAt) {
                 return row.firstVisitedAt.getTime() < condition.firstVisitedAt.lt.getTime();
               }
               return (
-                row.firstVisitedAt.getTime() === condition.firstVisitedAt.getTime()
+                "firstVisitedAt" in condition
+                && condition.firstVisitedAt instanceof Date
+                && row.firstVisitedAt.getTime() === condition.firstVisitedAt.getTime()
                 && "id" in condition
                 && row.id < condition.id.lt
               );
             }),
           );
         }
+        const sortField = "lastVisitedAt" in args.orderBy[0] ? "lastVisitedAt" : "firstVisitedAt";
         rows.sort((a, b) => {
-          const timeDiff = b.firstVisitedAt.getTime() - a.firstVisitedAt.getTime();
+          const timeDiff = b[sortField].getTime() - a[sortField].getTime();
           if (timeDiff !== 0) return timeDiff;
           return b.id.localeCompare(a.id);
         });
@@ -114,6 +127,7 @@ function createFakeClient(seed?: {
           projectId: row.projectId,
           dateKey: row.dateKey,
           firstVisitedAt: row.firstVisitedAt,
+          lastVisitedAt: row.lastVisitedAt,
         }));
       },
     },
@@ -274,7 +288,7 @@ describe("entityVisitRecordService", () => {
       projectId: "proj_alpha",
       title: "Alpha Project",
       icon: "📁",
-      rootUri: "file:///workspace/projects/alpha",
+      rootUri: "file:///project-root/projects/alpha",
       isGitProject: false,
       children: [],
     }];
@@ -381,7 +395,7 @@ describe("entityVisitRecordService", () => {
         projectTrees: [{
           projectId: "proj_beta",
           title: "Beta Project",
-          rootUri: "file:///workspace/projects/beta",
+          rootUri: "file:///project-root/projects/beta",
           isGitProject: false,
           children: [],
         }],
@@ -442,6 +456,48 @@ describe("entityVisitRecordService", () => {
     expect(page.items[0]?.entityId).toBe("chat_beta");
     expect(page.items[1]?.entityId).toBe("chat_alpha");
     expect(page.items[1]?.firstVisitedAt.toISOString()).toBe(firstVisitedAt.toISOString());
+    expect(page.items[1]?.lastVisitedAt.toISOString()).toBe(secondVisitedAt.toISOString());
+  });
+
+  it("can sort sidebar history by last visit time", async () => {
+    const { client } = createFakeClient({
+      chats: [
+        { id: "chat_alpha", title: "Alpha Chat", projectId: null },
+        { id: "chat_beta", title: "Beta Chat", projectId: null },
+      ],
+    });
+
+    await recordEntityVisit(client, {
+      entityType: "chat",
+      entityId: "chat_alpha",
+      trigger: "chat-create",
+      visitedAt: new Date("2026-03-11T08:00:00.000Z"),
+    });
+    await recordEntityVisit(client, {
+      entityType: "chat",
+      entityId: "chat_beta",
+      trigger: "chat-create",
+      visitedAt: new Date("2026-03-11T09:00:00.000Z"),
+    });
+    await recordEntityVisit(client, {
+      entityType: "chat",
+      entityId: "chat_alpha",
+      trigger: "chat-open",
+      visitedAt: new Date("2026-03-11T10:00:00.000Z"),
+    });
+
+    const page = await listSidebarHistoryPage(
+      client,
+      { pageSize: 10, sortBy: "lastVisitedAt" },
+      {
+        projectTrees: [],
+        workspaceRootUri: "file:///workspace",
+      },
+    );
+
+    expect(page.items).toHaveLength(2);
+    expect(page.items.map((item) => item.entityId)).toEqual(["chat_alpha", "chat_beta"]);
+    expect(page.items[0]?.lastVisitedAt.toISOString()).toBe("2026-03-11T10:00:00.000Z");
   });
 
   it("filters sidebar history by project id when requested", async () => {
@@ -495,14 +551,14 @@ describe("entityVisitRecordService", () => {
           {
             projectId: "proj_alpha",
             title: "Alpha Project",
-            rootUri: "file:///workspace/projects/alpha",
+            rootUri: "file:///project-root/projects/alpha",
             isGitProject: false,
             children: [],
           },
           {
             projectId: "proj_beta",
             title: "Beta Project",
-            rootUri: "file:///workspace/projects/beta",
+            rootUri: "file:///project-root/projects/beta",
             isGitProject: false,
             children: [],
           },

@@ -163,7 +163,7 @@ export default function DesktopWidgetLibraryPanel({
   const tabBaseParams = tabRuntime?.base?.params as Record<string, unknown> | undefined;
   // 中文注释：根据 tab base 是否包含 projectId 判断作用域。
   const scope: DesktopScope =
-    typeof tabBaseParams?.projectId === "string" ? "project" : "workspace";
+    typeof tabBaseParams?.projectId === "string" ? "project" : "global";
 
   // 过滤后的组件列表。
   const filtered = React.useMemo(() => {

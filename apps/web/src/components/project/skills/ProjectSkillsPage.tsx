@@ -23,7 +23,7 @@ export const ProjectSkillsHeader = memo(function ProjectSkillsHeader({
   isLoading,
   pageTitle,
 }: ProjectSkillsHeaderProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   if (isLoading) return null;
 
   return (

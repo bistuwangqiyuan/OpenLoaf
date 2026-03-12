@@ -21,7 +21,7 @@ import {
   removeProjectRegistryEntry,
   setProjectRegistryEntries,
   upsertProjectRegistryEntry,
-} from "./workspaceProjectConfig";
+} from "./projectRegistryConfig";
 
 const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";

@@ -22,6 +22,7 @@ import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { useProjects } from "@/hooks/use-projects";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_META_FILE_NAME } from "@/lib/file-name";
+import { buildBoardChatTabState } from "@/components/board/utils/board-chat-tab";
 import { Button } from "@openloaf/ui/button";
 import {
   Dialog,
@@ -107,6 +108,7 @@ export function WorkspaceCanvasList() {
           createNew: true,
           title: board.title || t("canvasList.untitled"),
           icon: "🎨",
+          ...buildBoardChatTabState(board.id, board.projectId),
           leftWidthPercent: 100,
           base: {
             id: baseId,

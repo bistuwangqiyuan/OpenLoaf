@@ -218,7 +218,7 @@ export function PageLayout() {
 
         // 映射视图类型到组件名称
         const componentMap: Record<string, string> = {
-          workbench: "workspace-desktop",
+          workbench: "global-desktop",
           calendar: "calendar-page",
           email: "email-page",
           "scheduled-tasks": "scheduled-tasks-page",

@@ -20,6 +20,8 @@ import { Info, Loader2, Play, Sparkles } from "lucide-react";
 import i18next from "i18next";
 import { BOARD_TOOLBAR_ITEM_BLUE, BOARD_TOOLBAR_ITEM_GREEN } from "../ui/board-style-system";
 import { IMAGE_PROMPT_GENERATE_NODE_TYPE } from "./imagePromptGenerate";
+import { getBoardChatMessageMeta } from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 import { openFilePreview } from "@/components/file/lib/file-preview-store";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
@@ -92,7 +94,7 @@ async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileCo
 
 /** Build toolbar items for video nodes. */
 function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
-  return [
+  const baseItems = [
     {
       id: 'play',
       label: i18next.t('board:videoNode.toolbar.play'),
@@ -108,6 +110,12 @@ function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
+  const messageMeta = getBoardChatMessageMeta(ctx.element);
+  if (!messageMeta) return baseItems;
+  const chatItems = createBoardChatMessageToolbarItems(ctx, messageMeta);
+  return (messageMeta.status ?? "streaming") === "complete"
+    ? [...chatItems, ...baseItems]
+    : chatItems;
 }
 
 /** Build an HLS manifest URL for a project-relative video path. */

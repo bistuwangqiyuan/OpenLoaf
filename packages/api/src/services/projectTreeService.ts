@@ -13,7 +13,7 @@ import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
 import { getProjectStorageRootUri } from "./vfsService";
-import { getProjectRegistryEntries } from "./workspaceProjectConfig";
+import { getProjectRegistryEntries } from "./projectRegistryConfig";
 
 /** Directory name for project metadata. */
 export const PROJECT_META_DIR = ".openloaf";

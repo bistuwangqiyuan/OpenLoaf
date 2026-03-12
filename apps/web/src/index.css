@@ -770,7 +770,7 @@ body {
 }
 
 .project-index-header-controls,
-.workspace-desktop-header-controls {
+.global-desktop-header-controls {
   flex: 1 1 auto;
   display: flex;
   justify-content: flex-end;

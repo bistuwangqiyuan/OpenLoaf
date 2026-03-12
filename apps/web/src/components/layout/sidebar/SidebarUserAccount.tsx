@@ -60,7 +60,7 @@ const SIDEBAR_MEMBERSHIP_BADGE_STYLES: Record<string, string> = {
 }
 
 export function SidebarUserAccount() {
-  const { t } = useTranslation('workspace', { keyPrefix: 'workspace' })
+  const { t } = useTranslation('project', { keyPrefix: 'global' })
   const { t: tNav } = useTranslation('nav')
 
   const [loginOpen, setLoginOpen] = React.useState(false)

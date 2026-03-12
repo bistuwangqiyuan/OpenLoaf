@@ -21,7 +21,7 @@ import { ListPlugin } from '@platejs/list/react'
 import { toggleList } from '@platejs/list'
 import { ExitBreakPlugin, KEYS } from 'platejs'
 
-import { BlockList } from '@openloaf/ui/block-list'
+import { BoardBlockList } from './BoardBlockList'
 
 /** Autoformat rules — marks subset for inline formatting. */
 const boardAutoformatMarks: AutoformatRule[] = [
@@ -98,7 +98,7 @@ export const BoardTextEditorKit = [
   // List
   ListPlugin.configure({
     inject: { targetPlugins: [KEYS.p] },
-    render: { belowNodes: BlockList },
+    render: { belowNodes: BoardBlockList },
   }),
 
   // Autoformat — markdown shortcuts

@@ -70,6 +70,28 @@ export type ChatSessionSummary = {
   messageCount: number
 }
 
+export type CopySessionToBoardResult = {
+  /** Target board metadata. */
+  board: {
+    id: string
+    title: string
+    folderUri: string
+    projectId: string | null
+  }
+  /** Target session id (always equals board id). */
+  targetSessionId: string
+  /** Whether this call created a new board. */
+  createdBoard: boolean
+  /** Import batch id used for copied resources. */
+  importBatchId: string
+  /** Number of imported messages. */
+  importedMessageCount: number
+  /** Number of copied files. */
+  copiedFileCount: number
+  /** Imported messages in chronological order. */
+  importedMessages: Array<ChatUIMessage & { createdAt: string }>
+}
+
 const MAX_VIEW_LIMIT = 200
 
 /** Normalize optional id value. */
@@ -339,6 +361,18 @@ export const chatRouter = t.router({
       messageId: z.string().min(1),
     }))
     .query(async (): Promise<{ id: string; parts: any[]; metadata: any } | null> => {
+      throw new Error('Not implemented: override in server chat router.')
+    }),
+
+  /**
+   * Copy an existing chat session into a board-backed chat session.
+   */
+  copySessionToBoard: shieldedProcedure
+    .input(z.object({
+      sourceSessionId: z.string().min(1),
+      targetBoardId: z.string().min(1).optional(),
+    }))
+    .mutation(async (): Promise<CopySessionToBoardResult> => {
       throw new Error('Not implemented: override in server chat router.')
     }),
 

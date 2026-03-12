@@ -67,7 +67,7 @@ export const PageTitle = () => {
     const baseComponent = activeTab?.base?.component;
     if (baseComponent === 'canvas-list-page') return t('canvas');
     if (baseComponent === 'project-list-page') return t('sidebarWorkspace');
-    if (baseComponent === 'workspace-desktop') return t('workbench');
+    if (baseComponent === 'global-desktop') return t('workbench');
     if (baseComponent === 'calendar-page') return t('calendar');
     if (baseComponent === 'email-page') return t('email');
     if (baseComponent === 'scheduled-tasks-page') return t('panelTitle.scheduled-tasks-page');

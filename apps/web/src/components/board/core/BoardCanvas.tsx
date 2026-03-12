@@ -13,7 +13,7 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState, useId, ty
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Copy, CopyPlus, FolderDown, Loader2, MoreHorizontal, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { Copy, CopyPlus, FolderDown, FolderOpen, Loader2, MoreHorizontal, PencilLine, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@openloaf/ui/button";
 import {
@@ -34,6 +34,8 @@ import {
 import { Input } from "@openloaf/ui/input";
 import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
 import { useTabs } from "@/hooks/use-tabs";
+import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { buildBoardChatTabState } from "../utils/board-chat-tab";
 import { BoardProvider, type ImagePreviewPayload } from "./BoardProvider";
 import { CanvasEngine } from "../engine/CanvasEngine";
 import type { CanvasElement, CanvasNodeDefinition } from "../engine/types";
@@ -56,6 +58,7 @@ import {
 import {
   buildChildUri,
   buildFileUriFromRoot,
+  getRelativePathFromUri,
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
 import { trpc, trpcClient } from "@/utils/trpc";
@@ -65,6 +68,7 @@ import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { getCachedAccessToken } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 import i18next from "i18next";
+import { isElectronEnv } from "@/utils/is-electron-env";
 
 export type BoardCanvasProps = {
   /** External engine instance, optional for integration scenarios. */
@@ -213,6 +217,22 @@ export function BoardCanvas({
       return segment;
     }
   }, [boardFolderUri, boardId]);
+  const resolvedBoardFolderUri = useMemo(() => {
+    const source = boardFolderUri?.trim() || "";
+    if (!source) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(source)) return source;
+    if (!resolvedRootUri) return "";
+    return buildFileUriFromRoot(resolvedRootUri, source);
+  }, [boardFolderUri, resolvedRootUri]);
+  const boardFolderRelativeUri = useMemo(() => {
+    const source = boardFolderUri?.trim() || "";
+    if (!source) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(source)) {
+      if (!resolvedRootUri) return "";
+      return getRelativePathFromUri(resolvedRootUri, source) ?? "";
+    }
+    return source;
+  }, [boardFolderUri, resolvedRootUri]);
   /** Root container element for canvas interactions. */
   const containerRef = useRef<HTMLDivElement | null>(null);
   /** Latest canvas element reference used for exports. */
@@ -261,6 +281,7 @@ export function BoardCanvas({
   const [saveToProjectOpen, setSaveToProjectOpen] = useState(false);
   const closeTab = useTabs((s) => s.closeTab);
   const addTab = useTabs((s) => s.addTab);
+  const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const inferBoardNameMutation = useMutation(trpc.settings.inferBoardName.mutationOptions());
   const deleteBoardMutation = useMutation(trpc.fs.delete.mutationOptions());
   const duplicateBoardMutation = useMutation(trpc.board.duplicate.mutationOptions({
@@ -274,6 +295,7 @@ export function BoardCanvas({
         createNew: true,
         title: newBoard.title,
         icon: "🎨",
+        ...buildBoardChatTabState(newBoard.id, projectId),
         leftWidthPercent: 100,
         base: {
           id: `board:${newBoardFolderUri}`,
@@ -304,6 +326,45 @@ export function BoardCanvas({
     navigator.clipboard.writeText(fullPath);
     toast.success(i18next.t('nav:canvasList.pathCopied'));
   }, [boardFolderUri]);
+  const handleOpenBoardFolder = useCallback(async () => {
+    if (isElectronEnv()) {
+      if (!resolvedBoardFolderUri) {
+        toast.error(tBoard("panelHeader.openBoardFolderMissing"));
+        return;
+      }
+      const result = await window.openloafElectron?.openPath?.({ uri: resolvedBoardFolderUri });
+      if (!result?.ok) {
+        toast.error(result?.reason ?? tBoard("panelHeader.openBoardFolderFailed"));
+      }
+      return;
+    }
+
+    if (!tabId || !resolvedRootUri || !boardFolderRelativeUri) {
+      toast.error(tBoard("panelHeader.openBoardFolderMissing"));
+      return;
+    }
+
+    pushStackItem(tabId, {
+      id: `board-folder:${boardFolderRelativeUri}`,
+      sourceKey: `board-folder:${boardFolderRelativeUri}`,
+      component: "folder-tree-preview",
+      title: currentTabTitle || i18next.t("nav:canvasList.untitled"),
+      params: {
+        rootUri: resolvedRootUri,
+        currentUri: boardFolderRelativeUri,
+        projectId,
+      },
+    });
+  }, [
+    boardFolderRelativeUri,
+    currentTabTitle,
+    projectId,
+    pushStackItem,
+    resolvedBoardFolderUri,
+    resolvedRootUri,
+    tBoard,
+    tabId,
+  ]);
   const handleRenameOpen = useCallback((open: boolean) => {
     if (open) setRenameValue(currentTabTitle);
     setRenameOpen(open);
@@ -648,6 +709,12 @@ export function BoardCanvas({
               <DropdownMenuItem onClick={handleCopyBoardPath}>
                 <Copy className="mr-2 size-4" />
                 {i18next.t('nav:canvasList.copyPath')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void handleOpenBoardFolder()}>
+                <FolderOpen className="mr-2 size-4" />
+                {isElectronEnv()
+                  ? tBoard("panelHeader.openInFileSystem")
+                  : tBoard("panelHeader.openBoardFolder")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

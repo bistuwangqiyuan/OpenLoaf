@@ -17,17 +17,13 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useProjectStorageRootQuery } from "@/hooks/use-project-storage-root-uri";
 
 /**
- * Bootstrap compatibility workspace side effects.
+ * Bootstrap application side effects.
  */
-export function WorkspaceBootstrap() {
+export function AppBootstrap() {
   const { isLoading } = useProjectStorageRootQuery();
   const addTab = useTabs((state) => state.addTab);
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
-
-  useEffect(() => {
-    document.cookie = "workspace-id=default; path=/; max-age=31536000; SameSite=Lax";
-  }, []);
 
   useEffect(() => {
     if (isLoading) return;

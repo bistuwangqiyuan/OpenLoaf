@@ -22,7 +22,7 @@ import {
   toFileUriWithoutEncoding,
   upsertTopLevelProject,
 } from "../services/vfsService";
-import { getProjectRegistryEntries } from "../services/workspaceProjectConfig";
+import { getProjectRegistryEntries } from "../services/projectRegistryConfig";
 import {
   PROJECT_META_DIR,
   findProjectNodeWithParent,

@@ -58,7 +58,7 @@ description: 从真实聊天故障历史生成回归测试用例。由 /ai-test-
 
 **多轮模板**：
 
-详细断言模板见 [references/assertion-patterns.md](references/assertion-patterns.md)。
+详细断言规则见 [assertion-patterns.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/ai-test-regression/references/assertion-patterns.md)。
 
 ### 7. 放置测试
 

@@ -21,6 +21,9 @@ export const entityVisitTriggerSchema = z.enum([
   "board-open",
 ]);
 
+/** Supported sort modes for sidebar history. */
+export const sidebarHistorySortSchema = z.enum(["firstVisitedAt", "lastVisitedAt"]);
+
 /** Input schema for recording a unified entity visit. */
 export const recordEntityVisitInputSchema = z.object({
   /** Entity type. */
@@ -41,6 +44,8 @@ export const listSidebarHistoryInputSchema = z.object({
   pageSize: z.number().int().min(1).max(100).nullable().optional(),
   /** Limit sidebar history to one project when provided. */
   projectId: z.string().trim().min(1).optional(),
+  /** Sort rows by first visit or last visit time. */
+  sortBy: sidebarHistorySortSchema.optional(),
 });
 
 const sidebarHistoryItemBaseSchema = z.object({
@@ -54,6 +59,8 @@ const sidebarHistoryItemBaseSchema = z.object({
   dateKey: z.string().min(1),
   /** First visit timestamp of the daily record. */
   firstVisitedAt: z.date(),
+  /** Last visit timestamp of the daily record. */
+  lastVisitedAt: z.date(),
 });
 
 /** Sidebar history item for project visits. */
@@ -114,6 +121,7 @@ export const sidebarHistoryPageSchema = z.object({
 
 export type EntityVisitType = z.infer<typeof entityVisitTypeSchema>;
 export type EntityVisitTrigger = z.infer<typeof entityVisitTriggerSchema>;
+export type SidebarHistorySort = z.infer<typeof sidebarHistorySortSchema>;
 export type RecordEntityVisitInput = z.infer<typeof recordEntityVisitInputSchema>;
 export type ListSidebarHistoryInput = z.infer<typeof listSidebarHistoryInputSchema>;
 export type SidebarHistoryProjectItem = z.infer<typeof sidebarHistoryProjectItemSchema>;

@@ -115,7 +115,7 @@ const fileOpParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'read-file',
     state: 'output-available',
-    input: { actionName: '读取配置文件', filePath: '/workspace/tsconfig.json' },
+    input: { actionName: '读取配置文件', filePath: '/project-root/tsconfig.json' },
     output: {
       ok: true,
       data: {
@@ -130,7 +130,7 @@ const fileOpParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'list-dir',
     state: 'output-available',
-    input: { actionName: '列出目录', dirPath: '/workspace/src' },
+    input: { actionName: '列出目录', dirPath: '/project-root/src' },
     output: {
       ok: true,
       data: {
@@ -148,7 +148,7 @@ const fileOpParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'grep-files',
     state: 'output-available',
-    input: { actionName: '搜索文件内容', pattern: 'TODO', directory: '/workspace/src' },
+    input: { actionName: '搜索文件内容', pattern: 'TODO', directory: '/project-root/src' },
     output: {
       ok: true,
       data: {
@@ -193,7 +193,7 @@ const fileOpParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'file-info',
     state: 'output-available',
-    input: { actionName: '获取文件信息', filePath: '/workspace/assets/logo.png' },
+    input: { actionName: '获取文件信息', filePath: '/project-root/assets/logo.png' },
     output: {
       ok: true,
       data: {
@@ -204,7 +204,7 @@ const fileOpParts: ToolShowcasePart[] = [
           fileSize: 245760,
           modifiedAt: '2026-03-01T08:00:00Z',
           createdAt: '2026-02-15T10:30:00Z',
-          filePath: '/workspace/assets/logo.png',
+          filePath: '/project-root/assets/logo.png',
         },
         details: {
           width: 1024,
@@ -384,7 +384,7 @@ const browserParts: ToolShowcasePart[] = [
     toolName: 'browser-download-image',
     state: 'output-available',
     input: { actionName: '下载图片', url: 'https://example.com/photo.jpg' },
-    output: { ok: true, data: { filePath: '/workspace/downloads/photo.jpg', size: 524288, format: 'jpeg' } },
+    output: { ok: true, data: { filePath: '/project-root/downloads/photo.jpg', size: 524288, format: 'jpeg' } },
   },
 ]
 
@@ -396,7 +396,7 @@ const officeParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'excel-query',
     state: 'output-available',
-    input: { action: 'read-sheet', filePath: '/workspace/budget.xlsx', sheetName: 'Q1 Budget' },
+    input: { action: 'read-sheet', filePath: '/project-root/budget.xlsx', sheetName: 'Q1 Budget' },
     output: {
       ok: true,
       data: {
@@ -420,14 +420,14 @@ const officeParts: ToolShowcasePart[] = [
     state: 'output-available',
     input: {
       action: 'write-cells',
-      filePath: '/workspace/budget.xlsx',
+      filePath: '/project-root/budget.xlsx',
       sheetName: 'Q1 Budget',
       range: 'B6:D6',
       data: [[90000, 95000, 88000]],
     },
     output: {
       ok: true,
-      data: { cellsWritten: 3, filePath: '/workspace/budget.xlsx' },
+      data: { cellsWritten: 3, filePath: '/project-root/budget.xlsx' },
     },
   },
   {
@@ -435,7 +435,7 @@ const officeParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'word-query',
     state: 'output-available',
-    input: { action: 'read-structure', filePath: '/workspace/meeting-notes.docx' },
+    input: { action: 'read-structure', filePath: '/project-root/meeting-notes.docx' },
     output: {
       ok: true,
       data: {
@@ -459,12 +459,12 @@ const officeParts: ToolShowcasePart[] = [
     state: 'output-available',
     input: {
       action: 'edit',
-      filePath: '/workspace/meeting-notes.docx',
+      filePath: '/project-root/meeting-notes.docx',
       edits: [{ type: 'append', content: '议题二：Q2 计划' }],
     },
     output: {
       ok: true,
-      data: { action: 'edit', editCount: 1, filePath: '/workspace/meeting-notes.docx' },
+      data: { action: 'edit', editCount: 1, filePath: '/project-root/meeting-notes.docx' },
     },
   },
   {
@@ -472,7 +472,7 @@ const officeParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'pptx-query',
     state: 'output-available',
-    input: { action: 'read-structure', filePath: '/workspace/presentation.pptx' },
+    input: { action: 'read-structure', filePath: '/project-root/presentation.pptx' },
     output: {
       ok: true,
       data: {
@@ -492,7 +492,7 @@ const officeParts: ToolShowcasePart[] = [
     state: 'output-available',
     input: {
       action: 'edit',
-      filePath: '/workspace/presentation.pptx',
+      filePath: '/project-root/presentation.pptx',
       edits: [{ slideIndex: 2, type: 'add-text', text: '性能优化' }],
     },
     output: {
@@ -505,7 +505,7 @@ const officeParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'pdf-query',
     state: 'output-available',
-    input: { action: 'read-structure', filePath: '/workspace/invoice.pdf' },
+    input: { action: 'read-structure', filePath: '/project-root/invoice.pdf' },
     output: {
       ok: true,
       data: {
@@ -524,7 +524,7 @@ const officeParts: ToolShowcasePart[] = [
     state: 'output-available',
     input: {
       action: 'fill-form',
-      filePath: '/workspace/invoice.pdf',
+      filePath: '/project-root/invoice.pdf',
       fields: { company: 'OpenLoaf Inc.', amount: '$15,000', date: '2026-03-09' },
     },
     output: {
@@ -558,7 +558,7 @@ const mediaParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'image-process',
     state: 'output-available',
-    input: { action: 'get-info', filePath: '/workspace/assets/banner.png' },
+    input: { action: 'get-info', filePath: '/project-root/assets/banner.png' },
     output: {
       ok: true,
       data: {
@@ -579,11 +579,11 @@ const mediaParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'video-convert',
     state: 'output-available',
-    input: { actionName: '视频转换', inputPath: '/workspace/video.mov', outputFormat: 'mp4' },
+    input: { actionName: '视频转换', inputPath: '/project-root/video.mov', outputFormat: 'mp4' },
     output: {
       ok: true,
       data: {
-        outputPath: '/workspace/video.mp4',
+        outputPath: '/project-root/video.mp4',
         duration: 120.5,
         size: 15728640,
       },
@@ -594,11 +594,11 @@ const mediaParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'doc-convert',
     state: 'output-available',
-    input: { actionName: '文档转换', inputPath: '/workspace/report.docx', outputFormat: 'pdf' },
+    input: { actionName: '文档转换', inputPath: '/project-root/report.docx', outputFormat: 'pdf' },
     output: {
       ok: true,
       data: {
-        outputPath: '/workspace/report.pdf',
+        outputPath: '/project-root/report.pdf',
         pageCount: 5,
         size: 256000,
       },
@@ -619,10 +619,10 @@ const projectTaskEmailParts: ToolShowcasePart[] = [
       ok: true,
       data: {
         projects: [
-          { projectId: 'proj_1', title: 'OpenLoaf Core', icon: '🚀', rootUri: '/workspace/openloaf', parentProjectId: null, depth: 0 },
-          { projectId: 'proj_2', title: 'Web Frontend', icon: '🌐', rootUri: '/workspace/openloaf/apps/web', parentProjectId: 'proj_1', depth: 1 },
-          { projectId: 'proj_3', title: 'API Server', icon: '⚙️', rootUri: '/workspace/openloaf/apps/server', parentProjectId: 'proj_1', depth: 1 },
-          { projectId: 'proj_4', title: 'Documentation', icon: '📖', rootUri: '/workspace/docs', parentProjectId: null, depth: 0 },
+          { projectId: 'proj_1', title: 'OpenLoaf Core', icon: '🚀', rootUri: '/project-root/openloaf', parentProjectId: null, depth: 0 },
+          { projectId: 'proj_2', title: 'Web Frontend', icon: '🌐', rootUri: '/project-root/openloaf/apps/web', parentProjectId: 'proj_1', depth: 1 },
+          { projectId: 'proj_3', title: 'API Server', icon: '⚙️', rootUri: '/project-root/openloaf/apps/server', parentProjectId: 'proj_1', depth: 1 },
+          { projectId: 'proj_4', title: 'Documentation', icon: '📖', rootUri: '/project-root/docs', parentProjectId: null, depth: 0 },
         ],
       },
     },
@@ -632,11 +632,11 @@ const projectTaskEmailParts: ToolShowcasePart[] = [
     toolCallId: callId(),
     toolName: 'project-mutate',
     state: 'output-available',
-    input: { actionName: '创建项目', mode: 'create', title: 'Mobile App', icon: '📱', rootUri: '/workspace/mobile' },
+    input: { actionName: '创建项目', mode: 'create', title: 'Mobile App', icon: '📱', rootUri: '/project-root/mobile' },
     output: {
       ok: true,
       data: {
-        project: { projectId: 'proj_5', title: 'Mobile App', icon: '📱', rootUri: '/workspace/mobile' },
+        project: { projectId: 'proj_5', title: 'Mobile App', icon: '📱', rootUri: '/project-root/mobile' },
       },
     },
   },
@@ -771,7 +771,7 @@ const uiWidgetParts: ToolShowcasePart[] = [
       ok: true,
       data: {
         widgetId: 'widget_weather',
-        widgetDir: '/workspace/.openloaf/widgets/widget_weather',
+        widgetDir: '/project-root/.openloaf/widgets/widget_weather',
         files: ['index.tsx', 'style.css', 'manifest.json'],
       },
     },

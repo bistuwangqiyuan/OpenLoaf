@@ -71,7 +71,7 @@ function clampItemToCols(item: DesktopItem, cols: number, layout: DesktopItemLay
 
 interface DesktopGridProps {
   items: DesktopItem[];
-  /** Desktop scope (workspace or project). */
+  /** Desktop scope (global or project). */
   scope: DesktopScope;
   editMode: boolean;
   /** Active breakpoint when editing. */

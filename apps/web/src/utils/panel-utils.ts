@@ -42,7 +42,7 @@ const LazyVideoViewer = React.lazy(() => import("@/components/file/VideoViewer")
 const LazyBoardFileViewer = React.lazy(() => import("@/components/board/BoardFileViewer"));
 const LazyTerminalViewer = React.lazy(() => import("@/components/file/TerminalViewer"));
 const LazyDesktopWidgetLibraryPanel = React.lazy(() => import("@/components/desktop/DesktopWidgetLibraryPanel"));
-const LazyWorkspaceDesktop = React.lazy(() => import("@/components/workspace/WorkspaceDesktop"));
+const LazyGlobalDesktop = React.lazy(() => import("@/components/desktop/GlobalDesktop"));
 const LazyFolderTreePreview = React.lazy(() => import("@/components/project/filesystem/FolderTreePreview"));
 const LazySchedulerTaskHistoryStackPanel = React.lazy(() =>
   import("@/components/summary/SchedulerTaskHistoryStackPanel").then(m => ({ default: m.SchedulerTaskHistoryStackPanel })),
@@ -69,7 +69,7 @@ const LazyStreamingPlateViewer = React.lazy(() => import("@/components/file/Stre
 const LazyProjectPage = React.lazy(() => import("@/components/project/Project"));
 const LazyProjectSettingsPage = React.lazy(() => import("@/components/project/settings/ProjectSettingsPage"));
 const LazyCanvasListPage = React.lazy(() => import("@/components/board/CanvasListPage"));
-const LazyProjectGridPage = React.lazy(() => import("@/components/workspace/ProjectGridPage"));
+const LazyProjectListPage = React.lazy(() => import("@/components/project/ProjectListPage"));
 
 /** Stack wrapper that injects a "open in settings" button into the header slot. */
 function SettingsStackSlotButton({ settingsMenu }: { settingsMenu: string }) {
@@ -138,7 +138,7 @@ export const ComponentMap: Record<string, PanelComponent> = {
   "board-viewer": LazyBoardFileViewer,
   "terminal-viewer": LazyTerminalViewer,
   "desktop-widget-library": LazyDesktopWidgetLibraryPanel,
-  "workspace-desktop": LazyWorkspaceDesktop,
+  "global-desktop": LazyGlobalDesktop,
   "folder-tree-preview": LazyFolderTreePreview,
   "scheduler-task-history": LazySchedulerTaskHistoryStackPanel,
   "scheduled-tasks-page": LazyScheduledTasksPage,
@@ -153,7 +153,7 @@ export const ComponentMap: Record<string, PanelComponent> = {
   "ai-debug-viewer": LazyAiDebugViewer,
   "task-detail": LazyTaskDetailPanel,
   "canvas-list-page": LazyCanvasListPage,
-  "project-list-page": LazyProjectGridPage,
+  "project-list-page": LazyProjectListPage,
   "project-settings-page": LazyProjectSettingsPage,
 };
 

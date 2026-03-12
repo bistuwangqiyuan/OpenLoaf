@@ -9,7 +9,6 @@
  */
 "use client";
 
-import { getWorkspaceIdFromCookie } from "@/components/board/core/boardSession";
 import type { FileSystemEntry } from "@/components/project/filesystem/utils/file-system-utils";
 
 export const RECENT_OPEN_EVENT = "openloaf:recent-open";
@@ -49,39 +48,13 @@ type RecordRecentOpenInput = {
   maxItems?: number;
 };
 
-/** Build the legacy storage key for scope-specific history fallback. */
-function buildLegacyStorageKey(legacyScopeKey: string): string {
-  return `${RECENT_OPEN_STORAGE_KEY_LEGACY_PREFIX}${legacyScopeKey}`;
-}
-
-/** Read the legacy scope-specific store for one-time migration fallback. */
-function readLegacyStore(): RecentOpenStore | null {
-  if (typeof window === "undefined") return null;
-  const legacyScopeKey = getWorkspaceIdFromCookie();
-  if (!legacyScopeKey) return null;
-  const raw = window.localStorage.getItem(buildLegacyStorageKey(legacyScopeKey));
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<{
-      workspace: RecentOpenItem[];
-      projects: Record<string, RecentOpenItem[]>;
-    }>;
-    return {
-      global: Array.isArray(parsed.workspace) ? parsed.workspace : [],
-      projects: parsed.projects && typeof parsed.projects === "object" ? parsed.projects : {},
-    };
-  } catch {
-    return null;
-  }
-}
-
 /** Safely read the recent-open store. */
 function readStore(): RecentOpenStore {
   if (typeof window === "undefined") {
     return { global: [], projects: {} };
   }
   const raw = window.localStorage.getItem(RECENT_OPEN_STORAGE_KEY);
-  if (!raw) return readLegacyStore() ?? { global: [], projects: {} };
+  if (!raw) return { global: [], projects: {} };
   try {
     const parsed = JSON.parse(raw) as Partial<RecentOpenStore>;
     return {
@@ -89,7 +62,7 @@ function readStore(): RecentOpenStore {
       projects: parsed.projects && typeof parsed.projects === "object" ? parsed.projects : {},
     };
   } catch {
-    return readLegacyStore() ?? { global: [], projects: {} };
+    return { global: [], projects: {} };
   }
 }
 

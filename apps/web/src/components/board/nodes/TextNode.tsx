@@ -63,6 +63,7 @@ import {
   getBoardChatPartMeta,
   layoutBoardChatMessageGroup,
 } from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -284,10 +285,13 @@ function ReadOnlyMarkdownProjection(props: {
 }) {
   const { engine } = useBoardContext();
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const partMeta = getBoardChatPartMeta(engine.doc.getElementById(props.elementId));
-  const messageGroupMeta = partMeta
-    ? getBoardChatMessageMeta(engine.doc.getElementById(partMeta.messageGroupId))
-    : null;
+  const element = engine.doc.getElementById(props.elementId);
+  const partMeta = getBoardChatPartMeta(element);
+  const messageGroupMeta =
+    getBoardChatMessageMeta(element)
+    ?? (partMeta
+      ? getBoardChatMessageMeta(engine.doc.getElementById(partMeta.messageGroupId))
+      : null);
   const isAnimating = messageGroupMeta?.status === "streaming";
 
   useEffect(() => {
@@ -1121,7 +1125,7 @@ function EditableTextNodeView({
   const containerStyle = backgroundColor ? { backgroundColor } : undefined;
   const defaultBg = backgroundColor ? "" : "bg-[#f5f5f5] dark:bg-neutral-800/60";
   const containerClasses = [
-    "relative h-full w-full rounded-xl box-border p-2.5 flex flex-col justify-center",
+    "relative h-full w-full rounded-xl box-border p-2.5 flex flex-col justify-start",
     isEditing && !backgroundColor
       ? "bg-white dark:bg-neutral-900/90"
       : defaultBg,
@@ -1163,7 +1167,7 @@ function EditableTextNodeView({
           className={cn(
             "w-full bg-transparent outline-none p-0",
             "text-neutral-800 dark:text-neutral-100",
-            "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5",
+            "[&>[data-slate-node=element]+[data-slate-node=element]]:mt-1",
             // 逻辑：view 模式下整体禁止指针交互，但 checkbox 保留可点击。
             !isEditing && "pointer-events-none [&_[data-slot=checkbox]]:!pointer-events-auto",
           )}
@@ -1247,7 +1251,13 @@ export const TextNodeDefinition: CanvasNodeDefinition<TextNodeProps> = {
     ),
   }),
   connectorTemplates: () => getTextNodeConnectorTemplates(),
-  toolbar: ctx => (ctx.element.props.readOnlyProjection ? [] : createTextToolbarItems(ctx)),
+  toolbar: (ctx) => {
+    if (ctx.element.props.readOnlyProjection) {
+      const messageMeta = getBoardChatMessageMeta(ctx.element);
+      return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
+    }
+    return createTextToolbarItems(ctx);
+  },
   capabilities: {
     resizable: true,
     rotatable: false,

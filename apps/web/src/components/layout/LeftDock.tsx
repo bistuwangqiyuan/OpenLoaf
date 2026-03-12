@@ -57,7 +57,7 @@ const WORKSPACE_SWITCH_COMPONENTS = new Set([
   "calendar-page",
   "email-page",
   "scheduled-tasks-page",
-  "workspace-desktop",
+  "global-desktop",
   "canvas-list-page",
 ]);
 

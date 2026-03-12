@@ -39,7 +39,7 @@ import {
 import type { DesktopScope } from "../types";
 
 export interface QuickActionsWidgetProps {
-  /** Desktop scope (workspace or project). */
+  /** Desktop scope (global or project). */
   scope: DesktopScope;
 }
 

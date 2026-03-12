@@ -55,7 +55,7 @@ function createWidgetItem(widgetKey: DesktopWidgetSelectedDetail["widgetKey"], i
 export default function DesktopDemoPage() {
   // 当前桌面组件列表。
   const [items, setItems] = React.useState<DesktopItem[]>(() =>
-    getInitialDesktopItems("workspace")
+    getInitialDesktopItems("global")
   );
   // 是否进入编辑模式。
   const [editMode, setEditMode] = React.useState(false);
@@ -290,7 +290,7 @@ export default function DesktopDemoPage() {
       <div className="min-h-0 flex-1">
         <DesktopPage
           items={items}
-          scope="workspace"
+          scope="global"
           editMode={editMode}
           activeBreakpoint={activeBreakpoint}
           bottomPadding={56}

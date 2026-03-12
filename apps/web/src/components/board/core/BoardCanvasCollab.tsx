@@ -51,6 +51,12 @@ import {
 import { resolveServerUrl } from "@/utils/server-url";
 import { trpc } from "@/utils/trpc";
 import { BOARD_COLLAB_WS_PATH } from "@openloaf/api/types/boardCollab";
+import { computeElementsBounds } from "../engine/geometry";
+import {
+  consumePendingBoardElements,
+  onPendingBoardElements,
+  type PendingBoardElementBatch,
+} from "../engine/pending-elements-store";
 
 type BoardCanvasCollabProps = {
   /** Canvas engine instance. */
@@ -74,6 +80,7 @@ const BOARD_META_DOC_ID_KEY = "docId";
 const BOARD_SYNC_SIGNAL = "flush";
 /** Scheme matcher for absolute URIs. */
 const SCHEME_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const PENDING_IMPORT_GAP = 240;
 
 /** Resolve a project-scoped reference from an input value. */
 function resolveProjectScopedRef(input: {
@@ -140,6 +147,57 @@ function splitElements(elements: CanvasElement[]) {
     nodes.push(element as CanvasNodeElement);
   });
   return { nodes, connectors };
+}
+
+/** Offset imported elements so appended batches appear beside the current board content. */
+function translatePendingElements(
+  elements: CanvasElement[],
+  existingElements: CanvasElement[],
+): CanvasElement[] {
+  if (elements.length === 0 || existingElements.length === 0) return elements;
+
+  const existingBounds = computeElementsBounds(existingElements);
+  const importedBounds = computeElementsBounds(elements);
+  const deltaX = existingBounds.x + existingBounds.w + PENDING_IMPORT_GAP - importedBounds.x;
+  const deltaY = existingBounds.y - importedBounds.y;
+
+  return elements.map((element) => ({
+    ...element,
+    xywh: [
+      element.xywh[0] + deltaX,
+      element.xywh[1] + deltaY,
+      element.xywh[2],
+      element.xywh[3],
+    ],
+  }));
+}
+
+/** Apply one queued import batch into the active board document. */
+function applyPendingBoardElementBatch(
+  engine: CanvasEngine,
+  batch: PendingBoardElementBatch,
+): void {
+  if (batch.elements.length === 0) return;
+
+  const currentElements = engine.doc.getElements();
+  const shouldKeepOriginalPlacement =
+    batch.mode === "replace-if-empty" && currentElements.length === 0;
+  const nextElements = shouldKeepOriginalPlacement
+    ? batch.elements
+    : translatePendingElements(batch.elements, currentElements);
+
+  engine.batch(() => {
+    engine.doc.transact(() => {
+      nextElements.forEach((element) => {
+        engine.doc.addElement(element);
+      });
+    });
+  });
+  engine.commitHistory();
+
+  if (batch.fitView !== false) {
+    engine.fitToElements();
+  }
 }
 
 /** Create a time-prefixed random doc id. */
@@ -600,6 +658,25 @@ export function BoardCanvasCollab({
     let provider: HocuspocusProvider | null = null;
     let webrtc: null = null;
     let awareness: Awareness | null = null;
+    const removePendingImportListener = onPendingBoardElements(({ boardFolderUri: targetBoardFolderUri }) => {
+      if (!boardFolderUri || targetBoardFolderUri !== boardFolderUri) return;
+      if (!hydratedRef.current) return;
+      const batches = consumePendingBoardElements(boardFolderUri);
+      if (batches.length === 0) return;
+      batches.forEach((batch) => {
+        applyPendingBoardElementBatch(engine, batch);
+      });
+    });
+
+    /** Pull and apply queued import batches for the current board. */
+    const flushPendingImports = () => {
+      if (!boardFolderUri || !hydratedRef.current) return;
+      const batches = consumePendingBoardElements(boardFolderUri);
+      if (batches.length === 0) return;
+      batches.forEach((batch) => {
+        applyPendingBoardElementBatch(engine, batch);
+      });
+    };
 
     /** Apply Yjs document payload into the canvas engine. */
     const applyDocToEngine = (docToApply: Y.Doc) => {
@@ -621,6 +698,7 @@ export function BoardCanvasCollab({
         writeBoardDocPayload(docToApply, nextPayload, BOARD_DOC_ORIGIN);
         hydratedRef.current = true;
         engine.fitToElements();
+        flushPendingImports();
         return;
       }
       applyingRemoteRef.current = true;
@@ -633,6 +711,7 @@ export function BoardCanvasCollab({
         engine.fitToElements();
       }
       applyingRemoteRef.current = false;
+      flushPendingImports();
     };
 
     let resolvedDocId = "";
@@ -738,6 +817,7 @@ export function BoardCanvasCollab({
 
     return () => {
       disposed = true;
+      removePendingImportListener();
       cleanup?.();
       onSyncLogChange?.({ canSyncLog: false });
       if (syncRafRef.current !== null) {

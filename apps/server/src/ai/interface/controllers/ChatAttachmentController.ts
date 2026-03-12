@@ -15,6 +15,8 @@ import {
   saveChatImageAttachment,
   saveChatImageAttachmentFromPath,
 } from "@/ai/services/image/attachmentResolver";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { resolveSessionFilesDir } from "@/ai/services/chat/repositories/chatFileStore";
 
 /** Max upload size for chat images. */
@@ -278,7 +280,7 @@ export class ChatAttachmentController {
 
   /** Handle generic file upload — copies file as-is into session's files/ directory. */
   async uploadGenericFile(body: ChatAttachmentBody): Promise<ChatAttachmentResponse> {
-    const { sessionId, file } = parseChatAttachmentBody(body);
+    const { projectId, sessionId, file } = parseChatAttachmentBody(body);
 
     if (!sessionId || !file) {
       return { type: "json", status: 400, body: { error: "Missing required upload fields" } };
@@ -311,8 +313,12 @@ export class ChatAttachmentController {
       const destPath = path.join(filesDir, destName);
       const buffer = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(destPath, buffer);
+      const scopeRootPath = projectId ? getProjectRootPath(projectId) : null;
+      const rootPath = scopeRootPath || getOpenLoafRootDir();
+      const relativePath = path.relative(rootPath, destPath).split(path.sep).join("/");
 
-      return { type: "json", status: 200, body: { path: destPath } };
+      // 逻辑：统一返回相对路径，避免消息持久化后绑定绝对磁盘路径。
+      return { type: "json", status: 200, body: { path: relativePath } };
     } catch (error) {
       return {
         type: "json",

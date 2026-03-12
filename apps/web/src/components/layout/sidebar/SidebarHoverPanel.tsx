@@ -44,6 +44,7 @@ import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_META_FILE_NAME } from '@/lib/file-name'
+import { buildBoardChatTabState } from '@/components/board/utils/board-chat-tab'
 import type { ProjectNode } from '@openloaf/api/services/projectTreeService'
 
 interface SidebarHoverPanelProps {
@@ -347,6 +348,7 @@ export function SidebarHoverPanel({
           createNew: true,
           title: item.title || t('canvasList.untitled'),
           icon: '🎨',
+          ...buildBoardChatTabState(item.id, targetProjectId),
           leftWidthPercent: 100,
           base: {
             id: baseId,
