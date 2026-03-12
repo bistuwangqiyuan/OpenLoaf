@@ -18,8 +18,6 @@ interface FileViewerProps {
   name?: string;
   ext?: string;
   projectId?: string;
-  /** Legacy prop kept for compatibility. */
-  workspaceId?: string;
   rootUri?: string;
 }
 

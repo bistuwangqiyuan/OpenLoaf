@@ -45,7 +45,7 @@ export default function JsxCreateTool({
   const { messages } = useChatState()
   const { updateMessage } = useChatActions()
   const { upsertToolPart } = useChatTools()
-  const { sessionId, workspaceId, projectId } = useChatSession()
+  const { sessionId, projectId } = useChatSession()
   const updatePartsMutation = useMutation({
     ...trpc.chat.updateMessageParts.mutationOptions(),
   })
@@ -81,11 +81,11 @@ export default function JsxCreateTool({
   const readFileOptions = React.useMemo(
     () =>
       trpc.fs.readFile.queryOptions(
-        jsxUri && workspaceId
+        jsxUri
           ? { projectId, uri: jsxUri }
           : skipToken,
       ),
-    [jsxUri, workspaceId, projectId],
+    [jsxUri, projectId],
   )
   const fileQuery = useQuery(readFileOptions)
   const queryClient = useQueryClient()
@@ -162,7 +162,7 @@ export default function JsxCreateTool({
   ])
 
   React.useEffect(() => {
-    if (!jsxUri || !workspaceId) return
+    if (!jsxUri) return
     const unsubscribe = onJsxCreateRefresh((payload) => {
       if (payload.uri !== jsxUri) return
       // 逻辑：收到刷新事件后，强制重新拉取 jsx 文件内容。
@@ -177,7 +177,7 @@ export default function JsxCreateTool({
 
   /** Manually refresh the JSX file content from disk. */
   const handleManualRefresh = React.useCallback(() => {
-    if (!jsxUri || !workspaceId) return
+    if (!jsxUri) return
     const queryKey = trpc.fs.readFile.queryOptions({
       projectId,
       uri: jsxUri,

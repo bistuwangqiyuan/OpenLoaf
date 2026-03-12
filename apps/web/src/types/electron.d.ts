@@ -247,7 +247,7 @@ declare global {
         | { ok: true; path: string }
         | { ok: false; canceled?: boolean; reason?: string }
       >;
-      /** Start a local file/folder transfer into the workspace. */
+      /** Start a local file/folder transfer into the project storage root. */
       startTransfer?: (payload: {
         id: string;
         sourcePath: string;

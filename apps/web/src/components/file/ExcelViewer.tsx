@@ -30,7 +30,7 @@ import "react-data-grid/lib/styles.css";
 import "@/components/file/style/spreadsheet-viewer.css";
 
 interface ExcelViewerProps {
-  /** Absolute or workspace-relative file uri. */
+  /** Absolute or project-root-relative file uri. */
   uri?: string;
   /** Original open uri for system open. */
   openUri?: string;
@@ -40,8 +40,6 @@ interface ExcelViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
-  /** Legacy prop kept for compatibility. */
-  workspaceId?: string;
   /** Root uri for external open. */
   rootUri?: string;
   /** Stack panel key for close handling. */

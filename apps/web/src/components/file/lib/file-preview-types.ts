@@ -32,8 +32,6 @@ export type FilePreviewItem = {
   ext?: string;
   /** Optional project id for file queries. */
   projectId?: string;
-  /** Optional workspace id for file queries. */
-  workspaceId?: string;
   /** Optional root uri for system open. */
   rootUri?: string;
   /** Optional board id for resolving board-relative assets. */

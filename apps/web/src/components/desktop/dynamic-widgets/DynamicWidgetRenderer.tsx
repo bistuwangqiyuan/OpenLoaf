@@ -39,7 +39,6 @@ function approveWidget(widgetId: string) {
 
 interface DynamicWidgetRendererProps {
   widgetId: string
-  workspaceId: string
   projectId?: string
   onEmit?: (event: string, payload?: unknown) => void
   onNavigate?: (target: string, params?: Record<string, unknown>) => void

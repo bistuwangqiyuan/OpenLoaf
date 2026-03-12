@@ -41,8 +41,6 @@ type RecentOpenStore = {
 type RecordRecentOpenInput = {
   /** @deprecated Retained for call-site compatibility. */
   tabId?: string | null;
-  /** @deprecated Retained for call-site compatibility. */
-  workspaceId?: string | null;
   /** Project id for the entry. */
   projectId?: string | null;
   /** Entry payload. */
@@ -51,17 +49,17 @@ type RecordRecentOpenInput = {
   maxItems?: number;
 };
 
-/** Build the legacy storage key for workspace-scoped history. */
-function buildLegacyStorageKey(workspaceId: string): string {
-  return `${RECENT_OPEN_STORAGE_KEY_LEGACY_PREFIX}${workspaceId}`;
+/** Build the legacy storage key for scope-specific history fallback. */
+function buildLegacyStorageKey(legacyScopeKey: string): string {
+  return `${RECENT_OPEN_STORAGE_KEY_LEGACY_PREFIX}${legacyScopeKey}`;
 }
 
-/** Read the legacy workspace-scoped store for one-time migration fallback. */
+/** Read the legacy scope-specific store for one-time migration fallback. */
 function readLegacyStore(): RecentOpenStore | null {
   if (typeof window === "undefined") return null;
-  const workspaceId = getWorkspaceIdFromCookie();
-  if (!workspaceId) return null;
-  const raw = window.localStorage.getItem(buildLegacyStorageKey(workspaceId));
+  const legacyScopeKey = getWorkspaceIdFromCookie();
+  if (!legacyScopeKey) return null;
+  const raw = window.localStorage.getItem(buildLegacyStorageKey(legacyScopeKey));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<{
@@ -146,8 +144,6 @@ export function recordRecentOpen(input: RecordRecentOpenInput): void {
 
 /** Read recent entries for global and project scopes. */
 export function getRecentOpens(input: {
-  /** @deprecated Retained for call-site compatibility. */
-  workspaceId?: string | null;
   projectId?: string | null;
   limit?: number;
 }): { global: RecentOpenItem[]; project: RecentOpenItem[] } {

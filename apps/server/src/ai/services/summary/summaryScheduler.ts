@@ -9,7 +9,7 @@
  */
 import { randomUUID } from "node:crypto";
 import {
-  readWorkspaceProjectTrees,
+  readProjectTrees,
   readProjectConfig,
   type ProjectNode,
 } from "@openloaf/api/services/projectTreeService";
@@ -102,7 +102,7 @@ export class SummaryScheduler {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       let triggeredCount = 0;
 
-      const trees = await readWorkspaceProjectTrees();
+      const trees = await readProjectTrees();
       const nodes = collectProjectNodes(trees);
       for (const node of nodes) {
         const rootPath = resolveProjectRootPath(node);
@@ -153,7 +153,7 @@ export class SummaryScheduler {
   }
 }
 
-/** Collect project nodes from workspace trees. */
+/** Collect project nodes from the top-level project trees. */
 function collectProjectNodes(trees: ProjectNode[]): ProjectNode[] {
   const nodes: ProjectNode[] = [];
   const queue = [...trees];

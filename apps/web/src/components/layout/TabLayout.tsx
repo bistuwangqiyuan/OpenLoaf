@@ -335,7 +335,7 @@ function RightChatPanel({ tabId }: { tabId: string }) {
           params: { projectId, rootUri, projectTab: currentParams.projectTab },
         });
       } else if (!currentBase && createIfMissing) {
-        // 无 base（Workspace 模式）→ 仅在 createIfMissing 时创建 plant-page
+        // 无 base（空白视图模式）→ 仅在 createIfMissing 时创建 plant-page
         setTabBase(tabId, {
           id: `project:${projectId}`,
           component: "plant-page",

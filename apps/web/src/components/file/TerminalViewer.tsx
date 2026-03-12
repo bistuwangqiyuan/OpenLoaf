@@ -506,7 +506,7 @@ export default function TerminalViewer({
       toast.error(t('terminal.noWorkspaceDir'));
       return;
     }
-    // 中文注释：默认沿用当前终端标签的 pwd，避免重新依赖 workspace compat 根目录。
+    // 中文注释：默认沿用当前终端标签的 pwd，避免重新依赖旧兼容根目录。
     const nextTab: TerminalTab = {
       id: createTerminalTabId(),
       title: getTerminalTabTitle({ id: "temp", params: { pwdUri: fallbackPwd } }),

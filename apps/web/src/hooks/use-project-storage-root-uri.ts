@@ -14,7 +14,7 @@ export function getProjectStorageRootQueryKey() {
   return trpc.settings.getProjectStorageRoot.queryOptions().queryKey;
 }
 
-/** Fetch the default project storage root URI without touching workspace compat. */
+/** Fetch the default project storage root URI without touching legacy compat queries. */
 export function useProjectStorageRootQuery(
   overrides?: ProjectStorageRootOverrides,
 ): UseQueryResult<ProjectStorageRootResult> {

@@ -135,7 +135,7 @@ Observe → Analyze → Hypothesize → Verify → Act
 **Don't expose**:
 - Tool names: "Calling grep-files tool..."
 - Parameter details: "actionName: 'search-imports', pattern: '*.ts'"
-- Internal paths: "/Users/xxx/.openloaf/workspace-123"
+- Internal paths: "/Users/xxx/.openloaf/projects/demo-project"
 
 ### Only Ask When Necessary
 

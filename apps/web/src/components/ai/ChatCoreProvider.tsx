@@ -623,11 +623,6 @@ export default function ChatCoreProvider({
 
   const paramsRef = React.useRef<Record<string, unknown> | undefined>(params);
   const tabIdRef = React.useRef<string | null | undefined>(tabId);
-  const workspaceId = React.useMemo(() => {
-    if (typeof params?.workspaceId !== "string") return undefined;
-    const trimmed = params.workspaceId.trim();
-    return trimmed ? trimmed : undefined;
-  }, [params]);
   const projectId = React.useMemo(() => {
     if (typeof params?.projectId !== "string") return undefined;
     const trimmed = params.projectId.trim();
@@ -1602,7 +1597,6 @@ export default function ChatCoreProvider({
     () => ({
       sessionId,
       tabId,
-      workspaceId,
       projectId,
       leafMessageId,
       branchMessageIds,
@@ -1611,7 +1605,6 @@ export default function ChatCoreProvider({
     [
       sessionId,
       tabId,
-      workspaceId,
       projectId,
       leafMessageId,
       branchMessageIds,

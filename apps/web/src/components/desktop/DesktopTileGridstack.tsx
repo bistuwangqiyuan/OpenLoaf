@@ -110,9 +110,6 @@ export default function DesktopTileGridstack({
       : typeof activeTab?.chatParams?.projectId === "string"
         ? String(activeTab.chatParams.projectId)
         : undefined;
-  // 逻辑：Desktop 过渡层仍需给旧预览接口传稳定 workspaceId，但不再依赖 compat 查询。
-  const workspaceId =
-    typeof tabParams?.workspaceId === "string" ? String(tabParams.workspaceId) : "default";
   const projectRootUri =
     typeof tabParams?.rootUri === "string" ? String(tabParams.rootUri) : undefined;
   const defaultRootUri = projectRootUri || projectStorageRootUri;
@@ -436,7 +433,7 @@ export default function DesktopTileGridstack({
           <DesktopTileContent
             item={item}
             scope={scope}
-            webContext={{ projectId, workspaceId }}
+            webContext={{ projectId }}
             onWebOpen={handleWebOpen}
             onConfigure={handleConfigure}
           />

@@ -12,8 +12,8 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
-import { getActiveWorkspace } from "./vfsService";
-import { getWorkspaceProjectEntries } from "./workspaceProjectConfig";
+import { getProjectStorageRootUri } from "./vfsService";
+import { getProjectRegistryEntries } from "./workspaceProjectConfig";
 
 /** Directory name for project metadata. */
 export const PROJECT_META_DIR = ".openloaf";
@@ -361,17 +361,16 @@ async function readProjectTree(
   }
 }
 
-/** Read the project trees. workspaceId parameter is ignored. */
-export async function readWorkspaceProjectTrees(_workspaceId?: string): Promise<ProjectNode[]> {
-  const workspace = getActiveWorkspace();
-  if (!workspace) return [];
-  let workspaceRootPath: string | undefined;
+/** Read the project trees from the top-level project registry. */
+export async function readProjectTrees(): Promise<ProjectNode[]> {
+  const projectStorageRootUri = getProjectStorageRootUri();
+  let projectStorageRootPath: string | undefined;
   try {
-    workspaceRootPath = resolveFilePathFromUri(workspace.rootUri);
+    projectStorageRootPath = resolveFilePathFromUri(projectStorageRootUri);
   } catch {
-    workspaceRootPath = undefined;
+    projectStorageRootPath = undefined;
   }
-  const projectEntries = getWorkspaceProjectEntries();
+  const projectEntries = getProjectRegistryEntries();
   const projects: ProjectNode[] = [];
   for (const [projectId, rootUri] of projectEntries) {
     let rootPath: string;
@@ -383,7 +382,7 @@ export async function readWorkspaceProjectTrees(_workspaceId?: string): Promise<
     const node = await readProjectTree(
       rootPath,
       projectId,
-      workspaceRootPath,
+      projectStorageRootPath,
       rootUri
     );
     if (node) projects.push(node);
@@ -391,14 +390,14 @@ export async function readWorkspaceProjectTrees(_workspaceId?: string): Promise<
   return projects;
 }
 
-/** List workspace projects as a flattened paginated collection. */
+/** List top-level project trees as a flattened paginated collection. */
 export async function listWorkspaceProjectPage(input?: {
   cursor?: string | null;
   pageSize?: number | null;
   search?: string | null;
   projectType?: string | null;
 }): Promise<ProjectListPage> {
-  const trees = await readWorkspaceProjectTrees();
+  const trees = await readProjectTrees();
   let items = flattenProjectNodes(trees);
 
   const search = input?.search?.trim().toLowerCase();

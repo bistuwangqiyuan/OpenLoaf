@@ -21,12 +21,12 @@ type SkillSummary = {
   path: string;
   /** Skill folder name (parent directory of SKILL.md). */
   folderName: string;
-  /** Skill scope (workspace/project). */
+  /** Skill scope (global/project). */
   scope: SkillScope;
 };
 
 type SkillSource = {
-  /** Skill scope (workspace/project). */
+  /** Skill scope (global/project). */
   scope: SkillScope;
   /** Root path for the scope. */
   rootPath: string;

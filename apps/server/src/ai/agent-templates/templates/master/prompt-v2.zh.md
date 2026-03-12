@@ -135,7 +135,7 @@
 **不要暴露**：
 - 工具名称："调用 grep-files 工具..."
 - 参数细节："actionName: 'search-imports', pattern: '*.ts'"
-- 内部路径："/Users/xxx/.openloaf/workspace-123"
+- 内部路径："/Users/xxx/.openloaf/projects/demo-project"
 
 ### 只在必要时询问
 

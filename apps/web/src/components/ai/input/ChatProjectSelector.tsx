@@ -24,13 +24,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 interface ChatProjectSelectorProps {
   /** Current project id. */
   projectId?: string;
-  /** Current workspace id (used when no project is selected). */
-  workspaceId?: string;
-  /** Workspace display name. */
-  workspaceName?: string;
+  /** Fallback label when no project is selected. */
+  fallbackLabel?: string;
   /** Flat list of all selectable projects. */
   projects: ProjectNode[];
-  /** Called when user selects a project (or clears to workspace scope). */
+  /** Called when user selects a project (or clears to the default scope). */
   onProjectChange: (projectId: string | undefined) => void;
   /** When true, selector is read-only (conversation already started). */
   disabled?: boolean;
@@ -52,8 +50,7 @@ function flattenProjects(nodes: ProjectNode[], depth = 0): Array<ProjectNode & {
 
 export function ChatProjectSelector({
   projectId,
-  workspaceId,
-  workspaceName,
+  fallbackLabel,
   projects,
   onProjectChange,
   disabled = false,
@@ -70,9 +67,9 @@ export function ChatProjectSelector({
 
   const { t } = useTranslation('ai');
 
-  const displayLabel = selectedProject?.title ?? workspaceName ?? t('projectSelector.workspace');
+  const displayLabel = selectedProject?.title ?? fallbackLabel ?? t('projectSelector.workspace');
 
-  // No projects to select — show workspace label only (read-only)
+  // No projects to select — show fallback label only (read-only)
   if (flatProjects.length === 0) {
     return (
       <span
@@ -131,25 +128,22 @@ export function ChatProjectSelector({
               {t('projectSelector.noProjectFound')}
             </CommandEmpty>
 
-            {/* Workspace scope option (clear project selection) */}
-            {workspaceId && (
-              <CommandGroup heading={t('projectSelector.workspace')}>
-                <CommandItem
-                  value={`workspace:${workspaceId}`}
-                  onSelect={() => {
-                    onProjectChange(undefined);
-                    setOpen(false);
-                  }}
-                  className="text-xs gap-2"
-                >
-                  <Layers className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{workspaceName ?? t('projectSelector.workspace')}</span>
-                  {!projectId && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">{t('projectSelector.current')}</span>
-                  )}
-                </CommandItem>
-              </CommandGroup>
-            )}
+            <CommandGroup heading={t('projectSelector.workspace')}>
+              <CommandItem
+                value="global"
+                onSelect={() => {
+                  onProjectChange(undefined);
+                  setOpen(false);
+                }}
+                className="text-xs gap-2"
+              >
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{fallbackLabel ?? t('projectSelector.workspace')}</span>
+                {!projectId && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">{t('projectSelector.current')}</span>
+                )}
+              </CommandItem>
+            </CommandGroup>
 
             <CommandGroup heading={t('projectSelector.projects')}>
               {flatProjects.map((p) => (

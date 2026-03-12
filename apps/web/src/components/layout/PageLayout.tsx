@@ -27,7 +27,7 @@ const DIVIDER_WIDTH_PX = 4;
  * 核心改动：
  * - 移除 Tab 概念，直接管理视图（View）
  * - 每个视图有独立的运行时状态（ViewRuntime）
- * - Workspace Chat 直接显示，不需要 Tab 包装
+ * - 全局聊天直接显示，不需要 Tab 包装
  */
 export function PageLayout() {
   const activeView = useNavigation((s) => s.activeView);
@@ -131,7 +131,7 @@ export function PageLayout() {
 
     switch (activeView.type) {
       case "workspace-chat": {
-        // Workspace Chat 直接显示 Chat 组件（单会话模式）
+        // 全局聊天直接显示 Chat 组件（单会话模式）
         return (
           <div className="flex h-full w-full">
             <Chat
@@ -177,7 +177,6 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeProjectId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}
@@ -253,7 +252,6 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeProjectId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}

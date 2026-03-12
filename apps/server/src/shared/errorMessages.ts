@@ -13,28 +13,6 @@
  * Each error has translations for zh-CN, zh-TW, and en-US.
  */
 export const ERROR_MESSAGES = {
-  // Workspace errors
-  WORKSPACE_DUPLICATE: {
-    'zh-CN': '工作空间保存目录不能重复，请选择其他文件夹。',
-    'zh-TW': '工作空間儲存目錄不能重複，請選擇其他資料夾。',
-    'en-US': 'Workspace directory is already in use. Please select a different folder.',
-  },
-  WORKSPACE_NOT_FOUND: {
-    'zh-CN': '工作空间不存在',
-    'zh-TW': '工作空間不存在',
-    'en-US': 'Workspace not found',
-  },
-  WORKSPACE_MIN_REQUIRED: {
-    'zh-CN': '至少需要保留一个工作空间',
-    'zh-TW': '至少需要保留一個工作空間',
-    'en-US': 'At least one workspace must be retained',
-  },
-  ACTIVE_WORKSPACE_NOT_FOUND: {
-    'zh-CN': '活跃工作空间不存在',
-    'zh-TW': '活躍工作空間不存在',
-    'en-US': 'Active workspace not found',
-  },
-
   // Project errors
   PROJECT_NOT_FOUND: {
     'zh-CN': '项目不存在',
@@ -65,11 +43,6 @@ export const ERROR_MESSAGES = {
     'zh-TW': '全域技能不能從設定中刪除',
     'en-US': 'Global skills cannot be deleted from settings',
   },
-  WORKSPACE_SKILLS_CANNOT_DELETE_HERE: {
-    'zh-CN': '工作空间技能不能在此删除',
-    'zh-TW': '工作空間技能不能在此刪除',
-    'en-US': 'Workspace skills cannot be deleted here',
-  },
   PROJECT_SKILLS_CANNOT_DELETE_HERE: {
     'zh-CN': '项目技能不能在此删除',
     'zh-TW': '專案技能不能在此刪除',
@@ -97,11 +70,6 @@ export const ERROR_MESSAGES = {
     'zh-TW': '全域智能體不能從設定中刪除',
     'en-US': 'Global agents cannot be deleted from settings',
   },
-  WORKSPACE_AGENTS_CANNOT_DELETE_HERE: {
-    'zh-CN': '工作空间智能体不能在此删除',
-    'zh-TW': '工作空間智能體不能在此刪除',
-    'en-US': 'Workspace agents cannot be deleted here',
-  },
   PROJECT_AGENTS_CANNOT_DELETE_HERE: {
     'zh-CN': '项目智能体不能在此删除',
     'zh-TW': '專案智能體不能在此刪除',
@@ -128,11 +96,6 @@ export const ERROR_MESSAGES = {
     'zh-CN': '无效的源智能体路径',
     'zh-TW': '無效的源智能體路徑',
     'en-US': 'Invalid source agent path',
-  },
-  NO_WORKSPACE_ROOT: {
-    'zh-CN': '工作空间根目录不存在',
-    'zh-TW': '工作空間根目錄不存在',
-    'en-US': 'No workspace root',
   },
 
   // Email errors

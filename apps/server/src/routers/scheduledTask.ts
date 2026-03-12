@@ -14,7 +14,7 @@ import {
   t,
   getProjectRootPath,
   getAllProjectRootPaths,
-  getWorkspaceProjectEntries,
+  getProjectRegistryEntries,
   resolveFilePathFromUri,
 } from '@openloaf/api'
 import { getOpenLoafRootDir } from '@openloaf/config'
@@ -52,7 +52,7 @@ export class ScheduledTaskRouterImpl extends BaseScheduledTaskRouter {
             const projectRoot = getProjectRootPath(input.projectId)
             return listTasks(globalRoot, projectRoot)
           }
-          const entries = getWorkspaceProjectEntries()
+          const entries = getProjectRegistryEntries()
           const mapping = new Map<string, string>()
           for (const [projectId, rootUri] of entries) {
             const rootPath = resolveFilePathFromUri(rootUri)

@@ -145,8 +145,6 @@ export interface ChatInputBoxProps {
   onDropHandled?: () => void;
   /** Default project id for file selection. */
   defaultProjectId?: string;
-  /** Workspace id for mention file resolution. */
-  workspaceId?: string;
   /** Active chat tab id for mention inserts. */
   tabId?: string;
   /** Whether to show slash command menu. */
@@ -173,8 +171,8 @@ export interface ChatInputBoxProps {
   conversationStarted?: boolean;
   /** Display label for the selected CLI tool (e.g. "Claude Code"). */
   cliToolLabel?: string;
-  /** Workspace display name shown in project selector. */
-  workspaceName?: string;
+  /** Fallback label shown when no project is selected. */
+  fallbackProjectLabel?: string;
   /** Called when user switches project from selector. */
   onProjectChange?: (projectId: string | undefined) => void;
   /** Whether the conversation has already started (disables project switching). */
@@ -221,7 +219,6 @@ export function ChatInputBox({
   onRequestSwitchCloud,
   onDropHandled,
   defaultProjectId,
-  workspaceId,
   tabId,
   commandMenuEnabled = false,
   large,
@@ -237,7 +234,7 @@ export function ChatInputBox({
   cliToolLabel,
   blockedCompact = false,
   uploadFileToSession,
-  workspaceName,
+  fallbackProjectLabel,
   onProjectChange,
   projectSelectorDisabled = false,
   afterProjectSelector,
@@ -272,7 +269,6 @@ export function ChatInputBox({
     onChange,
     valueRef,
     defaultProjectId,
-    workspaceId,
     tabId,
     canAttachAll,
     canAttachImage,
@@ -370,9 +366,7 @@ export function ChatInputBox({
   const resolvedPlaceholder = chatMode === "cli"
     ? t('input.cliPlaceholder', { tool: cliToolLabel || "CLI" })
     : (placeholder ?? t('input.defaultPlaceholder'));
-  const showProjectSelector = Boolean(
-    onProjectChange && (workspaceId || projects.length > 0),
-  );
+  const showProjectSelector = Boolean(onProjectChange);
   const handleProjectSelectorChange = useCallback(
     (projectId: string | undefined) => {
       onProjectChange?.(projectId);
@@ -532,8 +526,7 @@ export function ChatInputBox({
                 <div className="flex items-center gap-2 min-w-0">
                   <ChatProjectSelector
                     projectId={defaultProjectId}
-                    workspaceId={workspaceId}
-                    workspaceName={workspaceName}
+                    fallbackLabel={fallbackProjectLabel}
                     projects={projects}
                     onProjectChange={handleProjectSelectorChange}
                     disabled={projectSelectorDisabled}
@@ -745,16 +738,14 @@ export default function ChatInput({
   const { status, isHistoryLoading, messages } = useChatState();
   const conversationStarted = messages.length > 0;
   const { input, setInput, imageOptions, codexOptions, claudeCodeOptions, addMaskedAttachment } = useChatOptions();
-  const { projectId, workspaceId, tabId, sessionId } = useChatSession();
+  const { projectId, tabId, sessionId } = useChatSession();
   const hasReasoningModel = useHasPreferredReasoningModel(projectId);
 
   /** 上传文件到 session files 目录，返回绝对路径（用于系统文件拖拽场景）。 */
   const uploadFileToSession = useCallback(
     async (file: File): Promise<string | null> => {
-      if (!workspaceId) return null;
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("workspaceId", workspaceId);
       if (projectId) formData.append("projectId", projectId);
       formData.append("sessionId", sessionId);
       try {
@@ -768,7 +759,7 @@ export default function ChatInput({
         return null;
       }
     },
-    [sessionId, projectId, workspaceId]
+    [sessionId, projectId]
   );
   const activeTabId = useTabs((state) => state.activeTabId);
   const setSessionProjectId = useTabs((state) => state.setSessionProjectId);
@@ -781,12 +772,7 @@ export default function ChatInput({
       ?.chatOnlineSearchEnabled;
     return typeof value === "boolean" ? value : undefined;
   });
-  /** Resolve workspace display name for project selector (with i18n). */
-  const { t: tWorkspace } = useTranslation('workspace', { keyPrefix: 'workspace' });
-  const workspaceName = useMemo(() => {
-    if (!workspaceId) return undefined;
-    return tWorkspace('defaultWorkspaceName');
-  }, [workspaceId, tWorkspace]);
+  const fallbackProjectLabel = t('projectSelector.workspace');
   /** Switch project scope from the project selector. */
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {
@@ -1246,7 +1232,6 @@ export default function ChatInput({
         onDropHandled={onDropHandled}
         commandMenuEnabled
         defaultProjectId={projectId}
-        workspaceId={workspaceId}
         tabId={tabId}
         dictationLanguage={dictationLanguage}
         dictationSoundEnabled={dictationSoundEnabled}
@@ -1263,7 +1248,7 @@ export default function ChatInput({
         cliToolLabel={cliToolLabel}
         blockedCompact={blockedCompact}
         uploadFileToSession={uploadFileToSession}
-        workspaceName={workspaceName}
+        fallbackProjectLabel={fallbackProjectLabel}
         onProjectChange={handleProjectChange}
         projectSelectorDisabled={conversationStarted}
         afterProjectSelector={

@@ -65,8 +65,6 @@ interface DocViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
-  /** Legacy prop kept for compatibility. */
-  workspaceId?: string;
   /** Root uri for system open. */
   rootUri?: string;
   /** Stack panel key. */

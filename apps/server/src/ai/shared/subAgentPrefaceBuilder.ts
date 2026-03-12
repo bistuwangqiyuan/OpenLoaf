@@ -241,18 +241,6 @@ export async function buildSubAgentPrefaceText(input: {
   }
 
   // TODO: 可用子 Agent 列表 — 暂时禁用，待后续重新整理后恢复
-  // if (capabilities.needsSubAgentList) {
-  //   const agents = collectAvailableAgents({
-  //     workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE
-  //       ? context.workspace.rootPath
-  //       : undefined,
-  //     projectRootPath: context.project.rootPath !== UNKNOWN_VALUE
-  //       ? context.project.rootPath
-  //       : undefined,
-  //     parentProjectRootPaths: input.requestContext.parentProjectRootPaths,
-  //   })
-  //   sections.push(buildSubAgentListSection(agents))
-  // }
 
   // 执行规则
   sections.push(buildExecutionRulesSection())

@@ -17,17 +17,16 @@ import {
 } from "node:fs";
 import { z } from "zod";
 import {
-  getActiveWorkspaceConfig,
-  resolveWorkspaceRootPath,
+  getDefaultProjectStoragePath,
 } from "./appConfigService";
 import { normalizeFileUri, resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
 
-/** Workspace-level project config directory name. */
+/** Legacy project registry directory name. */
 const WORKSPACE_PROJECT_CONFIG_DIR = ".openloaf";
-/** Workspace-level project config file name. */
+/** Legacy project registry file name. */
 const WORKSPACE_PROJECT_CONFIG_FILE = "workspace.json";
 
-/** Workspace project config schema. */
+/** Legacy top-level project registry schema. */
 export const workspaceProjectConfigSchema = z
   .object({
     schema: z.number().optional(),
@@ -39,20 +38,18 @@ export const workspaceProjectConfigSchema = z
 export type WorkspaceProjectConfig = z.infer<typeof workspaceProjectConfigSchema>;
 
 type WorkspaceProjectContext = {
-  /** Root URI. */
-  rootUri: string;
   /** Root path on disk. */
   rootPath: string;
   /** Raw config data. */
   config: WorkspaceProjectConfig;
 };
 
-/** Build workspace.json path from root path. */
+/** Build legacy workspace.json path from the project storage root. */
 function resolveWorkspaceProjectConfigPath(rootPath: string): string {
   return path.join(rootPath, WORKSPACE_PROJECT_CONFIG_DIR, WORKSPACE_PROJECT_CONFIG_FILE);
 }
 
-/** Read workspace.json safely. */
+/** Read legacy workspace.json safely. */
 function readWorkspaceProjectConfig(rootPath: string): WorkspaceProjectConfig | null {
   const filePath = resolveWorkspaceProjectConfigPath(rootPath);
   if (!existsSync(filePath)) return null;
@@ -64,7 +61,7 @@ function readWorkspaceProjectConfig(rootPath: string): WorkspaceProjectConfig | 
   }
 }
 
-/** Write workspace.json atomically. */
+/** Write legacy workspace.json atomically. */
 function writeWorkspaceProjectConfig(rootPath: string, payload: WorkspaceProjectConfig): void {
   const filePath = resolveWorkspaceProjectConfigPath(rootPath);
   const dirPath = path.dirname(filePath);
@@ -74,7 +71,7 @@ function writeWorkspaceProjectConfig(rootPath: string, payload: WorkspaceProject
   renameSync(tmpPath, filePath);
 }
 
-/** Normalize workspace project mapping and order. */
+/** Normalize legacy top-level project mapping and order. */
 function normalizeWorkspaceProjectConfig(
   raw: WorkspaceProjectConfig,
 ): { projects: Record<string, string>; order: string[] } {
@@ -121,7 +118,7 @@ function resolveWorkspaceProjectEntry(rootPath: string, value: string): string |
   return toFileUriWithoutEncoding(candidatePath);
 }
 
-/** Convert a project root URI into a workspace.json entry. */
+/** Convert a project root URI into a legacy workspace.json entry. */
 function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
   const cleanedRootUri = (() => {
     const trimmed = rootUri.trim();
@@ -138,11 +135,9 @@ function toWorkspaceProjectEntry(rootPath: string, rootUri: string): string {
   return relativePath || ".";
 }
 
-/** Ensure workspace.json exists. workspaceId parameter is ignored. */
-function ensureWorkspaceProjectConfig(_workspaceId?: string): WorkspaceProjectContext | null {
-  const workspace = getActiveWorkspaceConfig();
-  if (!workspace) return null;
-  const rootPath = resolveWorkspaceRootPath(workspace.rootUri);
+/** Ensure legacy workspace.json exists for top-level project registry. */
+function ensureProjectRegistryConfig(): WorkspaceProjectContext | null {
+  const rootPath = getDefaultProjectStoragePath();
   let config = readWorkspaceProjectConfig(rootPath);
   let shouldWrite = false;
 
@@ -156,15 +151,14 @@ function ensureWorkspaceProjectConfig(_workspaceId?: string): WorkspaceProjectCo
   }
 
   return {
-    rootUri: workspace.rootUri,
     rootPath,
     config,
   };
 }
 
-/** Get ordered project entries. workspaceId parameter is ignored. */
-export function getWorkspaceProjectEntries(_workspaceId?: string): Array<[string, string]> {
-  const context = ensureWorkspaceProjectConfig();
+/** Get ordered top-level project entries from the legacy registry file. */
+export function getProjectRegistryEntries(): Array<[string, string]> {
+  const context = ensureProjectRegistryConfig();
   if (!context) return [];
   const { projects, order } = normalizeWorkspaceProjectConfig(context.config);
   const entries: Array<[string, string]> = [];
@@ -178,18 +172,17 @@ export function getWorkspaceProjectEntries(_workspaceId?: string): Array<[string
   return entries;
 }
 
-/** Get project map. workspaceId parameter is ignored. */
-export function getWorkspaceProjectMap(_workspaceId?: string): Map<string, string> {
-  return new Map(getWorkspaceProjectEntries());
+/** Get project map from the legacy registry file. */
+export function getProjectRegistryMap(): Map<string, string> {
+  return new Map(getProjectRegistryEntries());
 }
 
-/** Upsert a project entry into workspace.json. workspaceId parameter is ignored. */
-export function upsertWorkspaceProjectEntry(
+/** Upsert a project entry into the legacy registry file. */
+export function upsertProjectRegistryEntry(
   projectId: string,
   rootUri: string,
-  _workspaceId?: string,
 ): void {
-  const context = ensureWorkspaceProjectConfig();
+  const context = ensureProjectRegistryConfig();
   if (!context) return;
   const normalized = normalizeWorkspaceProjectConfig(context.config);
   const nextProjects = { ...normalized.projects };
@@ -209,9 +202,9 @@ export function upsertWorkspaceProjectEntry(
   });
 }
 
-/** Remove a project entry from workspace.json. workspaceId parameter is ignored. */
-export function removeWorkspaceProjectEntry(projectId: string, _workspaceId?: string): void {
-  const context = ensureWorkspaceProjectConfig();
+/** Remove a project entry from the legacy registry file. */
+export function removeProjectRegistryEntry(projectId: string): void {
+  const context = ensureProjectRegistryConfig();
   if (!context) return;
   const normalized = normalizeWorkspaceProjectConfig(context.config);
   const trimmedId = projectId.trim();
@@ -227,12 +220,11 @@ export function removeWorkspaceProjectEntry(projectId: string, _workspaceId?: st
   });
 }
 
-/** Replace workspace.json project entries in order. workspaceId parameter is ignored. */
-export function setWorkspaceProjectEntries(
+/** Replace legacy registry project entries in order. */
+export function setProjectRegistryEntries(
   entries: Array<[string, string]>,
-  _workspaceId?: string,
 ): void {
-  const context = ensureWorkspaceProjectConfig();
+  const context = ensureProjectRegistryConfig();
   if (!context) return;
   const projects: Record<string, string> = {};
   const order: string[] = [];

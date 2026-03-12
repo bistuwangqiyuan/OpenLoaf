@@ -43,7 +43,7 @@ export function useCalendarTasks({
 
     const results: UiCalendarEvent[] = []
     for (const task of tasks) {
-      // Filter by selected projects (workspace-scope tasks always shown)
+      // Filter by selected projects (global-scope tasks always shown)
       if (task.scope === 'project' && task.projectId && !selectedProjectIds.has(task.projectId)) {
         continue
       }

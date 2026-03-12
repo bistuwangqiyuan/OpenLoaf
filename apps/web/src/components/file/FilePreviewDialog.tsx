@@ -183,7 +183,6 @@ export default function FilePreviewDialog() {
               saveName={currentItem.saveName}
               mediaType={currentItem.mediaType}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               showHeader
               showSave={payload.showSave}
               enableEdit={payload.enableEdit}
@@ -203,7 +202,6 @@ export default function FilePreviewDialog() {
               ext={currentItem.ext}
               rootUri={currentItem.rootUri}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               readOnly={payload.readOnly}
             />
           ) : null}
@@ -215,7 +213,6 @@ export default function FilePreviewDialog() {
               ext={currentItem.ext}
               rootUri={currentItem.rootUri}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               readOnly={payload.readOnly}
             />
           ) : null}
@@ -238,7 +235,6 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
               readOnly={payload.readOnly ?? true}
             />
@@ -251,7 +247,6 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
               readOnly={payload.readOnly ?? true}
             />
@@ -263,7 +258,6 @@ export default function FilePreviewDialog() {
               openUri={currentItem.openUri}
               name={currentItem.name}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
               boardId={currentItem.boardId}
               thumbnailSrc={currentItem.thumbnailSrc}
@@ -279,7 +273,6 @@ export default function FilePreviewDialog() {
               name={currentItem.name}
               ext={currentItem.ext}
               projectId={currentItem.projectId}
-              workspaceId={currentItem.workspaceId}
               rootUri={currentItem.rootUri}
             />
           ) : null}

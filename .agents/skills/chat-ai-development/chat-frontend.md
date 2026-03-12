@@ -7,7 +7,7 @@
 | Context | Hook | 内容 |
 |---------|------|------|
 | `ChatStateProvider` | `useChatState()` | `messages`, `status`, `error`, `isHistoryLoading`, `stepThinking` |
-| `ChatSessionProvider` | `useChatSession()` | `sessionId`, `branchMessageIds`, `siblingNav`, `workspaceId`, `projectId` |
+| `ChatSessionProvider` | `useChatSession()` | `sessionId`, `branchMessageIds`, `siblingNav`, `projectId` |
 | `ChatActionsProvider` | `useChatActions()` | `sendMessage`, `regenerate`, `stopGenerating`, `switchSibling`, `retryAssistantMessage`, `resendUserMessage`, `deleteMessageSubtree`, `newSession`, `selectSession`, `addToolApprovalResponse` |
 | `ChatOptionsProvider` | `useChatOptions()` | `input`, `setInput`, `imageOptions`, `codexOptions`, `addAttachments` |
 | `ChatToolProvider` | `useChatTools()` | `toolParts`（流式快照）, `subAgentStreams` |

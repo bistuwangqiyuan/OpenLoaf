@@ -37,7 +37,7 @@ type AgentDetail = {
 };
 
 /**
- * Resolve and update the master agent model (workspace/project scoped).
+ * Resolve and update the master agent model (global/project scoped).
  * @param projectId Optional project id for resolving project-scoped master agent.
  */
 export function useMainAgentModel(projectId?: string) {

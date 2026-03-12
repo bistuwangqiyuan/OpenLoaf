@@ -24,11 +24,10 @@ export function WorkspaceBootstrap() {
   const addTab = useTabs((state) => state.addTab);
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
-  const workspaceId = "default";
 
   useEffect(() => {
-    document.cookie = `workspace-id=${encodeURIComponent(workspaceId)}; path=/; max-age=31536000; SameSite=Lax`;
-  }, [workspaceId]);
+    document.cookie = "workspace-id=default; path=/; max-age=31536000; SameSite=Lax";
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;

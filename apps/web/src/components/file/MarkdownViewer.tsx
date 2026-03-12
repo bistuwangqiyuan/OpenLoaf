@@ -48,8 +48,6 @@ interface MarkdownViewerProps {
   tabId?: string;
   rootUri?: string;
   projectId?: string;
-  /** Legacy prop kept for compatibility. */
-  workspaceId?: string;
   /** Whether the viewer is read-only. */
   readOnly?: boolean;
   /** Chat session id for resolving chat history folder. */

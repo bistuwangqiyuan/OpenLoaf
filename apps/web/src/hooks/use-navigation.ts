@@ -75,7 +75,7 @@ export interface NavigationState {
   /** 当前激活的项目 ID（用于项目导航） */
   activeProjectId: string | null;
 
-  /** 当前激活的 Workspace Chat Session ID */
+  /** 当前激活的全局聊天会话 ID */
   activeWorkspaceChatSessionId: string | null;
 
   /** 结构化的当前激活视图（派生自 activeViewType + context） */
@@ -90,7 +90,7 @@ export interface NavigationState {
   /** 设置激活的项目 */
   setActiveProject: (projectId: string | null) => void;
 
-  /** 设置激活的 Workspace Chat */
+  /** 设置激活的全局聊天会话 */
   setActiveWorkspaceChat: (sessionId: string | null) => void;
 
   /** 获取当前激活的视图信息 */

@@ -845,7 +845,7 @@ export function registerIpcHandlers(args: { log: Logger }) {
     }
   );
 
-  // Copy a local file/folder into the workspace and report progress to renderer.
+  // Copy a local file/folder into the project storage root and report progress to renderer.
   ipcMain.handle('openloaf:fs:transfer-start', async (event, payload: TransferStartPayload) => {
     const id = String(payload?.id ?? '').trim();
     const sourcePath = resolveLocalPath(payload?.sourcePath ?? '');

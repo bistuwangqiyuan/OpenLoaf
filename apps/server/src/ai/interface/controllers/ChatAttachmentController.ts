@@ -9,7 +9,6 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-// workspace config removed
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   getFilePreview,

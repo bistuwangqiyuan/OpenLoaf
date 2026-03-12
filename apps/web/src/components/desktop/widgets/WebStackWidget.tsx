@@ -19,7 +19,6 @@ import type { DesktopWidgetItem } from "../types";
 type WebStackWidgetProps = {
   item: DesktopWidgetItem;
   projectId?: string;
-  workspaceId?: string;
   onOpen?: () => void;
 };
 
@@ -27,7 +26,6 @@ type WebStackWidgetProps = {
 export default function WebStackWidget({
   item,
   projectId,
-  workspaceId,
   onOpen,
 }: WebStackWidgetProps) {
   const { t } = useTranslation('desktop');
@@ -35,10 +33,10 @@ export default function WebStackWidget({
   const displayTitle = item.title || item.webTitle || "";
   const description = item.webDescription || "";
   const logoSrc = item.webLogo
-    ? getPreviewEndpoint(item.webLogo, { projectId, workspaceId })
+    ? getPreviewEndpoint(item.webLogo, { projectId })
     : "";
   const previewSrc = item.webPreview
-    ? getPreviewEndpoint(item.webPreview, { projectId, workspaceId })
+    ? getPreviewEndpoint(item.webPreview, { projectId })
     : "";
   const isLoading = item.webMetaStatus === "loading";
   const [previewBuster, setPreviewBuster] = React.useState(0);

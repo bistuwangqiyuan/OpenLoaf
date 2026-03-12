@@ -13,16 +13,16 @@ import {
   getProjectRootUri,
   resolveFilePathFromUri,
   toFileUriWithoutEncoding,
-  upsertActiveWorkspaceProject,
+  upsertTopLevelProject,
 } from "./vfsService";
 import {
   findProjectNodeWithParent,
   getProjectMetaPath,
   projectConfigSchema,
   readProjectConfig,
-  readWorkspaceProjectTrees,
+  readProjectTrees,
 } from "./projectTreeService";
-import { syncWorkspaceProjectsFromDisk, type ProjectDbClient } from "./projectDbService";
+import { syncProjectsFromDisk, type ProjectDbClient } from "./projectDbService";
 
 type MoveProjectStorageInput = {
   /** Project id to move. */
@@ -113,7 +113,7 @@ async function updateChildProjectEntry(
   await fs.rename(tmpPath, metaPath);
 }
 
-/** Move project storage folder and update workspace config. */
+/** Move project storage folder and update the top-level project registry. */
 export async function moveProjectStorage(
   input: MoveProjectStorageInput,
 ): Promise<MoveProjectStorageResult> {
@@ -130,7 +130,7 @@ export async function moveProjectStorage(
     throw new Error("目标路径不能为空");
   }
 
-  const projectTrees = await readWorkspaceProjectTrees();
+  const projectTrees = await readProjectTrees();
   const sourceEntry = findProjectNodeWithParent(projectTrees, projectId);
   if (!sourceEntry) {
     throw new Error("项目不存在");
@@ -156,10 +156,10 @@ export async function moveProjectStorage(
   if (sourceEntry.parentProjectId) {
     await updateChildProjectEntry(sourceEntry.parentProjectId, projectId, nextRootUri);
   } else {
-    upsertActiveWorkspaceProject(projectId, nextRootUri);
+    upsertTopLevelProject(projectId, nextRootUri);
   }
 
-  await syncWorkspaceProjectsFromDisk(input.prisma);
+  await syncProjectsFromDisk(input.prisma);
 
   return { rootUri: nextRootUri };
 }

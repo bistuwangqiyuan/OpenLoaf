@@ -10,20 +10,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { getOpenLoafRootDir } from "@openloaf/config";
-import type { Workspace } from "../types/workspace";
 import { resolveFilePathFromUri, toFileUri, toFileUriWithoutEncoding } from "./fileUri";
 import {
-  getActiveWorkspaceConfig,
-  getWorkspaceByIdConfig,
-  resolveWorkspaceRootPath,
   getGlobalRootPath,
   getDefaultProjectStoragePath,
+  getDefaultProjectStorageRootUri,
 } from "./appConfigService";
 import {
-  getWorkspaceProjectEntries,
-  removeWorkspaceProjectEntry,
-  setWorkspaceProjectEntries,
-  upsertWorkspaceProjectEntry,
+  getProjectRegistryEntries,
+  removeProjectRegistryEntry,
+  setProjectRegistryEntries,
+  upsertProjectRegistryEntry,
 } from "./workspaceProjectConfig";
 
 const PROJECT_META_DIR = ".openloaf";
@@ -31,34 +28,14 @@ const PROJECT_META_FILE = "project.json";
 /** Scoped project path matcher like [projectId]/path/to/file (inner path after stripping @{...} wrapper). */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
 
-/** Get the active workspace config (backward compat). */
-export function getActiveWorkspace(): Workspace {
-  return getActiveWorkspaceConfig();
+/** Get the default project storage root URI. */
+export function getProjectStorageRootUri(): string {
+  return getDefaultProjectStorageRootUri();
 }
 
-/** Get workspace config by id (backward compat — always returns global config). */
-export function getWorkspaceById(_workspaceId: string): Workspace | null {
-  return getWorkspaceByIdConfig(_workspaceId);
-}
-
-/** Get workspace root URI from active workspace. */
-export function getWorkspaceRootUri(): string {
-  return getActiveWorkspace().rootUri;
-}
-
-/** Get workspace root path on disk and ensure it exists. */
-export function getWorkspaceRootPath(): string {
-  return resolveWorkspaceRootPath(getWorkspaceRootUri());
-}
-
-/** Get workspace root URI by workspace id (deprecated, returns default root). */
-export function getWorkspaceRootUriById(_workspaceId: string): string | null {
-  return getActiveWorkspace().rootUri;
-}
-
-/** Get workspace root path by workspace id (deprecated, returns default root path). */
-export function getWorkspaceRootPathById(_workspaceId: string): string | null {
-  return getWorkspaceRootPath();
+/** Get the default project storage root path on disk and ensure it exists. */
+export function getProjectStorageRootPath(): string {
+  return getDefaultProjectStoragePath();
 }
 
 /** Get project root URI by project id. */
@@ -81,7 +58,7 @@ function readProjectConfigProjects(rootUri: string): {
 }
 
 export function getProjectRootUri(projectId: string): string | null {
-  const entries = getWorkspaceProjectEntries();
+  const entries = getProjectRegistryEntries();
   for (const [entryId, rootUri] of entries) {
     if (entryId === projectId) return rootUri;
   }
@@ -113,7 +90,7 @@ export function getProjectRootPath(projectId: string): string | null {
 
 /** Get all project root paths (including sub-projects). */
 export function getAllProjectRootPaths(): string[] {
-  const entries = getWorkspaceProjectEntries();
+  const entries = getProjectRegistryEntries();
   const paths: string[] = [];
   const visited = new Set<string>();
 
@@ -140,27 +117,27 @@ export function getAllProjectRootPaths(): string[] {
   return paths;
 }
 
-/** Upsert project root URI into active workspace config. */
-export function upsertActiveWorkspaceProject(projectId: string, rootUri: string): void {
-  upsertWorkspaceProjectEntry(projectId, rootUri);
+/** Upsert a top-level project entry into the project registry. */
+export function upsertTopLevelProject(projectId: string, rootUri: string): void {
+  upsertProjectRegistryEntry(projectId, rootUri);
 }
 
-/** Remove a project from the active workspace config. */
-export function removeActiveWorkspaceProject(projectId: string): void {
-  removeWorkspaceProjectEntry(projectId);
+/** Remove a top-level project from the project registry. */
+export function removeTopLevelProject(projectId: string): void {
+  removeProjectRegistryEntry(projectId);
 }
 
-/** Replace active workspace project mapping with ordered entries. */
-export function setActiveWorkspaceProjectEntries(
+/** Replace top-level project registry entries with ordered entries. */
+export function setTopLevelProjectEntries(
   entries: Array<[string, string]>,
 ): void {
-  setWorkspaceProjectEntries(entries);
+  setProjectRegistryEntries(entries);
 }
 
-export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri, getWorkspaceProjectEntries };
+export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri, getProjectRegistryEntries };
 
 /** Resolve a URI into an absolute local path. */
-export function resolveWorkspacePathFromUri(uri: string): string {
+export function resolveLocalPathFromUri(uri: string): string {
   return path.resolve(resolveFilePathFromUri(uri));
 }
 
@@ -207,7 +184,7 @@ export function resolveScopedPath(input: {
     raw = raw.slice(2, -1);
   }
   if (raw.startsWith("file:")) {
-    return resolveWorkspacePathFromUri(raw);
+    return resolveLocalPathFromUri(raw);
   }
   if (path.isAbsolute(raw)) {
     return path.resolve(raw);

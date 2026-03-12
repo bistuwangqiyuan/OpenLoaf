@@ -15,15 +15,14 @@ import { t, shieldedProcedure } from "../../generated/routers/helpers/createRout
 import {
   getProjectRootUri,
   getProjectRootPath,
-  getActiveWorkspace,
-  getWorkspaceRootPath,
-  removeActiveWorkspaceProject,
-  resolveFilePathFromUri,
-  setActiveWorkspaceProjectEntries,
+  getProjectStorageRootPath,
+  removeTopLevelProject,
+  resolveLocalPathFromUri,
+  setTopLevelProjectEntries,
   toFileUriWithoutEncoding,
-  upsertActiveWorkspaceProject,
+  upsertTopLevelProject,
 } from "../services/vfsService";
-import { getWorkspaceProjectEntries } from "../services/workspaceProjectConfig";
+import { getProjectRegistryEntries } from "../services/workspaceProjectConfig";
 import {
   PROJECT_META_DIR,
   findProjectNodeWithParent,
@@ -32,7 +31,7 @@ import {
   listWorkspaceProjectPage,
   projectConfigSchema,
   readProjectConfig,
-  readWorkspaceProjectTrees,
+  readProjectTrees,
   type ProjectConfig,
 } from "../services/projectTreeService";
 import { requireSummaryRuntime } from "../services/summaryRuntime";
@@ -94,7 +93,7 @@ function toSafeFolderName(title: string): string {
   return sanitized || "project";
 }
 
-/** Resolve a unique project root directory under workspace. */
+/** Resolve a unique project root directory under the project storage root. */
 async function ensureUniqueProjectRoot(
   workspaceRootPath: string,
   baseName: string
@@ -195,7 +194,7 @@ function resolveProjectRootPath(projectId: string): string {
   if (!rootUri) {
     throw new Error("Project not found.");
   }
-  return resolveFilePathFromUri(rootUri);
+  return resolveLocalPathFromUri(rootUri);
 }
 
 /** Resolve cache root path from project scope. */
@@ -208,7 +207,7 @@ function resolveCacheRootPath(input: CacheScopeInput): string {
     }
     return rootPath;
   }
-  return getWorkspaceRootPath();
+  return getProjectStorageRootPath();
 }
 
 /** Compute directory size recursively. */
@@ -331,27 +330,27 @@ async function reorderChildProjectEntry(
   await writeJsonAtomic(metaPath, nextConfig);
 }
 
-/** Reorder root project entries in active workspace config. */
-function reorderWorkspaceProjectEntry(
+/** Reorder root project entries in project registry config. */
+function reorderTopLevelProjectEntry(
   projectId: string,
   projectRootUri: string,
   targetSiblingProjectId?: string | null,
   targetPosition?: ProjectOrderPosition,
 ): void {
   const ordered = buildOrderedProjectEntries(
-    Object.entries(getActiveWorkspaceProjects()),
+    Object.entries(getTopLevelProjects()),
     projectId,
     projectRootUri,
     targetSiblingProjectId,
     targetPosition,
   );
-  // 逻辑：重建 workspace 项目映射，保持根项目排序。
-  setActiveWorkspaceProjectEntries(ordered);
+  // 逻辑：重建顶层项目映射，保持根项目排序。
+  setTopLevelProjectEntries(ordered);
 }
 
 /** Return the project map. */
-function getActiveWorkspaceProjects(): Record<string, string> {
-  return Object.fromEntries(getWorkspaceProjectEntries());
+function getTopLevelProjects(): Record<string, string> {
+  return Object.fromEntries(getProjectRegistryEntries());
 }
 
 /** Schema for cache management input. */
@@ -394,9 +393,9 @@ function normalizeAiSettings(raw: z.infer<typeof aiSettingsSchema>) {
 }
 
 export const projectRouter = t.router({
-  /** List all project roots under workspace. */
+  /** List all project roots under project storage. */
   list: shieldedProcedure.query(async () => {
-    return readWorkspaceProjectTrees();
+    return readProjectTrees();
   }),
 
   /** List flattened projects with cursor pagination for grid views. */
@@ -423,7 +422,7 @@ export const projectRouter = t.router({
       const raw = input.dirPath.trim();
       if (!raw) return { isGitProject: false, isCodeProject: false, hasIcon: false };
       const resolved = raw.startsWith("file://")
-        ? resolveFilePathFromUri(raw)
+        ? resolveLocalPathFromUri(raw)
         : path.resolve(raw);
       const [isGit, isCode, hasIcon] = await Promise.all([
         checkPathIsGitProject(resolved),
@@ -433,7 +432,7 @@ export const projectRouter = t.router({
       return { isGitProject: isGit, isCodeProject: isCode, hasIcon };
     }),
 
-  /** Create a new project under workspace root or custom root. */
+  /** Create a new project under project storage root or custom root. */
   create: shieldedProcedure
     .input(
       z.object({
@@ -446,7 +445,7 @@ export const projectRouter = t.router({
       })
     )
     .mutation(async ({ input }) => {
-      const workspaceRootPath = getWorkspaceRootPath();
+      const projectStorageRootPath = getProjectStorageRootPath();
       const rawTitle = input.title?.trim() ?? "";
       const rawFolderName = input.folderName?.trim() ?? "";
       // 中文注释：显示名称为空时，优先用文件夹名称兜底，避免落到默认 project-*。
@@ -457,7 +456,7 @@ export const projectRouter = t.router({
       if (input.rootUri?.trim()) {
         const rawRoot = input.rootUri.trim();
         projectRootPath = rawRoot.startsWith("file://")
-          ? resolveFilePathFromUri(rawRoot)
+          ? resolveLocalPathFromUri(rawRoot)
           : path.resolve(rawRoot);
         await fs.mkdir(projectRootPath, { recursive: true });
         const metaPath = getProjectMetaPath(projectRootPath);
@@ -465,7 +464,7 @@ export const projectRouter = t.router({
           existingConfig = await readProjectConfig(projectRootPath);
         }
       } else {
-        projectRootPath = await ensureUniqueProjectRoot(workspaceRootPath, folderName);
+        projectRootPath = await ensureUniqueProjectRoot(projectStorageRootPath, folderName);
       }
       const projectRootUri = toFileUriWithoutEncoding(projectRootPath);
       const projectId = existingConfig?.projectId ?? `${PROJECT_ID_PREFIX}${randomUUID()}`;
@@ -503,7 +502,7 @@ export const projectRouter = t.router({
         });
       }
       if (!input.parentProjectId) {
-        upsertActiveWorkspaceProject(projectId, projectRootUri);
+        upsertTopLevelProject(projectId, projectRootUri);
       }
       if (input.parentProjectId) {
         await appendChildProjectEntry(
@@ -616,11 +615,11 @@ export const projectRouter = t.router({
       return { ok: true, isFavorite: input.isFavorite };
     }),
 
-  /** Remove a project from workspace list without deleting files. */
+  /** Remove a project from the top-level registry without deleting files. */
   remove: shieldedProcedure
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input }) => {
-      const projectTrees = await readWorkspaceProjectTrees();
+      const projectTrees = await readProjectTrees();
       const sourceEntry = findProjectNodeWithParent(projectTrees, input.projectId);
       if (!sourceEntry) {
         throw new Error("Project not found.");
@@ -629,16 +628,16 @@ export const projectRouter = t.router({
       if (parentProjectId) {
         await removeChildProjectEntry(parentProjectId, input.projectId);
       } else {
-        removeActiveWorkspaceProject(input.projectId);
+        removeTopLevelProject(input.projectId);
       }
       return { ok: true };
     }),
 
-  /** Permanently delete a project from disk and remove it from workspace. */
+  /** Permanently delete a project from disk and remove it from the top-level registry. */
   destroy: shieldedProcedure
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input }) => {
-      const projectTrees = await readWorkspaceProjectTrees();
+      const projectTrees = await readProjectTrees();
       const sourceEntry = findProjectNodeWithParent(projectTrees, input.projectId);
       if (!sourceEntry) {
         throw new Error("Project not found.");
@@ -647,19 +646,19 @@ export const projectRouter = t.router({
       if (!rootUri) {
         throw new Error("Project not found.");
       }
-      const rootPath = resolveFilePathFromUri(rootUri);
+      const rootPath = resolveLocalPathFromUri(rootUri);
       // 逻辑：先删除磁盘目录，再移除项目映射，避免列表与磁盘状态不一致。
       await fs.rm(rootPath, { recursive: true, force: true });
       const parentProjectId = sourceEntry.parentProjectId;
       if (parentProjectId) {
         await removeChildProjectEntry(parentProjectId, input.projectId);
       } else {
-        removeActiveWorkspaceProject(input.projectId);
+        removeTopLevelProject(input.projectId);
       }
       return { ok: true };
     }),
 
-  /** Move a project under another parent or to workspace root. */
+  /** Move a project under another parent or back to the top-level registry. */
   move: shieldedProcedure
     .input(
       z.object({
@@ -674,7 +673,7 @@ export const projectRouter = t.router({
       const targetPosition =
         input.targetPosition === "before" ? "before" : "after";
       let targetParentProjectId = input.targetParentProjectId?.trim() || null;
-      const projectTrees = await readWorkspaceProjectTrees();
+      const projectTrees = await readProjectTrees();
       const sourceEntry = findProjectNodeWithParent(projectTrees, input.projectId);
       if (!sourceEntry) {
         throw new Error("Project not found.");
@@ -721,7 +720,7 @@ export const projectRouter = t.router({
         if (parentProjectId) {
           await removeChildProjectEntry(parentProjectId, input.projectId);
         } else {
-          removeActiveWorkspaceProject(input.projectId);
+          removeTopLevelProject(input.projectId);
         }
       }
 
@@ -743,14 +742,14 @@ export const projectRouter = t.router({
         }
       } else {
         if (shouldReorder) {
-          reorderWorkspaceProjectEntry(
+          reorderTopLevelProjectEntry(
             input.projectId,
             projectRootUri,
             targetSiblingProjectId,
             targetPosition,
           );
         } else {
-          upsertActiveWorkspaceProject(input.projectId, projectRootUri);
+          upsertTopLevelProject(input.projectId, projectRootUri);
         }
       }
 
@@ -778,7 +777,7 @@ export const projectRouter = t.router({
       };
     }),
 
-  /** Get cache size for a project or workspace root. */
+  /** Get cache size for a project or the project storage root. */
   getCacheSize: shieldedProcedure
     .input(cacheScopeSchema)
     .query(async ({ input }) => {
@@ -788,7 +787,7 @@ export const projectRouter = t.router({
       return { bytes };
     }),
 
-  /** Clear cache for a project or workspace root. */
+  /** Clear cache for a project or the project storage root. */
   clearCache: shieldedProcedure
     .input(cacheScopeSchema)
     .mutation(async ({ input }) => {
@@ -1040,8 +1039,8 @@ export const projectRouter = t.router({
         return;
       }
       const repoName = url.split("/").pop()?.replace(/\.git$/, "") ?? "project";
-      const workspaceRootPath = getWorkspaceRootPath();
-      const baseDir = input.targetDir?.trim() || workspaceRootPath;
+      const projectStorageRootPath = getProjectStorageRootPath();
+      const baseDir = input.targetDir?.trim() || projectStorageRootPath;
       const targetDir = await ensureUniqueProjectRoot(baseDir, toSafeFolderName(repoName));
 
       yield { type: "progress" as const, message: `正在克隆到 ${targetDir} ...` };
@@ -1077,7 +1076,7 @@ export const projectRouter = t.router({
       });
       const metaPath = getProjectMetaPath(targetDir);
       await writeJsonAtomic(metaPath, config);
-      upsertActiveWorkspaceProject(projectId, projectRootUri);
+      upsertTopLevelProject(projectId, projectRootUri);
 
       yield {
         type: "done" as const,
@@ -1115,7 +1114,7 @@ export const projectRouter = t.router({
       });
     }),
 
-  /** Convert a workspace chat session to a project. */
+  /** Convert a global chat session to a project. */
   convertChatToProject: shieldedProcedure
     .input(
       z.object({
@@ -1142,15 +1141,15 @@ export const projectRouter = t.router({
       // 2. 生成项目名称和目录
       const projectTitle = input.projectTitle?.trim() || session.title || "Untitled Project";
       const folderName = toSafeFolderName(projectTitle);
-      const workspaceRootPath = getWorkspaceRootPath();
+      const projectStorageRootPath = getProjectStorageRootPath();
 
-      const projectRootPath = await ensureUniqueProjectRoot(workspaceRootPath, folderName);
+      const projectRootPath = await ensureUniqueProjectRoot(projectStorageRootPath, folderName);
       const projectRootUri = toFileUriWithoutEncoding(projectRootPath);
       const projectId = `${PROJECT_ID_PREFIX}${randomUUID()}`;
 
       // 3. 复制 chat-history/{sessionId}/root/ → {projectRoot}/
       const chatHistoryRoot = path.join(
-        workspaceRootPath,
+        projectStorageRootPath,
         ".openloaf",
         "chat-history",
         input.chatSessionId
@@ -1179,11 +1178,11 @@ export const projectRouter = t.router({
       const metaPath = getProjectMetaPath(projectRootPath);
       await writeJsonAtomic(metaPath, config);
 
-      // 5. 注册项目到 workspace 或父项目
+      // 5. 注册项目到顶层列表或父项目
       if (input.projectParentId) {
         await appendChildProjectEntry(input.projectParentId, projectId, projectRootUri);
       } else {
-        upsertActiveWorkspaceProject(projectId, projectRootUri);
+        upsertTopLevelProject(projectId, projectRootUri);
       }
 
       // 6. 更新 ChatSession.projectId

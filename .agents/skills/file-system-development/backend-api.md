@@ -4,234 +4,284 @@
 
 位置：`packages/api/src/routers/fs.ts`
 
-所有操作使用 `shieldedProcedure`，需要 `workspaceId`（必需）+ `projectId`（可选）作用域。
+当前 `fs` 路由已经切到**项目中心**语义：
 
-## 查询操作 (Query)
+- 大多数接口只接收 `projectId?` + `uri`
+- **不再要求** `workspaceId`
+- 未传 `projectId` 时，服务端回退到全局根目录 `~/.openloaf`
+- `searchWorkspace` 这个路由名仍是 legacy 命名，但当前语义是“跨所有已注册项目搜索”
 
-### stat
+---
+
+## 输入模型
+
+### 基础 scope
+
+```typescript
+{ projectId?: string }
+```
+
+### 文件/目录定位
+
+```typescript
+{ projectId?: string; uri: string }
+```
+
+### 目录搜索
+
+```typescript
+{
+  projectId?: string;
+  rootUri: string;
+  query: string;
+  includeHidden?: boolean;
+  limit?: number;     // 默认 500，最大 2000
+  maxDepth?: number;  // 默认 12，最大 50
+}
+```
+
+### 跨项目搜索
+
+```typescript
+{
+  query: string;
+  includeHidden?: boolean;
+  limit?: number;
+  maxDepth?: number;
+}
+```
+
+---
+
+## 查询操作
+
+### `stat`
 
 获取文件/目录元数据。
 
 ```typescript
-trpc.fs.stat.queryOptions({ workspaceId, projectId, uri })
+trpc.fs.stat.queryOptions({ projectId, uri })
 // → { name, kind, uri, ext, size, createdAt, updatedAt, isEmpty? }
 ```
 
-### list
+### `list`
 
 列出目录内容。
 
 ```typescript
 trpc.fs.list.queryOptions({
-  workspaceId, projectId, uri,
+  projectId,
+  uri,
   includeHidden?: boolean,
-  sort?: { field: "name" | "mtime", order: "asc" | "desc" }
+  sort?: { field: "name" | "mtime"; order: "asc" | "desc" },
 })
 // → { entries: FileNode[] }
 ```
 
-**排序规则**：
-- `name`: 普通文件夹 > Board 文件夹 > 文件，同级按名称 locale 排序
-- `mtime`: 全量按修改时间排序
+排序规则：
 
-### readFile
+- `name`：普通文件夹 → Board 文件夹 → 文件
+- `mtime`：按修改时间排序
+
+### `readFile`
 
 读取文本文件。
 
 ```typescript
-trpc.fs.readFile.queryOptions({ workspaceId, projectId, uri })
+trpc.fs.readFile.queryOptions({ projectId, uri })
 // → { content: string, tooLarge?: boolean }
 ```
 
-**大小限制**：50 MB (`READ_FILE_MAX_BYTES`)，超过返回 `{ content: "", tooLarge: true }`。
-**ENOENT**：文件不存在返回 `{ content: "" }`。
+- 文本预览上限：`50 MB`
+- 文件不存在时返回空内容
 
-### readBinary
+### `readBinary`
 
 读取二进制文件（Base64）。
 
 ```typescript
-trpc.fs.readBinary.queryOptions({ workspaceId, projectId, uri })
+trpc.fs.readBinary.queryOptions({ projectId, uri })
 // → { contentBase64: string, mime: string }
 ```
 
-### search
+### `search`
 
-在目录内搜索文件。
+在指定目录下递归搜索。
 
 ```typescript
 trpc.fs.search.queryOptions({
-  workspaceId, projectId, rootUri,
-  query: string,
+  projectId,
+  rootUri,
+  query,
   includeHidden?: boolean,
-  limit?: number,       // 默认 500，最大 2000
-  maxDepth?: number,    // 默认 12，最大 50
+  limit?: number,
+  maxDepth?: number,
 })
 // → { results: FileNode[] }
 ```
 
-**搜索逻辑**：递归遍历，文件名 `toLowerCase().includes(query)`，Board 文件夹使用显示名匹配。
-**忽略目录**：`node_modules`, `.git`, `.turbo`, `.next`, `.openloaf-trash`, `dist`, `build`, `out`。
+- `rootUri` 是当前 scope 下的相对路径或可解析 URI
+- 命中后返回的 `entry.uri` 始终相对当前 scope 根目录
 
-### searchWorkspace
+### `searchWorkspace`
 
-跨项目搜索。
+跨所有已注册项目搜索。
 
 ```typescript
 trpc.fs.searchWorkspace.queryOptions({
-  workspaceId, query, includeHidden?, limit?, maxDepth?
+  query,
+  includeHidden?: boolean,
+  limit?: number,
+  maxDepth?: number,
 })
-// → { results: [{ projectId, projectTitle, entry, relativePath }] }
+// → {
+//   results: [{
+//     projectId,
+//     projectTitle,
+//     entry,
+//     relativePath,
+//   }]
+// }
 ```
 
-### thumbnails
+说明：
 
-批量生成缩略图（40×40 webp）。
+- 路由名是 legacy；当前实际语义是“搜索所有 top-level project 及其子项目”
+- 项目来源由 `readProjectTrees()` 决定
+
+### `thumbnails`
+
+批量获取缩略图。
 
 ```typescript
 trpc.fs.thumbnails.queryOptions({
-  workspaceId, projectId,
-  uris: string[]     // 最多 50 个
+  projectId,
+  uris: string[], // 最多 50 个
 })
 // → { items: [{ uri, dataUrl }] }
 ```
 
-**处理方式**：
-- 图片：sharp resize 40×40 + webp quality 45
-- 视频：ffmpeg 抽帧 → 缓存（SHA-256 key）
+### `folderThumbnails`
 
-### folderThumbnails
-
-获取目录内所有文件的缩略图。
+获取目录下条目的缩略图。
 
 ```typescript
 trpc.fs.folderThumbnails.queryOptions({
-  workspaceId, projectId, uri,
-  includeHidden?: boolean
+  projectId,
+  uri,
+  includeHidden?: boolean,
 })
 // → { items: [{ uri, dataUrl }] }
 ```
 
-**包含**：图片 + Board 文件夹的 `index.png` + 视频抽帧。
+### `videoMetadata`
 
-### videoMetadata
-
-获取视频尺寸（ffprobe）。
+获取视频尺寸信息。
 
 ```typescript
-trpc.fs.videoMetadata.queryOptions({ workspaceId, projectId, uri })
+trpc.fs.videoMetadata.queryOptions({ projectId, uri })
 // → { width: number | null, height: number | null }
 ```
 
-## 变更操作 (Mutation)
+---
 
-### writeFile
+## 变更操作
 
-写入文本文件。
-
-```typescript
-trpc.fs.writeFile.mutate({ workspaceId, projectId, uri, content: string })
-// → { ok: true }
-// 自动创建父目录
-```
-
-### writeBinary
-
-写入二进制文件（Base64）。
+### `writeFile`
 
 ```typescript
-trpc.fs.writeBinary.mutate({ workspaceId, projectId, uri, contentBase64: string })
+trpc.fs.writeFile.mutate({ projectId, uri, content })
 // → { ok: true }
 ```
 
-### mkdir
-
-创建目录。
+### `writeBinary`
 
 ```typescript
-trpc.fs.mkdir.mutate({ workspaceId, projectId, uri, recursive?: boolean })
-// → { ok: true }
-// 默认 recursive: true
-```
-
-### rename
-
-重命名/移动。
-
-```typescript
-trpc.fs.rename.mutate({ workspaceId, projectId, from: string, to: string })
-// → { ok: true }
-// 自动创建目标父目录
-```
-
-### copy
-
-复制文件/目录（递归）。
-
-```typescript
-trpc.fs.copy.mutate({ workspaceId, projectId, from: string, to: string })
+trpc.fs.writeBinary.mutate({ projectId, uri, contentBase64 })
 // → { ok: true }
 ```
 
-### delete
-
-删除文件/目录。
+### `appendBinary`
 
 ```typescript
-trpc.fs.delete.mutate({ workspaceId, projectId, uri, recursive?: boolean })
-// → { ok: true }
-// 默认 recursive: true, force: true
-```
-
-### importLocalFile
-
-从本地路径导入文件（Electron）。
-
-```typescript
-trpc.fs.importLocalFile.mutate({ workspaceId, projectId, uri, sourcePath: string })
-// → { ok: true }
-// 支持 file:// URL，必须是绝对路径且为文件
-```
-
-### appendBinary
-
-追加二进制数据。
-
-```typescript
-trpc.fs.appendBinary.mutate({ workspaceId, projectId, uri, contentBase64: string })
+trpc.fs.appendBinary.mutate({ projectId, uri, contentBase64 })
 // → { ok: true }
 ```
 
-## 视频缩略图缓存
-
-```
-~/.openloaf/.openloaf-cache/video-thumbs/
-└── {sha256_hash}.jpg    // SHA-256(relativePath + size + mtimeMs)
-```
-
-- 缩略图尺寸：320×180
-- 使用 ffmpeg 抽取第 1 秒帧
-- 命中缓存直接读取，避免重复抽帧
-
-## 路径解析
+### `mkdir`
 
 ```typescript
-// 服务端路径解析链路
-resolveFsRootPath(input)          // workspaceId + projectId → 项目根路径
-resolveFsTarget(input, uri)       // 根路径 + uri → 完整文件系统路径
-toRelativePath(rootPath, fullPath) // 转为相对 URI
-
-// 安全检查
-resolveScopedPath()               // 确保路径不越界
+trpc.fs.mkdir.mutate({ projectId, uri, recursive?: boolean })
+// → { ok: true }
 ```
 
-## Common Mistakes
+### `rename`
+
+```typescript
+trpc.fs.rename.mutate({ projectId, from, to })
+// → { ok: true }
+```
+
+### `copy`
+
+```typescript
+trpc.fs.copy.mutate({ projectId, from, to })
+// → { ok: true }
+```
+
+### `delete`
+
+```typescript
+trpc.fs.delete.mutate({ projectId, uri, recursive?: boolean })
+// → { ok: true }
+```
+
+### `importLocalFile`
+
+Electron 环境下把本地文件导入当前 scope。
+
+```typescript
+trpc.fs.importLocalFile.mutate({
+  projectId,
+  uri,
+  sourcePath,
+})
+// → { ok: true }
+```
+
+---
+
+## 路径解析链路
+
+```typescript
+resolveScopedRootPath({ projectId? }) // project 根或 ~/.openloaf
+resolveScopedPath({ projectId?, target })
+toRelativePath(rootPath, fullPath)
+```
+
+补充：
+
+- `getProjectStorageRootPath()` 表示“默认项目存储根”
+- 这与 `resolveScopedRootPath()` 的默认回退不同
+- `fs` 路由未传 `projectId` 时，默认 scope 是 `getGlobalRootPath()`，也就是 `~/.openloaf`
+
+---
+
+## 常见错误
 
 | 错误 | 正确做法 |
 |------|----------|
-| 不传 `workspaceId` | 所有 fs 操作必需 `workspaceId` |
-| 大文件直接 readFile | 检查 `tooLarge` 字段，超 50MB 用系统打开 |
-| thumbnails 超 50 个 URI | 分批请求，每批最多 50 |
-| 搜索不设 limit | 默认 500，大目录可能慢 |
-| copy 不处理同名 | 前端需要 `getUniqueName()` 处理 |
-| importLocalFile 用相对路径 | 必须是绝对路径 |
+| 继续传 `workspaceId` | 新代码统一只传 `projectId?` |
+| 把 `rootPath` 传给前端/HTTP | 前端只传 `uri` / `rootUri` / `projectId` |
+| 误以为未传 `projectId` 就是项目存储根 | 实际回退到全局根 `~/.openloaf` |
+| `searchWorkspace` 当成单工作空间搜索 | 当前语义是跨所有已注册项目搜索 |
+| 直接读取大文本文件 | 先检查 `tooLarge` |
+
+---
+
+## 相关文件
+
+- `packages/api/src/routers/fs.ts`
+- `packages/api/src/services/vfsService.ts`
+- `packages/api/src/services/projectTreeService.ts`
+- `packages/api/src/services/workspaceProjectConfig.ts`

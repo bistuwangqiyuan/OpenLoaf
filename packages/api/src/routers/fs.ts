@@ -16,7 +16,7 @@ import ffmpeg from "fluent-ffmpeg";
 import { fileURLToPath } from "node:url";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { resolveFilePathFromUri, resolveScopedPath, resolveScopedRootPath, toRelativePath } from "../services/vfsService";
-import { readWorkspaceProjectTrees } from "../services/projectTreeService";
+import { readProjectTrees } from "../services/projectTreeService";
 
 /** Board folder prefix for server-side sorting. */
 const BOARD_FOLDER_PREFIX = "board_";
@@ -716,7 +716,7 @@ export const fsRouter = t.router({
       return { ok: true };
     }),
 
-  /** Search within workspace root (MVP stub). */
+  /** Search within the resolved root path (MVP stub). */
   search: shieldedProcedure.input(fsSearchSchema).query(async ({ input }) => {
     const rootBasePath = resolveFsRootPath(input);
     const searchRootPath = resolveFsTarget(input, input.rootUri);
@@ -780,7 +780,7 @@ export const fsRouter = t.router({
     return { results };
   }),
 
-  /** Search across all projects in the workspace. */
+  /** Search across all registered projects. */
   searchWorkspace: shieldedProcedure
     .input(fsSearchWorkspaceSchema)
     .query(async ({ input, ctx }) => {
@@ -789,7 +789,7 @@ export const fsRouter = t.router({
       const includeHidden = Boolean(input.includeHidden);
       const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
       const maxDepth = input.maxDepth ?? DEFAULT_SEARCH_MAX_DEPTH;
-      const projects = await readWorkspaceProjectTrees();
+      const projects = await readProjectTrees();
       const results: Array<{
         projectId: string;
         projectTitle: string;

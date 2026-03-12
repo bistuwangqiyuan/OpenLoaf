@@ -82,7 +82,6 @@ type TaskConfig = {
 type TaskFilter = 'all' | 'scheduled' | 'condition'
 
 type ScheduledTaskListProps = {
-  workspaceId: string
   projectId?: string
   showProjectColumn?: boolean
 }
@@ -170,7 +169,6 @@ function statusClass(status: string | null | undefined): string {
 }
 
 export const ScheduledTaskList = memo(function ScheduledTaskList({
-  workspaceId,
   projectId,
 }: ScheduledTaskListProps) {
   const { t } = useTranslation('tasks')

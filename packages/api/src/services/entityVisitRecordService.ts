@@ -9,8 +9,8 @@
  */
 import { randomUUID } from "node:crypto";
 import { formatDateKey } from "./summaryDateUtils";
-import { getWorkspaceRootUri } from "./vfsService";
-import { readWorkspaceProjectTrees, type ProjectNode } from "./projectTreeService";
+import { getProjectStorageRootUri } from "./vfsService";
+import { readProjectTrees, type ProjectNode } from "./projectTreeService";
 import type {
   EntityVisitType,
   ListSidebarHistoryInput,
@@ -200,7 +200,7 @@ function resolveBoardEntityId(folderUri: string): string {
   return folderUri.replace(/\/+$/u, "").split("/").filter(Boolean).pop() ?? "";
 }
 
-/** Build a flat project info map from workspace project trees. */
+/** Build a flat project info map from the top-level project trees. */
 function buildProjectVisitInfoMap(nodes: ProjectNode[]): Map<string, ProjectVisitInfo> {
   const projectMap = new Map<string, ProjectVisitInfo>();
   const stack = [...nodes];
@@ -419,7 +419,7 @@ export async function listSidebarHistoryPage(
   options?: {
     /** Override project trees for tests. */
     projectTrees?: ProjectNode[];
-    /** Override workspace root uri for tests. */
+    /** Override project storage root uri for tests. */
     workspaceRootUri?: string;
   },
 ): Promise<SidebarHistoryPage> {
@@ -427,9 +427,9 @@ export async function listSidebarHistoryPage(
   const projectId = normalizeOptionalId(input.projectId);
   const targetCount = pageSize + 1;
   const scanTake = Math.max(pageSize * SIDEBAR_HISTORY_SCAN_MULTIPLIER, pageSize + 1);
-  const projectTrees = options?.projectTrees ?? (await readWorkspaceProjectTrees());
+  const projectTrees = options?.projectTrees ?? (await readProjectTrees());
   const projectMap = buildProjectVisitInfoMap(projectTrees);
-  const workspaceRootUri = options?.workspaceRootUri ?? getWorkspaceRootUri();
+  const workspaceRootUri = options?.workspaceRootUri ?? getProjectStorageRootUri();
 
   const resolvedRows: SidebarHistoryResolvedRow[] = [];
   let scanCursor = decodeSidebarHistoryCursor(input.cursor);

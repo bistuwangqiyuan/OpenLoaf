@@ -15,11 +15,11 @@ import {
   buildProjectTitleMap,
   collectProjectSubtreeIds,
   findProjectNodeWithParent,
-  readWorkspaceProjectTrees,
+  readProjectTrees,
 } from '../services/projectTreeService'
 import {
-  getWorkspaceProjectTitleMap,
-  syncWorkspaceProjectsFromDisk,
+  getProjectTitleMap,
+  syncProjectsFromDisk,
 } from '../services/projectDbService'
 import {
   clearProjectChatData,
@@ -164,7 +164,7 @@ export const chatRouter = t.router({
       let projectIdFilter: string[] | null = null
       let projectTitleMap = new Map<string, string>()
 
-      const projectTrees = await readWorkspaceProjectTrees()
+      const projectTrees = await readProjectTrees()
       if (projectId) {
         const entry = findProjectNodeWithParent(projectTrees, projectId)
         if (!entry) return []
@@ -172,8 +172,8 @@ export const chatRouter = t.router({
       }
 
       try {
-        await syncWorkspaceProjectsFromDisk(ctx.prisma, undefined, projectTrees)
-        projectTitleMap = await getWorkspaceProjectTitleMap(ctx.prisma)
+        await syncProjectsFromDisk(ctx.prisma, projectTrees)
+        projectTitleMap = await getProjectTitleMap(ctx.prisma)
       } catch {
         projectTitleMap = new Map<string, string>()
       }

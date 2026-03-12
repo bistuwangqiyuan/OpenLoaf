@@ -96,7 +96,7 @@ export function getGlobalRootPath(): string {
   return rootPath;
 }
 
-/** Get the default workspace root path (for project storage). */
+/** Get the default project storage root path. */
 export function getDefaultProjectStoragePath(): string {
   const rootPath = getDefaultWorkspaceRootDir();
   mkdirSync(rootPath, { recursive: true });
@@ -126,7 +126,7 @@ function normalizeLegacyWorkspaceUri(value?: string): string | undefined {
 
 /**
  * @deprecated Returns a synthetic Workspace object for backward compatibility.
- * The workspace concept has been removed; this creates a virtual workspace
+ * The workspace concept has been removed; this creates a synthetic compatibility object
  * from the global config.
  */
 export function getActiveWorkspaceConfig(): Workspace {

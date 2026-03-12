@@ -367,7 +367,7 @@ type ChatBinaryAttachmentResult = {
   mediaType: string;
   /** Stored file name. */
   fileName: string;
-  /** Relative path within the project/workspace root. */
+  /** Relative path within the project storage root. */
   relativePath: string;
   /** File size in bytes. */
   bytes: number;
@@ -541,7 +541,7 @@ async function removePreviewCache(paths: { dataPath: string; metadataPath: strin
 
 /** Load cached preview payload if valid. */
 async function loadPreviewCache(input: {
-  /** Project/workspace root path. */
+  /** Project storage root path. */
   rootPath: string;
   /** Relative file path. */
   relativePath: string;
@@ -582,7 +582,7 @@ async function loadPreviewCache(input: {
 
 /** Persist preview payload to cache. */
 async function savePreviewCache(input: {
-  /** Project/workspace root path. */
+  /** Project storage root path. */
   rootPath: string;
   /** Relative file path. */
   relativePath: string;

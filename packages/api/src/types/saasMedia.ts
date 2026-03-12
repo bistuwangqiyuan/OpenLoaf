@@ -38,7 +38,7 @@ export type {
 export type MediaSubmitContext = {
   /** Project id for storage scoping. */
   projectId?: string;
-  /** Save directory relative to project/workspace. */
+  /** Save directory relative to the project or global root. */
   saveDir?: string;
   /** Source node id for tracing. */
   sourceNodeId?: string;

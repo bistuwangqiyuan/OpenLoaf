@@ -22,7 +22,7 @@ const EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
 /**
  * Fixed scope key for env key naming (backward compatible).
- * Previously this was workspaceId; now email is global.
+ * Legacy env keys used workspace-scoped naming; current email scope is global.
  */
 const ENV_KEY_SCOPE = "default";
 

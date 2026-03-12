@@ -66,29 +66,23 @@ function normalizeIgnoreSkills(values?: unknown): string[] {
   return Array.from(new Set(trimmed));
 }
 
-/** Normalize workspace ignore keys to workspace: or global: prefix. */
-function normalizeWorkspaceIgnoreKeys(values?: unknown): string[] {
+/** Normalize global ignore keys, accepting legacy workspace: prefix. */
+function normalizeGlobalIgnoreKeys(values?: unknown): string[] {
   const keys = normalizeIgnoreSkills(values);
-  return keys
-    .map((key) => {
-      if (key.startsWith("workspace:") || key.startsWith("global:")) return key;
-      return `workspace:${key}`;
-    })
-    .filter((key) => key.startsWith("workspace:") || key.startsWith("global:"));
+  return Array.from(new Set(keys.map(normalizeGlobalIgnoreKey).filter(Boolean)));
 }
 
-/** Normalize a workspace-level ignore key (workspace: or global: prefix). */
-function normalizeWorkspaceIgnoreKey(ignoreKey: string): string {
+/** Normalize a global ignore key, accepting legacy workspace: prefix. */
+function normalizeGlobalIgnoreKey(ignoreKey: string): string {
   const trimmed = ignoreKey.trim();
   if (!trimmed) return "";
-  if (trimmed.startsWith("workspace:") || trimmed.startsWith("global:")) return trimmed;
-  return `workspace:${trimmed}`;
-}
-
-/** Build workspace ignore key from folder name. */
-function buildWorkspaceIgnoreKey(folderName: string): string {
-  const trimmed = folderName.trim();
-  return trimmed ? `workspace:${trimmed}` : "";
+  if (trimmed.startsWith("global:")) return trimmed;
+  if (trimmed.startsWith("workspace:")) {
+    const legacyKey = trimmed.slice("workspace:".length).trim();
+    return legacyKey ? `global:${legacyKey}` : "";
+  }
+  if (trimmed.includes(":")) return "";
+  return `global:${trimmed}`;
 }
 
 /** Build global ignore key from folder name. */
@@ -178,7 +172,7 @@ function readGlobalIgnoreSkills(): string[] {
   try {
     const { getAppConfig } = require("@openloaf/api/services/appConfigService") as typeof import("@openloaf/api/services/appConfigService");
     const config = getAppConfig();
-    return normalizeWorkspaceIgnoreKeys(config.ignoreSkills);
+    return normalizeGlobalIgnoreKeys(config.ignoreSkills);
   } catch {
     return [];
   }
@@ -188,9 +182,9 @@ function readGlobalIgnoreSkills(): string[] {
 function updateGlobalIgnoreSkills(input: { ignoreKey: string; enabled: boolean }): void {
   const { getAppConfig, setAppConfig } = require("@openloaf/api/services/appConfigService") as typeof import("@openloaf/api/services/appConfigService");
   const config = getAppConfig();
-  const normalizedKey = normalizeWorkspaceIgnoreKey(input.ignoreKey);
+  const normalizedKey = normalizeGlobalIgnoreKey(input.ignoreKey);
   if (!normalizedKey) return;
-  const current = normalizeWorkspaceIgnoreKeys(config.ignoreSkills);
+  const current = normalizeGlobalIgnoreKeys(config.ignoreSkills);
   const nextIgnoreSkills = input.enabled
     ? current.filter((name) => name !== normalizedKey)
     : Array.from(new Set([...current, normalizedKey]));
@@ -501,9 +495,9 @@ export class SettingRouterImpl extends BaseSettingRouter {
             throw new Error("Global skills cannot be deleted from settings.");
           }
           if (input.scope === "project") {
-            // 项目页只允许删除当前项目技能，禁止 workspace/父项目。
+            // 项目页只允许删除当前项目技能，禁止全局/父项目。
             if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Workspace skills cannot be deleted here.");
+              throw new Error("Global skills cannot be deleted here.");
             }
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();
@@ -734,7 +728,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
           }
           if (input.scope === "project") {
             if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Workspace agents cannot be deleted here.");
+              throw new Error("Global agents cannot be deleted here.");
             }
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();

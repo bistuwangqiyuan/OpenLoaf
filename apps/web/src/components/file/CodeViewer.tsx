@@ -53,8 +53,6 @@ interface CodeViewerProps {
   ext?: string;
   rootUri?: string;
   projectId?: string;
-  /** Legacy prop kept for compatibility. */
-  workspaceId?: string;
   /** Whether the viewer should be read-only. */
   readOnly?: boolean;
   /** Viewer mode for Monaco. */

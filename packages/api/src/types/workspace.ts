@@ -26,7 +26,7 @@ export const workspaceBase = z.object({
   ignoreSkills: z
     .array(z.string())
     .optional()
-    .describe("Skill folder names to ignore at workspace scope."),
+    .describe("Skill folder names to ignore at the legacy compatibility scope."),
 });
 
 /** @deprecated Use AppConfig instead. */

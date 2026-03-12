@@ -80,8 +80,6 @@ function renderDockItem(
  * 兼容新旧导航系统
  */
 export interface LeftDockNewProps {
-  /** 工作空间 ID */
-  workspaceId: string;
   /** 基础面板（Left Dock 主内容） */
   base?: DockItem;
   /** 堆栈面板（覆盖层） */
@@ -95,7 +93,6 @@ export interface LeftDockNewProps {
 }
 
 export function LeftDockNew({
-  workspaceId,
   base,
   stack = [],
   stackHidden = false,

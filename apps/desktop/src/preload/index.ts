@@ -189,7 +189,7 @@ contextBridge.exposeInMainWorld('openloafElectron', {
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<{ ok: true; path: string } | { ok: false; canceled?: boolean; reason?: string }> =>
     ipcRenderer.invoke('openloaf:fs:save-file', payload),
-  // Start a local file/folder transfer into the workspace.
+  // Start a local file/folder transfer into the target root.
   startTransfer: (payload: {
     id: string;
     sourcePath: string;

@@ -48,7 +48,6 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
   tabId?: string;
 }) {
   const workspaceRootUri = useProjectStorageRootUri() ?? "";
-  const workspaceId = "default";
   const globalActiveTabId = useTabs((state) => state.activeTabId);
   const activeTabId = ownTabId || globalActiveTabId;
   const setTabBaseParams = useTabRuntime((state) => state.setTabBaseParams);
@@ -82,7 +81,6 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
 
   React.useEffect(() => {
     if (!desktopFileUri) return;
-    if (!workspaceId) return;
     if (loadedUriRef.current === desktopFileUri) return;
     loadedUriRef.current = desktopFileUri;
     let alive = true;
@@ -109,15 +107,15 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
     return () => {
       alive = false;
     };
-  }, [desktopFileUri, workspaceId]);
+  }, [desktopFileUri]);
 
   React.useEffect(() => {
     // 逻辑：同步工作空间上下文到自身 tab 的 base 参数，供桌面组件读取。
     // 使用 ownTabId 而非全局 activeTabId，避免切换 tab 时覆盖其他 tab 的 rootUri。
     if (!ownTabId) return;
-    if (!workspaceId || !workspaceRootUri) return;
-    setTabBaseParams(ownTabId, { workspaceId, rootUri: workspaceRootUri });
-  }, [ownTabId, setTabBaseParams, workspaceId, workspaceRootUri]);
+    if (!workspaceRootUri) return;
+    setTabBaseParams(ownTabId, { rootUri: workspaceRootUri });
+  }, [ownTabId, setTabBaseParams, workspaceRootUri]);
 
   /** Update edit mode state. */
   const handleSetEditMode = React.useCallback(
@@ -165,7 +163,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
         nextItems = updated;
         return updated;
       });
-      if (!desktopFileUri || !workspaceId || !nextItems) return;
+      if (!desktopFileUri || !nextItems) return;
       // 中文注释：编辑对话框保存时立即持久化桌面布局。
       const payload = serializeDesktopItems(nextItems);
       void saveDesktopMutation.mutateAsync({
@@ -173,7 +171,7 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
         content: JSON.stringify(payload, null, 2),
       });
     },
-    [desktopFileUri, saveDesktopMutation, workspaceId]
+    [desktopFileUri, saveDesktopMutation]
   );
 
   /** Undo the latest edit. */
@@ -220,7 +218,6 @@ const WorkspaceDesktop = React.memo(function WorkspaceDesktop({
     editSnapshotRef.current = null;
     setEditMode(false);
     if (!desktopFileUri) return;
-    if (!workspaceId) return;
     // 逻辑：保存当前桌面布局到 desktop.openloaf。
     const payload = serializeDesktopItems(items);
     await saveDesktopMutation.mutateAsync({

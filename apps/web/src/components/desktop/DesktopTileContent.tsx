@@ -35,7 +35,7 @@ import type { DesktopIconKey } from "./types";
 interface DesktopTileContentProps {
   item: DesktopItem;
   scope: DesktopScope;
-  webContext?: { projectId?: string; workspaceId?: string };
+  webContext?: { projectId?: string };
   onWebOpen?: () => void;
   /** Callback to trigger widget configuration (folder/url/file selection). */
   onConfigure?: () => void;
@@ -281,7 +281,6 @@ export default function DesktopTileContent({
         <WebStackWidget
           item={item}
           projectId={webContext?.projectId}
-          workspaceId={webContext?.workspaceId}
           onOpen={onWebOpen}
         />
         {!item.webUrl && onConfigure ? (
@@ -313,7 +312,6 @@ export default function DesktopTileContent({
         <DynamicWidgetRenderer
           widgetId={item.dynamicWidgetId}
           projectId={item.dynamicProjectId}
-          workspaceId={webContext?.workspaceId ?? ''}
         />
       </div>
     );

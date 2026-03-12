@@ -10,7 +10,7 @@
 import { randomUUID } from "node:crypto";
 import { setSummaryRuntime } from "@openloaf/api/services/summaryRuntime";
 import { getProjectRootPath } from "@openloaf/api/services/vfsService";
-import { readWorkspaceProjectTrees, type ProjectNode } from "@openloaf/api/services/projectTreeService";
+import { readProjectTrees, type ProjectNode } from "@openloaf/api/services/projectTreeService";
 import { SummaryScheduler } from "@/ai/services/summary/summaryScheduler";
 
 /** Initialize summary scheduler and runtime. */
@@ -40,7 +40,7 @@ export async function initSummaryScheduler(): Promise<void> {
       return { taskId };
     },
     runDailySummaryForAllProjects: async ({ dateKey, triggeredBy }) => {
-      const trees = await readWorkspaceProjectTrees();
+      const trees = await readProjectTrees();
       const nodes = collectProjectNodes(trees);
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const taskIds: string[] = [];
@@ -78,7 +78,7 @@ export async function initSummaryScheduler(): Promise<void> {
   });
 }
 
-/** Collect project nodes from workspace trees. */
+/** Collect project nodes from the top-level project trees. */
 function collectProjectNodes(trees: ProjectNode[]): ProjectNode[] {
   const nodes: ProjectNode[] = [];
   const queue = [...trees];

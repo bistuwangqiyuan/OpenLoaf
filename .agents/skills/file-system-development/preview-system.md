@@ -18,7 +18,7 @@ type FilePreviewItem = {
   title?: string            // 标题（用于头部）
   ext?: string              // 扩展名
   projectId?: string        // 项目 ID
-  rootUri?: string          // 根路径
+  rootUri?: string          // 项目根或项目存储根路径
   width?: number            // 媒体宽度（视频弹窗尺寸计算用）
   height?: number           // 媒体高度
   thumbnailSrc?: string     // 缩略图
@@ -162,7 +162,7 @@ type FileOpenInput = {
   entry: FileSystemEntry       // 目标条目
   tabId?: string | null        // Stack 模式需要
   projectId?: string           // 项目 ID
-  rootUri?: string             // 工作空间根路径
+  rootUri?: string             // 项目根或项目存储根路径
   thumbnailSrc?: string        // 缩略图
   mode?: FileOpenMode          // 打开模式（默认 "stack"）
   confirmOpen?: (msg) => boolean  // 不支持类型确认回调
@@ -179,31 +179,32 @@ type FileOpenInput = {
 
 ```typescript
 type RecentOpenStore = {
-  workspace: RecentOpenItem[]                    // 工作空间级
+  global: RecentOpenItem[]                       // 全局最近打开
   projects: Record<string, RecentOpenItem[]>    // 项目级
 }
-// localStorage key: `openloaf:recent-open:${workspaceId}`
+// localStorage key: `openloaf:recent-open`
+// 兼容读取旧 key: `openloaf:recent-open:${workspaceId}`
 ```
 
 ### API
 
 ```typescript
 recordRecentOpen({
-  tabId?, workspaceId?, projectId?, entry,
+  tabId?, projectId?, entry,
   maxItems?: 5     // 每个作用域保留条数
 })
 
 getRecentOpens({
-  workspaceId?, projectId?,
+  projectId?,
   limit?: 5
-}) → { workspace: RecentOpenItem[], project: RecentOpenItem[] }
+}) → { global: RecentOpenItem[], project: RecentOpenItem[] }
 ```
 
 ### 通知
 
 ```typescript
 // 记录后广播 CustomEvent
-window.dispatchEvent(new CustomEvent("openloaf:recent-open", { detail: { workspaceId } }))
+window.dispatchEvent(new CustomEvent("openloaf:recent-open"))
 ```
 
 监听方可通过 `addEventListener("openloaf:recent-open", ...)` 实时更新最近打开列表。

@@ -77,7 +77,7 @@ const skillSummarySchema = z.object({
   /** Skill folder name. */
   folderName: z.string(),
   /** Skill ignore key. */
-  ignoreKey: z.string().describe("workspace:folder or parentId:folder or folder"),
+  ignoreKey: z.string().describe("global:folder or parentId:folder or folder"),
   /** Skill scope. */
   scope: skillScopeSchema,
   /** Whether the skill is enabled for current scope. */
@@ -166,7 +166,7 @@ export const settingSchemas = {
       .optional(),
     output: z.array(skillSummarySchema),
   },
-  /** Toggle skill enabled state for workspace or project. */
+  /** Toggle skill enabled state for global or project scope. */
   setSkillEnabled: {
     input: z.object({
       scope: skillScopeSchema,
@@ -251,7 +251,7 @@ export const settingSchemas = {
       scope: skillScopeSchema,
     }),
   },
-  /** Copy a workspace agent to a project. */
+  /** Copy a global agent to a project. */
   copyAgentToProject: {
     input: z.object({
       sourceAgentPath: z.string(),

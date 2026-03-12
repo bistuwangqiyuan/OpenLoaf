@@ -8,7 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { ProjectNode } from "./projectTreeService";
-import { readWorkspaceProjectTrees } from "./projectTreeService";
+import { readProjectTrees } from "./projectTreeService";
 
 export type ProjectDbClient = {
   project: {
@@ -98,13 +98,12 @@ function flattenProjectTrees(projects: ProjectNode[]): ProjectRecord[] {
   return records;
 }
 
-/** Sync projects from project.json into database. workspaceId parameter is ignored. */
-export async function syncWorkspaceProjectsFromDisk(
+/** Sync projects from project.json into database. */
+export async function syncProjectsFromDisk(
   prisma: ProjectDbClient,
-  _workspaceId?: string,
   projectTrees?: ProjectNode[],
 ): Promise<ProjectRecord[]> {
-  const trees = projectTrees ?? (await readWorkspaceProjectTrees());
+  const trees = projectTrees ?? (await readProjectTrees());
   const records = flattenProjectTrees(trees);
   const recordIds = records.map((record) => record.id);
   const upserts = records.map((record) =>
@@ -137,10 +136,9 @@ export async function syncWorkspaceProjectsFromDisk(
   return records;
 }
 
-/** Build projectId -> title map from database. workspaceId parameter is ignored. */
-export async function getWorkspaceProjectTitleMap(
+/** Build projectId -> title map from database. */
+export async function getProjectTitleMap(
   prisma: ProjectDbClient,
-  _workspaceId?: string,
 ): Promise<Map<string, string>> {
   const rows = await prisma.project.findMany({
     where: { isDeleted: false },
