@@ -162,7 +162,7 @@ export default function QuickActionsWidget({ scope }: QuickActionsWidgetProps) {
       "";
     const pwdUri = rootUri ? resolveFileUriFromRoot(rootUri, rootUri) : "";
     if (!pwdUri) {
-      toast.error(t('quickActions.noWorkspaceDir'));
+      toast.error(t('quickActions.noProjectSpaceDir'));
       return;
     }
 

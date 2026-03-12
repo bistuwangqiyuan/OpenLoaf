@@ -223,7 +223,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
     return [...active, ...inactive]
   }, [projectId, initFeatures, isAllActive])
 
-  const handleWorkspaceQuickLaunch = React.useCallback(
+  const handleGlobalQuickLaunch = React.useCallback(
     (item: (typeof QUICK_LAUNCH_ITEMS)[number]) => {
       if (!tabId) return
       const tabState = useTabs.getState()
@@ -316,7 +316,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
               onClick={() =>
                 projectId
                   ? handleProjectItemClick(item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number])
-                  : handleWorkspaceQuickLaunch(item as (typeof QUICK_LAUNCH_ITEMS)[number])
+                  : handleGlobalQuickLaunch(item as (typeof QUICK_LAUNCH_ITEMS)[number])
               }
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: isInactive ? 0.5 : 1, y: 0 }}
@@ -564,8 +564,6 @@ export function Chat({
     typeof rawParams.projectId === "string" ? rawParams.projectId.trim() : "";
   const requestParams = React.useMemo(() => {
     const nextParams: Record<string, unknown> = { ...rawParams };
-    const legacyScopeParamKey = "workspace" + "Id";
-    delete nextParams[legacyScopeParamKey];
     if (projectId) nextParams.projectId = projectId;
     else delete (nextParams as any).projectId;
     return nextParams;

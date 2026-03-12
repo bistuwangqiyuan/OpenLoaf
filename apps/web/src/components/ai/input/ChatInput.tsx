@@ -772,7 +772,7 @@ export default function ChatInput({
       ?.chatOnlineSearchEnabled;
     return typeof value === "boolean" ? value : undefined;
   });
-  const fallbackProjectLabel = t('projectSelector.workspace');
+  const fallbackProjectLabel = t('projectSelector.projectSpace');
   /** Switch project scope from the project selector. */
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {

@@ -201,7 +201,7 @@ export function BoardCanvas({
   className,
 }: BoardCanvasProps) {
   const projectStorageRootUri = useProjectStorageRootUri();
-  // 逻辑：全局画布统一回退到默认项目存储根，不再依赖 workspace compat 查询。
+  // 逻辑：全局画布统一回退到默认项目存储根，不再依赖旧版存储根兼容查询。
   const resolvedRootUri = rootUri?.trim() || projectStorageRootUri;
   const queryClient = useQueryClient();
   // 逻辑：提取画布文件夹名（末段路径），服务端通过 .openloaf/boards/<boardId>/ 前缀还原完整路径。

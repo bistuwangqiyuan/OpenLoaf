@@ -8,11 +8,12 @@
     "notLoggedIn": "未登录",
     "wechatUser": "微信用户",
     "wechatLogin": "微信登录",
+    "googleLogin": "Google 登录",
     "currentAccount": "当前账号",
     "logout": "退出登录",
     "loginAccount": "登录OpenLoaf账户",
     "checkUpdate": "检查更新",
-    "defaultWorkspaceName": "默认项目空间",
+    "defaultProjectSpaceName": "默认项目空间",
     "cancelButton": "取消",
     "credits": "积分",
     "membership": {

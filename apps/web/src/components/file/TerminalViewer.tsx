@@ -503,7 +503,7 @@ export default function TerminalViewer({
     const activePwd = activeTab ? getTerminalTabPwdUri(activeTab) : "";
     const fallbackPwd = activePwd || "";
     if (!fallbackPwd) {
-      toast.error(t('terminal.noWorkspaceDir'));
+      toast.error(t('terminal.noProjectSpaceDir'));
       return;
     }
     // 中文注释：默认沿用当前终端标签的 pwd，避免重新依赖旧兼容根目录。

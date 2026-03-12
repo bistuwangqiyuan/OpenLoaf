@@ -235,7 +235,7 @@
   "image": {
     "noEditingSupport": "目前模型不支援影像編輯",
     "noInputSupport": "目前模型不支援影像輸入",
-    "workspaceRequired": "目前標籤頁未繫結專案空間，無法上傳影像",
+    "projectSpaceRequired": "目前標籤頁未繫結專案空間，無法上傳影像",
     "uploadFailed": "影像上傳失敗，請重試",
     "noServerUrl": "影像上傳失敗：伺服器未回傳地址",
     "networkError": "影像上傳失敗，請檢查網路連線",
@@ -438,7 +438,7 @@
     "confirm": "啟用"
   },
   "projectSelector": {
-    "workspace": "專案空間",
+    "projectSpace": "專案空間",
     "searchProject": "搜尋專案...",
     "noProjectFound": "未找到專案",
     "projects": "專案",

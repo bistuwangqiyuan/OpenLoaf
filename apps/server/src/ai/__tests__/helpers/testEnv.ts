@@ -9,13 +9,12 @@
  */
 import path from 'node:path'
 import { existsSync, mkdirSync, writeFileSync, cpSync, readdirSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
 import os from 'node:os'
 import { getProviderSettings } from '@/modules/settings/settingsService'
 import { resolveChatModel } from '@/ai/models/resolveChatModel'
 import { setRequestContext, setChatModel, setAbortSignal } from '@/ai/shared/context/requestContext'
 import { installHttpProxy } from '@/modules/proxy/httpProxy'
-import { getOpenLoafRootDir, setOpenLoafRootOverride, setDefaultWorkspaceRootOverride } from '@openloaf/config'
+import { getOpenLoafRootDir, setOpenLoafRootOverride, setDefaultProjectStorageRootOverride } from '@openloaf/config'
 
 // 测试环境初始化代理 — 确保 Node.js fetch 走系统代理（undici 不自动识别环境变量）
 installHttpProxy()
@@ -58,9 +57,6 @@ export function setMinimalRequestContext() {
  * 3. 叠加各域根级配置 fixture（如 email.json）
  *
  * 合并后的测试项目根目录结构完整，测试行为不受影响。
- *
- * 注意：Prisma 在 import 时已初始化，不受 root override 影响。
- * 仅影响 workspaces.json、legacy project registry、settings.json 等文件读取。
  */
 let e2eTempRoot: string | null = null
 
@@ -101,25 +97,6 @@ export function setupE2eTestEnv(): string {
     }
   }
 
-  // 生成 workspaces.json，rootUri 指向本地路径
-  const workspacesPayload = {
-    workspaces: [
-      {
-        id: 'e2e-test-workspace',
-        name: 'E2E Test Workspace',
-        type: 'local',
-        isActive: true,
-        rootUri: pathToFileURL(destProjectRoot).href,
-        projects: {},
-        ignoreSkills: [],
-      },
-    ],
-  }
-  writeFileSync(
-    path.join(tempRoot, 'workspaces.json'),
-    JSON.stringify(workspacesPayload, null, 2),
-  )
-
   // 复制 settings.json（模型配置等）
   const settingsSrc = path.join(fixturesDir, 'settings.json')
   if (existsSync(settingsSrc)) {
@@ -140,8 +117,8 @@ export function setupE2eTestEnv(): string {
 
   // 设置 root override — 所有后续的 getOpenLoafRootDir() 都指向临时目录
   setOpenLoafRootOverride(tempRoot)
-  // 设置 workspace root override — 避免 normalizeLegacyWorkspaceUri 把 rootUri 替换为默认路径
-  setDefaultWorkspaceRootOverride(destProjectRoot)
+  // 设置项目存储根 override，确保测试内的项目文件解析到临时项目目录。
+  setDefaultProjectStorageRootOverride(destProjectRoot)
   e2eTempRoot = tempRoot
 
   return tempRoot

@@ -67,7 +67,7 @@ export function ChatProjectSelector({
 
   const { t } = useTranslation('ai');
 
-  const displayLabel = selectedProject?.title ?? fallbackLabel ?? t('projectSelector.workspace');
+  const displayLabel = selectedProject?.title ?? fallbackLabel ?? t('projectSelector.projectSpace');
 
   // No projects to select — show fallback label only (read-only)
   if (flatProjects.length === 0) {
@@ -128,7 +128,7 @@ export function ChatProjectSelector({
               {t('projectSelector.noProjectFound')}
             </CommandEmpty>
 
-            <CommandGroup heading={t('projectSelector.workspace')}>
+            <CommandGroup heading={t('projectSelector.projectSpace')}>
               <CommandItem
                 value="global"
                 onSelect={() => {
@@ -138,7 +138,7 @@ export function ChatProjectSelector({
                 className="text-xs gap-2"
               >
                 <Layers className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{fallbackLabel ?? t('projectSelector.workspace')}</span>
+                <span className="truncate">{fallbackLabel ?? t('projectSelector.projectSpace')}</span>
                 {!projectId && (
                   <span className="ml-auto text-[10px] text-muted-foreground">{t('projectSelector.current')}</span>
                 )}

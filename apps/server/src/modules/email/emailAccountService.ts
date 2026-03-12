@@ -52,7 +52,7 @@ export function toEmailSlug(emailAddress: string): string {
 
 /**
  * Fixed scope key for env key naming (backward compatible).
- * Legacy env keys used workspace-scoped naming; current email scope is global.
+ * Legacy env keys used project-space naming; current email scope is global.
  */
 const ENV_KEY_SCOPE = "default";
 

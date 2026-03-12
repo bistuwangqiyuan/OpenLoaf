@@ -165,7 +165,7 @@
     "typeLabel": "类型",
     "scheduled": "定时",
     "scopeLabel": "影响范围",
-    "workspace": "项目空间",
+    "projectSpace": "项目空间",
     "project": "项目",
     "selectProject": "选择项目",
     "loadingProjects": "加载项目...",
@@ -217,7 +217,7 @@
     "conditionExtensionsPlaceholder": "如 .ts, .tsx",
     "conditionRulePlaceholder": "自然语言规则（可选）— Agent 据此判断是否执行",
     "projectScope": "项目",
-    "workspaceScope": "项目空间"
+    "projectSpaceScope": "项目空间"
   },
   "actorLabels": {
     "system": "系统",

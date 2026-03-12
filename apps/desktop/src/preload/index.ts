@@ -61,6 +61,18 @@ type CalendarEvent = {
   recurrence?: string;
 };
 type CalendarResult<T> = { ok: true; data: T } | { ok: false; reason: string; code?: string };
+type DocxToSfdtFailureCode =
+  | "unsupported"
+  | "helper_missing"
+  | "invalid_input"
+  | "file_not_found"
+  | "license_missing"
+  | "timeout"
+  | "parse_error"
+  | "convert_failed";
+type DocxToSfdtResult =
+  | { ok: true; data: { sfdt: string } }
+  | { ok: false; reason: string; code: DocxToSfdtFailureCode };
 
 /**
  * preload 运行在隔离上下文中，是我们向 web UI（apps/web）暴露安全 API 的唯一入口。
@@ -235,6 +247,11 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   > => ipcRenderer.invoke('openloaf:app:get-latest-installer-url'),
   // Resolve local file path from a File object.
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+  // Local Office helpers.
+  office: {
+    convertDocxToSfdt: (payload: { uri: string }): Promise<DocxToSfdtResult> =>
+      ipcRenderer.invoke('openloaf:office:convert-docx-to-sfdt', payload),
+  },
   // System calendar access.
   calendar: {
     requestPermission: (): Promise<CalendarResult<CalendarPermissionState>> =>

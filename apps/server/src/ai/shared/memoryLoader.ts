@@ -9,6 +9,7 @@
  */
 import path from 'node:path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { resolveScopedOpenLoafPath } from '@openloaf/config'
 
 /** Memory directory name under .openloaf/. */
 const MEMORY_DIR_NAME = 'memory'
@@ -17,9 +18,9 @@ const MEMORY_FILE_NAME = 'MEMORY.md'
 /** Default max lines per single memory file. */
 const DEFAULT_MAX_LINES = 200
 
-/** Resolve memory directory path: <rootPath>/.openloaf/memory/ */
+/** Resolve memory directory path for a scope root. */
 export function resolveMemoryDir(rootPath: string): string {
-  return path.join(rootPath, '.openloaf', MEMORY_DIR_NAME)
+  return resolveScopedOpenLoafPath(rootPath, MEMORY_DIR_NAME)
 }
 
 /** A structured memory block with scope metadata. */

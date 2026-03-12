@@ -79,6 +79,20 @@ type CapabilityGroup = {
   tools: CapabilityTool[];
 };
 
+/** Build the scoped agents folder URI for project/global roots. */
+function buildScopedAgentsUri(rootUri: string): string {
+  const normalizedRoot = rootUri.trim().replace(/[/\\]+$/, "");
+  if (!normalizedRoot) return "";
+  if (normalizedRoot.endsWith("/.openloaf")) {
+    return normalizedRoot.startsWith("file://")
+      ? buildFileUriFromRoot(normalizedRoot, "agents")
+      : `${normalizedRoot}/agents`;
+  }
+  return normalizedRoot.startsWith("file://")
+    ? buildFileUriFromRoot(normalizedRoot, ".openloaf/agents")
+    : `${normalizedRoot}/.openloaf/agents`;
+}
+
 const CAP_ICON_MAP: Record<string, { icon: LucideIcon; className: string }> = {
   browser: { icon: Globe, className: "text-blue-500" },
   "file-read": { icon: FileSearch, className: "text-emerald-500" },
@@ -219,7 +233,7 @@ export function AgentManagement({ projectId }: AgentManagementProps) {
   if (projectId) {
     return <ProjectAgentView projectId={projectId} />;
   }
-  return <WorkspaceAgentView />;
+  return <GlobalAgentView />;
 }
 
 /** Lazy-loaded ProjectAgentView to avoid circular imports. */
@@ -232,7 +246,7 @@ function ProjectAgentView({ projectId }: { projectId: string }) {
   return <ProjectAgentViewLazy projectId={projectId} />;
 }
 
-function WorkspaceAgentView() {
+function GlobalAgentView() {
   const { t } = useTranslation(["settings", "common"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -345,7 +359,7 @@ function WorkspaceAgentView() {
   const handleOpenAgentsRoot = useCallback(async () => {
     const rootUri = globalAgentsRootUri;
     if (!rootUri) {
-      toast.error(t("settings:agent.workspaceNotFound"));
+      toast.error(t("settings:agent.projectSpaceNotFound"));
       return;
     }
     try {
@@ -359,12 +373,10 @@ function WorkspaceAgentView() {
     const api = window.openloafElectron;
     if (!api?.openPath) {
       if (activeTabId) {
-        const agentsUri = rootUri.startsWith('file://')
-          ? buildFileUriFromRoot(rootUri, '.openloaf/agents')
-          : `${rootUri.replace(/[/\\]+$/, '')}/.openloaf/agents`
+        const agentsUri = buildScopedAgentsUri(rootUri);
         pushStackItem(activeTabId, {
-          id: `agents-root:workspace`,
-          sourceKey: `agents-root:workspace`,
+          id: `agents-root:global`,
+          sourceKey: `agents-root:global`,
           component: 'folder-tree-preview',
           title: 'Agents',
           params: {
@@ -375,9 +387,7 @@ function WorkspaceAgentView() {
       }
       return;
     }
-    const agentsUri = rootUri.startsWith("file://")
-      ? buildFileUriFromRoot(rootUri, ".openloaf/agents")
-      : `${rootUri.replace(/[/\\]+$/, "")}/.openloaf/agents`;
+    const agentsUri = buildScopedAgentsUri(rootUri);
     const res = await api.openPath({ uri: agentsUri });
     if (!res?.ok) toast.error(res?.reason ?? t("settings:agent.openFolderFailed"));
   }, [activeTabId, globalAgentsRootUri, mkdirMutation, pushStackItem, t]);
@@ -475,7 +485,7 @@ function WorkspaceAgentView() {
             {t("settings:agent.management")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {t("settings:agent.workspaceDescription")}
+            {t("settings:agent.globalDescription")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -614,7 +624,7 @@ function WorkspaceAgentView() {
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {(() => {
-                          const label = agent.scope === "project" ? t("settings:agent.badgeProject") : t("settings:agent.badgeGlobal", { defaultValue: t("settings:agent.badgeWorkspace") });
+                          const label = agent.scope === "project" ? t("settings:agent.badgeProject") : t("settings:agent.badgeGlobal");
                           const colorClass = agent.scope === "project"
                             ? "bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-400"
                             : "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400";

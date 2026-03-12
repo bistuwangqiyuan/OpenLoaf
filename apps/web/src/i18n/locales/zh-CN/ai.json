@@ -235,7 +235,7 @@
   "image": {
     "noEditingSupport": "当前模型不支持图片编辑",
     "noInputSupport": "当前模型不支持图片输入",
-    "workspaceRequired": "当前标签页未绑定项目空间，无法上传图片",
+    "projectSpaceRequired": "当前标签页未绑定项目空间，无法上传图片",
     "uploadFailed": "图片上传失败，请重试",
     "noServerUrl": "图片上传失败：服务端未返回地址",
     "networkError": "图片上传失败，请检查网络连接",
@@ -438,7 +438,7 @@
     "confirm": "启用"
   },
   "projectSelector": {
-    "workspace": "项目空间",
+    "projectSpace": "项目空间",
     "searchProject": "搜索项目...",
     "noProjectFound": "未找到项目",
     "projects": "项目",

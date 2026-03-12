@@ -148,8 +148,11 @@
     "detail": "Details"
   },
   "textNode": {
-    "placeholder": "Type text here",
+    "placeholder": "Write markdown here",
     "toolbar": {
+      "heading": "Headings",
+      "inline": "Inline",
+      "blocks": "Blocks",
       "fontSize": "Font Size",
       "fontWeight": "Font Weight",
       "style": "Style",
@@ -159,10 +162,20 @@
       "backgroundColor": "Background"
     },
     "format": {
+      "paragraph": "Paragraph",
       "bold": "Bold",
       "italic": "Italic",
+      "code": "Inline Code",
+      "link": "Link",
+      "quote": "Quote",
+      "codeBlock": "Code Block",
       "underline": "Underline",
       "strikethrough": "Strikethrough",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "heading5": "Heading 5",
       "unorderedList": "Bullet List",
       "orderedList": "Numbered List",
       "todoList": "To-do List",

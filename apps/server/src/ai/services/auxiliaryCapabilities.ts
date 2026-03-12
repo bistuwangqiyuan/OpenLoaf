@@ -129,7 +129,7 @@ export const AUXILIARY_CAPABILITIES: Record<string, AuxiliaryCapability> = {
 规则：
 - label 不超过 30 字，value 是用户选择后实际填入的完整文本
 - type=completion 为句子补全，type=question 为推荐提问，type=action 为推荐操作指令
-- 建议应与当前项目/工作空间上下文相关
+- 建议应与当前项目/全局上下文相关
 - 如果输入为空，基于项目上下文给出常见操作建议`,
     outputSchema: CAPABILITY_SCHEMAS['chat.suggestions'].toJSONSchema(),
   },

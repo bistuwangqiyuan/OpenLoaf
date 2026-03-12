@@ -271,6 +271,9 @@ export async function ensureDevServices(args: {
       HOST: serverHost,
       NODE_ENV: 'development',
       OPENLOAF_REMOTE_DEBUGGING_PORT: String(args.cdpPort),
+      OPENLOAF_DOCX_SFDT_HELPER_ROOT:
+        envBase.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+        path.join(repoRoot, 'apps', 'desktop', 'resources', 'docx-sfdt'),
       TSX_TSCONFIG_PATH: serverTsconfig,
       // 允许 web dev server 作为 Origin 访问后端。
       CORS_ORIGIN: `${webUrl},${envBase.CORS_ORIGIN ?? ''}`,

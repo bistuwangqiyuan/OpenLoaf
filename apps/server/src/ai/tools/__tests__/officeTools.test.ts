@@ -65,21 +65,21 @@ function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   )
 }
 
-/** Get workspace root to construct relative paths for tool invocation. */
-let workspaceRoot = ''
+/** Get project root to construct relative paths for tool invocation. */
+let projectRoot = ''
 let testSubDir = ''
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
   testSubDir = `_office_test_${Date.now()}`
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
-/** Relative path within workspace for tool invocation. */
+/** Relative path within project for tool invocation. */
 function rel(filename: string): string {
   return `${testSubDir}/${filename}`
 }
@@ -402,7 +402,7 @@ async function main() {
   await test('E12: query 不支持的扩展名 (.txt) 抛出错误', async () => {
     // Create a dummy txt file first
     const txtFile = rel('e12.txt')
-    const absPath = path.join(workspaceRoot, txtFile)
+    const absPath = path.join(projectRoot, txtFile)
     await fs.writeFile(absPath, 'dummy', 'utf-8')
     await assert.rejects(
       () =>
@@ -893,7 +893,7 @@ async function main() {
   await test('H6: word-query: .doc 文件 read-structure 返回 ok=false', async () => {
     // Create a dummy .doc file
     const docFile = rel('h6.doc')
-    const absPath = path.join(workspaceRoot, docFile)
+    const absPath = path.join(projectRoot, docFile)
     await fs.writeFile(absPath, 'dummy doc content', 'utf-8')
     const result: any = await withCtx(() =>
       wordQueryTool.execute(
@@ -907,7 +907,7 @@ async function main() {
 
   await test('H7: pptx-query: .ppt 文件 read-structure 返回 ok=false', async () => {
     const pptFile = rel('h7.ppt')
-    const absPath = path.join(workspaceRoot, pptFile)
+    const absPath = path.join(projectRoot, pptFile)
     await fs.writeFile(absPath, 'dummy ppt content', 'utf-8')
     const result: any = await withCtx(() =>
       pptxQueryTool.execute(

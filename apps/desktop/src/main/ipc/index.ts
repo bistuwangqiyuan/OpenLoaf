@@ -41,6 +41,8 @@ import { createSpeechRecognitionManager } from '../speechRecognition';
 import { captureWebMeta } from './captureWebMeta';
 import { createCalendarService } from '../calendar/calendarService';
 import { createCalendarSync } from '../calendar/calendarSync';
+import { convertDocxToSfdt } from '../docxSfdt';
+import { resolveLocalPath } from '../resolveLocalPath';
 import { resolveWindowIconInfo } from '../resolveWindowIcon';
 import { updateTrayBadge, refreshTrayMenu } from '../tray';
 import { setLanguage, getMinimizeToTray, setMinimizeToTray } from '../updateConfig';
@@ -65,46 +67,6 @@ const TRANSFER_PROGRESS_THROTTLE_MS = 120;
 // 中文注释：兜底拖拽图标，保证 macOS 上 icon 非空。
 const FALLBACK_DRAG_ICON_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7n2U8VQAAAABJRU5ErkJggg==';
-
-/** Normalize file:// URI for cross-platform parsing. */
-function normalizeFileUri(raw: string): string {
-  let normalized = raw.trim();
-  if (normalized.startsWith('file:/') && !normalized.startsWith('file://')) {
-    normalized = `file:///${normalized.slice('file:/'.length)}`;
-  } else if (normalized.startsWith('file://') && !normalized.startsWith('file:///')) {
-    normalized = `file:///${normalized.slice('file://'.length)}`;
-  }
-  return normalized.replace(/\\/g, '/');
-}
-
-/** Resolve a local filesystem path from a file:// URI or raw path. */
-function resolveLocalPath(input: string): string | null {
-  const raw = String(input ?? '').trim();
-  if (!raw) return null;
-  if (raw.startsWith('file:')) {
-    const normalized = normalizeFileUri(raw);
-    try {
-      return fileURLToPath(normalized);
-    } catch {
-      // 中文注释：处理非标准 file:// 路径，避免主进程崩溃。
-      const stripped = normalized.replace(/^file:\/\//, '');
-      const decoded = decodeURIComponent(stripped);
-      const withoutHost = decoded.startsWith('localhost/')
-        ? decoded.slice('localhost/'.length)
-        : decoded;
-      let candidate = withoutHost;
-      if (candidate.startsWith('/') && /^[a-zA-Z]:/.test(candidate.slice(1))) {
-        candidate = candidate.slice(1);
-      }
-      candidate = candidate.replace(/\//g, path.sep);
-      if (path.isAbsolute(candidate) || /^[a-zA-Z]:[\\/]/.test(candidate)) {
-        return candidate;
-      }
-      return null;
-    }
-  }
-  return raw;
-}
 
 /** Compute directory size recursively. */
 async function getDirectorySizeBytes(dirPath: string): Promise<number> {
@@ -419,6 +381,17 @@ export function registerIpcHandlers(args: { log: Logger }) {
         rootUri: String(payload?.rootUri ?? '').trim(),
       });
     }
+  );
+
+  // 本地 DOCX 转 SFDT，供桌面端 Syncfusion 文档编辑器离线导入。
+  ipcMain.handle(
+    'openloaf:office:convert-docx-to-sfdt',
+    async (_event, payload: { uri?: string }) => {
+      return await convertDocxToSfdt({
+        uri: String(payload?.uri ?? '').trim(),
+        log: args.log,
+      });
+    },
   );
 
   // 调用系统语音识别（macOS helper）。渲染端通过事件接收识别文本。

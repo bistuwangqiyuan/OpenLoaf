@@ -382,7 +382,7 @@ const FileSystemColumns = memo(function FileSystemColumns({
   resolveSelectionMode,
   onGridContextMenuCapture,
 }: FileSystemColumnsProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const activeUri = currentUri ?? rootUri ?? null;
   const searchText = searchQuery?.trim() ?? "";
   const hasSearchQuery = searchText.length > 0;

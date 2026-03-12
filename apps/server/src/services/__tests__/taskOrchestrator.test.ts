@@ -221,7 +221,7 @@ async function main() {
     assert.ok(result.reason.length > 0)
   })
 
-  await test('B3: no conflict between workspace-scope tasks', () => {
+  await test('B3: no conflict between project-scope tasks', () => {
     const candidate = makeTask({ scope: 'global' })
     const running = makeTask({ scope: 'global', status: 'running' })
     const result = checkConflict(candidate, [running])

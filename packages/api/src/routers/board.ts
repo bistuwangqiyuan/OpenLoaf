@@ -11,6 +11,7 @@ import { z } from "zod";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import sharp from "sharp";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { createBoardId } from "../common/boardId";
 import { recordEntityVisit } from "../services/entityVisitRecordService";
@@ -59,7 +60,7 @@ async function syncBoardsFromDisk(
     return;
   }
 
-  const boardsDir = path.join(rootPath, ".openloaf", "boards");
+  const boardsDir = resolveScopedOpenLoafPath(rootPath, "boards");
   let entries: string[];
   try {
     entries = await fs.readdir(boardsDir);
@@ -148,9 +149,8 @@ async function hardDeleteBoardResources(
       projectId: board.projectId ?? undefined,
     });
     // 逻辑：硬删除必须按 folderUri 反解目录名，兼容历史 tnboard_* 目录。
-    const boardDir = path.join(
+    const boardDir = resolveScopedOpenLoafPath(
       rootPath,
-      ".openloaf",
       "boards",
       resolveBoardFolderName(board.folderUri),
     );
@@ -297,8 +297,11 @@ export const boardRouter = t.router({
             const folderName = folderUri
               ? folderUri.replace(/\/$/, "").split("/").pop()!
               : boardId;
-            const thumbPath = path.join(
-              rootPath, ".openloaf", "boards", folderName, BOARD_THUMBNAIL_FILE_NAME,
+            const thumbPath = resolveScopedOpenLoafPath(
+              rootPath,
+              "boards",
+              folderName,
+              BOARD_THUMBNAIL_FILE_NAME,
             );
             const buffer = await sharp(thumbPath)
               .resize(BOARD_THUMBNAIL_WIDTH, undefined, { fit: "inside" })
@@ -364,7 +367,7 @@ export const boardRouter = t.router({
         const rootPath = resolveScopedRootPath({
           projectId: input.projectId,
         });
-        const boardsDir = path.join(rootPath, ".openloaf", "boards");
+        const boardsDir = resolveScopedOpenLoafPath(rootPath, "boards");
         const originalFolderName = original.folderUri.replace(/\/$/, "").split("/").pop()!;
         const srcDir = path.join(boardsDir, originalFolderName);
         const destDir = path.join(boardsDir, newBoardId);

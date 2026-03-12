@@ -28,7 +28,7 @@ import {
   findProjectNodeWithParent,
   getProjectMetaPath,
   hasProjectInSubtree,
-  listWorkspaceProjectPage,
+  listProjectListPage,
   projectConfigSchema,
   readProjectConfig,
   readProjectTrees,
@@ -95,17 +95,17 @@ function toSafeFolderName(title: string): string {
 
 /** Resolve a unique project root directory under the project storage root. */
 async function ensureUniqueProjectRoot(
-  workspaceRootPath: string,
+  storageRootPath: string,
   baseName: string
 ): Promise<string> {
   let candidate = baseName;
   let counter = 1;
   // 逻辑：目录名冲突时递增后缀，直到找到可用目录。
-  while (await fileExists(path.join(workspaceRootPath, candidate))) {
+  while (await fileExists(path.join(storageRootPath, candidate))) {
     candidate = `${baseName}-${counter}`;
     counter += 1;
   }
-  return path.join(workspaceRootPath, candidate);
+  return path.join(storageRootPath, candidate);
 }
 
 /** Write JSON file with tmp + rename for atomicity. */
@@ -412,7 +412,7 @@ export const projectRouter = t.router({
       })
     )
     .query(async ({ input }) => {
-      return listWorkspaceProjectPage(input);
+      return listProjectListPage(input);
     }),
 
   /** Check whether a directory path is a git project and detect project type. */

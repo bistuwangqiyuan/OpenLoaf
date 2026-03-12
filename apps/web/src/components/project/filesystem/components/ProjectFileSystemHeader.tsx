@@ -307,7 +307,7 @@ const ProjectFileSystemToolbar = memo(function ProjectFileSystemToolbar({
   onSearchOpenChange,
   searchShortcutLabel,
 }: ProjectFileSystemToolbarProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const isGridView = viewMode === "grid";
   const isListView = viewMode === "list";
   const isColumnsView = viewMode === "columns";

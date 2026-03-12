@@ -128,7 +128,7 @@ const TestSetting = memo(function TestSetting() {
   /**
    * Opens a Terminal stack at the default project storage root directory.
    */
-  function handleOpenWorkspaceTerminal() {
+  function handleOpenGlobalTerminal() {
     if (!activeTabId) return;
     if (terminalStatus.isLoading) {
       toast.message("正在获取终端状态");
@@ -226,8 +226,8 @@ const TestSetting = memo(function TestSetting() {
             </div>
             <OpenLoafSettingsField className="flex-wrap gap-2">
               {terminalStatus.enabled ? (
-                <Button size="sm" className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none" onClick={handleOpenWorkspaceTerminal}>
-                  Stack: Terminal (workspace)
+                <Button size="sm" className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none" onClick={handleOpenGlobalTerminal}>
+                  Stack: Terminal (global)
                 </Button>
               ) : null}
               <Button

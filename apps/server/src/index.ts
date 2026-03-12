@@ -22,7 +22,7 @@ import { installHttpProxy } from "@/modules/proxy/httpProxy";
 import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
 import { getAppConfig } from "@openloaf/api/services/appConfigService";
 import { migrateLegacyServerData } from "@openloaf/config";
-import { ensureDefaultAgentCleanup } from "@/ai/shared/workspaceAgentInit";
+import { ensureDefaultAgentCleanup } from "@/ai/shared/agentCleanup";
 import { initDatabase } from "@openloaf/db";
 import { runPendingMigrations } from "@openloaf/db/migrationRunner";
 import { embeddedMigrations } from "@openloaf/db/migrations.generated";

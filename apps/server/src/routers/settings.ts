@@ -20,7 +20,7 @@ import {
 import {
   resolveFilePathFromUri,
 } from "@openloaf/api/services/vfsService";
-import { getOpenLoafRootDir } from "@openloaf/config";
+import { getOpenLoafRootDir, resolveScopedOpenLoafPath } from "@openloaf/config";
 import {
   getProjectMetaPath,
   projectConfigSchema,
@@ -259,7 +259,7 @@ function resolveAgentDeleteTarget(input: {
   }
   const agentDir = normalizeFsPath(path.dirname(normalizedAgentPath));
   const agentsRoot = isOpenLoafAgent
-    ? normalizeFsPath(path.join(baseRootPath, ".openloaf", "agents"))
+    ? normalizeFsPath(resolveScopedOpenLoafPath(baseRootPath, "agents"))
     : normalizeFsPath(path.join(baseRootPath, ".agents", "agents"));
   if (agentDir === agentsRoot || !agentDir.startsWith(`${agentsRoot}${path.sep}`)) {
     throw new Error("Agent path is outside scope.");

@@ -60,6 +60,7 @@
           "server.mjs",
           "seed.db",
           "out/**/*",
+          "docx-sfdt/**/*",
           "speech/**/*",
           "runtime.env",
           "server.package.json",
@@ -70,10 +71,11 @@
     ]
   },
   "scripts": {
-    "predesktop": "node scripts/fixElectronInstall.mjs && pnpm run build:speech-helper && pnpm run build:calendar-helper",
+    "predesktop": "node scripts/fixElectronInstall.mjs && pnpm run build:speech-helper && pnpm run build:calendar-helper && pnpm run build:docx-sfdt-helper",
     "desktop": "electron-forge start",
     "build:speech-helper": "node scripts/buildSpeechHelper.mjs",
     "build:calendar-helper": "node scripts/buildCalendarHelper.mjs",
+    "build:docx-sfdt-helper": "node scripts/buildDocxSfdtHelper.mjs",
     "package": "pnpm run predesktop && pnpm --filter server run build:prod && pnpm --filter web run build --webpack && electron-forge package",
     "package:ci": "pnpm run predesktop && electron-forge package",
     "package:x64": "pnpm run predesktop && pnpm --filter server run build:prod && pnpm --filter web run build --webpack && electron-forge package --arch=x64",

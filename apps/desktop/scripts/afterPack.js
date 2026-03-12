@@ -114,6 +114,15 @@ const PRUNE_PATHS_COMMON = [
   'node_modules/sharp/node_modules',
 ]
 
+const DOCX_SFDT_TARGETS = [
+  'darwin-arm64',
+  'darwin-x64',
+  'win32-arm64',
+  'win32-x64',
+  'linux-arm64',
+  'linux-x64',
+]
+
 /** Build macOS prune paths dynamically based on target arch. */
 function buildMacPrunePaths(targetArch) {
   const ALL_PREBUILDS = ['darwin-arm64', 'darwin-x64', 'win32-arm64', 'win32-x64', 'linux-x64']
@@ -122,6 +131,8 @@ function buildMacPrunePaths(targetArch) {
     ...PRUNE_PATHS_COMMON,
     // node-pty: remove prebuilds for non-target platforms/architectures
     ...ALL_PREBUILDS.filter(a => a !== keep).map(a => `prebuilds/${a}`),
+    // docx-sfdt: remove helper binaries for non-target platforms/architectures
+    ...DOCX_SFDT_TARGETS.filter(a => a !== keep).map(a => `docx-sfdt/${a}`),
     // speech: source code & Windows files
     'speech/windows',
     'speech/macos/SpeechRecognizer.swift',
@@ -140,6 +151,12 @@ const PRUNE_PATHS_WIN = [
   'prebuilds/darwin-arm64',
   'prebuilds/darwin-x64',
   'prebuilds/linux-x64',
+  // docx-sfdt: wrong-platform helper binaries
+  'docx-sfdt/darwin-arm64',
+  'docx-sfdt/darwin-x64',
+  'docx-sfdt/win32-arm64',
+  'docx-sfdt/linux-arm64',
+  'docx-sfdt/linux-x64',
   // speech: source code & macOS files
   'speech/macos',
   'speech/windows/Program.cs',
@@ -160,6 +177,12 @@ const PRUNE_PATHS_LINUX = [
   'prebuilds/darwin-x64',
   'prebuilds/win32-arm64',
   'prebuilds/win32-x64',
+  // docx-sfdt: wrong-platform helper binaries
+  'docx-sfdt/darwin-arm64',
+  'docx-sfdt/darwin-x64',
+  'docx-sfdt/win32-arm64',
+  'docx-sfdt/win32-x64',
+  'docx-sfdt/linux-arm64',
   // speech & calendar: Linux has no native helpers
   'speech',
   'calendar',

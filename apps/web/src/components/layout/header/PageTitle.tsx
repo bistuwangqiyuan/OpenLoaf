@@ -52,7 +52,7 @@ export const PageTitle = () => {
     if (viewType === 'project') {
       return projectShellTitle || activeTab?.title || t('project');
     }
-    if (viewType === 'workspace-chat') {
+    if (viewType === 'global-chat') {
       return activeTab?.title ?? t('aiAssistant');
     }
     if (viewType === 'workbench') return t('workbench');
@@ -66,7 +66,7 @@ export const PageTitle = () => {
     // 兜底：当 viewType 未及时更新时，从 base component 推断标题。
     const baseComponent = activeTab?.base?.component;
     if (baseComponent === 'canvas-list-page') return t('canvas');
-    if (baseComponent === 'project-list-page') return t('sidebarWorkspace');
+    if (baseComponent === 'project-list-page') return t('sidebarProjectSpace');
     if (baseComponent === 'global-desktop') return t('workbench');
     if (baseComponent === 'calendar-page') return t('calendar');
     if (baseComponent === 'email-page') return t('email');

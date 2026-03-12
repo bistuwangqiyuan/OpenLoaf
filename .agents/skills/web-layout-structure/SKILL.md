@@ -42,10 +42,12 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - 窄屏（<900px）直接隐藏侧边栏（`useIsNarrowScreen`）
   - 项目模式判断不要只依赖 `activeTab.projectShell`；统一通过 `apps/web/src/lib/project-mode.ts` 中的 `resolveProjectModeProjectShell()` / `isProjectMode()` 解析（优先 tab.projectShell，其次回退到独立项目窗口 URL bootstrap）
   - 只要当前 renderer 处于项目模式，主 Sidebar 就应切换为 `ProjectSidebar`，避免项目独立窗口里新开的聊天、画布、设置页掉回主 Sidebar
+  - 普通 Sidebar 与 `ProjectSidebar` 的切换动画必须保留同一个外层 `Sidebar` 壳，只切换内部 header/content/footer；不要在外层额外包裹节点，否则会破坏 `SidebarInset` 依赖的 `peer` 布局关系
   - `SidebarHeader` 放入口菜单（搜索、日历、AI、邮箱、技能等）
   - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）；历史列表不再按日期分组，而是直接平铺，第一行显示“标题 + 项目名”，第二行显示“类型 + 访问时间”
   - `SidebarHistory` 标题右侧保留排序按钮，默认按首次访问时间排序；点击后切到按最近访问时间排序，同时列表右侧时间也切换到对应时间字段
   - `ProjectSidebar` 负责项目内导航：返回项目空间、AI管理员、画布、看板、文件、设置、历史；底部历史列表会按 `projectId` 过滤，只显示当前项目访问记录
+  - 项目侧栏的 `SidebarHistory(projectId)` 需要额外隐藏 `entityType === "project"` 的“项目打开记录”；项目本体信息由 footer 项目卡片承载，不在历史列表里重复出现
   - `ProjectSidebar` 需要把项目摘要卡片（项目 icon + 名称）放在 `SidebarFooter`，与“设置”一起构成底部区域；不要在 header 中重复渲染
   - `ProjectSidebar` footer 中的项目摘要卡片支持副标题，当前用于显示项目类型
   - `ProjectSidebar` 顶部不显示 `SidebarUserAccount`；返回按钮需要沿用账号项的高度（`h-12`）以保持节奏一致
@@ -81,7 +83,8 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - 最小宽度：`LEFT_DOCK_MIN_PX` / `RIGHT_CHAT_MIN_PX`
   - 拖拽分割条会写入 `leftWidthPercent`（`useTabRuntime`）
   - `rightChatCollapsed` 决定右侧是否显示
-  - 前景页面为 `settings-page` 时，右侧 chat panel 必须视为强制隐藏，且不要激活右侧 panel host
+  - 前景页面为 `settings-page` / `project-settings-page` / `project-list-page` / `global-desktop` / `canvas-list-page` 时，右侧 chat panel 必须视为强制隐藏，且不要激活右侧 panel host
+  - 项目壳 `plant-page` 的 `index` / `files` / `tasks(history)` 子页，以及文件预览前景（如 `file-viewer` / `markdown-viewer` / `code-viewer` 等）也必须强制隐藏右侧 chat
   - 项目壳 tab（`tab.projectShell` 存在）不能再走旧的“按会话 projectId 自动创建 / 更新 plant-page” fallback；否则项目 AI 管理员页会被错误改写成项目页
 
 ### LeftDock（Base + Stack）
@@ -118,6 +121,7 @@ description: Use when working on or debugging the web app layout in apps/web/src
 
 ## Key Data / State
 - `useTabs`：tab 列表、activeTab、stack/base 元信息
+  - `useTabs.addTab()` 在当前 renderer 可解析为项目模式时，会为项目内新开的 chat / board / project file / project settings tab 自动继承 `projectShell`；若调用侧未显式传 `chatParams.projectId`，还会补齐当前项目 id，避免新 tab 掉回普通 Sidebar 或丢失项目上下文
 - `useTabRuntime`：运行时数据（leftWidthPercent、rightChatCollapsed、runtimeByTabId）
 - `panel-runtime`：左右面板的 mount/unmount 与 keep-alive 管理
 - 项目独立窗口会把 `useTabs` / `useTabRuntime` 的持久化切到 `sessionStorage`，主窗口仍使用 `localStorage`，避免两类窗口互相污染 tab 恢复状态

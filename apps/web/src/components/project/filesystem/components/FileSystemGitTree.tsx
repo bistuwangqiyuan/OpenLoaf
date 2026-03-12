@@ -271,7 +271,7 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
   shouldBlockPointerEvent,
   onContextMenuCapture,
 }: FileSystemGitTreeNodeProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const isExpanded = expandedNodes[node.entry.uri] ?? false;
   const isSelected = selectedUris.has(node.entry.uri);
   const canExpand = node.isFolder && node.entry.isEmpty !== true;
@@ -569,7 +569,7 @@ export default function FileSystemGitTree({
   );
   const rootRelative = useMemo(() => {
     const relative = getRelativePathFromUri(rootUri, rootUri);
-    // file:// URI 的自身相对路径为空，但空字符串会被服务端解析为工作空间根目录。
+    // file:// URI 的自身相对路径为空，但空字符串会被服务端解析为全局根目录。
     // 直接使用 file:// URI 作为根节点 URI，服务端 resolveScopedPath 支持 file: 协议。
     if (!relative && rootUri.startsWith("file://")) return rootUri;
     return relative;

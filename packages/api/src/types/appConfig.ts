@@ -11,7 +11,7 @@ import { z } from "zod";
 
 /**
  * Application configuration schema.
- * Replaces the old multi-workspace model with a single global config.
+ * Replaces the old multi-project-space model with a single global config.
  */
 export const appConfigSchema = z.object({
   /** Project map: { projectId: rootUri }. */

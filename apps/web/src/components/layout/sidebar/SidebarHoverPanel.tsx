@@ -234,7 +234,7 @@ export function SidebarHoverPanel({
         ? { projectId, limit: 50 }
         : null
 
-  const chatQueryOpts = trpc.chat.listByWorkspace.queryOptions(
+  const chatQueryOpts = trpc.chat.listSidebarSessions.queryOptions(
     chatQueryInput ?? (skipToken as any),
   )
   const { data: chats, isLoading: chatsLoading } = useQuery({
@@ -256,14 +256,14 @@ export function SidebarHoverPanel({
   const chatUpdateMutation = useMutation(
     trpc.chat.updateSession.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.queryKey() })
       },
     }),
   )
   const chatDeleteMutation = useMutation(
     trpc.chat.deleteSession.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.queryKey() })
       },
     }),
   )
@@ -383,7 +383,7 @@ export function SidebarHoverPanel({
   const handleRename = useCallback(
     (item: HistoryItem) => {
       if (item.kind === 'chat') {
-        const newTitle = prompt(t('workspaceChatList.renamePrompt'), item.title)
+        const newTitle = prompt(t('chatHistoryList.renamePrompt'), item.title)
         if (newTitle && newTitle.trim() !== item.title) {
           chatUpdateMutation.mutate({
             sessionId: item.id,
@@ -428,7 +428,7 @@ export function SidebarHoverPanel({
   const handleDelete = useCallback(
     (item: HistoryItem) => {
       if (item.kind === 'chat') {
-        if (confirm(t('workspaceChatList.confirmDelete'))) {
+        if (confirm(t('chatHistoryList.confirmDelete'))) {
           chatDeleteMutation.mutate({ sessionId: item.id })
         }
       } else {
@@ -567,7 +567,7 @@ export function SidebarHoverPanel({
                               onClick={() => handleRename(item)}
                             >
                               <Edit2 className="mr-2 h-4 w-4" />
-                              {t('workspaceChatList.contextMenu.rename')}
+                              {t('chatHistoryList.contextMenu.rename')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handlePin(item)}
@@ -580,7 +580,7 @@ export function SidebarHoverPanel({
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              {t('workspaceChatList.contextMenu.delete')}
+                              {t('chatHistoryList.contextMenu.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

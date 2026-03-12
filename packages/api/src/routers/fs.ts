@@ -15,6 +15,7 @@ import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
 import { fileURLToPath } from "node:url";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
+import { convertDocxFileToSfdt } from "../services/docxSfdtService";
 import { resolveFilePathFromUri, resolveScopedPath, resolveScopedRootPath, toRelativePath } from "../services/vfsService";
 import { readProjectTrees } from "../services/projectTreeService";
 
@@ -80,8 +81,8 @@ const fsSearchSchema = fsScopeSchema.extend({
   maxDepth: z.number().int().min(0).max(50).optional(),
 });
 
-/** Schema for global search requests. */
-const fsSearchWorkspaceSchema = z.object({
+/** Schema for all-project search requests. */
+const fsSearchAllProjectsSchema = z.object({
   query: z.string(),
   includeHidden: z.boolean().optional(),
   limit: z.number().int().min(1).max(2000).optional(),
@@ -120,6 +121,35 @@ type FsFileNode = {
   updatedAt: string;
   isEmpty?: boolean;
 };
+
+type ResolvedFsReadScope = {
+  rootPath: string;
+  fullPath: string;
+};
+
+/** Return true when the thrown error indicates a stale project scope. */
+function isMissingProjectScopeError(error: unknown): boolean {
+  return error instanceof Error && error.message === "Project not found.";
+}
+
+/** Resolve scoped paths for read-only fs queries and tolerate removed projects. */
+function resolveFsReadScope(
+  scope: { projectId?: string },
+  target: string
+): ResolvedFsReadScope | null {
+  try {
+    return {
+      rootPath: resolveFsRootPath(scope),
+      fullPath: resolveFsTarget(scope, target),
+    };
+  } catch (error) {
+    // 中文注释：项目已删除或注册表未命中时，读查询降级为空结果，避免持续刷 500 日志。
+    if (isMissingProjectScopeError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
 
 function buildFileNode(input: {
   name: string;
@@ -333,8 +363,9 @@ async function resolveFolderEmptyState(fullPath: string, includeHidden: boolean)
 export const fsRouter = t.router({
   /** Read metadata for a file or directory. */
   stat: shieldedProcedure.input(fsUriSchema).query(async ({ input }) => {
-    const rootPath = resolveFsRootPath(input);
-    const fullPath = resolveFsTarget(input, input.uri);
+    const resolvedScope = resolveFsReadScope(input, input.uri);
+    if (!resolvedScope) return null;
+    const { rootPath, fullPath } = resolvedScope;
     try {
       const stat = await fs.stat(fullPath);
       return buildFileNode({
@@ -353,8 +384,9 @@ export const fsRouter = t.router({
 
   /** List direct children of a directory. */
   list: shieldedProcedure.input(fsListSchema).query(async ({ input }) => {
-    const rootPath = resolveFsRootPath(input);
-    const fullPath = resolveFsTarget(input, input.uri);
+    const resolvedScope = resolveFsReadScope(input, input.uri);
+    if (!resolvedScope) return { entries: [] };
+    const { rootPath, fullPath } = resolvedScope;
     const dirExists = await fs.stat(fullPath).then(s => s.isDirectory(), () => false);
     if (!dirExists) return { entries: [] };
     const entries = await fs.readdir(fullPath, { withFileTypes: true });
@@ -405,7 +437,9 @@ export const fsRouter = t.router({
 
   /** Build thumbnails for image entries. */
   thumbnails: shieldedProcedure.input(fsThumbnailSchema).query(async ({ input }) => {
-    const rootPath = resolveFsRootPath(input);
+    const resolvedScope = resolveFsReadScope(input, "");
+    if (!resolvedScope) return { items: [] };
+    const { rootPath } = resolvedScope;
     // 生成 40x40 的低质量缩略图，避免传输原图。
     const items = await Promise.all(
       input.uris.map(async (uri) => {
@@ -445,8 +479,9 @@ export const fsRouter = t.router({
   folderThumbnails: shieldedProcedure
     .input(fsFolderThumbnailSchema)
     .query(async ({ input }) => {
-      const rootPath = resolveFsRootPath(input);
-      const fullPath = resolveFsTarget(input, input.uri);
+      const resolvedScope = resolveFsReadScope(input, input.uri);
+      if (!resolvedScope) return { items: [] };
+      const { rootPath, fullPath } = resolvedScope;
       const includeHidden = Boolean(input.includeHidden);
       let entries: import("node:fs").Dirent[];
       try {
@@ -544,7 +579,14 @@ export const fsRouter = t.router({
 
   /** Probe video dimensions for a file entry. */
   videoMetadata: shieldedProcedure.input(fsUriSchema).query(async ({ input }) => {
-    const fullPath = resolveFsTarget(input, input.uri);
+    const resolvedScope = resolveFsReadScope(input, input.uri);
+    if (!resolvedScope) {
+      return {
+        width: null,
+        height: null,
+      };
+    }
+    const { fullPath } = resolvedScope;
     const meta = await probeVideoDimensions(fullPath);
     return {
       width: meta?.width ?? null,
@@ -554,7 +596,9 @@ export const fsRouter = t.router({
 
   /** Read a text file. */
   readFile: shieldedProcedure.input(fsUriSchema).query(async ({ input }) => {
-    const fullPath = resolveFsTarget(input, input.uri);
+    const resolvedScope = resolveFsReadScope(input, input.uri);
+    if (!resolvedScope) return { content: "" };
+    const { fullPath } = resolvedScope;
     try {
       const stat = await fs.stat(fullPath);
       // 逻辑：大文件不走文本预览，避免阻塞页面与传输超大 payload。
@@ -574,7 +618,11 @@ export const fsRouter = t.router({
 
   /** Read a binary file (base64 payload). */
   readBinary: shieldedProcedure.input(fsUriSchema).query(async ({ input }) => {
-    const fullPath = resolveFsTarget(input, input.uri);
+    const resolvedScope = resolveFsReadScope(input, input.uri);
+    if (!resolvedScope) {
+      return { contentBase64: "", mime: "application/octet-stream" };
+    }
+    const { fullPath } = resolvedScope;
     const ext = path.extname(fullPath).replace(/^\./, "");
     try {
       const buffer = await fs.readFile(fullPath);
@@ -589,6 +637,27 @@ export const fsRouter = t.router({
       throw error;
     }
   }),
+
+  /** Convert a DOCX file into SFDT for Syncfusion-based document editing. */
+  convertDocxToSfdt: shieldedProcedure
+    .input(fsUriSchema)
+    .mutation(async ({ input }) => {
+      const resolvedScope = resolveFsReadScope(input, input.uri);
+      if (!resolvedScope) {
+        return {
+          ok: false as const,
+          reason: "未找到目标 DOCX 文件。",
+          code: "file_not_found" as const,
+        };
+      }
+
+      return await convertDocxFileToSfdt({
+        inputPath: resolvedScope.fullPath,
+        log: (message) => {
+          console.warn(message);
+        },
+      });
+    }),
 
   /** Write a text file. */
   writeFile: shieldedProcedure
@@ -718,8 +787,9 @@ export const fsRouter = t.router({
 
   /** Search within the resolved root path (MVP stub). */
   search: shieldedProcedure.input(fsSearchSchema).query(async ({ input }) => {
-    const rootBasePath = resolveFsRootPath(input);
-    const searchRootPath = resolveFsTarget(input, input.rootUri);
+    const resolvedScope = resolveFsReadScope(input, input.rootUri);
+    if (!resolvedScope) return { results: [] };
+    const { rootPath: rootBasePath, fullPath: searchRootPath } = resolvedScope;
     const query = input.query.trim().toLowerCase();
     if (!query) return { results: [] };
     const includeHidden = Boolean(input.includeHidden);
@@ -781,8 +851,8 @@ export const fsRouter = t.router({
   }),
 
   /** Search across all registered projects. */
-  searchWorkspace: shieldedProcedure
-    .input(fsSearchWorkspaceSchema)
+  searchAllProjects: shieldedProcedure
+    .input(fsSearchAllProjectsSchema)
     .query(async ({ input, ctx }) => {
       const query = input.query.trim().toLowerCase();
       if (!query) return { results: [] };

@@ -52,7 +52,7 @@ export default function FolderTreePreview({
   projectId,
   projectTitle,
 }: FolderTreePreviewProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const [selectedUris, setSelectedUris] = useState<Set<string>>(() => {
     const initial = currentUri?.trim();
     return initial ? new Set([initial]) : new Set();

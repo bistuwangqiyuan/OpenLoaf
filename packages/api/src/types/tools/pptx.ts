@@ -28,7 +28,7 @@ export const pptxQueryToolDef = {
     filePath: z
       .string()
       .min(1)
-      .describe('PPTX 文件路径（相对于项目/工作空间根目录或绝对路径，支持 .pptx）'),
+      .describe('PPTX 文件路径（相对于项目根目录、全局根目录或绝对路径，支持 .pptx）'),
     xmlPath: z
       .string()
       .optional()

@@ -8,11 +8,12 @@
     "notLoggedIn": "Not signed in",
     "wechatUser": "WeChat User",
     "wechatLogin": "WeChat Login",
+    "googleLogin": "Google Login",
     "currentAccount": "Current account",
     "logout": "Logout",
     "loginAccount": "Login to OpenLoaf Account",
     "checkUpdate": "Check for Updates",
-    "defaultWorkspaceName": "Default Project Space",
+    "defaultProjectSpaceName": "Default Project Space",
     "cancelButton": "Cancel",
     "credits": "Credits",
     "membership": {

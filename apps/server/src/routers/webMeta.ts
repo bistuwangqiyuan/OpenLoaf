@@ -15,6 +15,7 @@ import { chromium } from "playwright-core";
 import sharp from "sharp";
 import { BaseWebMetaRouter, webMetaSchemas, t, shieldedProcedure } from "@openloaf/api";
 import { resolveFilePathFromUri } from "@openloaf/api/services/vfsService";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import type { Response } from "undici";
 import { parseWebMetadataFromHtml } from "@openloaf/api";
 import type { WebMetadata } from "@openloaf/api";
@@ -94,7 +95,7 @@ async function fetchWebMetadata(url: string): Promise<WebMetadata> {
 /** Build web meta storage directory for a url. */
 function buildWebMetaDir(rootPath: string, url: string): string {
   const hash = createHash("sha256").update(url).digest("hex").slice(0, 16);
-  return path.join(rootPath, ".openloaf", "desktop", hash);
+  return resolveScopedOpenLoafPath(rootPath, "desktop", hash);
 }
 
 /** Download a remote icon and save as png. */

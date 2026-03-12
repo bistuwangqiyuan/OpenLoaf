@@ -400,7 +400,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
                     </TableCell>
                     <TableCell>
                       <span className="text-[12px] text-muted-foreground whitespace-nowrap">
-                        {task.scope === 'project' ? t('schedule.projectScope') : t('schedule.workspaceScope')}
+                        {task.scope === 'project' ? t('schedule.projectScope') : t('schedule.projectSpaceScope')}
                       </span>
                     </TableCell>
                     <TableCell>

@@ -144,7 +144,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
   onSelectTarget,
   onSelectFileRefs,
 }: ProjectFileSystemTransferDialogProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const queryClient = useQueryClient();
   const projectListQuery = useProjects();
   const [activeRootUri, setActiveRootUri] = useState<string | null>(

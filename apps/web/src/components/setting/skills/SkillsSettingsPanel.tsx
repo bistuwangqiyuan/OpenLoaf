@@ -165,7 +165,7 @@ function resolveSkillUri(skillPath: string, rootUri?: string): string | undefine
       const relative = normalizedSkillPath.slice(rootPath.length).replace(/^\/+/, "");
       if (!relative) return rootUri;
       // file:// URI 需要用 buildFileUriFromRoot 拼接完整 URI，
-      // 否则 buildUriFromRoot 只返回裸相对路径，导致服务端解析到工作空间根目录。
+      // 否则 buildUriFromRoot 只返回裸相对路径，导致服务端解析到全局根目录。
       if (rootUri.startsWith("file://")) {
         return buildFileUriFromRoot(rootUri, relative);
       }
@@ -221,7 +221,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
   }, [skills, searchQuery, scopeFilter, statusFilter]);
 
   /** Text for current skill list source. */
-  const scopeHintText = isProjectList ? t('skills.scopeHintProject') : t('skills.scopeHintWorkspace');
+  const scopeHintText = isProjectList ? t('skills.scopeHintProject') : t('skills.scopeHintGlobal');
 
   /** Skills root uri for system file manager open. */
   const skillsRootUri = useMemo(() => {
@@ -314,7 +314,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
       if (!activeTabId) return;
       const isProjectSkill = skill.scope === "project";
       const isGlobalSkill = skill.scope === "global";
-      // 全局技能路径为绝对路径，不依赖 workspace/project rootUri。
+      // 全局技能路径为绝对路径，不依赖全局或项目 rootUri。
       const baseRootUri = isGlobalSkill
         ? undefined
         : isProjectSkill

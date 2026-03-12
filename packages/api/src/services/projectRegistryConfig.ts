@@ -9,6 +9,7 @@
  */
 import path from "node:path";
 import {
+  type Dirent,
   existsSync,
   readdirSync,
   mkdirSync,
@@ -17,13 +18,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { z } from "zod";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import {
   getAppConfig,
   getDefaultProjectStoragePath,
 } from "./appConfigService";
 import { normalizeFileUri, resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
 
-const PROJECT_REGISTRY_CONFIG_DIR = ".openloaf";
 const PROJECT_REGISTRY_CONFIG_FILE = "project-registry.json";
 const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";
@@ -48,7 +49,7 @@ type ProjectRegistryContext = {
 
 /** Build the project registry path from the project storage root. */
 function resolveProjectRegistryConfigPath(rootPath: string): string {
-  return path.join(rootPath, PROJECT_REGISTRY_CONFIG_DIR, PROJECT_REGISTRY_CONFIG_FILE);
+  return resolveScopedOpenLoafPath(rootPath, PROJECT_REGISTRY_CONFIG_FILE);
 }
 
 /** Read project-registry.json safely. */
@@ -140,7 +141,7 @@ function toProjectRegistryEntry(rootPath: string, rootUri: string): string {
 /** Discover top-level projects directly under the storage root. */
 function discoverStorageRootProjects(rootPath: string): Array<[string, string]> {
   const entries: Array<[string, string]> = [];
-  let children: ReturnType<typeof readdirSync>;
+  let children: Dirent[] = [];
   try {
     children = readdirSync(rootPath, { withFileTypes: true });
   } catch {

@@ -175,7 +175,7 @@ const FileSystemListRowContent = memo(function FileSystemListRowContent({
   nameSlot,
   visualOverride,
 }: FileSystemListRowContentProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const displayName = useMemo(() => resolveEntryDisplayName(entry), [entry]);
   const typeLabel = useMemo(() => resolveEntryTypeLabel(entry, t), [entry, t]);
   const sizeLabel = useMemo(() => formatSize(entry.size), [entry.size]);
@@ -447,7 +447,7 @@ const FileSystemList = memo(function FileSystemList({
   resolveSelectionMode,
   onGridContextMenuCapture,
 }: FileSystemListProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   // 上一级入口仅在可回退时显示，允许回到根目录。
   const shouldShowParentEntry = parentUri !== null && parentUri !== undefined;
   const searchText = searchQuery?.trim() ?? "";

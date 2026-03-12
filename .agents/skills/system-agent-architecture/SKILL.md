@@ -244,7 +244,10 @@ Per-session 状态跟踪，管理哪些工具已被激活：
 
 **`createToolSearchPrepareStep()`**：每一步执行前，只暴露 `core + activated` 的工具子集。模型看不到未激活的工具。
 
-**`buildToolSearchGuidance()`**：生成 `<tool-search-guidance>` XML 块追加到 instructions 末尾，指导模型何时使用工具、何时直接回答。包含常见场景的 `select:` 快捷映射（如查时间 → `select:time-now`）。
+**`buildToolSearchGuidance()`**：生成 `<tool-search-guidance>` XML 块追加到 instructions 末尾。采用**工具能力目录**设计（非意图→工具映射表），包含三层内容：
+1. **意图判断原则**：纯语言任务（翻译/总结/改写等）直接回答，只有需要副作用时才加载工具
+2. **工具能力列表**：按功能分类列出工具 ID 与能力描述（平台感知过滤）
+3. **补充规则**：浏览器→sub-agent、代码开发→sub-agent
 
 ### Tool Search 关键文件
 

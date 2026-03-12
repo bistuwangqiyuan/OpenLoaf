@@ -36,13 +36,13 @@ import {
   StepUpProviderStep,
   type StepUpProviderSelection,
 } from "@/components/step-up/StepUpProviderStep";
-import { StepUpWorkspaceStep } from "@/components/step-up/StepUpWorkspaceStep";
+import { StepUpBackupStep } from "@/components/step-up/StepUpBackupStep";
 import { StepUpBasicInput } from "@/components/step-up/StepUpBasicInput";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 
-type StepId = "workspace" | "model" | "provider" | "login" | "finish";
+type StepId = "backup" | "model" | "provider" | "login" | "finish";
 
-type WorkspaceChoice = "local" | "cloud";
+type BackupChoice = "local" | "cloud";
 type ModelChoice = "custom" | "cloud";
 
 type LanguageChoice = "zh-CN" | "en-US";
@@ -52,7 +52,7 @@ export default function StepUpPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
-  const [workspaceChoice, setWorkspaceChoice] = useState<WorkspaceChoice | null>("cloud");
+  const [backupChoice, setBackupChoice] = useState<BackupChoice | null>("cloud");
   const [modelChoice, setModelChoice] = useState<ModelChoice | null>("cloud");
   const [providerSelection, setProviderSelection] =
     useState<StepUpProviderSelection | null>(null);
@@ -96,7 +96,7 @@ export default function StepUpPage() {
     { id: "en-US", label: "English" },
   ], [t]);
 
-  const needsLogin = workspaceChoice === "cloud" || modelChoice === "cloud";
+  const needsLogin = backupChoice === "cloud" || modelChoice === "cloud";
   const requiresProvider = modelChoice === "custom";
   // 登录步骤需同时选择区域与登录方式，避免仅选择其一继续。
   const loginReady = Boolean(loginProvider && loginRegion);
@@ -112,8 +112,8 @@ export default function StepUpPage() {
     : false;
 
   const steps = useMemo<StepId[]>(() => {
-    // 流程：先选工作空间 -> 选模型来源 -> 自定义模型必须配置供应商 -> 若云同步/云模型则登录 -> 最终完成。
-    const nextSteps: StepId[] = ["workspace", "model"];
+    // 流程：先选备份方式 -> 选模型来源 -> 自定义模型必须配置供应商 -> 若云同步/云模型则登录 -> 最终完成。
+    const nextSteps: StepId[] = ["backup", "model"];
     if (requiresProvider) nextSteps.push("provider");
     if (needsLogin) nextSteps.push("login");
     else nextSteps.push("finish");
@@ -177,12 +177,12 @@ export default function StepUpPage() {
 
   const canProceed = useMemo(() => {
     // 按步骤校验是否允许继续，避免跳过必要配置。
-    if (stepId === "workspace") return Boolean(workspaceChoice);
+    if (stepId === "backup") return Boolean(backupChoice);
     if (stepId === "model") return Boolean(modelChoice);
     if (stepId === "provider") return providerConfigured;
     if (stepId === "login") return loginReady;
     return true;
-  }, [stepId, workspaceChoice, modelChoice, providerConfigured, loginReady]);
+  }, [stepId, backupChoice, modelChoice, providerConfigured, loginReady]);
 
   const isFinalStep = stepId === "login" || stepId === "finish";
   const primaryLabel =
@@ -264,10 +264,10 @@ export default function StepUpPage() {
     : 0;
 
   const finishSummary: StepUpFinishSummary = {
-    workspace:
-      workspaceChoice === "cloud"
+    backup:
+      backupChoice === "cloud"
         ? t('stepUp.cloudBackup')
-        : workspaceChoice === "local"
+        : backupChoice === "local"
           ? t('stepUp.localBackup')
           : t('stepUp.notSelected'),
     model:
@@ -325,7 +325,7 @@ export default function StepUpPage() {
           <LogOut className="size-4" />
         </Button>
       </div>
-      {stepId !== "workspace" ? (
+      {stepId !== "backup" ? (
         <div
           className="fixed left-4 z-20"
           style={{ top: "calc(var(--header-height) + env(titlebar-area-height, 0px))" }}
@@ -435,10 +435,10 @@ export default function StepUpPage() {
         </div>
       ) : (
         <div className="pt-12 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {stepId === "workspace" ? (
-            <StepUpWorkspaceStep
-              value={workspaceChoice}
-              onSelect={setWorkspaceChoice}
+          {stepId === "backup" ? (
+            <StepUpBackupStep
+              value={backupChoice}
+              onSelect={setBackupChoice}
             />
           ) : null}
 

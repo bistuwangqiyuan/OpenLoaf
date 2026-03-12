@@ -35,7 +35,7 @@ export function ModelManagement() {
   const { models: cloudModels } = useCloudModels();
   const installedCliProviderIds = useInstalledCliProviderIds();
 
-  const workspaceProjectRule =
+  const projectSpaceProjectRule =
     typeof basic.appProjectRule === "string" ? basic.appProjectRule : "";
   const defaultChatModelId =
     typeof basic.modelDefaultChatModelId === "string" ? basic.modelDefaultChatModelId : "";
@@ -67,7 +67,7 @@ export function ModelManagement() {
 
             <OpenLoafSettingsField className="w-full sm:w-[420px] shrink-0 justify-end">
               <OpenLoafAutoWidthInput
-                value={workspaceProjectRule}
+                value={projectSpaceProjectRule}
                 onChange={(event) => void setBasic({ appProjectRule: event.target.value })}
                 className="bg-background"
               />

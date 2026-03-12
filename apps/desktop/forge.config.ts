@@ -265,6 +265,7 @@ const config: ForgeConfig = {
       // Pre-built SQLite DB with schema applied (copied to userData on first run).
       '../../apps/server/dist/seed.db',
       '../../apps/web/out',
+      '../../apps/desktop/resources/docx-sfdt',
       '../../apps/desktop/resources/speech',
       '../../apps/desktop/resources/calendar',
       '../../apps/desktop/resources/runtime.env',

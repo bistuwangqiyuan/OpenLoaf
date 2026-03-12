@@ -55,7 +55,7 @@ function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   )
 }
 
-let workspaceRoot = ''
+let projectRoot = ''
 const testSubDir = `_fileinfo_test_${Date.now()}`
 let ffmpegAvailable = false
 
@@ -70,8 +70,8 @@ const toolCtx = { toolCallId: 'test', messages: [], abortSignal: AbortSignal.abo
 // ---------------------------------------------------------------------------
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 
   // PNG image (200x200 red)
   const sharp = (await import('sharp')).default
@@ -79,27 +79,27 @@ async function setupTestDir() {
     create: { width: 200, height: 200, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } },
   })
     .png()
-    .toFile(path.join(workspaceRoot, testSubDir, 'test.png'))
+    .toFile(path.join(projectRoot, testSubDir, 'test.png'))
 
   // JPEG image (300x200 blue)
   await sharp({
     create: { width: 300, height: 200, channels: 3, background: { r: 0, g: 128, b: 255 } },
   })
     .jpeg()
-    .toFile(path.join(workspaceRoot, testSubDir, 'test.jpg'))
+    .toFile(path.join(projectRoot, testSubDir, 'test.jpg'))
 
   // TXT file
-  await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.txt'), 'Hello World\nLine 2')
+  await fs.writeFile(path.join(projectRoot, testSubDir, 'test.txt'), 'Hello World\nLine 2')
 
   // HTML file
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.html'),
+    path.join(projectRoot, testSubDir, 'test.html'),
     '<!DOCTYPE html><html><body><h1>Title</h1></body></html>',
   )
 
   // CSV file
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.csv'),
+    path.join(projectRoot, testSubDir, 'test.csv'),
     'Name,Age,City\nAlice,30,Beijing\nBob,25,Shanghai',
   )
 
@@ -111,7 +111,7 @@ async function setupTestDir() {
   XLSX.utils.book_append_sheet(wb, ws1, 'People')
   const ws2 = XLSX.utils.aoa_to_sheet([['City', 'Country'], ['Beijing', 'China']])
   XLSX.utils.book_append_sheet(wb, ws2, 'Cities')
-  XLSX.writeFile(wb, path.join(workspaceRoot, testSubDir, 'test.xlsx'))
+  XLSX.writeFile(wb, path.join(projectRoot, testSubDir, 'test.xlsx'))
 
   // PDF (using pdf-lib)
   const { PDFDocument, StandardFonts } = await import('pdf-lib')
@@ -119,10 +119,10 @@ async function setupTestDir() {
   const page = doc.addPage()
   const font = await doc.embedFont(StandardFonts.Helvetica)
   page.drawText('Test PDF', { x: 50, y: 700, size: 12, font })
-  await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.pdf'), await doc.save())
+  await fs.writeFile(path.join(projectRoot, testSubDir, 'test.pdf'), await doc.save())
 
   // JSON file
-  await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.json'), '{"key": "value"}')
+  await fs.writeFile(path.join(projectRoot, testSubDir, 'test.json'), '{"key": "value"}')
 
   // Video / Audio (if ffmpeg available)
   try {
@@ -133,11 +133,11 @@ async function setupTestDir() {
   if (ffmpegAvailable) {
     const { execSync } = await import('node:child_process')
     execSync(
-      `ffmpeg -y -f lavfi -i color=c=blue:s=320x240:d=1 -f lavfi -i sine=frequency=440:duration=1 -shortest "${path.join(workspaceRoot, testSubDir, 'test.mp4')}"`,
+      `ffmpeg -y -f lavfi -i color=c=blue:s=320x240:d=1 -f lavfi -i sine=frequency=440:duration=1 -shortest "${path.join(projectRoot, testSubDir, 'test.mp4')}"`,
       { stdio: 'ignore' },
     )
     execSync(
-      `ffmpeg -y -f lavfi -i sine=frequency=440:duration=1 "${path.join(workspaceRoot, testSubDir, 'test.wav')}"`,
+      `ffmpeg -y -f lavfi -i sine=frequency=440:duration=1 "${path.join(projectRoot, testSubDir, 'test.wav')}"`,
       { stdio: 'ignore' },
     )
   } else {
@@ -146,7 +146,7 @@ async function setupTestDir() {
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
 // ---------------------------------------------------------------------------
@@ -272,7 +272,7 @@ async function main() {
     const result: any = await withCtx(() =>
       fileInfoTool.execute({ actionName: 'test', filePath: rel('test.png') }, toolCtx),
     )
-    const stat = await fs.stat(path.join(workspaceRoot, testSubDir, 'test.png'))
+    const stat = await fs.stat(path.join(projectRoot, testSubDir, 'test.png'))
     assert.equal(result.data.base.fileSize, stat.size)
   })
 
@@ -409,7 +409,7 @@ async function main() {
   await test('F6b: directory path throws not-a-file error', async () => {
     // Create a subdirectory
     const subDirName = 'test_subdir'
-    await fs.mkdir(path.join(workspaceRoot, testSubDir, subDirName), { recursive: true })
+    await fs.mkdir(path.join(projectRoot, testSubDir, subDirName), { recursive: true })
     await assert.rejects(
       () =>
         withCtx(() =>
@@ -425,8 +425,8 @@ async function main() {
   await test('F6c: .docx file returns document type with hint', async () => {
     // Create a minimal file with .docx extension (not a real docx, but enough to test type detection)
     await fs.copyFile(
-      path.join(workspaceRoot, testSubDir, 'test.txt'),
-      path.join(workspaceRoot, testSubDir, 'test.docx'),
+      path.join(projectRoot, testSubDir, 'test.txt'),
+      path.join(projectRoot, testSubDir, 'test.docx'),
     )
     const result: any = await withCtx(() =>
       fileInfoTool.execute({ actionName: 'test', filePath: rel('test.docx') }, toolCtx),
@@ -441,7 +441,7 @@ async function main() {
   })
 
   await test('F6d: unknown extension returns other with empty details', async () => {
-    await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.xyz'), 'unknown content')
+    await fs.writeFile(path.join(projectRoot, testSubDir, 'test.xyz'), 'unknown content')
     const result: any = await withCtx(() =>
       fileInfoTool.execute({ actionName: 'test', filePath: rel('test.xyz') }, toolCtx),
     )

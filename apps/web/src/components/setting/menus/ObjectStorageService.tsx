@@ -165,7 +165,7 @@ export function ObjectStorageService() {
   }
 
   /**
-   * Activate S3 provider for current workspace.
+   * Activate S3 provider for current global settings scope.
    */
   async function handleActivateS3(entry: S3ProviderEntry) {
     if (!entry.id) return;

@@ -73,6 +73,16 @@ type DesktopFilePayload = {
 
 const DESKTOP_FILE_NAME = "desktop.openloaf";
 
+/** Build the scope meta URI for project/global desktop persistence. */
+function buildScopedMetaUri(rootUri: string): string {
+  const normalized = rootUri.trim().replace(/[/\\]+$/, "");
+  if (!normalized) return "";
+  if (normalized.endsWith("/.openloaf")) {
+    return normalized;
+  }
+  return buildChildUri(normalized, ".openloaf");
+}
+
 /** Resolve a fallback layout from a layout map. */
 function resolveFallbackLayout(layouts: Record<DesktopBreakpoint, DesktopItemLayout>) {
   return layouts.lg ?? layouts.md ?? layouts.sm ?? { x: 0, y: 0, w: 1, h: 1 };
@@ -80,13 +90,13 @@ function resolveFallbackLayout(layouts: Record<DesktopBreakpoint, DesktopItemLay
 
 /** Build the desktop persistence file uri under the project root. */
 export function getDesktopFileUri(rootUri: string): string {
-  const metaDir = buildChildUri(rootUri, ".openloaf");
+  const metaDir = buildScopedMetaUri(rootUri);
   return buildChildUri(metaDir, DESKTOP_FILE_NAME);
 }
 
 /** Build the desktop persistence file uri under the global desktop root. */
 export function getGlobalDesktopFileUri(rootUri: string): string {
-  const metaDir = buildChildUri(rootUri, ".openloaf");
+  const metaDir = buildScopedMetaUri(rootUri);
   return buildChildUri(metaDir, DESKTOP_FILE_NAME);
 }
 

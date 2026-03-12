@@ -82,7 +82,7 @@ export interface OpenLoafUIDataTypes extends UIDataTypes {
   skill: {
     name: string;
     path: string;
-    scope: "project" | "parent" | "workspace";
+    scope: "project" | "parent" | "global";
     content: string;
   };
   "session-title": {

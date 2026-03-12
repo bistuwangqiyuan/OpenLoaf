@@ -252,7 +252,7 @@ export function useEmailCoreState(): EmailCoreState {
   >('idle')
   const draftIdRef = React.useRef<string | null>(null)
 
-  // ── 工作空间切换重置 ──
+  // ── 初始化视图状态 ──
   React.useEffect(() => {
     setActiveView({ scope: 'all-inboxes', label: t('email.unifiedAllInboxes') })
     setActiveAccountEmail(null)

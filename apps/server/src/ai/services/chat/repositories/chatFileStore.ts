@@ -10,7 +10,7 @@
 import { promises as fs } from 'node:fs'
 import fsSync from 'node:fs'
 import path from 'node:path'
-import { resolveOpenLoafPath } from '@openloaf/config'
+import { resolveOpenLoafPath, resolveScopedOpenLoafPath } from '@openloaf/config'
 import {
   getProjectRootPath,
 } from '@openloaf/api/services/vfsService'
@@ -151,13 +151,13 @@ function resolveChatHistoryRoot(
       ? getProjectRootPath(projectId)
       : null
     if (scopeRoot) {
-      return path.join(scopeRoot, '.openloaf', 'boards')
+      return resolveScopedOpenLoafPath(scopeRoot, 'boards')
     }
   }
   if (projectId) {
     const projectRoot = getProjectRootPath(projectId)
     if (projectRoot) {
-      return path.join(projectRoot, '.openloaf', CHAT_HISTORY_DIR)
+      return resolveScopedOpenLoafPath(projectRoot, CHAT_HISTORY_DIR)
     }
   }
   return resolveOpenLoafPath(CHAT_HISTORY_DIR)

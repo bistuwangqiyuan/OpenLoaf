@@ -115,24 +115,8 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   };
 }
 
-/** Fetch all chat sessions without project filter. */
-export function useWorkspaceChatSessions() {
-  const query = useQuery({
-    ...trpc.chat.listSessions.queryOptions({ boardId: null }),
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-  const sessions = (query.data ?? []) as ChatSessionListItem[];
-
-  return {
-    sessions,
-    isLoading: query.isLoading,
-    refetch: query.refetch,
-  };
-}
-
 /** Invalidate session list cache. */
 export function invalidateChatSessions(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: trpc.chat.listSessions.pathKey() });
-  queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.pathKey() });
+  queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.pathKey() });
 }

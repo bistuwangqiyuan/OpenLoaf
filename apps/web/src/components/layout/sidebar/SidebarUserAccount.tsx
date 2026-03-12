@@ -13,7 +13,6 @@ import * as React from "react"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import {
-  ChevronsUpDown,
   Sparkles,
   Lightbulb,
   LogIn,
@@ -104,6 +103,7 @@ export function SidebarUserAccount() {
   const sidebarAccountLabel = isWechatLogin
     ? authUser?.name?.trim() || t('wechatUser')
     : baseAccountLabel
+  const sidebarDisplayName = authUser?.name?.trim() || sidebarAccountLabel || "OpenLoaf"
   const dropdownAccountLabel = isWechatLogin ? t('wechatLogin') : baseAccountLabel
   const membershipLevel = userProfileQuery.data?.membershipLevel
   const membershipLabel = membershipLevel
@@ -112,8 +112,9 @@ export function SidebarUserAccount() {
   const creditsBalanceLabel = userProfileQuery.data
     ? Math.floor(userProfileQuery.data.creditsBalance).toLocaleString()
     : null
-  const hasSidebarMembershipInfo = Boolean(membershipLabel && creditsBalanceLabel)
-  const sidebarSecondaryLabel = sidebarAccountLabel ?? (authLoggedIn ? t('loggedIn') : t('notLoggedIn'))
+  const sidebarLoginMethodLabel = authLoggedIn
+    ? (isWechatLogin ? t('wechatLogin') : t('googleLogin'))
+    : t('notLoggedIn')
   const avatarAlt = sidebarAccountLabel ?? "User"
   const displayAvatar = authUser?.avatarUrl
 
@@ -215,28 +216,28 @@ export function SidebarUserAccount() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0 text-left">
-                <div className="truncate text-sm font-medium leading-5">
-                  {authUser?.name || "OpenLoaf"}
+                <div className="flex min-w-0 items-center gap-1.5 leading-5">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {sidebarDisplayName}
+                  </span>
+                  {membershipLabel ? (
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? "bg-foreground/[0.05] text-foreground/65"}`}
+                    >
+                      {membershipLabel}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex w-full items-center gap-1.5 overflow-hidden text-muted-foreground leading-4">
-                  {hasSidebarMembershipInfo ? (
-                    <>
-                      <span
-                        className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? "bg-foreground/[0.05] text-foreground/65"}`}
-                      >
-                        {membershipLabel}
-                      </span>
-                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] text-muted-foreground/75" title={t('credits')}>
-                        <Sparkles className="size-3 text-muted-foreground/65" />
-                        <span>{creditsBalanceLabel}</span>
-                      </span>
-                    </>
-                  ) : (
-                    <span className="truncate text-[11px]">{sidebarSecondaryLabel}</span>
-                  )}
+                  <span className="truncate text-[11px]">{sidebarLoginMethodLabel}</span>
+                  {creditsBalanceLabel ? (
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] text-muted-foreground/75" title={t('credits')}>
+                      <Sparkles className="size-3 text-muted-foreground/65" />
+                      <span>{creditsBalanceLabel}</span>
+                    </span>
+                  ) : null}
                 </div>
               </div>
-              <ChevronsUpDown className="text-muted-foreground size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

@@ -175,7 +175,7 @@ const ProjectFileSystem = memo(function ProjectFileSystem({
   projectLookup,
   onNavigate,
 }: ProjectFileSystemProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const headerActionsTarget = useHeaderSlot((s) => s.headerActionsTarget);
   const queryClient = useQueryClient();
   const createProjectMutation = useMutation(trpc.project.create.mutationOptions());

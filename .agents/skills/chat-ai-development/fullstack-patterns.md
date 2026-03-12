@@ -135,7 +135,7 @@
 
 | 修改目标 | 文件 |
 |----------|------|
-| Master Agent 基础角色 | `agent-templates/templates/master/prompt.zh.md` |
+| Master Agent 基础角色 | `agent-templates/templates/master/prompt-v3.zh.md` / `prompt-v3.en.md` |
 | 系统 Agent 提示词 | `agent-templates/templates/<agentId>/prompt.zh.md` |
 | Session preface（运行时上下文） | `shared/prefaceBuilder.ts` → `buildSessionPrefaceText()` |
 | 技能摘要格式 | `shared/promptBuilder.ts` → `buildSkillsSummarySection()` |

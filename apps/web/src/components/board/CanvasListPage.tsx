@@ -529,7 +529,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
     // 中文注释：缩略图需要按 projectId 分组，才能命中正确的项目根目录。
     const groups = new Map<string, BoardThumbnailBatch>();
     for (const board of visibleThumbBoards) {
-      const key = board.projectId ?? "__workspace__";
+      const key = board.projectId ?? "__global__";
       const group = groups.get(key);
       if (group) {
         group.boardIds.push(board.id);
@@ -748,10 +748,10 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const boardCardLabels = useMemo<BoardCardLabels>(
     () => ({
       untitled: t("canvasList.untitled"),
-      rename: t("workspaceChatList.contextMenu.rename"),
+      rename: t("chatHistoryList.contextMenu.rename"),
       duplicate: t("canvasList.duplicate"),
       copyPath: t("canvasList.copyPath"),
-      delete: t("workspaceChatList.contextMenu.delete"),
+      delete: t("chatHistoryList.contextMenu.delete"),
     }),
     [t],
   );

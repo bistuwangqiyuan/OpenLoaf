@@ -300,7 +300,7 @@ async function resolveSidebarHistoryBatch(
   prisma: EntityVisitRecordClient,
   rows: SidebarHistorySourceRow[],
   projectMap: Map<string, ProjectVisitInfo>,
-  workspaceRootUri: string,
+  storageRootUri: string,
 ): Promise<SidebarHistoryResolvedRow[]> {
   const chatIds = rows
     .filter((row) => row.entityType === "chat")
@@ -378,7 +378,7 @@ async function resolveSidebarHistoryBatch(
     if (!board) continue;
     const rawProjectId = normalizeOptionalId(board.projectId) ?? normalizeOptionalId(row.projectId);
     const projectInfo = rawProjectId ? projectMap.get(rawProjectId) : undefined;
-    const rootUri = projectInfo?.rootUri ?? (!rawProjectId ? workspaceRootUri : undefined);
+    const rootUri = projectInfo?.rootUri ?? (!rawProjectId ? storageRootUri : undefined);
     if (!rootUri) continue;
     const item: SidebarHistoryBoardItem = {
       recordId: row.id,
@@ -456,7 +456,7 @@ export async function listSidebarHistoryPage(
     /** Override project trees for tests. */
     projectTrees?: ProjectNode[];
     /** Override project storage root uri for tests. */
-    workspaceRootUri?: string;
+    storageRootUri?: string;
   },
 ): Promise<SidebarHistoryPage> {
   const pageSize = normalizeSidebarHistoryPageSize(input.pageSize);
@@ -466,7 +466,7 @@ export async function listSidebarHistoryPage(
   const scanTake = Math.max(pageSize * SIDEBAR_HISTORY_SCAN_MULTIPLIER, pageSize + 1);
   const projectTrees = options?.projectTrees ?? (await readProjectTrees());
   const projectMap = buildProjectVisitInfoMap(projectTrees);
-  const workspaceRootUri = options?.workspaceRootUri ?? getProjectStorageRootUri();
+  const storageRootUri = options?.storageRootUri ?? getProjectStorageRootUri();
 
   const resolvedRows: SidebarHistoryResolvedRow[] = [];
   let scanCursor = decodeSidebarHistoryCursor(input.cursor);
@@ -489,7 +489,7 @@ export async function listSidebarHistoryPage(
       prisma,
       batch,
       projectMap,
-      workspaceRootUri,
+      storageRootUri,
     );
     resolvedRows.push(...batchResolved);
 

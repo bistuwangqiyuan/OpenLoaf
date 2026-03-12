@@ -178,5 +178,5 @@ export function exitProjectShellToProjectList(tabId: string, title: string, icon
   runtime.setTabLeftWidthPercent(tabId, 100);
   runtime.setTabRightChatCollapsed(tabId, true);
 
-  useNavigation.getState().setActiveView("workspace-list");
+  useNavigation.getState().setActiveView("project-list");
 }

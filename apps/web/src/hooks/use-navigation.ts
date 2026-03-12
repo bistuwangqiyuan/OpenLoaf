@@ -26,22 +26,22 @@ export type NavigationViewType =
   | "email"
   | "scheduled-tasks"
   | "canvas-list"
-  | "workspace-list"
+  | "project-list"
   | "project"
-  | "workspace-chat"
+  | "global-chat"
   | "ai-assistant"
   | null;
 
 /** 结构化的当前激活视图 */
 export type ActiveView =
-  | { type: "workspace-chat"; chatSessionId: string }
+  | { type: "global-chat"; chatSessionId: string }
   | { type: "project"; projectId: string }
   | { type: "workbench" }
   | { type: "calendar" }
   | { type: "email" }
   | { type: "scheduled-tasks" }
   | { type: "canvas-list" }
-  | { type: "workspace-list" }
+  | { type: "project-list" }
   | { type: "ai-assistant" };
 
 /** 视图运行时状态（布局尺寸、折叠状态等） */
@@ -59,8 +59,8 @@ export interface ViewRuntime {
 /** 从 ActiveView 生成唯一的视图 key */
 export function getViewKey(view: ActiveView): string {
   switch (view.type) {
-    case "workspace-chat":
-      return `workspace-chat:${view.chatSessionId}`;
+    case "global-chat":
+      return `global-chat:${view.chatSessionId}`;
     case "project":
       return `project:${view.projectId}`;
     default:
@@ -76,7 +76,7 @@ export interface NavigationState {
   activeProjectId: string | null;
 
   /** 当前激活的全局聊天会话 ID */
-  activeWorkspaceChatSessionId: string | null;
+  activeGlobalChatSessionId: string | null;
 
   /** 结构化的当前激活视图（派生自 activeViewType + context） */
   activeView: ActiveView | null;
@@ -91,13 +91,13 @@ export interface NavigationState {
   setActiveProject: (projectId: string | null) => void;
 
   /** 设置激活的全局聊天会话 */
-  setActiveWorkspaceChat: (sessionId: string | null) => void;
+  setActiveGlobalChat: (sessionId: string | null) => void;
 
   /** 获取当前激活的视图信息 */
   getActiveView: () => {
     viewType: NavigationViewType;
     projectId: string | null;
-    workspaceChatSessionId: string | null;
+    globalChatSessionId: string | null;
   };
 
   /** Sidebar 当前显示的 tab（project 或 chat） */
@@ -120,8 +120,8 @@ function buildActiveView(
   chatSessionId: string | null,
 ): ActiveView | null {
   switch (viewType) {
-    case "workspace-chat":
-      return chatSessionId ? { type: "workspace-chat", chatSessionId } : null;
+    case "global-chat":
+      return chatSessionId ? { type: "global-chat", chatSessionId } : null;
     case "project":
       return projectId ? { type: "project", projectId } : null;
     case "workbench":
@@ -134,8 +134,8 @@ function buildActiveView(
       return { type: "scheduled-tasks" };
     case "canvas-list":
       return { type: "canvas-list" };
-    case "workspace-list":
-      return { type: "workspace-list" };
+    case "project-list":
+      return { type: "project-list" };
     case "ai-assistant":
       return { type: "ai-assistant" };
     default:
@@ -146,7 +146,7 @@ function buildActiveView(
 export const useNavigation = create<NavigationState>((set, get) => ({
   activeViewType: null,
   activeProjectId: null,
-  activeWorkspaceChatSessionId: null,
+  activeGlobalChatSessionId: null,
   activeView: null,
   viewRuntimes: {},
   sidebarTab: "project",
@@ -158,7 +158,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
       activeView: buildActiveView(
         viewType,
         state.activeProjectId,
-        state.activeWorkspaceChatSessionId,
+        state.activeGlobalChatSessionId,
       ),
     });
   },
@@ -171,12 +171,12 @@ export const useNavigation = create<NavigationState>((set, get) => ({
     });
   },
 
-  setActiveWorkspaceChat: (sessionId) => {
+  setActiveGlobalChat: (sessionId) => {
     set({
-      activeViewType: "workspace-chat",
-      activeWorkspaceChatSessionId: sessionId,
+      activeViewType: "global-chat",
+      activeGlobalChatSessionId: sessionId,
       activeView: sessionId
-        ? { type: "workspace-chat", chatSessionId: sessionId }
+        ? { type: "global-chat", chatSessionId: sessionId }
         : null,
     });
   },
@@ -186,7 +186,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
     return {
       viewType: state.activeViewType,
       projectId: state.activeProjectId,
-      workspaceChatSessionId: state.activeWorkspaceChatSessionId,
+      globalChatSessionId: state.activeGlobalChatSessionId,
     };
   },
 

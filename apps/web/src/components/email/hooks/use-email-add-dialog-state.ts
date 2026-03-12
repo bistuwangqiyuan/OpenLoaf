@@ -178,7 +178,7 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
   function handleOAuthLogin() {
     if (!formState.oauthProvider) return
     const serverUrl = resolveServerUrl()
-    // 逻辑：邮件 OAuth 已升级为全局能力，授权入口不再依赖旧工作空间兼容参数。
+    // 逻辑：邮件 OAuth 已升级为全局能力，授权入口不再依赖旧作用域兼容参数。
     const oauthUrl = `${serverUrl}/auth/email/${formState.oauthProvider}/start`
     const popup = window.open(oauthUrl, 'oauth', 'width=600,height=700')
     if (!popup) {

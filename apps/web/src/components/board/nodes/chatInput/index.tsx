@@ -371,7 +371,7 @@ export function ChatInputNodeView({
           </span>
         </div>
 
-        {/* Model ID display (uses workspace default) */}
+        {/* Model ID display (uses global default) */}
         {element.props.chatModelId && (
           <div className="px-3 py-1 border-b border-border/20">
             <span className="text-[10px] text-muted-foreground">

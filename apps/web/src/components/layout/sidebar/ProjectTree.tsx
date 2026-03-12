@@ -1154,7 +1154,7 @@ export const PageTreeMenu = ({
     }
   };
 
-  /** Permanently delete project files and remove it from workspace. */
+  /** Permanently delete project files and remove it from the project space. */
   const handleDestroyProject = async () => {
     if (!removeTarget?.projectId) {
       toast.error(t("common:operationFailed"));

@@ -49,7 +49,7 @@ const FileSystemEmptyState = memo(function FileSystemEmptyState({
   setDragOverFolderUri,
   shouldBlockPointerEvent,
 }: FileSystemEmptyStateProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   return (
     <div className="flex h-full items-center justify-center translate-y-2">
       <div className="flex w-full flex-col items-center gap-4">
@@ -122,7 +122,7 @@ FileSystemEmptyState.displayName = "FileSystemEmptyState";
 const FileSystemSearchEmptyState = memo(function FileSystemSearchEmptyState({
   query,
 }: FileSystemSearchEmptyStateProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   return (
     <div className="flex h-full items-center justify-center translate-y-2">
       <EmptyState

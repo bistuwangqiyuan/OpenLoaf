@@ -10,7 +10,7 @@
 import { promises as fs } from 'node:fs'
 import fsSync from 'node:fs'
 import path from 'node:path'
-import { getDefaultWorkspaceRootDir } from '@openloaf/config'
+import { resolveOpenLoafPath } from '@openloaf/config'
 import { logger } from '@/common/logger'
 
 // ---------------------------------------------------------------------------
@@ -99,8 +99,7 @@ export function decodeMailboxPath(encoded: string): string {
 
 /** Resolve root for email store. */
 function resolveEmailStoreRoot(): string {
-  const root = getDefaultWorkspaceRootDir()
-  return path.join(root, '.openloaf', EMAIL_STORE_DIR)
+  return resolveOpenLoafPath(EMAIL_STORE_DIR)
 }
 
 /** Resolve account directory. */

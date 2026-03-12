@@ -133,9 +133,9 @@ const ProjectAiSettings = memo(function ProjectAiSettings({
         <div className="divide-y divide-border">
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">{t("project.ai.overrideWorkspace")}</div>
+              <div className="text-sm font-medium">{t("project.ai.overrideGlobal")}</div>
               <div className="text-xs text-muted-foreground">
-                {t("project.ai.overrideWorkspaceDesc")}
+                {t("project.ai.overrideGlobalDesc")}
               </div>
             </div>
 
@@ -146,7 +146,7 @@ const ProjectAiSettings = memo(function ProjectAiSettings({
                   onCheckedChange={(checked) =>
                     updateAiSettings({ overrideEnabled: checked })
                   }
-                  aria-label={t("project.ai.overrideWorkspace")}
+                  aria-label={t("project.ai.overrideGlobal")}
                 />
               </div>
             </OpenLoafSettingsField>

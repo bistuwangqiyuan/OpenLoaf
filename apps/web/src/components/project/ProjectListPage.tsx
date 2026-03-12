@@ -266,7 +266,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
     (project: ProjectListItem) => {
       openProject({
         projectId: project.projectId,
-        title: project.title || t("workspaceListPage.untitled"),
+        title: project.title || t("projectListPage.untitled"),
         rootUri: project.rootUri,
         icon: project.icon ?? undefined,
       });
@@ -279,7 +279,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       openProject(
         {
           projectId: project.projectId,
-          title: project.title || t("workspaceListPage.untitled"),
+          title: project.title || t("projectListPage.untitled"),
           rootUri: project.rootUri,
           icon: project.icon ?? undefined,
         },
@@ -294,7 +294,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       openProject(
         {
           projectId: project.projectId,
-          title: project.title || t("workspaceListPage.untitled"),
+          title: project.title || t("projectListPage.untitled"),
           rootUri: project.rootUri,
           icon: project.icon ?? undefined,
         },
@@ -314,7 +314,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
 
   const handleRemove = useCallback(
     (projectId: string) => {
-      if (confirm(t("workspaceListPage.confirmRemove"))) {
+      if (confirm(t("projectListPage.confirmRemove"))) {
         removeMutation.mutate({ projectId });
       }
     },
@@ -433,7 +433,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                         }}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        {t("workspaceListPage.openInNewWindow")}
+                        {t("projectListPage.openInNewWindow")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -447,7 +447,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                         }}
                       >
                         <Edit2 className="mr-2 h-4 w-4" />
-                        {t("workspaceChatList.contextMenu.rename")}
+                        {t("chatHistoryList.contextMenu.rename")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => {
@@ -489,13 +489,13 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                       {project.icon}
                     </span>
                   )}
-                  {project.title || t("workspaceListPage.untitled")}
+                  {project.title || t("projectListPage.untitled")}
                 </span>
                 <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                   <span className="truncate">{displayPath}</span>
                   {childCount > 0 && (
                     <span className="shrink-0">
-                      {t("workspaceListPage.childCount", { count: childCount })}
+                      {t("projectListPage.childCount", { count: childCount })}
                     </span>
                   )}
                 </div>
@@ -512,7 +512,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               onSelect={() => handleProjectOpenInWindow(project)}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
-              {t("workspaceListPage.openInNewWindow")}
+              {t("projectListPage.openInNewWindow")}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -525,7 +525,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               }
             >
               <Edit2 className="mr-2 h-4 w-4" />
-              {t("workspaceChatList.contextMenu.rename")}
+              {t("chatHistoryList.contextMenu.rename")}
             </ContextMenuItem>
             <ContextMenuItem
               onSelect={() =>
@@ -596,7 +596,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">
-                {t("workspaceListPage.allProjectTypes")}
+                {t("projectListPage.allProjectTypes")}
               </SelectItem>
               {PROJECT_TYPE_ORDER.map((projectType) => (
                 <SelectItem key={projectType} value={projectType}>
@@ -608,7 +608,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            {t("workspaceListPage.totalCount", {
+            {t("projectListPage.totalCount", {
               count: totalProjects,
             })}
           </span>
@@ -624,7 +624,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {t("workspaceListPage.groupByProjectType")}
+              {t("projectListPage.groupByProjectType")}
             </TooltipContent>
           </Tooltip>
           <Button
@@ -634,7 +634,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             onClick={() => setIsCreateOpen(true)}
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            {t("workspaceListPage.addProject")}
+            {t("projectListPage.addProject")}
           </Button>
         </div>
       </div>
@@ -650,8 +650,8 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             <FolderOpen className="h-10 w-10 opacity-30" />
             <p className="text-sm">
               {hasActiveFilter
-                ? t("workspaceListPage.emptyFiltered")
-                : t("workspaceListPage.empty")}
+                ? t("projectListPage.emptyFiltered")
+                : t("projectListPage.empty")}
             </p>
           </div>
         ) : groupByType ? (
@@ -716,9 +716,9 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("workspaceListPage.renameTitle")}</DialogTitle>
+            <DialogTitle>{t("projectListPage.renameTitle")}</DialogTitle>
             <DialogDescription>
-              {t("workspaceListPage.renameDesc")}
+              {t("projectListPage.renameDesc")}
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -765,7 +765,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("workspaceListPage.addProjectTitle")}</DialogTitle>
+            <DialogTitle>{t("projectListPage.addProjectTitle")}</DialogTitle>
           </DialogHeader>
           <Input
             value={createTitle}
@@ -773,7 +773,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCreateProject();
             }}
-            placeholder={t("workspaceListPage.addProjectPlaceholder")}
+            placeholder={t("projectListPage.addProjectPlaceholder")}
             className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
             autoFocus
           />
@@ -792,7 +792,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               disabled={createMutation.isPending || !createTitle.trim()}
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              {t("workspaceListPage.addProject")}
+              {t("projectListPage.addProject")}
             </Button>
           </DialogFooter>
         </DialogContent>

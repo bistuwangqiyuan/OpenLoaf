@@ -161,9 +161,9 @@ export function Search({
         : skipToken,
     ),
   });
-  /** 工作空间范围内的搜索结果。 */
-  const workspaceSearchQuery = useQuery({
-    ...trpc.fs.searchWorkspace.queryOptions(
+  /** 全部项目范围内的搜索结果。 */
+  const allProjectsSearchQuery = useQuery({
+    ...trpc.fs.searchAllProjects.queryOptions(
       searchEnabled && !scopedProjectId && !projectMode
         ? {
             query: debouncedSearchValue,
@@ -186,18 +186,18 @@ export function Search({
         relativePath: entry.uri,
       }));
     }
-    return workspaceSearchQuery.data?.results ?? [];
+    return allProjectsSearchQuery.data?.results ?? [];
   }, [
     projectSearchQuery.data?.results,
     scopedProjectId,
     scopedProjectTitle,
     searchEnabled,
-    workspaceSearchQuery.data?.results,
+    allProjectsSearchQuery.data?.results,
   ]);
   /** 当前搜索是否在请求中。 */
   const isSearchFetching = Boolean(
     searchEnabled &&
-      (scopedProjectId ? projectSearchQuery.isFetching : workspaceSearchQuery.isFetching),
+      (scopedProjectId ? projectSearchQuery.isFetching : allProjectsSearchQuery.isFetching),
   );
   /** 实际渲染用的结果集合。 */
   const visibleFileResults = isSearchFetching ? cachedFileResults : latestFileResults;
@@ -434,7 +434,7 @@ export function Search({
     () => buildRecentResults(recentProjectItems),
     [buildRecentResults, recentProjectItems],
   );
-  /** 工作空间最近打开结果。 */
+  /** 全局最近打开结果。 */
   const recentGlobalResults = React.useMemo(
     () => buildRecentResults(recentGlobalItems),
     [buildRecentResults, recentGlobalItems],
@@ -733,7 +733,7 @@ export function Search({
               </CommandGroup>
             ) : null}
             {!projectMode && !scopedProjectId && recentGlobalResults.length > 0 ? (
-              <CommandGroup heading={t('recentOpenWorkspace')}>
+              <CommandGroup heading={t('recentOpenProjectSpace')}>
                 {recentGlobalResults.map((result) => renderFileResult(result))}
               </CommandGroup>
             ) : null}

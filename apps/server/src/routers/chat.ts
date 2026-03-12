@@ -450,8 +450,8 @@ export class ChatRouterImpl extends BaseChatRouter {
           return { ok: true, title }
         }),
 
-      // Chat session listing
-      listByWorkspace: shieldedProcedure
+      // Chat session listing for sidebar overview
+      listSidebarSessions: shieldedProcedure
         .input(
           z.object({
             projectId: z.string().nullable().optional(),

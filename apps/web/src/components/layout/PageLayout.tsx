@@ -102,7 +102,7 @@ export function PageLayout() {
     if (!activeView || !viewKey) return "";
 
     switch (activeView.type) {
-      case "workspace-chat":
+      case "global-chat":
         return activeView.chatSessionId;
       case "project": {
         // 项目视图：从 viewRuntime 获取或创建新的 session
@@ -130,7 +130,7 @@ export function PageLayout() {
     }
 
     switch (activeView.type) {
-      case "workspace-chat": {
+      case "global-chat": {
         // 全局聊天直接显示 Chat 组件（单会话模式）
         return (
           <div className="flex h-full w-full">

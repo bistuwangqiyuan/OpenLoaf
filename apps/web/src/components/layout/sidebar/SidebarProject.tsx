@@ -194,11 +194,11 @@ export const SidebarProject = () => {
     }
   };
 
-  /** Copy workspace path to clipboard. */
-  const handleCopyWorkspacePath = async () => {
+  /** Copy project-space root path to clipboard. */
+  const handleCopyProjectSpacePath = async () => {
     const rootUri = projectStorageRootUri;
     if (!rootUri) {
-      toast.error(t('sidebar.workspacePathNotFound'));
+      toast.error(t('sidebar.projectSpacePathNotFound'));
       return;
     }
     const displayPath = getDisplayPathFromUri(rootUri);
@@ -318,9 +318,9 @@ export const SidebarProject = () => {
           </ContextMenuItem>
           <ContextMenuItem
             icon={ClipboardCopy}
-            onClick={() => void handleCopyWorkspacePath()}
+            onClick={() => void handleCopyProjectSpacePath()}
           >
-            {t('sidebar.copyWorkspacePath')}
+            {t('sidebar.copyProjectSpacePath')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem icon={FolderPlus} onClick={() => openAddDialog()}>
@@ -377,7 +377,7 @@ export const SidebarProject = () => {
                       enableVersionControl: shouldEnableVc,
                       icon: autoIcon,
                     });
-                    toast.success(t('sidebar.addToWorkspace'));
+                    toast.success(t('sidebar.addToProjectSpace'));
                     setIsAddOpen(false);
                     await projectListQuery.refetch();
                     // Fire-and-forget: infer project type via auxiliary model.
@@ -476,7 +476,7 @@ export const SidebarProject = () => {
                         if (dir) setGitTargetDir(dir);
                       }}
                     >
-                      {gitTargetDir || t('sidebar.workspaceRootDefault')}
+                      {gitTargetDir || t('sidebar.projectSpaceRootDefault')}
                     </button>
                   </div>
                 </>

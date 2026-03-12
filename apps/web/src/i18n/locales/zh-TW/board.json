@@ -148,8 +148,11 @@
     "detail": "詳情"
   },
   "textNode": {
-    "placeholder": "輸入文字內容",
+    "placeholder": "輸入 Markdown 內容",
     "toolbar": {
+      "heading": "標題",
+      "inline": "行內",
+      "blocks": "區塊",
       "fontSize": "字型大小",
       "fontWeight": "字重",
       "style": "樣式",
@@ -159,10 +162,20 @@
       "backgroundColor": "背景色"
     },
     "format": {
+      "paragraph": "正文",
       "bold": "粗體",
       "italic": "斜體",
+      "code": "行內程式碼",
+      "link": "連結",
+      "quote": "引用",
+      "codeBlock": "程式碼區塊",
       "underline": "底線",
       "strikethrough": "刪除線",
+      "heading1": "標題 1",
+      "heading2": "標題 2",
+      "heading3": "標題 3",
+      "heading4": "標題 4",
+      "heading5": "標題 5",
       "unorderedList": "無序列表",
       "orderedList": "有序列表",
       "todoList": "待辦列表",

@@ -144,7 +144,7 @@ const FileSystemContextMenu = memo(function FileSystemContextMenu({
   withMenuSelectGuard,
   actions,
 }: FileSystemContextMenuProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const isMultiSelection = selectedEntries.length > 1;
   const toggleHiddenLabel = showHidden ? t('project:filesystem.showHiddenActive') : t('project:filesystem.showHidden');
   const shouldShowEnterBoardFolder =

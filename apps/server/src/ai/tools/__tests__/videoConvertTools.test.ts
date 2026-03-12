@@ -59,7 +59,7 @@ try {
   ffmpegAvailable = true
 } catch {}
 
-let workspaceRoot = ''
+let projectRoot = ''
 const testSubDir = `_video_test_${Date.now()}`
 
 function rel(filename: string): string {
@@ -69,18 +69,18 @@ function rel(filename: string): string {
 const toolCtx = { toolCallId: 'test', messages: [], abortSignal: AbortSignal.abort() }
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 
   // Generate test media files if FFmpeg is available
   if (ffmpegAvailable) {
-    const mp4Path = path.join(workspaceRoot, testSubDir, 'test.mp4')
+    const mp4Path = path.join(projectRoot, testSubDir, 'test.mp4')
     execSync(
       `ffmpeg -y -f lavfi -i color=c=blue:s=320x240:d=1 -f lavfi -i sine=frequency=440:duration=1 -shortest "${mp4Path}"`,
       { stdio: 'ignore' },
     )
 
-    const wavPath = path.join(workspaceRoot, testSubDir, 'test.wav')
+    const wavPath = path.join(projectRoot, testSubDir, 'test.wav')
     execSync(
       `ffmpeg -y -f lavfi -i sine=frequency=440:duration=1 "${wavPath}"`,
       { stdio: 'ignore' },
@@ -88,11 +88,11 @@ async function setupTestDir() {
   }
 
   // Create a .txt file for unsupported format testing
-  await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.txt'), 'not a video')
+  await fs.writeFile(path.join(projectRoot, testSubDir, 'test.txt'), 'not a video')
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +405,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const stat = await fs.stat(path.join(workspaceRoot, testSubDir, 'test.mp4'))
+    const stat = await fs.stat(path.join(projectRoot, testSubDir, 'test.mp4'))
     assert.equal(result.data.fileSize, stat.size, 'fileSize should match actual stat size')
   })
 

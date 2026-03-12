@@ -143,7 +143,7 @@ export function ProjectFilePickerDialog({
   onSelectFiles,
   onImportFromComputer,
 }: ProjectFilePickerDialogProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const projectListQuery = useProjects();
   const projectOptions = useMemo(
     () => flattenProjects(projectListQuery.data as ProjectTreeNode[] | undefined),

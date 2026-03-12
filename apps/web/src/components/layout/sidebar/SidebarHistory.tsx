@@ -12,7 +12,6 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { trpc } from "@/utils/trpc";
 import {
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
@@ -58,7 +57,7 @@ function SidebarHistorySkeleton() {
 function resolveHistoryItemTitle(item: SidebarHistoryItem, t: (key: string) => string): string {
   const trimmed = item.title.trim();
   if (trimmed) return trimmed;
-  if (item.entityType === "project") return t("workspaceListPage.untitled");
+  if (item.entityType === "project") return t("projectListPage.untitled");
   if (item.entityType === "board") return t("canvasList.untitled");
   return t("chat");
 }
@@ -175,7 +174,12 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
   const items = useMemo(
     () =>
       normalizedProjectId
-        ? rawItems.filter((item) => item.projectId === normalizedProjectId)
+        ? rawItems.filter(
+            (item) =>
+              item.projectId === normalizedProjectId
+              // 中文注释：项目侧栏已经有当前项目卡片，不再重复显示项目本身的打开记录。
+              && item.entityType !== "project",
+          )
         : rawItems,
     [normalizedProjectId, rawItems],
   );
@@ -259,19 +263,25 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
   }
 
   return (
-    <SidebarGroup className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-3">
-      <div className="relative">
-        <SidebarGroupLabel className="px-2 pr-8">{t("historySection")}</SidebarGroupLabel>
-        <SidebarGroupAction
-          type="button"
-          aria-label={sortButtonLabel}
-          title={sortButtonLabel}
-          className={sortBy === "lastVisitedAt" ? "text-sidebar-foreground" : "text-sidebar-foreground/70"}
-          onClick={() => setSortBy(nextSortBy)}
-        >
-          <ArrowUpDown className="h-4 w-4" />
-        </SidebarGroupAction>
-      </div>
+    <SidebarGroup className="group flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-3">
+      <SidebarGroupLabel asChild>
+        <div className="pr-2">
+          <span className="flex-1">{t("historySection")}</span>
+          <button
+            type="button"
+            aria-label={sortButtonLabel}
+            title={sortButtonLabel}
+            className={
+              sortBy === "lastVisitedAt"
+                ? "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm bg-sidebar-accent/20 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/30 hover:text-sidebar-foreground/85"
+                : "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm text-sidebar-foreground/35 transition-colors hover:bg-sidebar-accent/20 hover:text-sidebar-foreground/60"
+            }
+            onClick={() => setSortBy(nextSortBy)}
+          >
+            <ArrowUpDown className="h-2.5 w-2.5" />
+          </button>
+        </div>
+      </SidebarGroupLabel>
       <SidebarGroupContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {items.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground/70">

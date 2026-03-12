@@ -47,7 +47,7 @@ const FileSystemPreviewPanel = memo(function FileSystemPreviewPanel({
   previewUpdatedLabel,
   onContextMenuCapture,
 }: FileSystemPreviewPanelProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   if (!previewEntry) return null;
 
   return (

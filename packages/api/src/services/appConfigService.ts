@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
-import { getDefaultWorkspaceRootDir, getOpenLoafRootDir } from "@openloaf/config";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import type { AppConfig } from "../types/appConfig";
 import { appConfigSchema } from "../types/appConfig";
 
@@ -40,7 +40,7 @@ function getConfigPath(): string {
 
 /** Build default root uri. */
 function resolveDefaultRootUri(): string {
-  const rootPath = getDefaultWorkspaceRootDir();
+  const rootPath = getDefaultProjectStoragePath();
   mkdirSync(rootPath, { recursive: true });
   return pathToFileURL(rootPath).href;
 }
@@ -98,7 +98,7 @@ export function getGlobalRootPath(): string {
 
 /** Get the default project storage root path. */
 export function getDefaultProjectStoragePath(): string {
-  const rootPath = getDefaultWorkspaceRootDir();
+  const rootPath = getOpenLoafRootDir();
   mkdirSync(rootPath, { recursive: true });
   return rootPath;
 }

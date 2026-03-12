@@ -298,7 +298,7 @@ describe("entityVisitRecordService", () => {
       { pageSize: 2 },
       {
         projectTrees,
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 
@@ -317,7 +317,7 @@ describe("entityVisitRecordService", () => {
       },
       {
         projectTrees,
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 
@@ -399,7 +399,7 @@ describe("entityVisitRecordService", () => {
           isGitProject: false,
           children: [],
         }],
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 
@@ -448,7 +448,7 @@ describe("entityVisitRecordService", () => {
       { pageSize: 10 },
       {
         projectTrees: [],
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 
@@ -491,7 +491,7 @@ describe("entityVisitRecordService", () => {
       { pageSize: 10, sortBy: "lastVisitedAt" },
       {
         projectTrees: [],
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 
@@ -563,7 +563,7 @@ describe("entityVisitRecordService", () => {
             children: [],
           },
         ],
-        workspaceRootUri: "file:///workspace",
+        storageRootUri: "file:///project-space",
       },
     );
 

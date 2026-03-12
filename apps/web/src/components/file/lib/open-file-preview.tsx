@@ -36,6 +36,7 @@ const DocViewer = lazy(() => import("@/components/file/DocViewer"));
 const MarkdownViewer = lazy(() => import("@/components/file/MarkdownViewer"));
 const PdfViewer = lazy(() => import("@/components/file/PdfViewer"));
 const ExcelViewer = lazy(() => import("@/components/file/ExcelViewer"));
+const PptxViewer = lazy(() => import("@/components/file/PptxViewer"));
 const VideoViewer = lazy(() => import("@/components/file/VideoViewer"));
 
 function ViewerFallback() {
@@ -181,6 +182,19 @@ export function renderFilePreviewContent(input: {
             projectId={projectId}
             rootUri={rootUri}
             readOnly={readOnly}
+          />
+        </Suspense>
+      );
+    case "pptx":
+      return (
+        <Suspense fallback={<ViewerFallback />}>
+          <PptxViewer
+            uri={entry.uri}
+            openUri={entry.uri}
+            name={displayName}
+            ext={ext}
+            projectId={projectId}
+            rootUri={rootUri}
           />
         </Suspense>
       );

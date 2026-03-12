@@ -129,40 +129,35 @@ export function buildToolSearchGuidance(platform?: ClientPlatform): string {
   const isWeb = platform === 'web'
   const isCli = platform === 'cli'
 
-  const scenarios: string[] = [
-    '- 查询时间/日期 → select:time-now',
-    '- 显式日历操作（含"创建/添加 + 会议/日程/提醒"：如"创建会议"、"创建日程"、"创建一个每天提醒我喝水的提醒"、"修改会议时间"、"取消提醒"、"标记完成/已完成"）→ select:calendar-query,calendar-mutate,time-now（修改/删除/标记完成前需先 calendar-query 查到 itemId）',
-    '- 陈述未来事件（"明天我要开会"、"下午有个电话会议"、"记一下下周三有客户拜访"）→ select:task-manage,time-now（用 task-manage 快速记录，必须传 schedule 参数，不反问确认）',
-    '- 请求后台提醒（"3小时后提醒我吃药"、"每天9点提醒我看报告"、"设闹钟"，注意区别：用户说"提醒我..."而非"创建提醒"）→ select:task-manage,time-now（必须传 schedule 参数，不反问确认）',
-    '- 多个事件 → 每个事件各调用一次 task-manage',
-    '- 查询待办/任务列表 → select:task-status',
-    '- 创建任务/修改任务/取消任务 → select:task-manage（取消前先 task-status 查询）',
-    '- 查询日程安排 → select:calendar-query',
-    '- 查询邮件/收件箱/搜索邮件 → select:email-query',
-    '- 邮件操作（标记已读/加星标/删除/移动/发送邮件）→ select:email-query,email-mutate（先 email-query 获取 messageId，再 email-mutate 执行操作；发送邮件可直接 email-mutate）',
-    '- 文件/目录操作 → read-file, list-dir, grep-files, apply-patch',
-    '- 查看文件信息（文件大小、图片分辨率、视频时长、PDF 页数、Excel sheet 等元数据）→ select:file-info',
+  const toolCatalog: string[] = [
+    '- time-now：获取当前时间与时区',
+    '- calendar-query：查询日程/会议/提醒列表',
+    '- calendar-mutate：创建/修改/删除日历事件或提醒（修改/删除前需先 calendar-query 查到 itemId）',
+    '- task-manage：创建/修改/取消待办任务或定时提醒（定时任务必须传 schedule 参数）',
+    '- task-status：查询待办/任务列表',
+    '- email-query：查询/搜索邮件（必须传 mode 参数）',
+    '- email-mutate：发送/标记已读/加星标/删除/移动邮件',
+    '- read-file, list-dir, grep-files, apply-patch：文件系统读写',
+    '- file-info：查看文件元数据（大小、分辨率、时长、页数等）',
   ]
 
-  // open-url — 需要 Electron，web/cli 排除
   if (!isWeb && !isCli) {
-    scenarios.push('- 打开链接/URL → select:open-url')
+    toolCatalog.push('- open-url：在系统浏览器中打开链接')
   }
 
-  // jsx-create / chart-render — 需要前端 UI，cli 排除
   if (!isCli) {
-    scenarios.push('- 渲染组件/诗歌/UI 展示 → select:jsx-create')
-    scenarios.push('- 画图表/折线图/柱状图 → select:chart-render')
+    toolCatalog.push('- jsx-create：渲染 React 组件/可视化内容')
+    toolCatalog.push('- chart-render：绘制图表（折线图、柱状图等）')
   }
 
-  scenarios.push(
-    '- Word/docx 文档（读取、创建、编辑）→ select:word-query,word-mutate',
-    '- Excel/xlsx 电子表格（读取、创建、编辑）→ select:excel-query,excel-mutate',
-    '- PPT/pptx 演示文稿（读取、创建、编辑）→ select:pptx-query,pptx-mutate',
-    '- PDF 文档（读取文本、查看结构、表单、创建、合并、填表）→ select:pdf-query,pdf-mutate',
-    '- 图片处理（"把图片缩小到800x600"、"PNG转WebP"、"旋转90度"、"裁剪图片"、"加模糊效果"、"转成JPG"）→ select:image-process',
-    '- 视频/音频转换（"MP4转WebM"、"提取音频"、"查看视频信息"、"AVI转MP4"、"WAV转MP3"、"视频转720p"）→ select:video-convert',
-    '- 文档格式转换（"Word转PDF"、"PDF转文本"、"Excel导出CSV"、"Markdown转HTML"、"HTML转MD"、"CSV转Excel"）→ select:doc-convert',
+  toolCatalog.push(
+    '- word-query, word-mutate：Word/docx 文档读写',
+    '- excel-query, excel-mutate：Excel/xlsx 电子表格读写',
+    '- pptx-query, pptx-mutate：PPT/pptx 演示文稿读写',
+    '- pdf-query, pdf-mutate：PDF 文档读取/创建/合并/填表',
+    '- image-process：图片处理（缩放、裁剪、格式转换、滤镜）',
+    '- video-convert：视频/音频转换（格式转换、提取音频、调整分辨率）',
+    '- doc-convert：文档格式转换（Word↔PDF、Excel↔CSV、Markdown↔HTML）',
   )
 
   return `<tool-search-guidance>
@@ -171,18 +166,19 @@ export function buildToolSearchGuidance(platform?: ClientPlatform): string {
 使用方式：
 - 关键词搜索：tool-search(query: "file read") — 返回最匹配的工具并立即加载
 - 直接选择：tool-search(query: "select:read-file,list-dir") — 按 ID 精确加载
-- 搜索到的工具立即可用，无需额外步骤
 - 可一次加载多个：用逗号分隔 ID
 
-必须使用工具的场景（不可纯文本回答）：
-${scenarios.join('\n')}
+判断原则——先理解意图，再决定是否用工具：
+1. 纯语言任务（翻译、总结、改写、解释、创作、闲聊、问答）→ 直接回答，不加载工具
+2. 只有当用户的真实目的是产生副作用（创建/修改/删除/查询外部数据）时才需要工具
+3. 用户消息中出现时间、事件等词汇不等于要创建任务——"翻译：我明天要开会"是翻译请求，不是日程请求
 
-重要规则：
-- 简单对话直接回答，不需要加载任何工具
-- 修改/删除/标记完成日历项 → 必须加载 calendar-mutate，不要只加载 calendar-query
-- 标记已读/加星标/删除/移动/发送邮件 → 必须加载 email-mutate，不要只加载 email-query
-- 浏览器操作（打开网页、截图、网页自动化）→ 不要搜索 browser 工具，直接用 sub-agent 派发 browser 子代理
-- 代码开发请求（提到 Claude Code、帮我开发）→ 不要搜索工具，直接用 sub-agent 派发 coder 子代理
+可用工具能力：
+${toolCatalog.join('\n')}
+
+补充：
+- 浏览器操作（打开网页、截图、网页自动化）→ 用 sub-agent 派发 browser 子代理
+- 代码开发请求（提到 Claude Code、帮我开发）→ 用 sub-agent 派发 coder 子代理
 </tool-search-guidance>`
 }
 

@@ -153,7 +153,7 @@ Board 节点通过 `intent: "image"` + `responseMode: "json"` 走独立流程：
 
 | 层级 | 文件 | 内容 |
 |------|------|------|
-| Base prompt | `agent-templates/templates/master/prompt.zh.md` | 角色、行为规则 |
+| Base prompt | `agent-templates/templates/master/prompt-v3.zh.md` | 角色、思维框架、意图理解与工具选择 |
 | Session preface | `prefaceBuilder.ts` | 运行时上下文（环境/项目/技能摘要） |
 | Skill 注入 | `messageConverter.ts` | `data-skill` part → 模型文本块 |
 

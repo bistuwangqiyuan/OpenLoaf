@@ -150,6 +150,20 @@ declare global {
   type OpenLoafCalendarResult<T> =
     | { ok: true; data: T }
     | { ok: false; reason: string; code?: string };
+  /** DOCX->SFDT helper failure code. */
+  type OpenLoafDocxToSfdtFailureCode =
+    | "unsupported"
+    | "helper_missing"
+    | "invalid_input"
+    | "file_not_found"
+    | "license_missing"
+    | "timeout"
+    | "parse_error"
+    | "convert_failed";
+  /** DOCX->SFDT helper result wrapper. */
+  type OpenLoafDocxToSfdtResult =
+    | { ok: true; data: { sfdt: string } }
+    | { ok: false; reason: string; code: OpenLoafDocxToSfdtFailureCode };
 
   interface Window {
     openloafElectron?: {
@@ -283,6 +297,13 @@ declare global {
       getLatestInstallerUrl?: () => Promise<
         { ok: true; url: string; version: string } | { ok: false; reason: string }
       >;
+      /** Local Office conversion helpers. */
+      office?: {
+        /** Convert a local DOCX file to SFDT via Electron main process. */
+        convertDocxToSfdt: (
+          payload: { uri: string }
+        ) => Promise<OpenLoafDocxToSfdtResult>;
+      };
       /** Calendar API (system calendars). */
       calendar?: {
         /** Request calendar permission from OS. */

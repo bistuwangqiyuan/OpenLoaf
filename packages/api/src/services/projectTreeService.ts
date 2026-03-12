@@ -212,20 +212,20 @@ function flattenProjectNodes(
 /** Resolve whether a project path is inside a git repository. */
 async function resolveGitProjectStatus(
   projectRootPath: string,
-  workspaceRootPath?: string,
+  storageRootPath?: string,
 ): Promise<boolean> {
   const resolvedProjectRoot = path.resolve(projectRootPath);
-  const resolvedWorkspaceRoot = workspaceRootPath
-    ? path.resolve(workspaceRootPath)
+  const resolvedStorageRoot = storageRootPath
+    ? path.resolve(storageRootPath)
     : "";
-  const shouldBoundWorkspace =
-    Boolean(resolvedWorkspaceRoot) &&
-    (resolvedProjectRoot === resolvedWorkspaceRoot ||
-      resolvedProjectRoot.startsWith(resolvedWorkspaceRoot + path.sep));
-  const limitRoot = shouldBoundWorkspace ? resolvedWorkspaceRoot : "";
+  const shouldBoundStorageRoot =
+    Boolean(resolvedStorageRoot) &&
+    (resolvedProjectRoot === resolvedStorageRoot ||
+      resolvedProjectRoot.startsWith(resolvedStorageRoot + path.sep));
+  const limitRoot = shouldBoundStorageRoot ? resolvedStorageRoot : "";
   const filesystemRoot = path.parse(resolvedProjectRoot).root;
   let cursor = resolvedProjectRoot;
-  // 逻辑：在工作空间内则限制向上扫描到工作空间根，否则只扫描到文件系统根。
+  // 逻辑：项目位于存储根内时，向上扫描会限制到该存储根；否则只扫描到文件系统根。
   // 逻辑：从项目根目录向上查找 .git，命中即视为 Git 项目。
   while (true) {
     const gitPath = path.join(cursor, ".git");
@@ -294,7 +294,7 @@ function resolveChildProjectPath(rootPath: string, childName: string): string | 
 async function readProjectTree(
   projectRootPath: string,
   projectIdOverride?: string,
-  workspaceRootPath?: string,
+  storageRootPath?: string,
   rootUriOverride?: string,
 ): Promise<ProjectNode | null> {
   try {
@@ -317,7 +317,7 @@ async function readProjectTree(
         const childNode = await readProjectTree(
           childPath,
           childProjectId,
-          workspaceRootPath,
+          storageRootPath,
           childRootUri,
         );
         if (childNode) childNodes.push(childNode);
@@ -331,7 +331,7 @@ async function readProjectTree(
         const childNode = await readProjectTree(
           childPath,
           undefined,
-          workspaceRootPath,
+          storageRootPath,
         );
         if (childNode) childNodes.push(childNode);
       }
@@ -343,7 +343,7 @@ async function readProjectTree(
     }
     const isGitProject = await resolveGitProjectStatus(
       projectRootPath,
-      workspaceRootPath,
+      storageRootPath,
     );
     return {
       projectId,
@@ -391,7 +391,7 @@ export async function readProjectTrees(): Promise<ProjectNode[]> {
 }
 
 /** List top-level project trees as a flattened paginated collection. */
-export async function listWorkspaceProjectPage(input?: {
+export async function listProjectListPage(input?: {
   cursor?: string | null;
   pageSize?: number | null;
   search?: string | null;

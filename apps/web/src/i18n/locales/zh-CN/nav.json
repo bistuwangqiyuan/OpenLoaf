@@ -5,8 +5,8 @@
   "save": "保存",
   "cancel": "取消",
   "workbench": "全局看板",
-  "workspaceList": "项目空间",
-  "sidebarWorkspace": "项目空间",
+  "projectSpaceList": "项目空间",
+  "sidebarProjectSpace": "项目空间",
   "calendar": "日历",
   "email": "邮箱",
   "tasks": "任务",
@@ -26,15 +26,15 @@
     "projectName": "项目名称",
     "projectNamePlaceholder": "我的项目",
     "projectCreated": "项目已创建",
-    "copyWorkspacePath": "复制项目空间路径",
+    "copyProjectSpacePath": "复制项目空间路径",
     "pathCopied": "已复制路径",
-    "workspacePathNotFound": "未找到项目空间路径",
+    "projectSpacePathNotFound": "未找到项目空间路径",
     "gitRepositoryAddress": "请输入 Git 仓库地址",
     "cloneError": "克隆失败",
     "cloneAborted": "克隆已终止",
     "repositoryAddress": "仓库地址",
     "targetDirectory": "目标目录",
-    "workspaceRootDefault": "项目空间根目录（默认）",
+    "projectSpaceRootDefault": "项目空间根目录（默认）",
     "cloneComplete": "克隆完成",
     "connecting": "正在连接...",
     "back": "返回",
@@ -44,7 +44,7 @@
     "cloning": "克隆中...",
     "startClone": "开始克隆",
     "done": "完成",
-    "addToWorkspace": "已添加到项目空间",
+    "addToProjectSpace": "已添加到项目空间",
     "addError": "添加失败",
     "feedback": {
       "title": "反馈建议",
@@ -127,14 +127,14 @@
     "rootProject": "根项目",
     "projectSettings": "项目设置"
   },
-  "workspace": {
+  "projectSpace": {
     "title": "项目空间",
-    "selectWorkspace": "选择项目空间",
-    "createWorkspace": "新建项目空间",
-    "workspaceSettings": "项目空间设置",
-    "exitWorkspace": "退出项目空间"
+    "selectProjectSpace": "选择项目空间",
+    "createProjectSpace": "新建项目空间",
+    "projectSpaceSettings": "项目空间设置",
+    "exitProjectSpace": "退出项目空间"
   },
-  "workspaceChatList": {
+  "chatHistoryList": {
     "title": "对话历史",
     "viewMore": "查看更多",
     "empty": "暂无对话",
@@ -273,7 +273,7 @@
     "allProjects": "全部项目",
     "noProject": "未归属项目"
   },
-  "workspaceListPage": {
+  "projectListPage": {
     "helpTitle": "项目管理",
     "helpDesc": "在这里浏览和管理当前项目空间下的所有项目。点击卡片即可打开对应项目。",
     "addProject": "新建项目",

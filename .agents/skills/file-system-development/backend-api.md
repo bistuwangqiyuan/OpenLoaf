@@ -28,6 +28,7 @@
 
 - `name`：普通文件夹 → Board 文件夹 → 文件
 - `mtime`：按修改时间排序
+- 当 `projectId` 已失效（例如项目已删除、注册表未命中）时，返回空 `entries`，不再抛 500
 
 ### `readFile`
 
@@ -35,10 +36,13 @@
 
 - 文本预览上限：`50 MB`
 - 文件不存在时返回空内容
+- `projectId` 已失效时同样返回空内容
 
 ### `readBinary`
 
 读取二进制文件（Base64）。
+
+- `projectId` 已失效时返回空 Base64 与默认 `application/octet-stream`
 
 ### `search`
 
@@ -46,6 +50,7 @@
 
 - `rootUri` 是当前 scope 下的相对路径或可解析 URI
 - 命中后返回的 `entry.uri` 始终相对当前 scope 根目录
+- `projectId` 已失效时返回空 `results`
 
 ### `searchWorkspace`
 
@@ -60,13 +65,19 @@
 
 批量获取缩略图。
 
+- `projectId` 已失效时返回空 `items`
+
 ### `folderThumbnails`
 
 获取目录下条目的缩略图。
 
+- `projectId` 已失效时返回空 `items`
+
 ### `videoMetadata`
 
 获取视频尺寸信息。
+
+- `projectId` 已失效时返回 `{ width: null, height: null }`
 
 ---
 

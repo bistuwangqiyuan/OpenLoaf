@@ -388,9 +388,9 @@ export const chatRouter = t.router({
     }),
 
   /**
-   * List chat sessions (for ChatList)
+   * List chat sessions for sidebar overview.
    */
-  listByWorkspace: shieldedProcedure
+  listSidebarSessions: shieldedProcedure
     .input(
       z.object({
         projectId: z.string().nullable().optional(),

@@ -10,8 +10,8 @@
 import { StepUpStepShell } from "@/components/step-up/StepUpStepShell";
 
 export type StepUpFinishSummary = {
-  /** Selected workspace label. */
-  workspace: string;
+  /** Selected backup label. */
+  backup: string;
   /** Selected model source label. */
   model: string;
   /** Selected provider label. */
@@ -33,7 +33,7 @@ export function StepUpFinishStep({ summary }: StepUpFinishStepProps) {
       <div className="divide-y divide-border rounded-3xl border border-border bg-background/80">
         <div className="flex items-center justify-between gap-4 px-6 py-4 text-sm">
           <span className="text-muted-foreground">备份方式</span>
-          <span className="font-medium">{summary.workspace}</span>
+          <span className="font-medium">{summary.backup}</span>
         </div>
         <div className="flex items-center justify-between gap-4 px-6 py-4 text-sm">
           <span className="text-muted-foreground">模型来源</span>

@@ -16,6 +16,7 @@ export type FilePreviewViewer =
   | "pdf"
   | "doc"
   | "sheet"
+  | "pptx"
   | "video"
   | "file";
 

@@ -32,7 +32,7 @@ export function useSidebarNavigation() {
   const tabs = useTabs((s) => s.tabs)
   const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId)
   const setActiveView = useNavigation((s) => s.setActiveView)
-  const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat)
+  const setActiveGlobalChat = useNavigation((s) => s.setActiveGlobalChat)
   const { sessionToTabId } = useOpenSessionIds()
   const openProjectWithPreference = useProjectOpen()
   const activeTab = activeTabId
@@ -63,9 +63,9 @@ export function useSidebarNavigation() {
       if (activeTabId && currentTabSessionIds.has(chatId)) {
         if (projectId) {
           setSessionProjectId(activeTabId, chatId, projectId)
-          setActiveWorkspaceChat(null)
+          setActiveGlobalChat(null)
         } else {
-          setActiveWorkspaceChat(chatId)
+          setActiveGlobalChat(chatId)
         }
         startTransition(() => {
           setActiveTabSession(activeTabId, chatId, { loadHistory: true })
@@ -77,9 +77,9 @@ export function useSidebarNavigation() {
       if (ownerTabId) {
         if (projectId) {
           setSessionProjectId(ownerTabId, chatId, projectId)
-          setActiveWorkspaceChat(null)
+          setActiveGlobalChat(null)
         } else {
-          setActiveWorkspaceChat(chatId)
+          setActiveGlobalChat(chatId)
         }
         startTransition(() => {
           setActiveTab(ownerTabId)
@@ -100,10 +100,10 @@ export function useSidebarNavigation() {
       })
 
       if (projectId) {
-        setActiveWorkspaceChat(null)
+        setActiveGlobalChat(null)
         return
       }
-      setActiveWorkspaceChat(chatId)
+      setActiveGlobalChat(chatId)
     },
     [
       activeTabId,
@@ -113,7 +113,7 @@ export function useSidebarNavigation() {
       sessionToTabId,
       setActiveTab,
       setActiveTabSession,
-      setActiveWorkspaceChat,
+      setActiveGlobalChat,
       setSessionProjectId,
     ],
   )
@@ -126,9 +126,9 @@ export function useSidebarNavigation() {
       icon?: string | null
     }) => {
       openProjectWithPreference(input, { section: 'assistant' })
-      setActiveWorkspaceChat(null)
+      setActiveGlobalChat(null)
     },
-    [openProjectWithPreference, setActiveWorkspaceChat],
+    [openProjectWithPreference, setActiveGlobalChat],
   )
 
   const openBoard = useCallback(
@@ -162,7 +162,7 @@ export function useSidebarNavigation() {
         startTransition(() => {
           setActiveTab(existingTab.id)
         })
-        setActiveWorkspaceChat(null)
+        setActiveGlobalChat(null)
         return
       }
 
@@ -184,7 +184,7 @@ export function useSidebarNavigation() {
           },
         },
       })
-      setActiveWorkspaceChat(null)
+      setActiveGlobalChat(null)
     },
     [
       activeProjectId,
@@ -194,7 +194,7 @@ export function useSidebarNavigation() {
       setActiveTab,
       setActiveTabSession,
       setTabChatParams,
-      setActiveWorkspaceChat,
+      setActiveGlobalChat,
     ],
   )
 
@@ -220,9 +220,9 @@ export function useSidebarNavigation() {
       })
     }
 
-    setActiveWorkspaceChat(null)
+    setActiveGlobalChat(null)
     setActiveView('ai-assistant')
-  }, [addTab, setActiveTab, setActiveView, setActiveWorkspaceChat])
+  }, [addTab, setActiveTab, setActiveView, setActiveGlobalChat])
 
   const openTempCanvas = useCallback(() => {
     const tabTitle = i18next.t(TEMP_CANVAS_TAB_INPUT.titleKey)
@@ -245,9 +245,9 @@ export function useSidebarNavigation() {
       },
     })
 
-    setActiveWorkspaceChat(null)
+    setActiveGlobalChat(null)
     setActiveView('canvas-list')
-  }, [addTab, setActiveView, setActiveWorkspaceChat])
+  }, [addTab, setActiveView, setActiveGlobalChat])
 
   return { openChat, openProject, openBoard, openTempChat, openTempCanvas }
 }

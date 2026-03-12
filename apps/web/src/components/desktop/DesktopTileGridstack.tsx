@@ -278,7 +278,7 @@ export default function DesktopTileGridstack({
       return;
     }
     if (!defaultRootUri) {
-      setWebError(t('tile.noWorkspaceDir'));
+      setWebError(t('tile.noProjectSpaceDir'));
       return;
     }
     let hostname = "";

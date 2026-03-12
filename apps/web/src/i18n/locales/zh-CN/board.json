@@ -148,8 +148,11 @@
     "detail": "详情"
   },
   "textNode": {
-    "placeholder": "输入文字内容",
+    "placeholder": "输入 Markdown 内容",
     "toolbar": {
+      "heading": "标题",
+      "inline": "行内",
+      "blocks": "块级",
       "fontSize": "字号",
       "fontWeight": "字重",
       "style": "样式",
@@ -159,10 +162,20 @@
       "backgroundColor": "背景色"
     },
     "format": {
+      "paragraph": "正文",
       "bold": "加粗",
       "italic": "斜体",
+      "code": "行内代码",
+      "link": "链接",
+      "quote": "引用",
+      "codeBlock": "代码块",
       "underline": "下划线",
       "strikethrough": "删除线",
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "heading4": "标题 4",
+      "heading5": "标题 5",
       "unorderedList": "无序列表",
       "orderedList": "有序列表",
       "todoList": "待办列表",

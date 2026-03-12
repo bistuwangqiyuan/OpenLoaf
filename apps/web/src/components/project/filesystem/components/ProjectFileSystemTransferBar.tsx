@@ -25,7 +25,7 @@ export default function ProjectFileSystemTransferBar({
   /** Retry the failed transfer. */
   onRetry: () => void;
 }) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   if (!transfer) return null;
   const percent = Math.max(0, Math.min(100, Math.round(transfer.percent)));
   return (

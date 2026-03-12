@@ -14,7 +14,7 @@ import sharp from "sharp";
 import type { UIMessage } from "ai";
 import type { OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
 import { getProjectRootPath } from "@openloaf/api/services/vfsService";
-import { getOpenLoafRootDir } from "@openloaf/config";
+import { getOpenLoafRootDir, resolveScopedOpenLoafPath } from "@openloaf/config";
 import { getProjectId } from "@/ai/shared/context/requestContext";
 
 /** Max image edge length for chat. */
@@ -355,8 +355,8 @@ async function resolveChatAttachmentRoot(input: {
   const boardId = input.boardId?.trim();
   // 画布内聊天：chat-history 存储在 board 目录下
   const chatHistoryDir = boardId
-    ? path.join(scopeRoot, ".openloaf", "boards", boardId, "chat-history")
-    : path.join(scopeRoot, ".openloaf", "chat-history");
+    ? resolveScopedOpenLoafPath(scopeRoot, "boards", boardId, "chat-history")
+    : resolveScopedOpenLoafPath(scopeRoot, "chat-history");
   return { rootPath: scopeRoot, chatHistoryDir };
 }
 

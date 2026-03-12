@@ -7,8 +7,8 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import path from "node:path";
 import { promises as fs } from "node:fs";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import { getProjectRootUri, resolveFilePathFromUri } from "./vfsService";
 
 export type ProjectChatDbClient = {
@@ -40,7 +40,7 @@ function resolveProjectChatPath(projectId: string): string {
     throw new Error("项目不存在");
   }
   const rootPath = resolveFilePathFromUri(rootUri);
-  return path.join(rootPath, ".openloaf", "chat-history");
+  return resolveScopedOpenLoafPath(rootPath, "chat-history");
 }
 
 /** Get chat stats for a single project. */

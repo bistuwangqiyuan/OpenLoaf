@@ -14,6 +14,11 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_TAB_INFO, type DockItem } from "@openloaf/api/common";
 import { createChatSessionId } from "@/lib/chat-session-id";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
+import {
+  resolveProjectShellForNewTab,
+  resolveProjectShellSectionFromBase,
+} from "@/lib/project-shell-tab";
 import { isProjectWindowMode } from "@/lib/window-mode";
 import { useChatRuntime } from "./use-chat-runtime";
 import { useTabRuntime } from "./use-tab-runtime";
@@ -187,6 +192,43 @@ export const useTabs = create<TabsState>()(
         } = input;
 
         const normalizedBase = base?.component === "ai-chat" ? undefined : base;
+        const currentActiveTab =
+          get().activeTabId
+            ? get().tabs.find((tab) => tab.id === get().activeTabId)
+            : undefined;
+        const inputChatParams =
+          typeof chatParams === "object" && chatParams
+            ? ({ ...(chatParams as Record<string, unknown>) } as Record<string, unknown>)
+            : undefined;
+        const inferredSection = resolveProjectShellSectionFromBase(normalizedBase);
+        const activeProjectShell = resolveProjectModeProjectShell(
+          currentActiveTab?.projectShell,
+          inferredSection ?? projectShell?.section ?? "assistant",
+        );
+        const resolvedProjectShell = resolveProjectShellForNewTab(
+          {
+            base: normalizedBase,
+            chatParams: inputChatParams,
+            projectShell,
+          },
+          activeProjectShell,
+        );
+        const hasExplicitProjectId = Boolean(
+          inputChatParams
+          && Object.prototype.hasOwnProperty.call(inputChatParams, "projectId"),
+        );
+        const resolvedChatParams =
+          resolvedProjectShell
+          && (
+            !hasExplicitProjectId
+            || (typeof inputChatParams?.projectId === "string"
+              && inputChatParams.projectId.trim().length === 0)
+          )
+            ? {
+                ...(inputChatParams ?? {}),
+                projectId: resolvedProjectShell.projectId,
+              }
+            : inputChatParams;
 
         const tabId = generateId("tab");
         const createdChatSessionId = requestedChatSessionId ?? createChatSessionId();
@@ -194,8 +236,8 @@ export const useTabs = create<TabsState>()(
 
         // 初始化 session → projectId 映射
         const initialProjectId =
-          typeof (chatParams as Record<string, unknown> | undefined)?.projectId === "string"
-            ? ((chatParams as Record<string, unknown>).projectId as string)
+          typeof resolvedChatParams?.projectId === "string"
+            ? (resolvedChatParams.projectId as string)
             : "";
         const chatSessionProjectIds = initialProjectId
           ? { [createdChatSessionId]: initialProjectId }
@@ -209,10 +251,10 @@ export const useTabs = create<TabsState>()(
           chatSessionId: createdChatSessionId,
           chatSessionIds: [createdChatSessionId],
           activeSessionIndex: 0,
-          chatParams,
+          chatParams: resolvedChatParams,
           chatSessionProjectIds,
           chatLoadHistory: createdChatLoadHistory,
-          projectShell,
+          projectShell: resolvedProjectShell,
           createdAt: now,
           lastActiveAt: now,
         };

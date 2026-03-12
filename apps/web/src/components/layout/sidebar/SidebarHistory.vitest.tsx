@@ -25,7 +25,7 @@ const translationMap: Record<string, string> = {
   project: "Project",
   chat: "Chat",
   canvas: "Canvas",
-  "workspaceListPage.untitled": "Untitled Project",
+  "projectListPage.untitled": "Untitled Project",
   "canvasList.untitled": "Untitled Canvas",
   loading: "Loading…",
 };
@@ -226,7 +226,7 @@ describe("SidebarHistory", () => {
             boardId: "board_alpha",
             title: "Alpha Board",
             folderUri: ".openloaf/boards/board_alpha/",
-            rootUri: "file:///workspace",
+            rootUri: "file:///project-space",
             projectId: null,
             projectTitle: null,
             dateKey: "2026-03-01",
@@ -274,7 +274,7 @@ describe("SidebarHistory", () => {
       boardId: "board_alpha",
       title: "Alpha Board",
       folderUri: ".openloaf/boards/board_alpha/",
-      rootUri: "file:///workspace",
+      rootUri: "file:///project-space",
       projectId: null,
     });
   });
@@ -391,5 +391,47 @@ describe("SidebarHistory", () => {
         queryKey: ["visit", "listSidebarHistory", expect.objectContaining({ sortBy: "lastVisitedAt" })],
       }),
     );
+  });
+
+  it("hides the project-open record when rendering project sidebar history", () => {
+    useInfiniteQueryMock.mockReturnValue({
+      data: {
+        pages: [buildHistoryPage([
+          {
+            recordId: "visit_project",
+            entityType: "project",
+            entityId: "proj_alpha",
+            projectId: "proj_alpha",
+            title: "Alpha Project",
+            icon: "📁",
+            rootUri: "file:///project-root/projects/alpha",
+            dateKey: "2026-03-11",
+            firstVisitedAt: new Date("2026-03-11T11:30:00.000Z"),
+            lastVisitedAt: new Date("2026-03-11T11:30:00.000Z"),
+          },
+          {
+            recordId: "visit_chat",
+            entityType: "chat",
+            entityId: "chat_alpha",
+            chatId: "chat_alpha",
+            title: "Alpha Chat",
+            projectId: "proj_alpha",
+            projectTitle: "Alpha Project",
+            dateKey: "2026-03-11",
+            firstVisitedAt: new Date("2026-03-11T11:00:00.000Z"),
+            lastVisitedAt: new Date("2026-03-11T11:00:00.000Z"),
+          },
+        ])],
+      },
+      isPending: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: fetchNextPageMock,
+    });
+
+    render(<SidebarHistory projectId="proj_alpha" />);
+
+    expect(screen.queryByRole("button", { name: /Alpha Project/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Alpha Chat/i })).toBeInTheDocument();
   });
 });

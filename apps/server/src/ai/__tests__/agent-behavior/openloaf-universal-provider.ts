@@ -55,7 +55,7 @@ import {
 
 installHttpProxy()
 
-// 初始化 E2E 测试环境（临时目录 + workspace 数据 + root override）
+// 初始化 E2E 测试环境（临时目录 + 项目空间数据 + root override）
 setupE2eTestEnv()
 
 let globalRestoreChatSource: (() => void) | undefined

@@ -42,7 +42,7 @@ const FileSystemParentEntryCard = memo(function FileSystemParentEntryCard({
   setDragOverFolderUri,
   shouldBlockPointerEvent,
 }: FileSystemParentEntryCardProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   return (
     <button
       type="button"

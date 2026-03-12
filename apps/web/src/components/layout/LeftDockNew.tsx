@@ -16,7 +16,7 @@ import { ComponentMap, getPanelTitle } from "@/utils/panel-utils";
 import type { DockItem } from "@openloaf/api/common";
 import { Skeleton } from "@openloaf/ui/skeleton";
 
-const WORKSPACE_SWITCH_COMPONENTS = new Set([
+const GLOBAL_ENTRY_COMPONENTS = new Set([
   "calendar-page",
   "email-page",
   "scheduled-tasks-page",
@@ -101,10 +101,10 @@ export function LeftDockNew({
 }: LeftDockNewProps) {
   const hasOverlay = Boolean(base) && stack.length > 0 && !stackHidden;
   const floating = Boolean(base);
-  const showWorkspaceSwitchDock = Boolean(
-    base?.component && WORKSPACE_SWITCH_COMPONENTS.has(base.component),
+  const showGlobalEntryDock = Boolean(
+    base?.component && GLOBAL_ENTRY_COMPONENTS.has(base.component),
   );
-  const showBottomDockGap = base?.component === "plant-page" || showWorkspaceSwitchDock;
+  const showBottomDockGap = base?.component === "plant-page" || showGlobalEntryDock;
 
   const activeStackId = activeStackItemId || stack.at(-1)?.id || "";
 
@@ -156,7 +156,7 @@ export function LeftDockNew({
         </div>
       )}
 
-      {/* 底部间距（用于 WorkspaceSwitchDockTabs） */}
+      {/* 底部间距（用于 GlobalEntryDockTabs） */}
       {showBottomDockGap && (
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
       )}

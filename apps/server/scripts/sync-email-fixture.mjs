@@ -84,7 +84,7 @@ if (!existsSync(envPath)) {
   }
 }
 
-console.log('\n🗄️  数据库邮件 fixture 已不再按 workspace 复制。')
+console.log('\n🗄️  数据库邮件 fixture 已不再按旧作用域维度复制。')
 console.log('   当前架构下邮件数据为全局账号维度；如需测试消息数据，请单独准备专用测试数据库。')
 console.log('\n✅ 邮件 Fixture 同步完成！')
 if (dryRun) console.log('   （Dry-run 模式，未实际写入）')

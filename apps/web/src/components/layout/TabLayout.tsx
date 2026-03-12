@@ -18,7 +18,7 @@ import {
   useTransform,
   useReducedMotion,
 } from "motion/react";
-import { ArrowDown, ArrowUp, PencilLine, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, PencilLine, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Chat } from "@/components/ai/Chat";
 import { ChatSessionBarItem } from "@/components/ai/session/ChatSessionBar";
@@ -585,24 +585,6 @@ function RightChatPanel({ tabId }: { tabId: string }) {
       tabId,
     ]
   );
-  // Render the pinned new-session bar.
-  // Only show for project chats (not workspace chats)
-  const newSessionBar = currentProjectId && !isBoardChatTab ? (
-    <button
-      type="button"
-      className={cn(
-        "group flex h-8 w-full items-center gap-1 rounded-lg bg-background px-2",
-        "text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      )}
-      onClick={handleNewSession}
-    >
-      <Plus
-        size={14}
-        className="shrink-0 text-[#188038] dark:text-emerald-300"
-      />
-      <span className="truncate">新建项目会话，开启多会话模式</span>
-      </button>
-  ) : null;
   const renderSessionStack = () => (
     <div className="relative flex min-h-0 flex-1 flex-col rounded-lg bg-background overflow-hidden">
       {sessionList.map((session) => {
@@ -652,8 +634,6 @@ function RightChatPanel({ tabId }: { tabId: string }) {
       {useAccordion ? (
         <LayoutGroup>
           <div className="flex min-h-0 flex-1 flex-col">
-            {newSessionBar}
-            {newSessionBar && <div className="shrink-0 h-[6px] bg-sidebar" />}
             <AnimatePresence mode="popLayout">
               {sessionsAbove.map((session) => (
                 <React.Fragment key={session.sessionId}>
@@ -677,8 +657,6 @@ function RightChatPanel({ tabId }: { tabId: string }) {
         </LayoutGroup>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          {newSessionBar}
-          {newSessionBar && <div className="shrink-0 h-[6px] bg-sidebar" />}
           {renderSessionStack()}
         </div>
       )}

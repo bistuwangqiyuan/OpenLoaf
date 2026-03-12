@@ -18,13 +18,13 @@ import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useGlobalOverlay } from '@/lib/globalShortcuts'
 
 // 四个主页面的 baseId / component 集合（与 Sidebar 保持一致）。
-const WORKSPACE_PAGE_BASE_IDS = new Set([
+const PRIMARY_PAGE_BASE_IDS = new Set([
   WORKBENCH_TAB_INPUT.baseId,
   'base:calendar',
   'base:scheduled-tasks',
   'base:mailbox',
 ])
-const WORKSPACE_PAGE_COMPONENTS = new Set([
+const PRIMARY_PAGE_COMPONENTS = new Set([
   WORKBENCH_TAB_INPUT.component,
   'calendar-page',
   'scheduled-tasks-page',
@@ -88,7 +88,7 @@ export default function TrayNavigationListener() {
     [addTab, setActiveTab],
   )
 
-  const openWorkspacePageTab = useCallback(
+  const openPrimaryPageTab = useCallback(
     (input: TabInput) => {
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '')
 
@@ -101,8 +101,8 @@ export default function TrayNavigationListener() {
       const shouldReuse =
         Boolean(currentTab) &&
         Boolean(currentBase) &&
-        WORKSPACE_PAGE_BASE_IDS.has(currentBase!.id) &&
-        WORKSPACE_PAGE_COMPONENTS.has(currentBase!.component)
+        PRIMARY_PAGE_BASE_IDS.has(currentBase!.id) &&
+        PRIMARY_PAGE_COMPONENTS.has(currentBase!.component)
 
       if (currentTab && shouldReuse) {
         setTabBase(currentTab.id, { id: input.baseId, component: input.component })
@@ -117,7 +117,7 @@ export default function TrayNavigationListener() {
         .filter((tab) => {
           const base = runtime[tab.id]?.base
           if (!base) return false
-          return WORKSPACE_PAGE_BASE_IDS.has(base.id) && WORKSPACE_PAGE_COMPONENTS.has(base.component)
+          return PRIMARY_PAGE_BASE_IDS.has(base.id) && PRIMARY_PAGE_COMPONENTS.has(base.component)
         })
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0]
 
@@ -159,7 +159,7 @@ export default function TrayNavigationListener() {
       if (target === 'ai-assistant') {
         openSingletonTab(input)
       } else {
-        openWorkspacePageTab(input)
+        openPrimaryPageTab(input)
       }
     }
 
@@ -174,7 +174,7 @@ export default function TrayNavigationListener() {
       window.removeEventListener('openloaf:tray:navigate', handleNavigate)
       window.removeEventListener('openloaf:tray:new-conversation', handleNewConversation)
     }
-  }, [openSingletonTab, openWorkspacePageTab])
+  }, [openSingletonTab, openPrimaryPageTab])
 
   return null
 }

@@ -1,6 +1,6 @@
-# OpenLoaf Test Workspace
+# OpenLoaf Test Project Space
 
-This is a test workspace for AI Agent behavior tests.
+This is a test project space for AI Agent behavior tests.
 
 ## Structure
 

@@ -360,10 +360,10 @@ async function main() {
       async () => {
         const editedPath = path.join(tempDir, 'edited-write.zip')
         await fs.copyFile(zipPath, editedPath)
-        // Write a local file as source for the write op (inside workspace)
+        // Write a local file as source for the write op (inside project)
         const { resolveToolPath } = await import('@/ai/tools/toolScope')
-        const wsRoot = resolveToolPath({ target: '.' }).absPath
-        const srcFilePath = path.join(wsRoot, '_c9_test_src.txt')
+        const projectRoot = resolveToolPath({ target: '.' }).absPath
+        const srcFilePath = path.join(projectRoot, '_c9_test_src.txt')
         await fs.writeFile(srcFilePath, 'brand new content', 'utf-8')
         try {
           await editZip(editedPath, editedPath, [

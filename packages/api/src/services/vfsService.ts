@@ -27,6 +27,8 @@ const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";
 /** Scoped project path matcher like [projectId]/path/to/file (inner path after stripping @{...} wrapper). */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
+/** Global metadata prefix used by cross-scope relative paths. */
+const GLOBAL_META_PREFIX = ".openloaf/";
 
 /** Get the default project storage root URI. */
 export function getProjectStorageRootUri(): string {
@@ -165,6 +167,16 @@ export function normalizeRelativePath(value: string): string {
   return normalized === "." ? "" : normalized;
 }
 
+/** Normalize a global-scoped relative path against the OpenLoaf root itself. */
+function normalizeGlobalScopedPath(value: string): string {
+  const normalized = value.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (normalized === ".openloaf") return "";
+  if (normalized.startsWith(GLOBAL_META_PREFIX)) {
+    return normalized.slice(GLOBAL_META_PREFIX.length);
+  }
+  return normalized;
+}
+
 /** Convert an absolute path to a normalized relative path. */
 export function toRelativePath(rootPath: string, targetPath: string): string {
   const relative = path.relative(rootPath, targetPath);
@@ -233,5 +245,5 @@ export function resolveScopedPath(input: {
     return path.resolve(projectRootPath, raw);
   }
   const globalRootPath = getGlobalRootPath();
-  return path.resolve(globalRootPath, raw);
+  return path.resolve(globalRootPath, normalizeGlobalScopedPath(raw));
 }

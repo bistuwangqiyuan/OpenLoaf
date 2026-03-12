@@ -450,7 +450,7 @@ export default function MarkdownViewer({
   /** Open the chat history folder for the current session. */
   const handleOpenChatHistoryFolder = useCallback(async () => {
     if (!chatHistorySessionId) return;
-    // 逻辑：优先使用后端返回的 jsonlPath 反推目录，避免项目根与工作空间根不一致。
+    // 逻辑：优先使用后端返回的 jsonlPath 反推目录，避免项目根与全局根不一致。
     const targetUri = resolveChatHistoryFolderUri({
       jsonlPath: chatHistoryJsonlPath,
       scopeRootUri: rootUri ?? "",

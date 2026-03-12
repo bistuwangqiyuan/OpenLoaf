@@ -266,6 +266,11 @@ export async function startProductionServices(args: {
           ...packagedEnv,
           // 中文注释：确保 .env 文件不会覆盖修复后的 PATH，保留 Electron 主进程修复的完整路径。
           PATH: process.env.PATH,
+          OPENLOAF_DOCX_SFDT_HELPER_ROOT:
+            process.env.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            userEnv.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            packagedEnv.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            path.join(resourcesPath, 'docx-sfdt'),
           // 中文注释：强制对齐 Electron 与 Server 的 CDP 端口，避免运行时不一致。
           OPENLOAF_REMOTE_DEBUGGING_PORT: String(args.cdpPort),
         },

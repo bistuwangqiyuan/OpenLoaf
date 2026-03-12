@@ -1111,7 +1111,7 @@ export default function ChatCoreProvider({
         if (typeof currentProjectId === "string" && currentProjectId.trim()) {
           nav.setActiveProject(currentProjectId.trim());
         } else {
-          nav.setActiveWorkspaceChat(sessionIdRef.current);
+          nav.setActiveGlobalChat(sessionIdRef.current);
         }
 
         // 修改 tab 标题（打破"临时对话"单例匹配，使下次点击 AI 助手创建新 tab）

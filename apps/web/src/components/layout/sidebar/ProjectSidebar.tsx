@@ -107,6 +107,17 @@ function resolveActiveProjectSection(
 }
 
 export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  return (
+    <Sidebar
+      className="top-(--header-height) h-[calc(100svh-var(--header-height))]! border-r-0!"
+      {...props}
+    >
+      <ProjectSidebarContent />
+    </Sidebar>
+  );
+}
+
+export function ProjectSidebarContent() {
   const { t } = useTranslation(["nav", "settings"]);
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
@@ -146,7 +157,7 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
     if (!activeTabId) return;
     exitProjectShellToProjectList(
       activeTabId,
-      t("sidebarWorkspace"),
+      t("sidebarProjectSpace"),
       PROJECT_LIST_TAB_INPUT.icon,
     );
   }, [activeTabId, t]);
@@ -154,10 +165,7 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
   if (!projectShell) return null;
 
   return (
-    <Sidebar
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]! border-r-0!"
-      {...props}
-    >
+    <>
       <SidebarHeader className="gap-2">
         {!projectWindowMode ? (
           <SidebarMenu>
@@ -277,6 +285,6 @@ export function ProjectSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </div>
       </SidebarFooter>
-    </Sidebar>
+    </>
   );
 }

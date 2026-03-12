@@ -27,6 +27,7 @@ const CodeViewer = dynamic(() => import("@/components/file/CodeViewer"), { ssr: 
 const PdfViewer = dynamic(() => import("@/components/file/PdfViewer"), { ssr: false });
 const DocViewer = dynamic(() => import("@/components/file/DocViewer"), { ssr: false });
 const ExcelViewer = dynamic(() => import("@/components/file/ExcelViewer"), { ssr: false });
+const PptxViewer = dynamic(() => import("@/components/file/PptxViewer"), { ssr: false });
 const FileViewer = dynamic(() => import("@/components/file/FileViewer"), { ssr: false });
 const VideoViewer = dynamic(() => import("@/components/file/VideoViewer"), { ssr: false });
 import { getImageDialogSize, type ImageMeta } from "@/lib/image/dialog-size";
@@ -249,6 +250,17 @@ export default function FilePreviewDialog() {
               projectId={currentItem.projectId}
               rootUri={currentItem.rootUri}
               readOnly={payload.readOnly ?? true}
+            />
+          ) : null}
+
+          {payload.viewer === "pptx" ? (
+            <PptxViewer
+              uri={currentItem.uri}
+              openUri={currentItem.openUri}
+              name={currentItem.name}
+              ext={currentItem.ext}
+              projectId={currentItem.projectId}
+              rootUri={currentItem.rootUri}
             />
           ) : null}
 

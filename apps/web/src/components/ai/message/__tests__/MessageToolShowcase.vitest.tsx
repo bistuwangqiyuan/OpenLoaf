@@ -42,7 +42,7 @@ vi.mock('@/utils/trpc', () => {
 })
 
 vi.mock('@/hooks/use-project', () => ({
-  useProject: () => ({ data: { project: { rootUri: '/mock/workspace' } } }),
+  useProject: () => ({ data: { project: { rootUri: '/mock/project-space' } } }),
 }))
 
 // useTabs is a Zustand store — must support selector call pattern: useTabs((s) => s.field)

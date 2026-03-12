@@ -421,7 +421,7 @@ export const ScheduledTaskDialog = memo(function ScheduledTaskDialog({
                     <Tabs value={tabScope} onValueChange={(value) => setTabScope(value as typeof tabScope)}>
                       <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
                         <TabsTrigger value="global" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
-                          {t('schedule.global', { defaultValue: t('schedule.workspace') })}
+                          {t('schedule.global', { defaultValue: t('schedule.projectSpace') })}
                         </TabsTrigger>
                         <TabsTrigger value="project" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
                           {t('schedule.project')}
