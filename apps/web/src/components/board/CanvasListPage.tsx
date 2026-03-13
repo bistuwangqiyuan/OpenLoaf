@@ -428,6 +428,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
   const queryClient = useQueryClient();
 
   const navigate = useAppView((s) => s.navigate);
+  const currentProjectShell = useAppView((s) => s.projectShell);
   const base = useLayoutState((s) => s.base);
 
   const { loggedIn: saasLoggedIn } = useSaasAuth();
@@ -648,6 +649,8 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
         icon: "🎨",
         ...buildBoardChatTabState(board.id, board.projectId),
         leftWidthPercent: 100,
+        // Preserve project context when opening a canvas from within a project
+        ...(currentProjectShell ? { projectShell: currentProjectShell } : {}),
         base: {
           id: baseId,
           component: "board-viewer",
@@ -661,7 +664,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
         },
       });
     },
-    [resolveBoardRootUri, navigate, t],
+    [resolveBoardRootUri, navigate, t, currentProjectShell],
   );
 
   const handleRename = useCallback(
