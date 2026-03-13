@@ -31,6 +31,7 @@ const MONOREPO_NODE_MODULES = path.resolve(REPO_ROOT, 'node_modules')
 /** 需要随应用打包的原生/运行时依赖根节点（与 forge.config.ts NATIVE_DEP_ROOTS 一致） */
 const NATIVE_DEP_ROOTS = [
   'sharp',
+  '@img', // sharp 内部依赖（@img/colour 等），scope 枚举确保不遗漏
   'libsql',
   '@libsql',
   'playwright-core',
