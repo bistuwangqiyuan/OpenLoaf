@@ -14,7 +14,7 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import type { DockItem } from "@openloaf/api/common"
 import { DEFAULT_TAB_INFO } from "@openloaf/api/common"
 import { createChatSessionId } from "@/lib/chat-session-id"
-import { isProjectWindowMode } from "@/lib/window-mode"
+import { isDedicatedWindowMode } from "@/lib/window-mode"
 import type { ProjectShellState } from "@/lib/project-shell"
 import { useLayoutState } from "./use-layout-state"
 
@@ -65,7 +65,7 @@ export interface AppViewState {
 /** Resolve storage by renderer mode to isolate project windows. */
 function resolveStorage() {
   if (typeof window === "undefined") return localStorage
-  return isProjectWindowMode() ? window.sessionStorage : window.localStorage
+  return isDedicatedWindowMode() ? window.sessionStorage : window.localStorage
 }
 
 export const useAppView = create<AppViewState>()(

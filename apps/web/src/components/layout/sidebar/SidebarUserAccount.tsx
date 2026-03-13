@@ -13,7 +13,6 @@ import * as React from "react"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import {
-  Crown,
   Sparkles,
   Lightbulb,
   LogIn,
@@ -62,72 +61,14 @@ const SIDEBAR_MEMBERSHIP_BADGE_STYLES = {
 const SIDEBAR_MEMBERSHIP_BADGE_DEFAULT_STYLE =
   "bg-foreground/[0.05] text-foreground/65 dark:bg-foreground/[0.06] dark:text-foreground/65"
 
+const SIDEBAR_CREDITS_TEXT_STYLE = "text-ol-green"
+const SIDEBAR_CREDITS_ICON_STYLE = "text-ol-green"
+
 type SidebarMembershipLevel = keyof typeof SIDEBAR_MEMBERSHIP_BADGE_STYLES
 
 /** Build localized membership labels for sidebar account surfaces. */
 function buildMembershipLabels(input: Record<SidebarMembershipLevel, string>) {
   return input
-}
-
-type SidebarAccountBenefitSummaryProps = {
-  creditsBalanceLabel: string | null
-  creditsTitle: string
-  emptyText: string
-  isLoading: boolean
-  loadingText: string
-  membershipLabel: string | null
-  membershipLevel: SidebarMembershipLevel | null
-  membershipTitle: string
-}
-
-/** Render account membership and credits summary in the avatar dropdown. */
-function SidebarAccountBenefitSummary({
-  creditsBalanceLabel,
-  creditsTitle,
-  emptyText,
-  isLoading,
-  loadingText,
-  membershipLabel,
-  membershipLevel,
-  membershipTitle,
-}: SidebarAccountBenefitSummaryProps) {
-  const membershipValueText = membershipLabel ?? (isLoading ? loadingText : emptyText)
-  const creditsValueText = creditsBalanceLabel ?? (isLoading ? loadingText : emptyText)
-
-  return (
-    <div className="mx-2 rounded-xl bg-muted/30 p-1.5">
-      <div className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-ol-amber-bg text-ol-amber">
-            <Crown className="size-3.5" />
-          </span>
-          <span className="truncate text-xs text-muted-foreground">{membershipTitle}</span>
-        </div>
-        {membershipLabel ? (
-          <span
-            className={`inline-flex shrink-0 items-center rounded-md px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? SIDEBAR_MEMBERSHIP_BADGE_DEFAULT_STYLE}`}
-          >
-            {membershipValueText}
-          </span>
-        ) : (
-          <span className="shrink-0 text-[11px] text-muted-foreground">
-            {membershipValueText}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-ol-green-bg text-ol-green">
-            <Sparkles className="size-3.5" />
-          </span>
-          <span className="truncate text-xs text-muted-foreground">{creditsTitle}</span>
-        </div>
-        <span className="shrink-0 text-[11px] font-medium tabular-nums text-foreground/90">
-          {creditsValueText}
-        </span>
-      </div>
-    </div>
-  )
 }
 
 export function SidebarUserAccount() {
@@ -176,7 +117,6 @@ export function SidebarUserAccount() {
     ? authUser?.name?.trim() || t('wechatUser')
     : baseAccountLabel
   const sidebarDisplayName = authUser?.name?.trim() || sidebarAccountLabel || "OpenLoaf"
-  const dropdownAccountLabel = isWechatLogin ? t('wechatLogin') : baseAccountLabel
   const membershipLevel = userProfileQuery.data?.membershipLevel ?? null
   const membershipLabel = membershipLevel
     ? (membershipLabels[membershipLevel] ?? membershipLevel)
@@ -303,8 +243,8 @@ export function SidebarUserAccount() {
                 <div className="flex w-full items-center gap-1.5 overflow-hidden text-muted-foreground leading-4">
                   <span className="truncate text-[11px]">{sidebarLoginMethodLabel}</span>
                   {creditsBalanceLabel ? (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] text-muted-foreground/75" title={t('credits')}>
-                      <Sparkles className="size-3 text-muted-foreground/65" />
+                    <span className={`ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] ${SIDEBAR_CREDITS_TEXT_STYLE}`} title={t('credits')}>
+                      <Sparkles className={`size-3 ${SIDEBAR_CREDITS_ICON_STYLE}`} />
                       <span>{creditsBalanceLabel}</span>
                     </span>
                   ) : null}
@@ -332,24 +272,29 @@ export function SidebarUserAccount() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 leading-5">
-                      <span className="min-w-0 truncate text-sm font-medium">
+                    <div className="flex min-w-0 w-full items-center gap-1.5 leading-5">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
                         {authUser?.name || t('currentAccount')}
                       </span>
+                      {membershipLabel ? (
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-md px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? SIDEBAR_MEMBERSHIP_BADGE_DEFAULT_STYLE}`}
+                        >
+                          {membershipLabel}
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="truncate text-xs text-muted-foreground leading-4">{dropdownAccountLabel}</div>
+                    <div className="flex items-center gap-1.5 overflow-hidden text-xs text-muted-foreground leading-4">
+                      <span className="truncate">{sidebarLoginMethodLabel}</span>
+                      {creditsBalanceLabel ? (
+                        <span className={`ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] ${SIDEBAR_CREDITS_TEXT_STYLE}`} title={t('credits')}>
+                          <Sparkles className={`size-3 ${SIDEBAR_CREDITS_ICON_STYLE}`} />
+                          <span>{creditsBalanceLabel}</span>
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-                <SidebarAccountBenefitSummary
-                  creditsBalanceLabel={creditsBalanceLabel}
-                  creditsTitle={t('settings.creditsBalance')}
-                  emptyText="—"
-                  isLoading={userProfileQuery.isLoading}
-                  loadingText={t('settings.loading')}
-                  membershipLabel={membershipLabel}
-                  membershipLevel={membershipLevel}
-                  membershipTitle={t('settings.membershipLevel')}
-                />
 
                 <DropdownMenuSeparator className="my-2" />
               </>
@@ -484,6 +429,9 @@ export function CompactUserAvatar() {
   const sidebarAccountLabel = isWechatLogin
     ? authUser?.name?.trim() || t('wechatUser')
     : baseAccountLabel
+  const sidebarLoginMethodLabel = authLoggedIn
+    ? (isWechatLogin ? t('wechatLogin') : t('googleLogin'))
+    : t('notLoggedIn')
   const membershipLevel = userProfileQuery.data?.membershipLevel ?? null
   const membershipLabel = membershipLevel
     ? (membershipLabels[membershipLevel] ?? membershipLevel)
@@ -604,26 +552,29 @@ export function CompactUserAvatar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 leading-5">
-                    <span className="min-w-0 truncate text-sm font-medium">
+                  <div className="flex min-w-0 w-full items-center gap-1.5 leading-5">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {authUser?.name || t('currentAccount')}
                     </span>
+                    {membershipLabel ? (
+                      <span
+                        className={`inline-flex shrink-0 items-center rounded-md px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? SIDEBAR_MEMBERSHIP_BADGE_DEFAULT_STYLE}`}
+                      >
+                        {membershipLabel}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="truncate text-xs text-muted-foreground leading-4">
-                    {isWechatLogin ? t('wechatLogin') : baseAccountLabel}
+                  <div className="flex items-center gap-1.5 overflow-hidden text-xs text-muted-foreground leading-4">
+                    <span className="truncate">{sidebarLoginMethodLabel}</span>
+                    {creditsBalanceLabel ? (
+                      <span className={`ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-right text-[10px] ${SIDEBAR_CREDITS_TEXT_STYLE}`} title={t('credits')}>
+                        <Sparkles className={`size-3 ${SIDEBAR_CREDITS_ICON_STYLE}`} />
+                        <span>{creditsBalanceLabel}</span>
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
-              <SidebarAccountBenefitSummary
-                creditsBalanceLabel={creditsBalanceLabel}
-                creditsTitle={t('settings.creditsBalance')}
-                emptyText="—"
-                isLoading={userProfileQuery.isLoading}
-                loadingText={t('settings.loading')}
-                membershipLabel={membershipLabel}
-                membershipLevel={membershipLevel}
-                membershipTitle={t('settings.membershipLevel')}
-              />
               <DropdownMenuSeparator className="my-2" />
             </>
           )}

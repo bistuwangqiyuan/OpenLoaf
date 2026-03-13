@@ -36,9 +36,9 @@ import ProjectFileSystem, {
 } from "./filesystem/components/ProjectFileSystem";
 import ProjectScheduledTasksPage from "./tasks/ProjectScheduledTasksPage";
 import { lazy, Suspense } from "react";
-import { useGlobalOverlay } from "@/lib/globalShortcuts";
 
 const LazyCanvasListPage = lazy(() => import("@/components/board/CanvasListPage"));
+const LazyProjectSettingsPage = lazy(() => import("@/components/project/settings/ProjectSettingsPage"));
 
 interface ProjectPageProps {
   tabId?: string;
@@ -225,7 +225,7 @@ export default function ProjectPage({
   const shouldRenderTasks = activeTab === "tasks" || mountedTabs.has("tasks");
   const shouldRenderScheduled = activeTab === "scheduled" || mountedTabs.has("scheduled");
   const shouldRenderCanvas = activeTab === "canvas" || mountedTabs.has("canvas");
-  // settings 已改为 dialog 模式，不再需要 tab panel 渲染。
+  const shouldRenderSettings = activeTab === "settings" || mountedTabs.has("settings");
 
   const updateProject = useMutation(
     trpc.project.update.mutationOptions({
@@ -399,17 +399,13 @@ export default function ProjectPage({
   /** Persist the active project tab into the dock base params. */
   const handleProjectTabChange = useCallback(
     (nextTab: ProjectTabValue) => {
-      if (nextTab === "settings") {
-        useGlobalOverlay.getState().setProjectSettingsOpen(true, projectId, rootUri);
-        return;
-      }
       startTransition(() => {
         setActiveTab(nextTab);
       });
       if (!tabId) return;
       setBaseParams({ projectTab: nextTab });
     },
-    [setBaseParams, tabId, projectId, rootUri]
+    [setBaseParams, tabId]
   );
 
   // 项目快捷键流程：只有当前 tab 处于激活态才拦截按键；
@@ -575,6 +571,28 @@ export default function ProjectPage({
                         tabId={tabId ?? ""}
                         panelKey="project-canvas"
                         projectId={projectId}
+                      />
+                    </Suspense>
+                  ) : null}
+                </div>
+                <div
+                  id="project-panel-settings"
+                  role="tabpanel"
+                  aria-labelledby="project-tab-settings"
+                  className={`${panelBaseClass} ${
+                    activeTab === "settings"
+                      ? "opacity-100 pointer-events-auto translate-y-0 scale-100"
+                      : "opacity-0 pointer-events-none translate-y-0.5 scale-[0.995]"
+                  }`}
+                  aria-hidden={activeTab !== "settings"}
+                >
+                  {shouldRenderSettings ? (
+                    <Suspense fallback={null}>
+                      <LazyProjectSettingsPage
+                        tabId={tabId}
+                        projectId={projectId}
+                        rootUri={rootUri}
+                        showProjectTabs={false}
                       />
                     </Suspense>
                   ) : null}

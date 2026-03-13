@@ -262,6 +262,7 @@
     "duplicate": "Clone",
     "duplicateSuccess": "Canvas cloned",
     "copyPath": "Copy Path",
+    "openInNewWindow": "Open in New Window",
     "pathCopied": "Path copied",
     "moveToProject": "Move to Project",
     "selectProject": "Select Target Project",

@@ -47,6 +47,7 @@ import { resolveWindowIconInfo } from '../resolveWindowIcon';
 import { updateTrayBadge, refreshTrayMenu } from '../tray';
 import { setLanguage, getMinimizeToTray, setMinimizeToTray } from '../updateConfig';
 import { createProjectWindow } from '../windows/projectWindow';
+import { createBoardWindow } from '../windows/boardWindow';
 
 let ipcHandlersRegistered = false;
 
@@ -354,6 +355,43 @@ export function registerIpcHandlers(args: { log: Logger }) {
         rootUri,
         title,
         icon: payload?.icon ?? undefined,
+      });
+      return { id: win.id };
+    },
+  );
+
+  // 在独立应用窗口中打开画布。
+  ipcMain.handle(
+    'openloaf:open-board-window',
+    async (
+      _event,
+      payload: {
+        boardId?: string;
+        boardFolderUri?: string;
+        boardFileUri?: string;
+        rootUri?: string;
+        title?: string;
+        projectId?: string;
+      },
+    ) => {
+      const boardId = String(payload?.boardId ?? '').trim();
+      const boardFolderUri = String(payload?.boardFolderUri ?? '').trim();
+      const boardFileUri = String(payload?.boardFileUri ?? '').trim();
+      const rootUri = String(payload?.rootUri ?? '').trim();
+      const title = String(payload?.title ?? '').trim();
+      if (!boardId || !boardFolderUri || !boardFileUri || !rootUri) {
+        throw new Error('Invalid board window payload');
+      }
+      const webUrl = process.env.OPENLOAF_WEB_URL || (app.isPackaged ? 'app://localhost' : 'http://127.0.0.1:3000');
+      const win = createBoardWindow({
+        log: args.log,
+        webUrl,
+        boardId,
+        boardFolderUri,
+        boardFileUri,
+        rootUri,
+        title,
+        projectId: payload?.projectId?.trim() || undefined,
       });
       return { id: win.id };
     },

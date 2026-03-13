@@ -144,11 +144,17 @@ type CanvasSurfaceProps = {
   onStats?: (stats: { imageTextures: number }) => void;
 };
 
+type TransferableCanvasElement = HTMLCanvasElement & {
+  __offscreenTransferred?: boolean;
+};
+
 /** Render the canvas surface layer with WebGPU. */
 export function CanvasSurface({ snapshot, onStats }: CanvasSurfaceProps) {
   const engine = useBoardEngine();
   /** Latest view state for React-driven sizing. */
   const [viewState, setViewState] = useState(() => engine.getViewState());
+  /** Canvas remount key used after OffscreenCanvas transfer. */
+  const [canvasInstanceKey, setCanvasInstanceKey] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const readyRef = useRef(false);
@@ -241,18 +247,14 @@ export function CanvasSurface({ snapshot, onStats }: CanvasSurfaceProps) {
   }, [onStats]);
 
   useEffect(() => {
-    let canvas = canvasRef.current;
+    let canvas = canvasRef.current as TransferableCanvasElement | null;
     if (!canvas) return;
 
-    // A canvas that has already been transferred cannot be reused.
-    // Replace it with a fresh element so `transferControlToOffscreen` succeeds
-    // (this happens in React Strict Mode where effects are double-invoked).
-    if ((canvas as any).__offscreenTransferred) {
-      const fresh = document.createElement("canvas");
-      fresh.className = canvas.className;
-      canvas.parentNode?.replaceChild(fresh, canvas);
-      canvasRef.current = fresh;
-      canvas = fresh;
+    if (canvas.__offscreenTransferred) {
+      // 逻辑：OffscreenCanvas transfer 后 DOM 节点不可复用；
+      // 这里改为让 React 重新挂载 canvas，避免手动 replaceChild 破坏 Fiber 与真实 DOM 同步。
+      setCanvasInstanceKey((current) => current + 1);
+      return;
     }
 
     let worker: Worker;
@@ -290,7 +292,7 @@ export function CanvasSurface({ snapshot, onStats }: CanvasSurfaceProps) {
     let offscreen: OffscreenCanvas;
     try {
       offscreen = canvas.transferControlToOffscreen();
-      (canvas as any).__offscreenTransferred = true;
+      canvas.__offscreenTransferred = true;
     } catch (err) {
       console.error("[board] transferControlToOffscreen failed", err);
       worker.terminate();
@@ -318,7 +320,7 @@ export function CanvasSurface({ snapshot, onStats }: CanvasSurfaceProps) {
       workerRef.current = null;
       // Canvas that has been transferred cannot be reused; bump key to create a fresh element.
     };
-  }, []);
+  }, [canvasInstanceKey, scheduleFrame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -351,6 +353,7 @@ export function CanvasSurface({ snapshot, onStats }: CanvasSurfaceProps) {
 
   return (
     <canvas
+      key={canvasInstanceKey}
       ref={canvasRef}
       className="pointer-events-none absolute inset-0"
     />

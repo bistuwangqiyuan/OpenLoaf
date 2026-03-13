@@ -20,7 +20,7 @@ import {
   type DockItem,
   type TerminalTab,
 } from "@openloaf/api/common"
-import { isProjectWindowMode } from "@/lib/window-mode"
+import { isDedicatedWindowMode } from "@/lib/window-mode"
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state"
 import { BOARD_VIEWER_COMPONENT, LEFT_DOCK_DEFAULT_PERCENT, clampPercent } from "./layout-utils"
 import { isBrowserWindowItem, normalizeBrowserWindowItem } from "./browser-panel"
@@ -94,7 +94,7 @@ const DEFAULT_STATE: LayoutState = {
 /** Resolve storage by renderer mode to isolate project windows. */
 function resolveStorage() {
   if (typeof window === "undefined") return localStorage
-  return isProjectWindowMode() ? window.sessionStorage : window.localStorage
+  return isDedicatedWindowMode() ? window.sessionStorage : window.localStorage
 }
 
 /** Return true when the stack contains a board viewer item. */
@@ -480,7 +480,7 @@ export const useLayoutState = create<LayoutStateActions>()(
           ...DEFAULT_STATE,
           base: input.base,
           leftWidthPercent: input.leftWidthPercent ?? (input.base ? LEFT_DOCK_DEFAULT_PERCENT : 0),
-          rightChatCollapsed: input.base ? Boolean(input.rightChatCollapsed) : false,
+          rightChatCollapsed: input.rightChatCollapsed ?? true,
         }))
       },
     }),

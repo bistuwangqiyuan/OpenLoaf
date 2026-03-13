@@ -36,7 +36,7 @@ const FILE_FOREGROUND_COMPONENTS = new Set([
   "streaming-plate-viewer",
   "streaming-code-viewer",
 ])
-const RIGHT_CHAT_DISABLED_PROJECT_TABS = new Set(["index", "canvas", "files", "tasks"])
+const RIGHT_CHAT_DISABLED_PROJECT_TABS = new Set(["index", "canvas", "files", "tasks", "settings"])
 
 /** Layout state snapshot for utility functions. */
 export type LayoutSnapshot = {
@@ -84,13 +84,6 @@ export function shouldDisableRightChat(layout?: LayoutSnapshot) {
   }
 
   if (foreground && FILE_FOREGROUND_COMPONENTS.has(foreground)) {
-    return true
-  }
-
-  if (
-    foreground === BOARD_VIEWER_COMPONENT &&
-    layout?.projectShell?.section === "canvas"
-  ) {
     return true
   }
 

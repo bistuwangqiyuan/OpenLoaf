@@ -24,7 +24,7 @@ import * as React from "react";
 import { motion } from "motion/react";
 import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Settings } from "lucide-react";
 import { QUICK_LAUNCH_ITEMS, PROJECT_QUICK_LAUNCH_ITEMS } from "./quick-launch-items";
-import { useGlobalOverlay } from "@/lib/globalShortcuts";
+import { openProjectSettingsPage } from "@/lib/project-shell";
 import {
   CHAT_ATTACHMENT_MAX_FILE_SIZE_BYTES,
   formatFileSize,
@@ -239,9 +239,14 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
     (item: (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]) => {
       if (!projectId) return
       const rootUri = projectData?.project?.rootUri
-      // settings 改为 dialog 模式
+      // 中文注释：项目设置统一走项目壳页面切换，避免弹窗/stack 与页面状态分离。
       if (item.value === "settings") {
-        useGlobalOverlay.getState().setProjectSettingsOpen(true, projectId, rootUri)
+        openProjectSettingsPage({
+          projectId,
+          rootUri: rootUri ?? "",
+          title: projectData?.project?.title ?? projectId,
+          icon: projectData?.project?.icon ?? null,
+        })
         return
       }
       const layout = useLayoutState.getState()

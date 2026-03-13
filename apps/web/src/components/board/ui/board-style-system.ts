@@ -22,20 +22,20 @@
 export const BOARD_TOOLBAR_SURFACE_CLASS =
   "ol-glass-toolbar ring-1 ring-border/70 cursor-default [&_*]:!cursor-default";
 
-/** Icon button active state — subtle tinted background following design system. */
+/** Icon button active state — visible contrast for selected tool. */
 export const BOARD_ICON_BTN_ACTIVE =
-  "bg-ol-blue-bg-hover text-ol-blue";
+  "bg-foreground/10 text-ol-blue dark:bg-foreground/15";
 
 /** Icon button hover state — muted background following design system. */
 export const BOARD_ICON_BTN_HOVER =
-  "hover:bg-muted/58 dark:hover:bg-muted/46";
+  "hover:bg-foreground/8 dark:hover:bg-foreground/10";
 
 /** Panel item active state (same as icon button). */
 export const BOARD_PANEL_ITEM_ACTIVE = BOARD_ICON_BTN_ACTIVE;
 
 /** Panel item hover state. */
 export const BOARD_PANEL_ITEM_HOVER =
-  "hover:bg-muted/58 dark:hover:bg-muted/46";
+  "hover:bg-foreground/8 dark:hover:bg-foreground/10";
 
 /** Design-system-aligned pen colors (TE palette). */
 export const BOARD_PEN_COLORS = [

@@ -10,7 +10,6 @@
 "use client";
 
 import { useGlobalOverlay } from "@/lib/globalShortcuts";
-import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { isElectronEnv } from "@/utils/is-electron-env";
@@ -27,8 +26,9 @@ import { Search as SearchDialog } from "@/components/search/Search";
 
 export const Header = () => {
   const activeTab = useAppState();
-  const isRightChatDisabled = shouldDisableRightChat(activeTab);
-  const canToggleChat = Boolean(activeTab?.base) && !isRightChatDisabled;
+  const canToggleChat =
+    Boolean(activeTab?.base) &&
+    !shouldDisableRightChat(activeTab ?? undefined);
   const isChatCollapsed = Boolean(activeTab?.rightChatCollapsed);
   const setHeaderActionsTarget = useHeaderSlot((s) => s.setHeaderActionsTarget);
   const setHeaderTitleExtraTarget = useHeaderSlot((s) => s.setHeaderTitleExtraTarget);
@@ -137,7 +137,6 @@ export const Header = () => {
         </Tooltip>
       </div>
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
-      <ProjectSettingsDialog />
     </header>
   );
 };

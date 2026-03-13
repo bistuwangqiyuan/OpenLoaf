@@ -17,6 +17,7 @@ import { useAppState } from "@/hooks/use-app-state";
 import { isProjectMode } from "@/lib/project-mode";
 import { applyProjectShellToTab, exitProjectShellToProjectList } from "@/lib/project-shell";
 import { PROJECT_LIST_TAB_INPUT, CANVAS_LIST_TAB_INPUT } from "@openloaf/api/common";
+import { isProjectWindowMode, isBoardWindowMode } from "@/lib/window-mode";
 import { useAppView } from "@/hooks/use-app-view";
 import { useLayoutState } from "@/hooks/use-layout-state";
 
@@ -34,6 +35,8 @@ export const PageTitle = () => {
   const isBoardViewer = activeTab?.base?.component === 'board-viewer';
   const isSettingsPage = activeTab?.base?.component === 'settings-page';
   const inProject = isProjectMode(activeTab?.projectShell);
+  const isProjectWindow = isProjectWindowMode();
+  const isBoardWindow = isBoardWindowMode();
 
   const handleBackFromBoard = useCallback(() => {
     const layout = useLayoutState.getState();
@@ -113,7 +116,7 @@ export const PageTitle = () => {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {inProject && !isBoardViewer && (
+      {inProject && !isBoardViewer && !isProjectWindow && (
         <button
           type="button"
           onClick={handleBackToProjectList}
@@ -123,7 +126,7 @@ export const PageTitle = () => {
           {t('sidebarProjectSpace')}
         </button>
       )}
-      {isBoardViewer && inProject && (
+      {isBoardViewer && inProject && !isBoardWindow && (
         <button
           type="button"
           onClick={handleBackFromBoard}
@@ -133,7 +136,7 @@ export const PageTitle = () => {
           {activeTab?.projectShell?.title ?? t('project')}
         </button>
       )}
-      {isBoardViewer && !inProject && (
+      {isBoardViewer && !inProject && !isBoardWindow && (
         <button
           type="button"
           onClick={handleBackFromBoard}

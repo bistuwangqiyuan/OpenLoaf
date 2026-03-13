@@ -89,7 +89,7 @@ import {
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { cn } from "@/lib/utils";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
-import { useGlobalOverlay } from "@/lib/globalShortcuts";
+import { openProjectSettingsPage } from "@/lib/project-shell";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 import { SidebarHoverPanel } from "@/components/layout/sidebar/SidebarHoverPanel";
 
@@ -749,7 +749,8 @@ export const PageTreeMenu = ({
       base: {
         id: `project:${targetProjectId}`,
         component: "plant-page",
-        params: { projectId: targetProjectId, rootUri: project.rootUri, projectTab: "canvas" },
+        // 逻辑：从项目树打开项目时回到项目看板，而不是画布列表。
+        params: { projectId: targetProjectId, rootUri: project.rootUri, projectTab: "index" },
       },
       leftWidthPercent: savedLayout?.leftWidthPercent ?? 100,
       rightChatCollapsed: savedLayout?.rightChatCollapsed ?? false,
@@ -1626,7 +1627,13 @@ export const PageTreeMenu = ({
         <ContextMenuItem
           icon={Settings}
           onClick={() => {
-            useGlobalOverlay.getState().setProjectSettingsOpen(true, node.projectId, node.uri);
+            if (!node.projectId) return;
+            openProjectSettingsPage({
+              projectId: node.projectId,
+              rootUri: node.uri,
+              title: node.name,
+              icon: node.projectIcon ?? null,
+            });
           }}
         >
           {t("nav:projectTree.projectSettings")}

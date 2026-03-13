@@ -55,7 +55,8 @@ export function useSidebarNavigation() {
       rootUri: string
       icon?: string | null
     }) => {
-      openProjectWithPreference(input, { section: 'canvas' })
+      // 逻辑：Sidebar 项目入口统一落到项目看板。
+      openProjectWithPreference(input, { section: 'index' })
       setActiveGlobalChat(null)
     },
     [openProjectWithPreference, setActiveGlobalChat],

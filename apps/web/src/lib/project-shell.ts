@@ -29,6 +29,8 @@ type ProjectShellInput = Omit<ProjectShellState, "section"> & {
   section?: ProjectShellSection;
 };
 
+export type OpenProjectSettingsPageInput = Omit<ProjectShellState, "section">;
+
 /** Return true when the value is a supported project-shell section. */
 export function isProjectShellSection(value: unknown): value is ProjectShellSection {
   return (
@@ -46,11 +48,12 @@ export function buildProjectShellBase(
       return undefined;
     case "settings":
       return {
-        id: `project-settings:${input.projectId}`,
-        component: "project-settings-page",
+        id: `project:${input.projectId}`,
+        component: "plant-page",
         params: {
           projectId: input.projectId,
           rootUri: input.rootUri,
+          projectTab: "settings",
         },
       };
     case "history":
@@ -152,6 +155,14 @@ export function openProjectShell(input: ProjectShellInput) {
 
   useNavigation.getState().setActiveProject(input.projectId);
   return "main";
+}
+
+/** Open project settings as the current project-shell page. */
+export function openProjectSettingsPage(input: OpenProjectSettingsPageInput) {
+  return openProjectShell({
+    ...input,
+    section: "settings",
+  });
 }
 
 /** Exit the project-shell context and return to the project-space list in-place. */

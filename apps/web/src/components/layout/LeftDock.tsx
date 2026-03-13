@@ -467,7 +467,7 @@ export function LeftDock({ tabId }: { tabId: string }) {
         </div>
       ) : null}
 
-      {base?.component === "plant-page" ? (
+      {base?.component === "plant-page" || base?.component === "project-settings-page" ? (
         <div
           data-project-dock-host
           data-tab-id={tabId}

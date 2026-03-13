@@ -20,7 +20,11 @@ import { cn } from "@/lib/utils"
 import { Chat } from "@/components/ai/Chat"
 import { useAppView } from "@/hooks/use-app-view"
 import { useLayoutState } from "@/hooks/use-layout-state"
-import { shouldDisableRightChat, LEFT_DOCK_MIN_PX, LEFT_DOCK_DEFAULT_PERCENT } from "@/hooks/layout-utils"
+import {
+  LEFT_DOCK_MIN_PX,
+  LEFT_DOCK_DEFAULT_PERCENT,
+  shouldDisableRightChat,
+} from "@/hooks/layout-utils"
 import { useProjectLayout } from "@/hooks/use-project-layout"
 import { useRecordEntityVisit } from "@/hooks/use-record-entity-visit"
 import { useChatSessions } from "@/hooks/use-chat-sessions"
@@ -412,7 +416,11 @@ export function TabLayout() {
     () => ({ base, stack, activeStackItemId, rightChatCollapsed, projectShell }),
     [base, stack, activeStackItemId, rightChatCollapsed, projectShell],
   )
-  const isRightChatDisabled = shouldDisableRightChat(layoutSnapshot)
+  const isRightChatDisabled = React.useMemo(
+    () => shouldDisableRightChat(layoutSnapshot),
+    [layoutSnapshot],
+  )
+  // 逻辑：项目看板、文件、画布等页面即使恢复了旧布局，也必须隐藏右侧 chat。
   const isRightCollapsed = Boolean(base) && (isRightChatDisabled || Boolean(rightChatCollapsed))
 
   const effectiveMinLeft = minLeftWidth ?? LEFT_DOCK_MIN_PX

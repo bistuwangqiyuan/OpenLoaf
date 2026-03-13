@@ -49,13 +49,6 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
   { id: "feedback.open", label: "意见反馈", keys: "Mod+Shift+U" },
 ];
 
-type ProjectSettingsDialogState = {
-  projectSettingsOpen: boolean;
-  projectSettingsProjectId: string | undefined;
-  projectSettingsRootUri: string | undefined;
-  setProjectSettingsOpen: (open: boolean, projectId?: string, rootUri?: string) => void;
-};
-
 type GlobalOverlayState = {
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
@@ -65,7 +58,7 @@ type GlobalOverlayState = {
   setSettingsOpen: (open: boolean, menu?: string) => void;
   feedbackOpen: boolean;
   setFeedbackOpen: (open: boolean) => void;
-} & ProjectSettingsDialogState;
+};
 
 export const useGlobalOverlay = create<GlobalOverlayState>((set) => ({
   searchOpen: false,
@@ -77,15 +70,6 @@ export const useGlobalOverlay = create<GlobalOverlayState>((set) => ({
     set({ settingsOpen: open, settingsMenu: open ? menu : undefined }),
   feedbackOpen: false,
   setFeedbackOpen: (open) => set({ feedbackOpen: open }),
-  projectSettingsOpen: false,
-  projectSettingsProjectId: undefined,
-  projectSettingsRootUri: undefined,
-  setProjectSettingsOpen: (open, projectId, rootUri) =>
-    set({
-      projectSettingsOpen: open,
-      projectSettingsProjectId: open ? projectId : undefined,
-      projectSettingsRootUri: open ? rootUri : undefined,
-    }),
 }));
 
 /** 判断当前事件目标是否为可编辑输入区域，避免快捷键打断输入。 */
@@ -163,6 +147,8 @@ export function openSettingsTab(settingsMenu?: string) {
   }
 
   // Save current base and switch to settings
+  // 中文注释：进入全局设置时关闭当前 stack，确保设置页成为前景页并按页面规则隐藏右侧 chat。
+  layout.clearStack();
   layout.setBase({
     id: 'settings',
     component: 'settings-page',

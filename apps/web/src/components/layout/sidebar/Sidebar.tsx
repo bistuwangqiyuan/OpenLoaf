@@ -41,9 +41,10 @@ import { useSidebarNavigation } from "@/hooks/use-sidebar-navigation";
 import { CompactUserAvatar } from "@/components/layout/sidebar/SidebarUserAccount";
 import { BOARD_VIEWER_COMPONENT, isSettingsForegroundPage } from "@/hooks/layout-utils";
 import { isProjectMode } from "@/lib/project-mode";
+import { isProjectWindowMode, isBoardWindowMode } from "@/lib/window-mode";
 
 const ICON_BTN_BASE =
-  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150";
+  "flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-150";
 
 const ICON_COLOR = {
   amber:
@@ -54,6 +55,12 @@ const ICON_COLOR = {
     "[&>svg]:text-ol-purple/70 hover:[&>svg]:text-ol-purple data-[active=true]:bg-ol-purple/15 dark:data-[active=true]:bg-ol-purple/20 data-[active=true]:[&>svg]:text-ol-purple",
   blue:
     "[&>svg]:text-ol-blue/70 hover:[&>svg]:text-ol-blue data-[active=true]:bg-ol-blue/15 dark:data-[active=true]:bg-ol-blue/20 data-[active=true]:[&>svg]:text-ol-blue",
+  sky:
+    "[&>svg]:text-sky-500/70 hover:[&>svg]:text-sky-500 data-[active=true]:bg-sky-500/15 dark:data-[active=true]:bg-sky-500/20 data-[active=true]:[&>svg]:text-sky-500",
+  teal:
+    "[&>svg]:text-teal-500/70 hover:[&>svg]:text-teal-500 data-[active=true]:bg-teal-500/15 dark:data-[active=true]:bg-teal-500/20 data-[active=true]:[&>svg]:text-teal-500",
+  rose:
+    "[&>svg]:text-rose-500/70 hover:[&>svg]:text-rose-500 data-[active=true]:bg-rose-500/15 dark:data-[active=true]:bg-rose-500/20 data-[active=true]:[&>svg]:text-rose-500",
   black:
     "[&>svg]:text-sidebar-foreground/80 hover:[&>svg]:text-sidebar-foreground data-[active=true]:[&>svg]:text-sidebar-accent-foreground",
 } as const;
@@ -81,7 +88,7 @@ function IconNavItem({
             onClick={onClick}
             type="button"
           >
-            <Icon className="h-4.5 w-4.5" />
+            <Icon className="h-5 w-5" />
           </SidebarMenuButton>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8}>
@@ -158,11 +165,13 @@ export const AppSidebar = ({
       setIcon(input.icon);
       // Exit project mode when navigating to a global page.
       setProjectShell(null);
+      // Default right chat to collapsed on global pages.
+      useLayoutState.getState().setRightChatCollapsed(true);
     },
     [clearStack, setActiveView, setBase, setIcon, setTitle, setProjectShell],
   );
 
-  if (isNarrow) return null;
+  if (isNarrow || isProjectWindowMode() || isBoardWindowMode()) return null;
 
   return (
     <Sidebar
@@ -175,6 +184,7 @@ export const AppSidebar = ({
 
       <SidebarContent className="items-center px-0">
         <SidebarMenu className="items-center gap-1 px-1.5">
+          {/* Core */}
           <IconNavItem
             icon={Sparkles}
             tooltip={t("aiAssistant")}
@@ -185,29 +195,6 @@ export const AppSidebar = ({
               return isMenuActive(AI_ASSISTANT_TAB_INPUT);
             })()}
             onClick={nav.openTempChat}
-          />
-          <IconNavItem
-            icon={LayoutDashboard}
-            tooltip={t("workbench")}
-            color="green"
-            isActive={!isInProject && (isWorkbenchActive || isMenuActive(WORKBENCH_TAB_INPUT))}
-            onClick={() =>
-              openPrimaryPageTab({ ...WORKBENCH_TAB_INPUT, viewType: "workbench" })
-            }
-          />
-          <IconNavItem
-            icon={Palette}
-            tooltip={t("smartCanvas")}
-            color="purple"
-            isActive={
-              !isInProject &&
-              (isCanvasListActive ||
-              isMenuActive(CANVAS_LIST_TAB_INPUT) ||
-              isCanvasViewerActive)
-            }
-            onClick={() =>
-              openPrimaryPageTab({ ...CANVAS_LIST_TAB_INPUT, viewType: "canvas-list" })
-            }
           />
           <IconNavItem
             icon={FolderKanban}
@@ -224,9 +211,37 @@ export const AppSidebar = ({
             }
           />
           <IconNavItem
+            icon={Palette}
+            tooltip={t("smartCanvas")}
+            color="purple"
+            isActive={
+              !isInProject &&
+              (isCanvasListActive ||
+              isMenuActive(CANVAS_LIST_TAB_INPUT) ||
+              isCanvasViewerActive)
+            }
+            onClick={() =>
+              openPrimaryPageTab({ ...CANVAS_LIST_TAB_INPUT, viewType: "canvas-list" })
+            }
+          />
+
+          {/* Separator */}
+          <div className="my-1 h-px w-6 bg-sidebar-border" />
+
+          {/* Tools */}
+          <IconNavItem
+            icon={LayoutDashboard}
+            tooltip={t("workbench")}
+            color="green"
+            isActive={!isInProject && (isWorkbenchActive || isMenuActive(WORKBENCH_TAB_INPUT))}
+            onClick={() =>
+              openPrimaryPageTab({ ...WORKBENCH_TAB_INPUT, viewType: "workbench" })
+            }
+          />
+          <IconNavItem
             icon={CalendarDays}
             tooltip={t("calendar")}
-            color="blue"
+            color="sky"
             isActive={!isInProject && isCalendarActive}
             onClick={() =>
               openPrimaryPageTab({ baseId: "base:calendar", component: "calendar-page", titleKey: "nav:calendar", icon: "🗓️", viewType: "calendar" })
@@ -235,7 +250,7 @@ export const AppSidebar = ({
           <IconNavItem
             icon={Mail}
             tooltip={t("email")}
-            color="green"
+            color="teal"
             isActive={!isInProject && isEmailActive}
             onClick={() =>
               openPrimaryPageTab({ baseId: "base:mailbox", component: "email-page", titleKey: "nav:email", icon: "📧", viewType: "email" })
@@ -244,7 +259,7 @@ export const AppSidebar = ({
           <IconNavItem
             icon={Clock}
             tooltip={t("tasks")}
-            color="amber"
+            color="rose"
             isActive={!isInProject && isTasksActive}
             onClick={() =>
               openPrimaryPageTab({ baseId: "base:scheduled-tasks", component: "scheduled-tasks-page", titleKey: "nav:tasks", icon: "⏰", viewType: "scheduled-tasks" })

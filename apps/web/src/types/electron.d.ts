@@ -174,6 +174,14 @@ declare global {
         title: string;
         icon?: string | null;
       }) => Promise<{ id: number }>;
+      openBoardWindow?: (payload: {
+        boardId: string;
+        boardFolderUri: string;
+        boardFileUri: string;
+        rootUri: string;
+        title: string;
+        projectId?: string;
+      }) => Promise<{ id: number }>;
       getSystemLocale?: () => string;
       openExternal?: (url: string) => Promise<{ ok: true } | { ok: false; reason?: string }>;
       fetchWebMeta?: (payload: {

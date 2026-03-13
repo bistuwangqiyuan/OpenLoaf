@@ -51,17 +51,105 @@ function resolveContextMenuIconClass(
   return CONTEXT_MENU_ICON_TONE_CLASS.info
 }
 
+/**
+ * 修复 Radix ContextMenu 右键重新定位问题。
+ *
+ * 当菜单已打开时在 trigger 上再次右键，浏览器按以下顺序分发事件：
+ *   1. pointerdown (button=2) → Radix DismissableLayer 调用 setOpen(false)
+ *   2. contextmenu → Radix handleOpen 调用 setOpen(true)
+ *
+ * React 18+ 自动批处理将两次 setOpen 合并，最终状态仍为 true，
+ * 跳过重渲染，floating-ui 不重新计算位置，菜单停留在旧坐标。
+ *
+ * 修复策略：检测到 contextmenu 紧随 close（pointerdown 导致）时，
+ * preventDefault 阻止 Radix handler，用 setTimeout(0) 等 React 提交
+ * close 后再分发新的 contextmenu，此时 setOpen(true) 是真正的状态变更。
+ */
+
+type ContextMenuReopenCtx = {
+  openRef: React.RefObject<boolean>
+  closedAtRef: React.RefObject<number>
+}
+
+const ContextMenuReopenContext = React.createContext<ContextMenuReopenCtx | null>(null)
+
 function ContextMenu({
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
-  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />
+  const openRef = React.useRef(false)
+  const closedAtRef = React.useRef(0)
+  const handleOpenChange = React.useCallback(
+    (next: boolean) => {
+      if (!next && openRef.current) {
+        closedAtRef.current = performance.now()
+      }
+      openRef.current = next
+      onOpenChange?.(next)
+    },
+    [onOpenChange],
+  )
+  const ctxValue = React.useMemo<ContextMenuReopenCtx>(
+    () => ({ openRef, closedAtRef }),
+    [],
+  )
+  return (
+    <ContextMenuReopenContext.Provider value={ctxValue}>
+      <ContextMenuPrimitive.Root
+        data-slot="context-menu"
+        onOpenChange={handleOpenChange}
+        {...props}
+      />
+    </ContextMenuReopenContext.Provider>
+  )
 }
 
 function ContextMenuTrigger({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {
+  const ctx = React.useContext(ContextMenuReopenContext)
+  const triggerRef = React.useRef<HTMLSpanElement>(null)
+  const reopeningRef = React.useRef(false)
+  const handleContextMenu = React.useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>) => {
+      // 由 setTimeout 重新分发的 contextmenu，正常放行给 Radix 处理
+      if (reopeningRef.current) {
+        reopeningRef.current = false
+        props.onContextMenu?.(event)
+        return
+      }
+      // 检测：contextmenu 紧随 pointerdown 导致的 close（< 100ms）
+      const justClosed =
+        performance.now() - (ctx?.closedAtRef.current ?? 0) < 100
+      if (justClosed) {
+        // 阻止 Radix handler，防止 setOpen(true) 和 setOpen(false) 被批处理
+        event.preventDefault()
+        const { clientX, clientY } = event
+        reopeningRef.current = true
+        // setTimeout(0) 让 React 先提交 close，然后再打开
+        setTimeout(() => {
+          triggerRef.current?.dispatchEvent(
+            new MouseEvent("contextmenu", {
+              bubbles: true,
+              cancelable: true,
+              clientX,
+              clientY,
+            }),
+          )
+        }, 0)
+        return
+      }
+      props.onContextMenu?.(event)
+    },
+    [ctx, props.onContextMenu],
+  )
   return (
-    <ContextMenuPrimitive.Trigger data-slot="context-menu-trigger" {...props} />
+    <ContextMenuPrimitive.Trigger
+      ref={triggerRef}
+      data-slot="context-menu-trigger"
+      {...props}
+      onContextMenu={handleContextMenu}
+    />
   )
 }
 

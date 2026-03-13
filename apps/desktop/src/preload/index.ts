@@ -90,6 +90,16 @@ contextBridge.exposeInMainWorld('openloafElectron', {
     icon?: string | null;
   }): Promise<OpenProjectWindowResult> =>
     ipcRenderer.invoke('openloaf:open-project-window', payload),
+  // 请求主进程在独立应用窗口中打开一个画布。
+  openBoardWindow: (payload: {
+    boardId: string;
+    boardFolderUri: string;
+    boardFileUri: string;
+    rootUri: string;
+    title: string;
+    projectId?: string;
+  }): Promise<OpenProjectWindowResult> =>
+    ipcRenderer.invoke('openloaf:open-board-window', payload),
   // 使用系统默认浏览器打开外部 URL。
   openExternal: (url: string): Promise<{ ok: true } | { ok: false; reason?: string }> =>
     ipcRenderer.invoke('openloaf:open-external', { url }),

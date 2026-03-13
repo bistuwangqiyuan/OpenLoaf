@@ -24,7 +24,8 @@ export function useProjectOpen() {
 
   return useCallback(
     (input: OpenProjectInput, options?: OpenProjectOptions) => {
-      const section = options?.section ?? "canvas";
+      // 逻辑：项目默认打开项目看板，避免误跳到画布页。
+      const section = options?.section ?? "index";
       const mode = options?.mode ?? "preference";
       const canOpenWindow =
         isElectron &&

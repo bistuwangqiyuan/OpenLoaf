@@ -366,6 +366,7 @@ export function ChatInputBox({
     ? t('input.cliPlaceholder', { tool: cliToolLabel || "CLI" })
     : (placeholder ?? t('input.defaultPlaceholder'));
   const showProjectSelector = Boolean(onProjectChange);
+  const showProjectToolbar = showProjectSelector || Boolean(afterProjectSelector);
   const handleProjectSelectorChange = useCallback(
     (projectId: string | undefined) => {
       onProjectChange?.(projectId);
@@ -516,19 +517,24 @@ export function ChatInputBox({
               attachments && attachments.length > 0 && "pt-1"
             )}
           >
-            {showProjectSelector && (
+            {showProjectToolbar && (
               <div className="px-3 pt-2 pb-0.5">
                 <div className="flex items-center gap-2 min-w-0">
-                  <ChatProjectSelector
-                    projectId={defaultProjectId}
-                    fallbackLabel={fallbackProjectLabel}
-                    projects={projects}
-                    onProjectChange={handleProjectSelectorChange}
-                    disabled={projectSelectorDisabled}
-                    large={large}
-                  />
+                  {showProjectSelector ? (
+                    <ChatProjectSelector
+                      projectId={defaultProjectId}
+                      fallbackLabel={fallbackProjectLabel}
+                      projects={projects}
+                      onProjectChange={handleProjectSelectorChange}
+                      disabled={projectSelectorDisabled}
+                      large={large}
+                    />
+                  ) : null}
                   {afterProjectSelector ? (
-                    <div className="min-w-0 flex-1 overflow-x-auto">
+                    <div className={cn(
+                      "min-w-0 overflow-x-auto",
+                      showProjectSelector ? "flex-1" : "w-full"
+                    )}>
                       <div className="flex w-full min-w-max items-center justify-end">
                         {afterProjectSelector}
                       </div>
@@ -757,12 +763,16 @@ export default function ChatInput({
     [sessionId, projectId]
   );
   const setChatParams = useAppView((state) => state.setChatParams);
+  const projectShell = useAppView((state) => state.projectShell);
   const tabOnlineSearchEnabled = useAppView((state) => {
     const value = (state.chatParams as Record<string, unknown> | undefined)
       ?.chatOnlineSearchEnabled;
     return typeof value === "boolean" ? value : undefined;
   });
+  const activeBase = useLayoutState((state) => state.base);
   const fallbackProjectLabel = t('projectSelector.projectSpace');
+  // 中文注释：仅独立的全局 AI 聊天页允许切换项目，避免项目页/看板页右侧输入区重复出现该入口。
+  const showProjectSelector = !projectShell && !activeBase;
   /** Switch project scope from the project selector. */
   const handleProjectChange = useCallback(
     (nextProjectId: string | undefined) => {
@@ -1227,8 +1237,8 @@ export default function ChatInput({
         blockedCompact={blockedCompact}
         uploadFileToSession={uploadFileToSession}
         fallbackProjectLabel={fallbackProjectLabel}
-        onProjectChange={handleProjectChange}
-        projectSelectorDisabled={conversationStarted}
+        onProjectChange={showProjectSelector ? handleProjectChange : undefined}
+        projectSelectorDisabled={showProjectSelector ? conversationStarted : false}
         afterProjectSelector={
           !isUnconfigured && (showCodexModelSelector || showClaudeCodeModelSelector) ? (
             showCodexModelSelector ? (

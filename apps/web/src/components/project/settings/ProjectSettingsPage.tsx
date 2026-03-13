@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,12 @@ import { OpenLoafSettingsMenu } from "@openloaf/ui/openloaf/OpenLoafSettingsMenu
 import { Bot, Brain, Cpu, GitBranch, SlidersHorizontal, Wand2 } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { useBasicConfig } from "@/hooks/use-basic-config";
+import { useTabActive } from "@/components/layout/TabActiveContext";
+import { useAppState } from "@/hooks/use-app-state";
+import { useLayoutState } from "@/hooks/use-layout-state";
 import { cn } from "@/lib/utils";
+import ProjectTabs, { type ProjectTabValue } from "@/components/project/ProjectTabs";
+import { openProjectShell, type ProjectShellSection } from "@/lib/project-shell";
 
 import { ProjectBasicSettings } from "./menus/ProjectBasicSettings";
 import { ProjectAiSettings } from "./menus/ProjectAiSettings";
@@ -95,18 +100,24 @@ export function ProjectSettingsHeader({
 }
 
 type ProjectSettingsPageProps = {
+  tabId?: string;
   projectId?: string;
   rootUri?: string;
   settingsMenu?: ProjectSettingsMenuKey;
+  showProjectTabs?: boolean;
 };
 
 /** Project settings page. */
 export default function ProjectSettingsPage({
+  tabId,
   projectId,
   rootUri,
   settingsMenu,
+  showProjectTabs = true,
 }: ProjectSettingsPageProps) {
   const { t } = useTranslation(["project", "settings"]);
+  const tabActive = useTabActive();
+  const appState = useAppState();
   const [activeKey, setActiveKey] = useState<ProjectSettingsMenuKey>(() =>
     isProjectSettingsMenuKey(settingsMenu) ? settingsMenu : "basic"
   );
@@ -175,6 +186,9 @@ export default function ProjectSettingsPage({
   const lastCollapsedRef = useRef<boolean | null>(null);
   const { basic } = useBasicConfig();
   const shouldAnimate = basic.uiAnimationLevel !== "low";
+  const pageTitle = appState.projectShell?.title ?? appState.title ?? projectId ?? "Project";
+  const pageIcon = appState.projectShell?.icon ?? appState.icon ?? null;
+  const resolvedRootUri = rootUri ?? appState.projectShell?.rootUri ?? "";
 
   useEffect(() => {
     if (allMenuItems.some((item) => item.key === activeKey)) return;
@@ -229,11 +243,45 @@ export default function ProjectSettingsPage({
     [activeKey, allMenuItems]
   );
 
-  return (
+  /** Navigate from settings back to one project tab. */
+  const handleProjectTabChange = useCallback(
+    (nextTab: ProjectTabValue) => {
+      if (!projectId) return;
+      if (nextTab === "settings") return;
+
+      // 中文注释：scheduled 仍复用 plant-page，只是用 projectTab 区分子页。
+      const nextSection: ProjectShellSection =
+        nextTab === "tasks"
+          ? "history"
+          : nextTab === "scheduled"
+            ? "index"
+            : nextTab;
+
+      openProjectShell({
+        projectId,
+        rootUri: resolvedRootUri,
+        title: pageTitle,
+        icon: pageIcon,
+        section: nextSection,
+      });
+
+      if (nextTab === "scheduled") {
+        useLayoutState.getState().setBaseParams({ projectTab: "scheduled" });
+      }
+    },
+    [projectId, resolvedRootUri, pageTitle, pageIcon],
+  );
+
+  const settingsLayout = (
     <OpenLoafSettingsLayout
       ref={containerRef}
       isCollapsed={isCollapsed}
-      sectionClassName="rounded-2xl  bg-background/70"
+      sectionClassName="rounded-2xl bg-background/70"
+      contentInnerClassName={
+        showProjectTabs
+          ? "h-full min-h-0 pl-3 pr-1 pt-2 pb-16"
+          : "h-full min-h-0 pl-3 pr-1 pt-2"
+      }
       menu={
         <OpenLoafSettingsMenu
           groups={menuGroups}
@@ -251,9 +299,27 @@ export default function ProjectSettingsPage({
               : undefined
           }
         >
-          <ActiveComponent projectId={projectId} rootUri={rootUri} />
+          <ActiveComponent projectId={projectId} rootUri={resolvedRootUri} />
         </div>
       }
     />
+  );
+
+  if (!showProjectTabs) {
+    return settingsLayout;
+  }
+
+  return (
+    <div className="project-shell flex h-full w-full min-h-0 flex-col">
+      <ProjectTabs
+        value="settings"
+        onValueChange={handleProjectTabChange}
+        isActive={tabActive}
+        revealDelayMs={200}
+        size="md"
+        tabId={tabId}
+      />
+      {settingsLayout}
+    </div>
   );
 }

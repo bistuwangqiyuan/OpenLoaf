@@ -12,7 +12,8 @@
 import { useEffect } from "react"
 import { DEFAULT_TAB_INFO } from "@openloaf/api/common"
 import { openProjectShell } from "@/lib/project-shell"
-import { getProjectWindowBootstrapPayload } from "@/lib/window-mode"
+import { getProjectWindowBootstrapPayload, getBoardWindowBootstrapPayload } from "@/lib/window-mode"
+import { buildBoardChatTabState } from "@/components/board/utils/board-chat-tab"
 import { useAppView } from "@/hooks/use-app-view"
 import { useProjectStorageRootQuery } from "@/hooks/use-project-storage-root-uri"
 
@@ -35,7 +36,31 @@ export function AppBootstrap() {
         rootUri: projectWindowPayload.rootUri,
         title: projectWindowPayload.title,
         icon: projectWindowPayload.icon,
-        section: "canvas",
+        section: "index",
+      })
+      return
+    }
+
+    const boardWindowPayload = getBoardWindowBootstrapPayload()
+    if (boardWindowPayload) {
+      const baseId = `board:${boardWindowPayload.boardFolderUri}`
+      navigate({
+        title: boardWindowPayload.title || "Canvas",
+        icon: "🎨",
+        ...buildBoardChatTabState(boardWindowPayload.boardId, boardWindowPayload.projectId),
+        leftWidthPercent: 100,
+        rightChatCollapsed: true,
+        base: {
+          id: baseId,
+          component: "board-viewer",
+          params: {
+            boardFolderUri: boardWindowPayload.boardFolderUri,
+            boardFileUri: boardWindowPayload.boardFileUri,
+            boardId: boardWindowPayload.boardId,
+            projectId: boardWindowPayload.projectId,
+            rootUri: boardWindowPayload.rootUri,
+          },
+        },
       })
       return
     }

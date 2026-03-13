@@ -12,7 +12,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { Palette, Plus, Edit2, Trash2, MoreHorizontal, Copy, CopyPlus, CalendarDays, Search, X, FolderOpen, Sparkles, Loader2 } from "lucide-react";
+import { Palette, Plus, Edit2, Trash2, MoreHorizontal, Copy, CopyPlus, CalendarDays, Search, X, FolderOpen, Sparkles, Loader2, ExternalLink } from "lucide-react";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 
@@ -134,6 +134,7 @@ interface BoardCardLabels {
   rename: string;
   duplicate: string;
   copyPath: string;
+  openInNewWindow: string;
   delete: string;
 }
 
@@ -153,6 +154,7 @@ interface BoardCardProps {
   onBoardVisible: (boardId: string) => void;
   onDelete: (boardId: string) => void;
   onDuplicate: (boardId: string) => void;
+  onOpenInNewWindow?: (board: { id: string; title: string; folderUri: string; projectId?: string | null }) => void;
   onRename: (boardId: string, title: string, folderUri?: string) => void;
   projectInfo?: { name: string; icon?: string };
   rootUri?: string;
@@ -232,6 +234,7 @@ function BoardCard({
   onBoardVisible,
   onDelete,
   onDuplicate,
+  onOpenInNewWindow,
   onRename,
   projectInfo,
   rootUri,
@@ -269,6 +272,9 @@ function BoardCard({
   };
   const handleDeleteSelect = () => {
     onDelete(board.id);
+  };
+  const handleOpenInNewWindow = () => {
+    onOpenInNewWindow?.(board);
   };
 
   return (
@@ -354,6 +360,17 @@ function BoardCard({
                     <Copy className="mr-2 h-4 w-4" />
                     {labels.copyPath}
                   </DropdownMenuItem>
+                  {onOpenInNewWindow && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenInNewWindow();
+                      }}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      {labels.openInNewWindow}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -399,6 +416,11 @@ function BoardCard({
         <ContextMenuItem icon={Copy} onSelect={handleCopyPathSelect}>
           {labels.copyPath}
         </ContextMenuItem>
+        {onOpenInNewWindow && (
+          <ContextMenuItem icon={ExternalLink} onSelect={handleOpenInNewWindow}>
+            {labels.openInNewWindow}
+          </ContextMenuItem>
+        )}
         <ContextMenuItem icon={Trash2} onSelect={handleDeleteSelect} className="text-destructive">
           {labels.delete}
         </ContextMenuItem>
@@ -638,7 +660,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       navigate({
         title: board.title || t("canvasList.untitled"),
         icon: "🎨",
-        ...buildBoardChatTabState(board.id, board.projectId),
+        ...buildBoardChatTabState(board.id, board.projectId ?? currentProjectShell?.projectId),
         leftWidthPercent: 100,
         // Preserve project context when opening a canvas from within a project
         ...(currentProjectShell ? { projectShell: currentProjectShell } : {}),
@@ -725,6 +747,32 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
     [projectId, duplicateMutation],
   );
 
+  const handleOpenInNewWindow = useCallback(
+    (board: { id: string; title: string; folderUri: string; projectId?: string | null }) => {
+      const boardRootUri = resolveBoardRootUri(board.projectId);
+      if (!boardRootUri) return;
+      const boardFolderUri = buildBoardFolderUri(boardRootUri, board.folderUri);
+      const boardFileUri = buildBoardFolderUri(
+        boardRootUri,
+        `${board.folderUri}${BOARD_INDEX_FILE_NAME}`,
+      );
+      const electron = window.openloafElectron;
+      if (electron?.openBoardWindow) {
+        electron.openBoardWindow({
+          boardId: board.id,
+          boardFolderUri,
+          boardFileUri,
+          rootUri: boardRootUri,
+          title: board.title,
+          projectId: board.projectId ?? currentProjectShell?.projectId ?? undefined,
+        });
+      }
+    },
+    [resolveBoardRootUri, currentProjectShell],
+  );
+
+  const canOpenInNewWindow = Boolean(window.openloafElectron?.openBoardWindow);
+
   const activeBoardBaseId =
     base?.component === "board-viewer" ? base.id : undefined;
 
@@ -734,6 +782,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       rename: t("chatHistoryList.contextMenu.rename"),
       duplicate: t("canvasList.duplicate"),
       copyPath: t("canvasList.copyPath"),
+      openInNewWindow: t("canvasList.openInNewWindow"),
       delete: t("chatHistoryList.contextMenu.delete"),
     }),
     [t],
@@ -869,6 +918,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
                       onBoardVisible={handleBoardVisible}
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
+                      onOpenInNewWindow={canOpenInNewWindow ? handleOpenInNewWindow : undefined}
                       onRename={handleRename}
                       projectInfo={board.projectId ? projectInfoById.get(board.projectId) : undefined}
                       rootUri={resolveBoardRootUri(board.projectId)}

@@ -256,6 +256,12 @@ export default function MessageTool({
     );
   }
 
+  // 没有专用 UI 的工具：仅在调用中显示，完成后隐藏
+  const isCompleted = resolvedPart.state === 'output-available'
+    || resolvedPart.state === 'output-error'
+    || resolvedPart.state === 'output-denied'
+  if (isCompleted) return null
+
   return (
     <UnifiedTool part={resolvedPart} className={className} variant={variant} messageId={messageId} />
   );

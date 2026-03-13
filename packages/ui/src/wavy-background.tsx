@@ -31,10 +31,10 @@ export const WavyBackground = ({
         dangerouslySetInnerHTML={{
           __html: `
 .wavy-bg-container {
-  background-image: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%, #f8fafc 100%);
+  background-image: linear-gradient(135deg, #ffffff 0%, #f0f0f0 25%, #f5f5f5 50%, #ebebeb 75%, #ffffff 100%);
 }
 :is(.dark .wavy-bg-container) {
-  background-image: linear-gradient(135deg, #000000 0%, #0a0a0a 25%, #111111 50%, #0a0a0a 75%, #000000 100%);
+  background-image: linear-gradient(135deg, #0f0e12 0%, #141416 25%, #1a1a1e 50%, #141416 75%, #0f0e12 100%);
 }
 @keyframes gradient {
   0% { background-position: 0% 0%; }
@@ -42,7 +42,7 @@ export const WavyBackground = ({
   100% { background-position: 0% 0%; }
 }
 
-/* Ambient glow blobs */
+/* Ambient glow blobs — TE orange accent, very subtle */
 .wavy-glow {
   position: absolute;
   border-radius: 50%;
@@ -55,10 +55,10 @@ export const WavyBackground = ({
   height: 40%;
   top: 10%;
   left: 15%;
-  background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(240,90,36,0.06) 0%, transparent 70%);
 }
 :is(.dark .wavy-glow-1) {
-  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(240,90,36,0.08) 0%, transparent 70%);
 }
 .wavy-glow-2 {
   width: 35%;
@@ -67,10 +67,10 @@ export const WavyBackground = ({
   right: 10%;
   animation-delay: -5s;
   animation-duration: 16s;
-  background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,113,187,0.05) 0%, transparent 70%);
 }
 :is(.dark .wavy-glow-2) {
-  background: radial-gradient(circle, rgba(168,85,247,0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,113,187,0.06) 0%, transparent 70%);
 }
 @keyframes glow-drift {
   0% { transform: translate(0, 0) scale(1); }
@@ -78,7 +78,7 @@ export const WavyBackground = ({
   100% { transform: translate(-3%, 5%) scale(0.95); }
 }
 
-/* Waves */
+/* Waves — neutral gray, industrial */
 @keyframes wave {
   2% { transform: translateX(1px); }
   25% { transform: translateX(-25%); }
@@ -93,32 +93,32 @@ export const WavyBackground = ({
   height: 22em;
   animation: wave 10s -3s linear infinite;
   transform: translate3d(0, 0, 0);
-  opacity: 0.6;
+  opacity: 0.5;
   bottom: 0;
   left: 0;
   z-index: 0;
-  background: linear-gradient(180deg, rgba(210,210,215,0.3) 0%, rgba(232,232,237,0.5) 100%);
+  background: linear-gradient(180deg, rgba(204,204,204,0.2) 0%, rgba(224,224,224,0.35) 100%);
 }
 :is(.dark .wave) {
-  background: linear-gradient(180deg, rgba(110,110,115,0.06) 0%, rgba(161,161,166,0.1) 100%);
+  background: linear-gradient(180deg, rgba(58,58,60,0.08) 0%, rgba(80,80,82,0.12) 100%);
 }
 .wave-2 {
   bottom: -1.25em;
   animation: wave 18s linear reverse infinite;
-  opacity: 0.5;
-  background: linear-gradient(180deg, rgba(174,174,178,0.25) 0%, rgba(242,242,247,0.4) 100%);
+  opacity: 0.4;
+  background: linear-gradient(180deg, rgba(192,192,192,0.18) 0%, rgba(235,235,235,0.3) 100%);
 }
 :is(.dark .wave-2) {
-  background: linear-gradient(180deg, rgba(99,99,102,0.06) 0%, rgba(142,142,147,0.08) 100%);
+  background: linear-gradient(180deg, rgba(50,50,52,0.06) 0%, rgba(70,70,72,0.1) 100%);
 }
 .wave-3 {
   bottom: -2.5em;
   animation: wave 20s -1s reverse infinite;
-  opacity: 0.7;
-  background: linear-gradient(180deg, rgba(142,142,147,0.2) 0%, rgba(245,245,247,0.5) 100%);
+  opacity: 0.55;
+  background: linear-gradient(180deg, rgba(180,180,180,0.15) 0%, rgba(240,240,240,0.35) 100%);
 }
 :is(.dark .wave-3) {
-  background: linear-gradient(180deg, rgba(72,72,74,0.06) 0%, rgba(110,110,115,0.08) 100%);
+  background: linear-gradient(180deg, rgba(42,42,44,0.06) 0%, rgba(60,60,62,0.1) 100%);
 }`,
         }}
       />

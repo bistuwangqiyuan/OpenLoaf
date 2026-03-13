@@ -19,12 +19,12 @@ export function LoadingScreen() {
       <AnimatedText
         text="OpenLoaf"
         textClassName="text-[4rem] md:text-[6rem] font-bold tracking-widest"
-        gradientColors="linear-gradient(90deg, #1d1d1f, #6e6e73, #1d1d1f)"
-        darkGradientColors="linear-gradient(90deg, #f5f5f7, #a1a1a6, #f5f5f7)"
+        gradientColors="linear-gradient(90deg, #0f0e12, #a1a7af, #0f0e12)"
+        darkGradientColors="linear-gradient(90deg, #f5f5f5, #a1a7af, #f5f5f5)"
         gradientAnimationDuration={3}
         className="py-0"
       />
-      <p className="text-base md:text-lg mt-4 font-normal text-center text-[#6e6e73] dark:text-[#a1a1a6]">
+      <p className="text-base md:text-lg mt-4 font-normal text-center text-[#a1a7af] dark:text-[#a1a7af]">
         Think less, do more.
       </p>
     </WavyBackground>

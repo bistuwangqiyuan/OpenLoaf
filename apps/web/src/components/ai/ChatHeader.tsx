@@ -11,23 +11,18 @@
 
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Bug, History, Lightbulb, MessageSquarePlus, Palette, PanelLeft, X } from "lucide-react";
-import SessionList from "@/components/ai/session/SessionList";
+import { Bug, Lightbulb, MessageSquarePlus, Palette, X } from "lucide-react";
 import * as React from "react";
 import { useChatActions, useChatSession, useChatState } from "./context";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient, trpc, trpcClient } from "@/utils/trpc";
-import { useAppView } from "@/hooks/use-app-view";
+import { trpcClient } from "@/utils/trpc";
 import { useLayoutState } from "@/hooks/use-layout-state";
 import { useAppState } from "@/hooks/use-app-state";
-import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { MessageAction, MessageActions } from "@/components/ai-elements/message";
-import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +55,6 @@ const CHAT_HEADER_EMAIL_ICON_CLASS = {
     "text-ol-purple/70 hover:text-ol-purple",
   closeDock: "text-ol-amber",
   clear: "text-ol-green",
-  history: "text-ol-blue",
   close: "text-ol-text-auxiliary",
 } as const;
 
@@ -72,9 +66,8 @@ export default function ChatHeader({
 }: ChatHeaderProps) {
   const { t: tAi } = useTranslation('ai');
   const { sessionId: activeSessionId, tabId, leafMessageId: activeLeafMessageId } = useChatSession();
-  const { newSession, selectSession } = useChatActions();
+  const { newSession } = useChatActions();
   const { messages } = useChatState();
-  const [historyOpen, setHistoryOpen] = React.useState(false);
   /** Preface button loading state. */
   const [prefaceLoading, setPrefaceLoading] = React.useState(false);
   /** Chat feedback dialog open state. */
@@ -85,10 +78,6 @@ export default function ChatHeader({
   const [chatFeedbackContent, setChatFeedbackContent] = React.useState("");
   /** Chat feedback submitting state. */
   const [chatFeedbackSubmitting, setChatFeedbackSubmitting] = React.useState(false);
-  const menuLockRef = React.useRef(false);
-  const { sessions, refetch: refetchSessions } = useChatSessions({ tabId });
-  const setTitle = useAppView((s) => s.setTitle);
-  const setChatParams = useAppView((s) => s.setChatParams);
   const pushStackItem = useLayoutState((s) => s.pushStackItem);
   const { basic } = useBasicConfig();
   const headerActionsTarget = useHeaderSlot((s) => s.headerActionsTarget);
@@ -101,9 +90,6 @@ export default function ChatHeader({
     const pid = params?.projectId;
     return typeof pid === "string" ? pid.trim() : "";
   }, [appState?.chatParams]);
-  const hasBase = Boolean(appState?.base);
-  // 逻辑：临时隐藏“打开面板”入口，仅在已有左侧面板时保留关闭能力。
-  const shouldShowCloseDockButton = hasBase;
   /** Resolve icon tone classes for header actions. */
   const resolveActionIconClass = React.useCallback(
     (action: keyof typeof CHAT_HEADER_EMAIL_ICON_CLASS) =>
@@ -132,28 +118,7 @@ export default function ChatHeader({
   // 新建会话按钮显示条件：有历史消息 + 启用多会话模式
   const shouldShowNewSessionButton = messages.length > 0 && (enableMultiSession ?? Boolean(quickLaunchProjectId));
 
-  // 临时对话不显示历史按钮
-  const shouldShowHistoryButton = enableMultiSession ?? Boolean(quickLaunchProjectId);
-
   const effectiveChatFeedbackOpen = chatFeedbackOpen && saasLoggedIn;
-
-  const syncHistoryTitleToTabTitle = useMutation({
-    ...(trpc.chatsession.updateManyChatSession.mutationOptions() as any),
-    onSuccess: () => {
-      // 中文注释：仅刷新会话列表，避免触发无关请求。
-      invalidateChatSessions(queryClient);
-    },
-  });
-
-  const handleMenuOpenChange = (open: boolean) => {
-    menuLockRef.current = open;
-    if (open) setHistoryOpen(true);
-  };
-
-  /** Close the left dock by removing the base panel. */
-  const handleCloseDock = React.useCallback(() => {
-    useLayoutState.getState().setBase(undefined);
-  }, []);
 
   /**
    * Open the current session preface in a markdown stack panel.
@@ -391,8 +356,6 @@ export default function ChatHeader({
           aria-label="重新开始会话"
           className={resolveActionIconClass("clear")}
           onClick={() => {
-            setHistoryOpen(false);
-            menuLockRef.current = false;
             if (onNewSession) {
               onNewSession();
               return;
@@ -404,68 +367,6 @@ export default function ChatHeader({
         >
           <MessageSquarePlus size={20} />
         </MessageAction>
-      ) : null}
-      {shouldShowHistoryButton ? (
-        <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
-          <PopoverTrigger asChild>
-            <MessageAction
-              aria-label="History"
-              className={resolveActionIconClass("history")}
-              onClick={() => {
-                // 中文注释：点击历史按钮立即刷新会话列表，确保拿到最新数据。
-                void refetchSessions();
-              }}
-              tooltip="历史会话"
-              label="历史会话"
-            >
-              <History size={20} />
-            </MessageAction>
-          </PopoverTrigger>
-          <PopoverContent
-            side="bottom"
-            align="end"
-            className="flex w-80 max-h-[min(80svh,var(--radix-popover-content-available-height))] flex-col overflow-hidden p-2"
-            onInteractOutside={(e) => {
-              if (menuLockRef.current) e.preventDefault();
-            }}
-          >
-            <SessionList
-              tabId={tabId}
-              activeSessionId={activeSessionId}
-              onMenuOpenChange={handleMenuOpenChange}
-              onSelect={(session) => {
-                // 选中历史会话后：关闭弹层 + 切换会话并加载历史
-                setHistoryOpen(false);
-                menuLockRef.current = false;
-                const hasTabBase = Boolean(appState?.base);
-                const tabTitle = String(appState?.title ?? "").trim();
-                const selectedSessionMeta = sessions.find((item) => item.id === session.id);
-                const isSelectedUserRename = Boolean(selectedSessionMeta?.isUserRename);
-                // 无左侧 base 的 tab：如果历史会话还没被用户重命名/仍是默认标题，则用当前 tab title 覆盖它
-                if (
-                  !hasTabBase &&
-                  tabTitle.length > 0 &&
-                  !isSelectedUserRename &&
-                  (session.name.trim().length === 0 || session.name.trim() === "新对话")
-                ) {
-                  syncHistoryTitleToTabTitle.mutate({
-                    where: { id: session.id, isUserRename: false },
-                    data: { title: tabTitle },
-                  } as any);
-                }
-                if (!hasTabBase) {
-                  const nextTitle = session.name.trim();
-                  if (nextTitle) setTitle(nextTitle);
-                }
-                // 历史会话可能属于不同项目，写入 chatParams
-                if (selectedSessionMeta?.projectId) {
-                  setChatParams({ projectId: selectedSessionMeta.projectId });
-                }
-                selectSession(session.id);
-              }}
-            />
-          </PopoverContent>
-        </Popover>
       ) : null}
       {onCloseSession ? (
         <MessageAction
