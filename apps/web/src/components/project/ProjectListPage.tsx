@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, trpc, trpcClient } from "@/utils/trpc";
+import { toast } from "sonner";
 
 import { useIsInView } from "@/hooks/use-is-in-view";
 import { useLayoutState } from "@/hooks/use-layout-state";
@@ -302,11 +303,11 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
           .catch(() => {});
       }
     } catch (err: any) {
-      toast.error(err?.message ?? t("projectListPage.createError"));
+      toast.error(err?.message ?? "创建失败");
     } finally {
       setIsBusy(false);
     }
-  }, [createTitle, createMutation, invalidateProjects, t]);
+  }, [createTitle, createMutation, invalidateProjects]);
 
   /** Import existing folder as project. */
   const handleImportFolder = useCallback(async () => {
@@ -331,7 +332,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
           .catch(() => {});
       }
     } catch (err: any) {
-      toast.error(err?.message ?? t("projectListPage.createError"));
+      toast.error(err?.message ?? "添加失败");
     } finally {
       setIsBusy(false);
     }
@@ -371,7 +372,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
           }
         },
         onError(err: any) {
-          toast.error(err?.message ?? t("projectListPage.cloneError"));
+          toast.error(err?.message ?? t("sidebar.cloneError"));
           setIsBusy(false);
           gitSubRef.current = null;
         },
@@ -875,48 +876,211 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Create project dialog */}
+      {/* Create project dialog (3 options: new / import / git clone) */}
       <Dialog
         open={isCreateOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            setIsCreateOpen(false);
-            setCreateTitle("");
-          }
+          if (open) { openAddDialog(); } else if (!isBusy) { setIsCreateOpen(false); }
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("projectListPage.addProjectTitle")}</DialogTitle>
+        <DialogContent
+          className="max-w-[420px] rounded-2xl border border-border/60 bg-background p-0 shadow-ol-float"
+          onInteractOutside={(e) => { if (isBusy) e.preventDefault(); }}
+          onEscapeKeyDown={(e) => { if (isBusy) e.preventDefault(); }}
+        >
+          <DialogHeader className="px-6 pt-5 pb-0">
+            <DialogTitle className="text-[16px] font-semibold">{t("projectListPage.addProjectTitle")}</DialogTitle>
           </DialogHeader>
-          <Input
-            value={createTitle}
-            onChange={(e) => setCreateTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreateProject();
-            }}
-            placeholder={t("projectListPage.addProjectPlaceholder")}
-            className="shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70"
-            autoFocus
-          />
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                variant="ghost"
-                className="rounded-full text-muted-foreground shadow-none transition-colors duration-150"
+
+          {/* Mode selection */}
+          {!addMode && (
+            <div className="flex flex-col gap-2.5 px-6 pt-3 pb-7">
+              <button
+                type="button"
+                className="group flex w-full items-center gap-3.5 rounded-xl border border-ol-blue/20 bg-ol-blue-bg px-4 py-3.5 text-left transition-colors duration-150 hover:border-ol-blue/30 hover:bg-ol-blue-bg-hover"
+                onClick={() => setAddMode("create")}
               >
-                {t("cancel")}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ol-blue-bg text-ol-blue">
+                  <FolderPlus className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground">{t("sidebar.newEmptyProject")}</div>
+                  <div className="text-xs text-muted-foreground">{t("sidebar.newEmptyProjectDescription")}</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="group flex w-full items-center gap-3.5 rounded-xl border border-ol-green/20 bg-ol-green-bg px-4 py-3.5 text-left transition-colors duration-150 hover:border-ol-green/30 hover:bg-ol-green-bg-hover"
+                onClick={handleImportFolder}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ol-green-bg text-ol-green">
+                  <FolderOpen className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground">{t("sidebar.selectExistingFolder")}</div>
+                  <div className="text-xs text-muted-foreground">{t("sidebar.selectExistingFolderDescription")}</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="group flex w-full items-center gap-3.5 rounded-xl border border-ol-purple/20 bg-ol-purple-bg px-4 py-3.5 text-left transition-colors duration-150 hover:border-ol-purple/30 hover:bg-ol-purple-bg-hover"
+                onClick={() => setAddMode("git")}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ol-purple-bg text-ol-purple">
+                  <GitBranch className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground">{t("sidebar.cloneFromGit")}</div>
+                  <div className="text-xs text-muted-foreground">{t("sidebar.cloneFromGitDescription")}</div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* New empty project form */}
+          {addMode === "create" && (
+            <div className="flex flex-col gap-3 px-6 pt-3 pb-3">
+              <div>
+                <Label htmlFor="add-project-title" className="mb-1.5 block text-sm font-medium text-foreground">
+                  {t("sidebar.projectName")}
+                </Label>
+                <Input
+                  id="add-project-title"
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  className="h-9 rounded-lg"
+                  autoFocus
+                  placeholder={t("sidebar.projectNamePlaceholder")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && createTitle.trim() && !isBusy) {
+                      handleCreateProject();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Git clone form */}
+          {addMode === "git" && (
+            <div className="flex flex-col gap-3 px-6 pt-3 pb-3">
+              {!isBusy && !gitDone && (
+                <>
+                  <div>
+                    <Label htmlFor="git-url" className="mb-1.5 block text-sm font-medium text-foreground">
+                      {t("sidebar.repositoryAddress")}
+                    </Label>
+                    <Input
+                      id="git-url"
+                      value={gitUrl}
+                      onChange={(e) => setGitUrl(e.target.value)}
+                      className="h-9 rounded-lg font-mono text-xs"
+                      autoFocus
+                      placeholder="https://github.com/user/repo.git"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && gitUrl.trim()) handleCloneFromGit();
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block text-sm font-medium text-foreground">
+                      {t("sidebar.targetDirectory")}
+                    </Label>
+                    <button
+                      type="button"
+                      className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
+                      onClick={async () => {
+                        const dir = await pickDirectory(gitTargetDir || undefined);
+                        if (dir) setGitTargetDir(dir);
+                      }}
+                    >
+                      {gitTargetDir || t("sidebar.projectSpaceRootDefault")}
+                    </button>
+                  </div>
+                </>
+              )}
+              {(isBusy || gitDone) && (
+                <div className="flex flex-col gap-2">
+                  {gitDone && (
+                    <div className="flex items-center gap-2 text-sm text-ol-green">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>{t("sidebar.cloneComplete")}</span>
+                    </div>
+                  )}
+                  <div className="max-h-[160px] overflow-y-auto rounded-lg border border-border/40 bg-muted/30 p-2.5">
+                    <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-muted-foreground">
+                      {gitProgress.slice(-12).join("\n") || t("sidebar.connecting")}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer: create mode */}
+          {addMode === "create" && (
+            <DialogFooter className="border-t border-border/30 px-6 pt-3 pb-5 gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                onClick={() => { setAddMode(null); setCreateTitle(""); }}
+              >
+                {t("sidebar.back")}
               </Button>
-            </DialogClose>
-            <Button
-              className="rounded-full bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
-              onClick={handleCreateProject}
-              disabled={createMutation.isPending || !createTitle.trim()}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              {t("projectListPage.addProject")}
-            </Button>
-          </DialogFooter>
+              <Button
+                onClick={handleCreateProject}
+                disabled={isBusy || !createTitle.trim()}
+                className="h-9 rounded-full px-5 text-[13px] bg-ol-blue text-white shadow-none hover:opacity-90"
+              >
+                {isBusy ? t("sidebar.creating") : t("sidebar.create")}
+              </Button>
+            </DialogFooter>
+          )}
+
+          {/* Footer: git clone mode */}
+          {addMode === "git" && (
+            <DialogFooter className="border-t border-border/30 px-6 pt-3 pb-5 gap-2">
+              {!gitDone ? (
+                <>
+                  {isBusy ? (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="h-9 rounded-full px-5 text-[13px] text-ol-red border-ol-red/20 hover:bg-ol-red-bg"
+                      onClick={handleAbortClone}
+                    >
+                      <Square className="mr-1.5 h-3.5 w-3.5" />
+                      {t("sidebar.abort")}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                      onClick={() => setAddMode(null)}
+                    >
+                      {t("sidebar.back")}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleCloneFromGit}
+                    disabled={isBusy || !gitUrl.trim()}
+                    className="h-9 rounded-full px-5 text-[13px] bg-ol-purple text-white shadow-none hover:opacity-90"
+                  >
+                    {isBusy ? t("sidebar.cloning") : t("sidebar.startClone")}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => setIsCreateOpen(false)}
+                  className="h-9 rounded-full px-5 text-[13px] bg-ol-green text-white shadow-none hover:opacity-90"
+                >
+                  {t("sidebar.done")}
+                </Button>
+              )}
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>
