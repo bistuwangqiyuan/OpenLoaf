@@ -35,7 +35,7 @@ const FILE_FOREGROUND_COMPONENTS = new Set([
   "streaming-plate-viewer",
   "streaming-code-viewer",
 ]);
-const RIGHT_CHAT_DISABLED_PROJECT_TABS = new Set(["index", "files", "tasks"]);
+const RIGHT_CHAT_DISABLED_PROJECT_TABS = new Set(["index", "canvas", "files", "tasks"]);
 
 /** Minimal snapshot needed to resolve active stack items. */
 export type TabsStateSnapshot = {
@@ -43,7 +43,7 @@ export type TabsStateSnapshot = {
   activeStackItemIdByTabId?: Record<string, string>;
 };
 
-type ForegroundTabSnapshot = Pick<TabView, "base" | "stack" | "activeStackItemId">;
+type ForegroundTabSnapshot = Pick<TabView, "base" | "stack" | "activeStackItemId" | "projectShell">;
 
 /** Resolve the active stack item for a tab snapshot. */
 export function getActiveStackItem(state: TabsStateSnapshot, tabId: string) {
@@ -65,6 +65,11 @@ export function getTabForegroundComponent(tab?: ForegroundTabSnapshot) {
   return activeItem?.component ?? tab?.base?.component;
 }
 
+/** Return true when the current foreground page is the global settings page. */
+export function isSettingsForegroundPage(tab?: ForegroundTabSnapshot) {
+  return getTabForegroundComponent(tab) === "settings-page";
+}
+
 /** Return true when the current foreground page should suppress the right chat panel. */
 export function shouldDisableRightChat(tab?: ForegroundTabSnapshot) {
   const foreground = getTabForegroundComponent(tab);
@@ -79,6 +84,13 @@ export function shouldDisableRightChat(tab?: ForegroundTabSnapshot) {
   }
 
   if (foreground && FILE_FOREGROUND_COMPONENTS.has(foreground)) {
+    return true;
+  }
+
+  if (
+    foreground === BOARD_VIEWER_COMPONENT &&
+    tab?.projectShell?.section === "canvas"
+  ) {
     return true;
   }
 

@@ -13,6 +13,7 @@ import {
   ExpandableDockTabs,
   type DockTabItem,
 } from "@/components/ui/ExpandableDockTabs";
+import { isWorkbenchDockContextComponent } from "@/components/layout/global-entry-dock";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabs } from "@/hooks/use-tabs";
 import { WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
@@ -35,8 +36,11 @@ type GlobalEntryTarget = DockTabItem & {
   tabIcon: string;
 };
 
-function buildGlobalEntryTabs(t: (key: string) => string): GlobalEntryTarget[] {
-  return [
+function buildGlobalEntryTabs(
+  t: (key: string) => string,
+  input?: { hideCanvas?: boolean },
+): GlobalEntryTarget[] {
+  const tabs: GlobalEntryTarget[] = [
     {
       id: "canvas",
       label: t('nav:canvas'),
@@ -88,6 +92,13 @@ function buildGlobalEntryTabs(t: (key: string) => string): GlobalEntryTarget[] {
       tabIcon: "⏰",
     },
   ];
+
+  // 逻辑：全局看板 dock 只保留“看板上下文”入口，不把智能画布混在同一组切换里。
+  if (input?.hideCanvas) {
+    return tabs.filter((tab) => tab.id !== "canvas");
+  }
+
+  return tabs;
 }
 
 const GLOBAL_ENTRY_COMPONENT_TO_TAB_ID: Record<string, GlobalEntryTabId> = {
@@ -109,8 +120,12 @@ export default function GlobalEntryDockTabs({ tabId }: { tabId: string }) {
   const currentBaseComponent = useTabRuntime(
     (state) => state.runtimeByTabId[tabId]?.base?.component ?? "",
   );
+  const hideCanvasTab = isWorkbenchDockContextComponent(currentBaseComponent);
 
-  const globalEntryTabs = useMemo(() => buildGlobalEntryTabs(t), [t]);
+  const globalEntryTabs = useMemo(
+    () => buildGlobalEntryTabs(t, { hideCanvas: hideCanvasTab }),
+    [hideCanvasTab, t],
+  );
 
   const selectedIndex = useMemo(() => {
     const currentTabId = GLOBAL_ENTRY_COMPONENT_TO_TAB_ID[currentBaseComponent];

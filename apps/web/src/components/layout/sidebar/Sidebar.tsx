@@ -15,6 +15,7 @@ import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { SidebarHistory } from "@/components/layout/sidebar/SidebarHistory";
 import { ProjectSidebarContent } from "@/components/layout/sidebar/ProjectSidebar";
+import { isWorkbenchDockContextComponent } from "@/components/layout/global-entry-dock";
 import {
   Sidebar,
   SidebarContent,
@@ -136,6 +137,10 @@ export const AppSidebar = ({
   const isProjectListActive =
     activeForegroundComponent === PROJECT_LIST_TAB_INPUT.component ||
     (!activeForegroundComponent && activeViewType === "project-list");
+  const isWorkbenchActive =
+    (activeForegroundComponent
+      ? isWorkbenchDockContextComponent(activeForegroundComponent)
+      : activeViewType === "workbench");
 
   const openSingletonTab = useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
@@ -367,7 +372,7 @@ export const AppSidebar = ({
                   <SidebarMenuButton
                     tooltip={t('workbench')}
                     className={SIDEBAR_PRIMARY_COLOR_CLASS.workbench}
-                    isActive={isMenuActive(WORKBENCH_TAB_INPUT)}
+                    isActive={isWorkbenchActive || isMenuActive(WORKBENCH_TAB_INPUT)}
                     onClick={() => openPrimaryPageTab({ ...WORKBENCH_TAB_INPUT, viewType: 'workbench' })}
                     type="button"
                   >

@@ -148,7 +148,7 @@
     "detail": "详情"
   },
   "textNode": {
-    "placeholder": "输入 Markdown 内容",
+    "placeholder": "输入 Markdown",
     "toolbar": {
       "heading": "标题",
       "inline": "行内",

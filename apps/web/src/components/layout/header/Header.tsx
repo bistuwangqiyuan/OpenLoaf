@@ -21,7 +21,7 @@ import { useGlobalOverlay, openSettingsTab } from "@/lib/globalShortcuts";
 import { ProjectSettingsDialog } from "@/components/project/settings/ProjectSettingsDialog";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
-import { shouldDisableRightChat } from "@/hooks/tab-utils";
+import { isSettingsForegroundPage, shouldDisableRightChat } from "@/hooks/tab-utils";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { cn } from "@/lib/utils";
 import { isProjectMode } from "@/lib/project-mode";
@@ -101,9 +101,10 @@ export const Header = () => {
     ? "w-[max(7rem,calc(8rem-var(--macos-traffic-lights-width)))] "
     : "w-[6.5rem] ";
 
-  const isSettingsPageActive = shouldDisableRightChat(activeTab);
+  const isSettingsPageActive = isSettingsForegroundPage(activeTab);
   const projectMode = isProjectMode(activeTab?.projectShell);
-  const canToggleChat = Boolean(activeTab?.base) && !isSettingsPageActive;
+  const isRightChatDisabled = shouldDisableRightChat(activeTab);
+  const canToggleChat = Boolean(activeTab?.base) && !isRightChatDisabled;
   const isChatCollapsed = Boolean(activeTab?.rightChatCollapsed);
   const sidebarShortcut = formatShortcutLabel("Mod+Shift+B", isMac);
   const chatShortcut = formatShortcutLabel("Mod+B", isMac);

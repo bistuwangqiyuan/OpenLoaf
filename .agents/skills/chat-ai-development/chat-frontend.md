@@ -23,6 +23,9 @@
   - streaming：来自 `useChatRuntime().chatStatusBySessionId`
   - 未读：`updatedAt > lastSeenAt` + streaming 结束后补标
 - `Chat` 根节点挂 `data-chat-active`，`SelectMode` 只遮罩活跃会话，避免其它会话被模糊
+- `ChatHeader.tsx` 不再在聊天区内渲染标题行；顶部操作按钮（历史、调试、反馈、复制到画布、关闭面板、关闭会话等）通过 `useHeaderSlot().headerActionsTarget` portal 到程序级 `Header` 的 actions 区域
+- “打开面板 / quick launch” 入口当前已隐藏；只有在已有 left dock base 时，才允许从 header 中显示“关闭面板”
+- assistant 消息通过 `message/AssistantMessageHeader.tsx` 统一渲染头像与名称；优先读取 `message.agent.name / metadata.agent.name`，缺失时回退到 `ai.aiAssistant`
 
 ### 会话级项目关联
 

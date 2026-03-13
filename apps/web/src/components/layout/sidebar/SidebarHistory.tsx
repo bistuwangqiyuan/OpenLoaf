@@ -62,22 +62,6 @@ function resolveHistoryItemTitle(item: SidebarHistoryItem, t: (key: string) => s
   return t("chat");
 }
 
-/** Resolve the secondary text for the history row. */
-function resolveHistoryItemSubtitle(item: SidebarHistoryItem, t: (key: string) => string): string {
-  if (item.entityType === "project") {
-    return t("project");
-  }
-  return item.entityType === "chat" ? t("chat") : t("canvas");
-}
-
-/** Resolve the project label shown on the right side of each row. */
-function resolveHistoryItemProjectTitle(item: SidebarHistoryItem): string {
-  if (item.entityType === "project") {
-    return "";
-  }
-  return item.projectTitle?.trim() ?? "";
-}
-
 /** Format the visit time shown on the trailing edge of the history row. */
 function formatHistoryItemVisitedAt(value: Date, locale?: string): string {
   const now = new Date();
@@ -94,7 +78,6 @@ function formatHistoryItemVisitedAt(value: Date, locale?: string): string {
   }
 
   const sameYear = value.getFullYear() === now.getFullYear();
-  // 逻辑：移除时间分组后，较早记录需要同时保留日期和时间，避免列表信息丢失。
   return new Intl.DateTimeFormat(locale, {
     ...(sameYear ? {} : { year: "numeric" }),
     month: "2-digit",
@@ -145,7 +128,6 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
   const nav = useSidebarNavigation();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const normalizedProjectId = projectId?.trim() || undefined;
-  const shouldShowProjectTitle = !normalizedProjectId;
   const [sortBy, setSortBy] = useState<SidebarHistorySort>("firstVisitedAt");
   const nextSortBy = sortBy === "firstVisitedAt" ? "lastVisitedAt" : "firstVisitedAt";
   const sortButtonLabel = sortBy === "firstVisitedAt"
@@ -173,14 +155,11 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
   );
   const items = useMemo(
     () =>
-      normalizedProjectId
-        ? rawItems.filter(
-            (item) =>
-              item.projectId === normalizedProjectId
-              // 中文注释：项目侧栏已经有当前项目卡片，不再重复显示项目本身的打开记录。
-              && item.entityType !== "project",
-          )
-        : rawItems,
+      rawItems.filter(
+        (item) =>
+          item.entityType !== "project"
+          && (!normalizedProjectId || item.projectId === normalizedProjectId),
+      ),
     [normalizedProjectId, rawItems],
   );
 
@@ -290,47 +269,27 @@ export function SidebarHistory({ projectId }: SidebarHistoryProps) {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
             <SidebarMenu>
-              {items.map((item) => {
-                const projectTitle = shouldShowProjectTitle
-                  ? resolveHistoryItemProjectTitle(item)
-                  : "";
-                const visitedAtLabel = formatHistoryItemVisitedAt(
-                  resolveHistoryItemVisitedAt(item, sortBy),
-                  i18n.resolvedLanguage || i18n.language,
-                );
-                return (
-                  <SidebarMenuItem key={item.recordId}>
-                    <SidebarMenuButton
-                      type="button"
-                      isActive={isItemActive(item)}
-                      className="h-auto min-h-12 items-center gap-3 px-2.5 py-2"
-                      onClick={() => handleHistoryItemClick(item)}
-                    >
-                      {renderHistoryItemIcon(item)}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate font-medium">
-                            {resolveHistoryItemTitle(item, t)}
-                          </span>
-                          {projectTitle ? (
-                            <span className="max-w-[45%] truncate text-[11px] text-muted-foreground/60">
-                              {projectTitle}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground/70">
-                          <span className="shrink-0">
-                            {resolveHistoryItemSubtitle(item, t)}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-right text-muted-foreground/60">
-                            {visitedAtLabel}
-                          </span>
-                        </div>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {items.map((item) => (
+                <SidebarMenuItem key={item.recordId}>
+                  <SidebarMenuButton
+                    type="button"
+                    isActive={isItemActive(item)}
+                    className="h-10 items-center gap-3 px-2.5 py-2"
+                    onClick={() => handleHistoryItemClick(item)}
+                  >
+                    {renderHistoryItemIcon(item)}
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {resolveHistoryItemTitle(item, t)}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground/60 tabular-nums">
+                      {formatHistoryItemVisitedAt(
+                        resolveHistoryItemVisitedAt(item, sortBy),
+                        i18n.resolvedLanguage || i18n.language,
+                      )}
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
             {hasMore ? (
               <div

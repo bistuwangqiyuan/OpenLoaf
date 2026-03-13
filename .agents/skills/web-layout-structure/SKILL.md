@@ -44,10 +44,10 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - 只要当前 renderer 处于项目模式，主 Sidebar 就应切换为 `ProjectSidebar`，避免项目独立窗口里新开的聊天、画布、设置页掉回主 Sidebar
   - 普通 Sidebar 与 `ProjectSidebar` 的切换动画必须保留同一个外层 `Sidebar` 壳，只切换内部 header/content/footer；不要在外层额外包裹节点，否则会破坏 `SidebarInset` 依赖的 `peer` 布局关系
   - `SidebarHeader` 放入口菜单（搜索、日历、AI、邮箱、技能等）
-  - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）；历史列表不再按日期分组，而是直接平铺，第一行显示“标题 + 项目名”，第二行显示“类型 + 访问时间”
-  - `SidebarHistory` 标题右侧保留排序按钮，默认按首次访问时间排序；点击后切到按最近访问时间排序，同时列表右侧时间也切换到对应时间字段
+  - `SidebarContent` 主要承载侧边栏历史列表（当前实现为 `SidebarHistory`）；历史列表不再按日期分组，而是直接平铺，列表项单行显示“图标 + 标题 + 行尾时间”，不显示项目名和类型；项目类型记录不在历史列表中展示
+  - `SidebarHistory` 顶部保留“历史记录”标题和右侧排序按钮；默认按首次访问时间排序，点击后切到按最近访问时间排序，列表行尾时间同步切换到对应时间字段
   - `ProjectSidebar` 负责项目内导航：返回项目空间、AI管理员、画布、看板、文件、设置、历史；底部历史列表会按 `projectId` 过滤，只显示当前项目访问记录
-  - 项目侧栏的 `SidebarHistory(projectId)` 需要额外隐藏 `entityType === "project"` 的“项目打开记录”；项目本体信息由 footer 项目卡片承载，不在历史列表里重复出现
+  - `SidebarHistory` 需要全局隐藏 `entityType === "project"` 的“项目打开记录”；项目本体信息由项目页入口或 footer 项目卡片承载，不在历史列表里重复出现
   - `ProjectSidebar` 需要把项目摘要卡片（项目 icon + 名称）放在 `SidebarFooter`，与“设置”一起构成底部区域；不要在 header 中重复渲染
   - `ProjectSidebar` footer 中的项目摘要卡片支持副标题，当前用于显示项目类型
   - `ProjectSidebar` 顶部不显示 `SidebarUserAccount`；返回按钮需要沿用账号项的高度（`h-12`）以保持节奏一致
@@ -84,7 +84,8 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - 拖拽分割条会写入 `leftWidthPercent`（`useTabRuntime`）
   - `rightChatCollapsed` 决定右侧是否显示
   - 前景页面为 `settings-page` / `project-settings-page` / `project-list-page` / `global-desktop` / `canvas-list-page` 时，右侧 chat panel 必须视为强制隐藏，且不要激活右侧 panel host
-  - 项目壳 `plant-page` 的 `index` / `files` / `tasks(history)` 子页，以及文件预览前景（如 `file-viewer` / `markdown-viewer` / `code-viewer` 等）也必须强制隐藏右侧 chat
+  - 项目壳 `plant-page` 的 `index` / `canvas` / `files` / `tasks(history)` 子页，以及文件预览前景（如 `file-viewer` / `markdown-viewer` / `code-viewer` 等）也必须强制隐藏右侧 chat
+  - 若前景是项目上下文里的 `board-viewer`（`projectShell.section === "canvas"`），也必须隐藏右侧 chat；不要误伤普通临时画布
   - 项目壳 tab（`tab.projectShell` 存在）不能再走旧的“按会话 projectId 自动创建 / 更新 plant-page” fallback；否则项目 AI 管理员页会被错误改写成项目页
 
 ### LeftDock（Base + Stack）
@@ -99,6 +100,7 @@ description: Use when working on or debugging the web app layout in apps/web/src
   - `__refreshKey`：强制 remount 面板
   - `__opaque`：是否使用纯背景
   - 项目壳设置页通过 `project-settings-page` 作为 base component 挂进 LeftDock，不再走旧的 dialog 入口
+  - `GlobalEntryDockTabs` 里的 workbench dock 上下文（`global-desktop` / `calendar-page` / `email-page` / `scheduled-tasks-page`）属于同一组切换：sidebar 仍高亮“全局看板”，且 dock tabs 中不显示“智能画布”
 
 ### RightChatPanel
 - 文件：`apps/web/src/components/layout/TabLayout.tsx` 内 `RightChatPanel`

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getTabForegroundComponent, shouldDisableRightChat } from "@/hooks/tab-utils";
+import {
+  getTabForegroundComponent,
+  isSettingsForegroundPage,
+  shouldDisableRightChat,
+} from "@/hooks/tab-utils";
 
 describe("tab-utils", () => {
   it("prefers the active stack component as the foreground component", () => {
@@ -39,9 +43,35 @@ describe("tab-utils", () => {
     } as never)).toBe(true);
   });
 
-  it("disables the right chat for project index/files/history sections", () => {
+  it("marks only the foreground settings page as the active settings page", () => {
+    expect(isSettingsForegroundPage({
+      base: { id: "settings", component: "settings-page" },
+      stack: [],
+      activeStackItemId: "",
+    } as never)).toBe(true);
+
+    expect(isSettingsForegroundPage({
+      base: { id: "workbench", component: "global-desktop" },
+      stack: [],
+      activeStackItemId: "",
+    } as never)).toBe(false);
+
+    expect(isSettingsForegroundPage({
+      base: { id: "project", component: "plant-page", params: { projectTab: "files" } },
+      stack: [],
+      activeStackItemId: "",
+    } as never)).toBe(false);
+  });
+
+  it("disables the right chat for project index/canvas/files/history sections", () => {
     expect(shouldDisableRightChat({
       base: { id: "project", component: "plant-page", params: { projectTab: "index" } },
+      stack: [],
+      activeStackItemId: "",
+    } as never)).toBe(true);
+
+    expect(shouldDisableRightChat({
+      base: { id: "project", component: "plant-page", params: { projectTab: "canvas" } },
       stack: [],
       activeStackItemId: "",
     } as never)).toBe(true);
@@ -69,13 +99,21 @@ describe("tab-utils", () => {
     } as never)).toBe(true);
   });
 
-  it("keeps the right chat available for non-disabled foreground pages", () => {
+  it("disables the right chat for project canvas board-viewer tabs", () => {
     expect(shouldDisableRightChat({
-      base: { id: "project", component: "plant-page", params: { projectTab: "canvas" } },
+      base: { id: "board", component: "board-viewer" },
+      projectShell: {
+        projectId: "project_alpha",
+        rootUri: "file:///workspace/project_alpha",
+        title: "Alpha",
+        section: "canvas",
+      },
       stack: [],
       activeStackItemId: "",
-    } as never)).toBe(false);
+    } as never)).toBe(true);
+  });
 
+  it("keeps the right chat available for non-disabled foreground pages", () => {
     expect(shouldDisableRightChat({
       base: { id: "board", component: "board-viewer" },
       stack: [],

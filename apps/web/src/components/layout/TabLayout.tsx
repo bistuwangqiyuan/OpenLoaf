@@ -783,13 +783,7 @@ export function TabLayout({
         setPanelActive("left", activeTabId, true);
       }
 
-      const activeRuntime = useTabRuntime.getState().runtimeByTabId[activeTabId];
-      const shouldHideRightChat = shouldDisableRightChat({
-        base: activeRuntime?.base,
-        stack: activeRuntime?.stack ?? [],
-        activeStackItemId:
-          activeRuntime?.activeStackItemId ?? activeRuntime?.stack?.at(-1)?.id ?? "",
-      });
+      const shouldHideRightChat = shouldDisableRightChat(activeTab);
 
       if (shouldHideRightChat) {
         setPanelActive("right", activeTabId, false);
@@ -806,7 +800,14 @@ export function TabLayout({
         mountTimerRef.current = null;
       }
     };
-  }, [activeTabId, activeTab?.activeStackItemId, activeTab?.base, activeTab?.stack, reduceMotion]);
+  }, [
+    activeTabId,
+    activeTab?.activeStackItemId,
+    activeTab?.base,
+    activeTab?.projectShell?.section,
+    activeTab?.stack,
+    reduceMotion,
+  ]);
 
   React.useLayoutEffect(() => {
     // App should never horizontally scroll; prevent focus/scrollIntoView from shifting the page.

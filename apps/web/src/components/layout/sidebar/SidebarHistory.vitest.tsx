@@ -188,9 +188,8 @@ describe("SidebarHistory", () => {
     vi.useRealTimers();
   });
 
-  it("renders flat history rows and delegates clicks by entity type", () => {
+  it("renders flat history rows and hides project records", () => {
     const chatVisitedAt = new Date("2026-03-11T11:30:00.000Z");
-    const projectVisitedAt = new Date("2026-03-10T10:00:00.000Z");
     const boardVisitedAt = new Date("2026-03-01T08:00:00.000Z");
     useInfiniteQueryMock.mockReturnValue({
       data: {
@@ -216,8 +215,8 @@ describe("SidebarHistory", () => {
             icon: "📁",
             rootUri: "file:///project-root/projects/alpha",
             dateKey: "2026-03-10",
-            firstVisitedAt: projectVisitedAt,
-            lastVisitedAt: projectVisitedAt,
+            firstVisitedAt: new Date("2026-03-10T10:00:00.000Z"),
+            lastVisitedAt: new Date("2026-03-10T10:00:00.000Z"),
           },
           {
             recordId: "visit_board",
@@ -247,26 +246,16 @@ describe("SidebarHistory", () => {
     expect(screen.queryByText("Today")).not.toBeInTheDocument();
     expect(screen.queryByText("Yesterday")).not.toBeInTheDocument();
     expect(screen.queryByText("Earlier")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Project")[0]).toBeInTheDocument();
-    expect(screen.getByText("Chat")).toBeInTheDocument();
-    expect(screen.getByText("Canvas")).toBeInTheDocument();
-    expect(screen.getByText("Attached Project")).toBeInTheDocument();
-    expect(screen.queryByText("Chat · Attached Project")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chat")).not.toBeInTheDocument();
+    expect(screen.queryByText("Canvas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Attached Project")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Alpha Project/i })).not.toBeInTheDocument();
     expect(screen.getByText(formatVisitedAtForTest(chatVisitedAt))).toBeInTheDocument();
-    expect(screen.getByText(formatVisitedAtForTest(projectVisitedAt))).toBeInTheDocument();
     expect(screen.getByText(formatVisitedAtForTest(boardVisitedAt))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Alpha Chat/i }));
     expect(openChatMock).toHaveBeenCalledWith("chat_alpha", "Alpha Chat", {
       projectId: "proj_alpha",
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Alpha Project/i }));
-    expect(openProjectMock).toHaveBeenCalledWith({
-      projectId: "proj_alpha",
-      title: "Alpha Project",
-      rootUri: "file:///project-root/projects/alpha",
-      icon: "📁",
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Alpha Board/i }));
@@ -383,6 +372,8 @@ describe("SidebarHistory", () => {
         queryKey: ["visit", "listSidebarHistory", expect.objectContaining({ sortBy: "firstVisitedAt" })],
       }),
     );
+    expect(screen.getByText(formatVisitedAtForTest(new Date("2026-03-11T09:00:00.000Z")))).toBeInTheDocument();
+    expect(screen.queryByText(formatVisitedAtForTest(new Date("2026-03-11T10:00:00.000Z")))).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Sort by recent visit" }));
 
@@ -391,9 +382,10 @@ describe("SidebarHistory", () => {
         queryKey: ["visit", "listSidebarHistory", expect.objectContaining({ sortBy: "lastVisitedAt" })],
       }),
     );
+    expect(screen.getByText(formatVisitedAtForTest(new Date("2026-03-11T10:00:00.000Z")))).toBeInTheDocument();
   });
 
-  it("hides the project-open record when rendering project sidebar history", () => {
+  it("keeps only chat and board records when rendering project sidebar history", () => {
     useInfiniteQueryMock.mockReturnValue({
       data: {
         pages: [buildHistoryPage([
