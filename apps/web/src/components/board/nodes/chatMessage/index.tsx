@@ -239,7 +239,7 @@ export function ChatMessageNodeView({
             {t("chatMessage.title")}
           </span>
           {element.props.chatModelId && (
-            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full ml-auto", BOARD_GENERATE_PILL_CHAT)}>
+            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md ml-auto", BOARD_GENERATE_PILL_CHAT)}>
               {element.props.chatModelId.split("/").pop()}
             </span>
           )}
@@ -341,7 +341,7 @@ export function ChatMessageNodeView({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 BOARD_GENERATE_BTN_CHAT,
               )}
               onClick={handleStop}
@@ -353,7 +353,7 @@ export function ChatMessageNodeView({
           {isComplete && displayText && (
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => handleCopyText(displayText)}
             >
               <Copy className="h-3 w-3" />
@@ -363,7 +363,7 @@ export function ChatMessageNodeView({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 BOARD_GENERATE_BTN_CHAT,
               )}
               onClick={() => {

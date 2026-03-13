@@ -524,7 +524,7 @@ export function ImagePromptGenerateNodeView({
                 </div>
                 <button
                   type="button"
-                  className="rounded-full px-1.5 py-0.5 text-[10px] text-ol-text-auxiliary hover:text-ol-text-primary"
+                  className="rounded-md px-1.5 py-0.5 text-[10px] text-ol-text-auxiliary hover:text-ol-text-primary"
                   onPointerDown={(event) => {
                     event.stopPropagation();
                   }}
@@ -554,7 +554,7 @@ export function ImagePromptGenerateNodeView({
               <button
                 type="button"
                 disabled={isLoginBusy}
-                className="inline-flex h-7 w-full items-center justify-center rounded-full border border-ol-divider bg-ol-surface-muted px-3 text-[11px] text-ol-text-auxiliary transition-colors duration-150 hover:bg-ol-divider disabled:opacity-50"
+                className="inline-flex h-7 w-full items-center justify-center rounded-md border border-ol-divider bg-ol-surface-muted px-3 text-[11px] text-ol-text-auxiliary transition-colors duration-150 hover:bg-ol-divider disabled:opacity-50"
                 onPointerDown={(event) => {
                   event.stopPropagation();
                   if (!isLoginBusy) setLoginOpen(true);
@@ -573,7 +573,7 @@ export function ImagePromptGenerateNodeView({
                 }}
                 disabled={candidates.length === 0 || isRunning}
               >
-                <SelectTrigger className="h-7 w-full rounded-full border-ol-divider bg-ol-surface-muted px-2 text-[11px] shadow-none hover:bg-ol-divider">
+                <SelectTrigger className="h-7 w-full rounded-md border-ol-divider bg-ol-surface-muted px-2 text-[11px] shadow-none hover:bg-ol-divider">
                   <SelectValue placeholder={t('imagePromptGenerate.noModel')} />
                 </SelectTrigger>
                 <SelectContent className="text-[11px]">
@@ -609,7 +609,7 @@ export function ImagePromptGenerateNodeView({
             <button
               type="button"
               className={cn(
-                "shrink-0 inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150",
+                "shrink-0 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150",
                 BOARD_GENERATE_BTN_PROMPT,
               )}
               onPointerDown={(event) => {
@@ -632,7 +632,7 @@ export function ImagePromptGenerateNodeView({
                 element.locked
               }
               className={cn(
-                "shrink-0 inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
+                "shrink-0 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
                 BOARD_GENERATE_BTN_PROMPT,
               )}
               onPointerDown={(event) => {

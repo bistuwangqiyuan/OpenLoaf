@@ -275,14 +275,14 @@ function PendingInsertPreviewBase({
             </div>
             {config.pillClass && config.pillKey ? (
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] leading-3 ${config.pillClass}`}
+                className={`rounded-md px-2 py-0.5 text-[10px] leading-3 ${config.pillClass}`}
               >
                 {t(config.pillKey)}
               </span>
             ) : null}
             <div className="flex-1" />
             <span
-              className={`inline-flex h-7 items-center justify-center rounded-full px-3 text-[12px] leading-none ${config.btnClass}`}
+              className={`inline-flex h-7 items-center justify-center rounded-md px-3 text-[12px] leading-none ${config.btnClass}`}
             >
               <Sparkles size={14} className="mr-1" />
               {t(config.btnKey)}

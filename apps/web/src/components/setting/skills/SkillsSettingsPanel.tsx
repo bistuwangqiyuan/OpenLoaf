@@ -413,7 +413,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
               type="button"
               size="sm"
               variant="secondary"
-              className="h-8 rounded-full border border-border/70 bg-background/85 px-2.5 text-xs transition-colors hover:bg-muted/55 sm:px-3"
+              className="h-8 rounded-md border border-border/70 bg-background/85 px-2.5 text-xs transition-colors hover:bg-muted/55 sm:px-3"
               onClick={() => void handleOpenSkillsRoot()}
               disabled={!skillsRootUri || (isProjectList && !projectId)}
               aria-label={t('skills.openDirAriaLabel')}
@@ -444,7 +444,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full"
+                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-md"
                 onClick={() => setSearchQuery("")}
                 aria-label={t('skills.clearSearch')}
               >
@@ -454,16 +454,16 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
           </div>
           <div className="min-w-0 overflow-x-auto pb-0.5">
             <Tabs value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}>
-              <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
-                <TabsTrigger value="all" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+              <TabsList className="h-8 w-max rounded-md border border-border/70 bg-muted/40 p-1">
+                <TabsTrigger value="all" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                   {t('skills.filterAll')}
                 </TabsTrigger>
                 {isProjectList ? (
-                  <TabsTrigger value="project" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+                  <TabsTrigger value="project" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                     {t('skills.filterProject')}
                   </TabsTrigger>
                 ) : null}
-                <TabsTrigger value="global" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+                <TabsTrigger value="global" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                   {t('skills.filterGlobal')}
                 </TabsTrigger>
               </TabsList>
@@ -472,14 +472,14 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
 
           <div className="min-w-0 overflow-x-auto pb-0.5">
             <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-              <TabsList className="h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
-                <TabsTrigger value="all" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+              <TabsList className="h-8 w-max rounded-md border border-border/70 bg-muted/40 p-1">
+                <TabsTrigger value="all" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                   {t('skills.statusAll')}
                 </TabsTrigger>
-                <TabsTrigger value="enabled" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+                <TabsTrigger value="enabled" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                   {t('skills.statusEnabled')}
                 </TabsTrigger>
-                <TabsTrigger value="disabled" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+                <TabsTrigger value="disabled" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
                   {t('skills.statusDisabled')}
                 </TabsTrigger>
               </TabsList>
@@ -535,7 +535,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
                           type="button"
                           size="icon"
                           variant="secondary"
-                          className="h-8 w-8 flex-none rounded-full border-0 bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover"
+                          className="h-8 w-8 flex-none rounded-md border-0 bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover"
                           onClick={() => handleInsertSkillCommand(skill)}
                           aria-label={t('skills.useSkillAriaLabel', { name: skill.name })}
                         >

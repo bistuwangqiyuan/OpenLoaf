@@ -637,7 +637,7 @@ export function BoardCanvas({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className={`h-9 w-9 shrink-0 rounded-full shadow-none transition-colors duration-150 ${
+                  className={`h-9 w-9 shrink-0 rounded-md shadow-none transition-colors duration-150 ${
                     aiNaming || snapshot.elements.length === 0
                       ? "text-muted-foreground opacity-50"
                       : saasLoggedIn
@@ -659,14 +659,14 @@ export function BoardCanvas({
                 <Button
                   type="button"
                   variant="ghost"
-                  className="rounded-full text-muted-foreground shadow-none transition-colors duration-150"
+                  className="rounded-md text-muted-foreground shadow-none transition-colors duration-150"
                   onClick={() => handleRenameOpen(false)}
                 >
                   {tBoard('board.cancel')}
                 </Button>
                 <Button
                   type="button"
-                  className="rounded-full bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
+                  className="rounded-md bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
                   disabled={!renameValue.trim()}
                   onClick={handleRenameConfirm}
                 >
@@ -681,7 +681,7 @@ export function BoardCanvas({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 rounded-full px-2.5 text-xs"
+                className="h-7 gap-1 rounded-md px-2.5 text-xs"
               >
                 <MoreHorizontal className="size-3.5" />
                 {tBoard('board.actions')}

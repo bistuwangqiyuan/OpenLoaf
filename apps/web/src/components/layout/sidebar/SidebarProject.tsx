@@ -505,7 +505,7 @@ export const SidebarProject = () => {
               <Button
                 variant="outline"
                 type="button"
-                className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                className="h-9 rounded-md px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
                 onClick={() => { setAddMode(null); setCreateTitle(""); }}
               >
                 {t('sidebar.back')}
@@ -513,7 +513,7 @@ export const SidebarProject = () => {
               <Button
                 onClick={handleAddProject}
                 disabled={isSubmitDisabled}
-                className="h-9 rounded-full px-5 text-[13px] bg-ol-blue text-white shadow-none hover:opacity-90"
+                className="h-9 rounded-md px-5 text-[13px] bg-ol-blue text-white shadow-none hover:opacity-90"
               >
                 {isBusy ? t('sidebar.creating') : t('sidebar.create')}
               </Button>
@@ -529,7 +529,7 @@ export const SidebarProject = () => {
                     <Button
                       variant="outline"
                       type="button"
-                      className="h-9 rounded-full px-5 text-[13px] text-ol-red border-ol-red/20 hover:bg-ol-red-bg"
+                      className="h-9 rounded-md px-5 text-[13px] text-ol-red border-ol-red/20 hover:bg-ol-red-bg"
                       onClick={handleAbortClone}
                     >
                       <Square className="mr-1.5 h-3.5 w-3.5" />
@@ -539,7 +539,7 @@ export const SidebarProject = () => {
                     <Button
                       variant="outline"
                       type="button"
-                      className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                      className="h-9 rounded-md px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
                       onClick={() => { setAddMode(null); }}
                     >
                       {t('sidebar.back')}
@@ -548,7 +548,7 @@ export const SidebarProject = () => {
                   <Button
                     onClick={handleCloneFromGit}
                     disabled={isBusy || !gitUrl.trim()}
-                    className="h-9 rounded-full px-5 text-[13px] bg-ol-purple text-white shadow-none hover:opacity-90"
+                    className="h-9 rounded-md px-5 text-[13px] bg-ol-purple text-white shadow-none hover:opacity-90"
                   >
                     {isBusy ? t('sidebar.cloning') : t('sidebar.startClone')}
                   </Button>
@@ -556,7 +556,7 @@ export const SidebarProject = () => {
               ) : (
                 <Button
                   onClick={() => setIsAddOpen(false)}
-                  className="h-9 rounded-full px-5 text-[13px] bg-ol-green text-white shadow-none hover:opacity-90"
+                  className="h-9 rounded-md px-5 text-[13px] bg-ol-green text-white shadow-none hover:opacity-90"
                 >
                   {t('sidebar.done')}
                 </Button>

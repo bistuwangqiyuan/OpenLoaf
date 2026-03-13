@@ -155,7 +155,7 @@ export function WebSearchSettings() {
                   <Button
                     type="button"
                     size="sm"
-                    className="rounded-full bg-ol-blue-bg text-ol-blue shadow-none hover:bg-ol-blue-bg-hover"
+                    className="rounded-md bg-ol-blue-bg text-ol-blue shadow-none hover:bg-ol-blue-bg-hover"
                     disabled={testing || !apiKey}
                     onClick={() => void handleTestConnection()}
                   >

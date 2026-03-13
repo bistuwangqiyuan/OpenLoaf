@@ -21,7 +21,7 @@ export const EMAIL_GLASS_INSET_CLASS =
 
 /** Compact metadata chip style for counts and tags. */
 export const EMAIL_META_CHIP_CLASS =
-  "rounded-full bg-ol-surface-muted px-2 py-0.5 text-[11px] text-ol-text-auxiliary";
+  "rounded-md bg-ol-surface-muted px-2 py-0.5 text-[11px] text-ol-text-auxiliary";
 
 /** Flat input surface matching Gmail search and compose controls. */
 export const EMAIL_FLAT_INPUT_CLASS =

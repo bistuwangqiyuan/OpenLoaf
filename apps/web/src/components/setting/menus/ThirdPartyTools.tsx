@@ -401,7 +401,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                className="rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
+                className="rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "python") ||
@@ -447,7 +447,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                className="rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
+                className="rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "codex") ||
@@ -474,7 +474,7 @@ export function ThirdPartyTools() {
               {cliStatuses.codex.installed ? (
                 <Button
                   size="sm"
-                  className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                  className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                   onClick={() => openCliSettings("codex")}
                 >
                   {t('thirdPartyTools.settings')}
@@ -498,7 +498,7 @@ export function ThirdPartyTools() {
             <OpenLoafSettingsField className="w-full sm:w-52 shrink-0 justify-end gap-2">
               <Button
                 size="sm"
-                className="rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
+                className="rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
                 disabled={
                   (installCliMutation.isPending &&
                     installCliMutation.variables?.id === "claudeCode") ||
@@ -526,7 +526,7 @@ export function ThirdPartyTools() {
               {cliStatuses.claudeCode.installed ? (
                 <Button
                   size="sm"
-                  className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                  className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                   onClick={() => openCliSettings("claudeCode")}
                 >
                   {t('thirdPartyTools.settings')}

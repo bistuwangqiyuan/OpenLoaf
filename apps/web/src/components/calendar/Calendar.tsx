@@ -653,7 +653,7 @@ export default function CalendarPage({
               : shouldShowImportButton ? (
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none transition-colors duration-150 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none transition-colors duration-150 disabled:opacity-50"
                   onClick={handleImportCalendar}
                   disabled={isLoading}
                 >

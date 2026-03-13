@@ -169,7 +169,7 @@ export function AnchorOverlay({ snapshot }: AnchorOverlayProps) {
               <button
                 type="button"
                 className={cn(
-                  "pointer-events-auto absolute flex h-5 w-5 items-center justify-center rounded-full border bg-background text-ol-text-auxiliary shadow-sm",
+                  "pointer-events-auto absolute flex h-5 w-5 items-center justify-center rounded-md border bg-background text-ol-text-auxiliary shadow-sm",
                   "border-ol-divider hover:bg-ol-surface-muted"
                 )}
                 style={{

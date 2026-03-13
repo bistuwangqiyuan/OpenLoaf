@@ -81,7 +81,7 @@ export const PageTitle = () => {
         <button
           type="button"
           onClick={handleSettingsBack}
-          className="flex items-center gap-1 h-6 rounded-full px-2 text-xs font-medium bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover transition-colors duration-150"
+          className="flex items-center gap-1 h-6 rounded-md px-2 text-xs font-medium bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover transition-colors duration-150"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('header.back')}
@@ -91,7 +91,7 @@ export const PageTitle = () => {
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center gap-1 h-6 rounded-full px-2 text-xs font-medium bg-ol-purple-bg text-ol-purple hover:bg-ol-purple-bg-hover transition-colors duration-150"
+          className="flex items-center gap-1 h-6 rounded-md px-2 text-xs font-medium bg-ol-purple-bg text-ol-purple hover:bg-ol-purple-bg-hover transition-colors duration-150"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('canvasList.back')}

@@ -267,7 +267,7 @@ export function AuxiliaryModelSettings() {
               </div>
             </div>
             <OpenLoafSettingsField className="shrink-0 justify-end">
-              <div className="flex items-center rounded-full border border-border/70 bg-muted/40">
+              <div className="flex items-center rounded-md border border-border/70 bg-muted/40">
                 <FilterTab
                   text={t('auxiliaryModel.sourceLocal')}
                   selected={modelSource === 'local'}
@@ -300,7 +300,7 @@ export function AuxiliaryModelSettings() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="shrink-0 rounded-full px-4 text-xs transition-colors duration-150"
+                    className="shrink-0 rounded-md px-4 text-xs transition-colors duration-150"
                     onClick={() => setLoginOpen(true)}
                   >
                     {t('auxiliaryModel.login')}
@@ -409,7 +409,7 @@ export function AuxiliaryModelSettings() {
                         {activeCap.outputMode && OUTPUT_MODE_CLASS[activeCap.outputMode] && (
                           <span
                             className={cn(
-                              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+                              'inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium',
                               OUTPUT_MODE_CLASS[activeCap.outputMode],
                             )}
                           >
@@ -425,7 +425,7 @@ export function AuxiliaryModelSettings() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 shrink-0 gap-1 rounded-full bg-ol-blue-bg px-2.5 text-xs text-ol-blue hover:bg-ol-blue-bg-hover transition-colors duration-150"
+                        className="h-7 shrink-0 gap-1 rounded-md bg-ol-blue-bg px-2.5 text-xs text-ol-blue hover:bg-ol-blue-bg-hover transition-colors duration-150"
                         onClick={() => setTestDialogOpen(true)}
                       >
                         <Play className="h-3 w-3" />
@@ -435,7 +435,7 @@ export function AuxiliaryModelSettings() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 shrink-0 gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                          className="h-7 shrink-0 gap-1 rounded-md px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
                           onClick={handleResetPrompt}
                         >
                           <RotateCcw className="h-3 w-3" />
@@ -469,7 +469,7 @@ export function AuxiliaryModelSettings() {
                       <span className="text-xs font-medium text-muted-foreground">{t('auxiliaryModel.prompt')}</span>
                       <span className="text-[10px] text-muted-foreground/50">{currentPrompt.length}</span>
                       {isCustomized && (
-                        <span className="rounded-full bg-ol-amber-bg px-1.5 py-px text-[10px] font-medium text-ol-amber">
+                        <span className="rounded-md bg-ol-amber-bg px-1.5 py-px text-[10px] font-medium text-ol-amber">
                           {t('auxiliaryModel.modified')}
                         </span>
                       )}
@@ -494,7 +494,7 @@ export function AuxiliaryModelSettings() {
           onClick={handleSave}
           disabled={saveMutation.isPending}
           size="sm"
-          className="rounded-full px-5 transition-colors duration-150"
+          className="rounded-md px-5 transition-colors duration-150"
         >
           {saveMutation.isPending ? t('auxiliaryModel.saving') : t('auxiliaryModel.save')}
         </Button>
@@ -603,7 +603,7 @@ function TestCapabilityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg sm:rounded-2xl">
         {/* Header — 半透明玻璃层 */}
-        <div className="flex items-center gap-3 border-b border-border/40 bg-muted/30 px-5 py-4 backdrop-blur-sm">
+        <div className="flex items-center gap-3 border-b border-border/40 ol-glass-float px-5 py-4">
           <div className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
             'bg-background/80 shadow-sm ring-1 ring-border/30',
@@ -616,7 +616,7 @@ function TestCapabilityDialog({
                 {t('auxiliaryModel.testDialogTitle', { label: capabilityLabel })}
                 {badgeClass && badgeLabel && (
                   <span className={cn(
-                    'inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium',
+                    'inline-flex items-center rounded-md px-1.5 py-px text-[10px] font-medium',
                     badgeClass,
                   )}>
                     {badgeLabel}
@@ -679,7 +679,7 @@ function TestCapabilityDialog({
               {/* Stats — below content */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className={cn(
-                  'inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium',
+                  'inline-flex items-center rounded-md px-1.5 py-px text-[10px] font-medium',
                   result.ok
                     ? 'bg-ol-green-bg text-ol-green'
                     : 'bg-ol-red-bg text-ol-red',
@@ -687,7 +687,7 @@ function TestCapabilityDialog({
                   {result.ok ? t('auxiliaryModel.testSuccess') : t('auxiliaryModel.testFailed')}
                 </span>
                 <span className={cn(
-                  'inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium tabular-nums',
+                  'inline-flex items-center rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums',
                   result.durationMs < 1000
                     ? 'bg-ol-green-bg text-ol-green'
                     : result.durationMs < 3000
@@ -721,7 +721,7 @@ function TestCapabilityDialog({
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full px-4 text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
+            className="rounded-md px-4 text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
             onClick={() => onOpenChange(false)}
           >
             {t('common:close')}
@@ -730,7 +730,7 @@ function TestCapabilityDialog({
             size="sm"
             variant="ghost"
             className={cn(
-              'gap-1.5 rounded-full bg-ol-blue-bg px-5 text-xs text-ol-blue hover:bg-ol-blue-bg-hover transition-all duration-200',
+              'gap-1.5 rounded-md bg-ol-blue-bg px-5 text-xs text-ol-blue hover:bg-ol-blue-bg-hover transition-all duration-200',
               testMutation.isPending && 'opacity-80',
             )}
             onClick={handleRun}
@@ -778,7 +778,7 @@ function ModelSelector({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 gap-1.5 rounded-full px-3.5 text-xs transition-colors duration-150"
+          className="h-8 gap-1.5 rounded-md px-3.5 text-xs transition-colors duration-150"
         >
           <span className="max-w-[140px] truncate">{label}</span>
           <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />

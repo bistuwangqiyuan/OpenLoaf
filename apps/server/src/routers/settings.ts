@@ -9,6 +9,7 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
 import {
   BaseSettingRouter,
@@ -47,7 +48,7 @@ import {
   getClaudeCodeCliModels,
 } from "@/ai/models/cli/cliProviderEntry";
 import { loadSkillSummaries } from "@/ai/services/skillsLoader";
-import { readMemoryFile, writeMemoryFile } from "@/ai/shared/memoryLoader";
+import { readMemoryFile, resolveMemoryDir, writeMemoryFile } from "@/ai/shared/memoryLoader";
 import { readAgentJson, resolveAgentDir } from "@/ai/shared/defaultAgentResolver";
 import { loadAgentSummaries, readAgentConfigFromPath, serializeAgentToMarkdown } from "@/ai/services/agentConfigService";
 import { CAPABILITY_GROUPS } from "@/ai/tools/capabilityGroups";
@@ -1112,6 +1113,26 @@ export class SettingRouterImpl extends BaseSettingRouter {
           if (!projectRootPath) return { content: '' };
           const content = readMemoryFile(projectRootPath);
           return { content };
+        }),
+      /** Get memory directory URI by scope ('user' = global, 'project' = project-level). */
+      getMemoryDirUri: shieldedProcedure
+        .input(settingSchemas.getMemoryDirUri.input)
+        .output(settingSchemas.getMemoryDirUri.output)
+        .query(async ({ input }) => {
+          const scope = input?.scope ?? 'user';
+          let rootPath: string | undefined;
+          if (scope === 'user') {
+            rootPath = getOpenLoafRootDir();
+          } else {
+            rootPath = input?.projectId
+              ? getProjectRootPath(input.projectId) ?? undefined
+              : undefined;
+          }
+          if (!rootPath) return { dirUri: '', indexUri: '' };
+          const memoryDirPath = resolveMemoryDir(rootPath);
+          const dirUri = pathToFileURL(memoryDirPath).href;
+          const indexUri = pathToFileURL(path.join(memoryDirPath, 'MEMORY.md')).href;
+          return { dirUri, indexUri };
         }),
       /** Save memory content by scope ('user' = global, 'project' = project-level). */
       saveMemory: shieldedProcedure

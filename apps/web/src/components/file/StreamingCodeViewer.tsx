@@ -314,7 +314,7 @@ export default function StreamingCodeViewer({
       {statusIndicator && (
         <div
           className={cn(
-            'absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md bg-background/80 px-2 py-1 text-xs backdrop-blur-sm',
+            'absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md ol-glass-float px-2 py-1 text-xs',
             statusIndicator.destructive ? 'text-destructive' : 'text-muted-foreground',
           )}
         >

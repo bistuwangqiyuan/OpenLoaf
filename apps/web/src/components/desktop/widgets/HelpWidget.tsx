@@ -223,7 +223,7 @@ export default function HelpWidget() {
       {/* Navigation arrows */}
       <button
         type="button"
-        className="absolute top-1/2 left-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
+        className="absolute top-1/2 left-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-md ol-glass-float text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
         onClick={goPrev}
         aria-label={t('help.prevPage')}
       >
@@ -231,7 +231,7 @@ export default function HelpWidget() {
       </button>
       <button
         type="button"
-        className="absolute top-1/2 right-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
+        className="absolute top-1/2 right-1.5 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-md ol-glass-float text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
         onClick={goNext}
         aria-label={t('help.nextPage')}
       >

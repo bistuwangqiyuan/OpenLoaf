@@ -442,7 +442,7 @@ export default function DesktopTileGridstack({
           <button
             type="button"
             className={cn(
-              "desktop-edit-action-button flex size-6 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm",
+              "desktop-edit-action-button flex size-6 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm",
               isPinned ? "text-ol-red" : "",
               isPinned
                 ? "opacity-100 pointer-events-auto"

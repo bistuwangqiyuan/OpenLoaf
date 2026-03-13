@@ -270,7 +270,7 @@ export function SidebarFeedback() {
                   variant="ghost"
                   size="sm"
                   type="button"
-                  className="rounded-full transition-colors duration-150"
+                  className="rounded-md transition-colors duration-150"
                   onClick={() => setOpen(false)}
                 >
                   {t('sidebar.feedback.cancel')}
@@ -278,7 +278,7 @@ export function SidebarFeedback() {
                 <Button
                   size="sm"
                   type="button"
-                  className="rounded-full bg-ol-blue-bg text-ol-blue shadow-none hover:bg-ol-blue-bg-hover transition-colors duration-150"
+                  className="rounded-md bg-ol-blue-bg text-ol-blue shadow-none hover:bg-ol-blue-bg-hover transition-colors duration-150"
                   onClick={submitFeedback}
                   disabled={submitting}
                 >

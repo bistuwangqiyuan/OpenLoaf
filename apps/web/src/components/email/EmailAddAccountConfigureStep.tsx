@@ -330,7 +330,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
                 type="button"
                 onClick={() => handleToggleLabel(preset.id)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all',
                   isSelected
                     ? 'bg-foreground text-background'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -346,7 +346,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
               key={label}
               type="button"
               onClick={() => handleRemoveCustomLabel(label)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-all"
+              className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-all"
             >
               <span className="size-2 rounded-full bg-background/30" />
               {label}
@@ -366,7 +366,7 @@ export function ConfigureStep({ addDialog }: ConfigureStepProps) {
             <button
               type="button"
               onClick={handleEnableCustomLabel}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
             >
               <Plus className="size-3" />
               {t('email.custom')}

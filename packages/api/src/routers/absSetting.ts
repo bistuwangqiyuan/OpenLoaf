@@ -335,6 +335,21 @@ export const settingSchemas = {
       content: z.string(),
     }),
   },
+  /** Get memory directory URI by scope ('user' = global, 'project' = project-level). */
+  getMemoryDirUri: {
+    input: z
+      .object({
+        scope: z.enum(['user', 'project']).default('user'),
+        projectId: z.string().optional(),
+      })
+      .optional(),
+    output: z.object({
+      /** file:// URI of the memory directory. Empty when unresolvable. */
+      dirUri: z.string(),
+      /** file:// URI of MEMORY.md index file. Empty when unresolvable. */
+      indexUri: z.string(),
+    }),
+  },
   /** Save memory content by scope ('user' = global, 'project' = project-level). */
   saveMemory: {
     input: z.object({
@@ -655,6 +670,12 @@ export abstract class BaseSettingRouter {
       getMemory: shieldedProcedure
         .input(settingSchemas.getMemory.input)
         .output(settingSchemas.getMemory.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      getMemoryDirUri: shieldedProcedure
+        .input(settingSchemas.getMemoryDirUri.input)
+        .output(settingSchemas.getMemoryDirUri.output)
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),

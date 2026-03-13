@@ -109,7 +109,7 @@ const ChatHistoryWidget = memo(function ChatHistoryWidget() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="h-7 gap-1.5 rounded-full px-2 text-xs"
+                  className="h-7 gap-1.5 rounded-md px-2 text-xs"
                 >
                   <CalendarDays className="h-3.5 w-3.5" />
                   {formatDateLabel(activeDate)}
@@ -166,7 +166,7 @@ const ChatHistoryWidget = memo(function ChatHistoryWidget() {
                       {session.title.trim() || t('chatHistory.unnamed')}
                     </div>
                     {session.isPin ? (
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                         {t('chatHistory.pinned')}
                       </span>
                     ) : null}

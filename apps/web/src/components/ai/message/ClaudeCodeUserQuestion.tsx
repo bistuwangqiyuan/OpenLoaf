@@ -119,7 +119,7 @@ export default React.memo(function ClaudeCodeUserQuestion({
                   disabled={answered || submitting}
                   onClick={() => handleToggle(qIdx, optIdx, q.multiSelect)}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs transition-colors duration-150",
+                    "rounded-md border px-3 py-1 text-xs transition-colors duration-150",
                     answered
                       ? "cursor-default opacity-50"
                       : "cursor-pointer hover:bg-primary/10",
@@ -147,7 +147,7 @@ export default React.memo(function ClaudeCodeUserQuestion({
           disabled={!hasSelection || submitting}
           onClick={handleSubmit}
           className={cn(
-            "mt-1 self-start rounded-full px-4 py-1.5 text-xs font-medium transition-colors duration-150",
+            "mt-1 self-start rounded-md px-4 py-1.5 text-xs font-medium transition-colors duration-150",
             hasSelection && !submitting
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "cursor-not-allowed bg-muted text-muted-foreground",

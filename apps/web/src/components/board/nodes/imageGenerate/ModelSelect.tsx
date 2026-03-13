@@ -49,7 +49,7 @@ export function ModelSelect({
         type="button"
         disabled={isLoginBusy}
         className={[
-          "flex h-7 w-full items-center justify-between rounded-full border border-ol-divider bg-ol-surface-muted px-3 text-[11px] text-ol-text-auxiliary",
+          "flex h-7 w-full items-center justify-between rounded-md border border-ol-divider bg-ol-surface-muted px-3 text-[11px] text-ol-text-auxiliary",
           "hover:bg-ol-divider disabled:cursor-not-allowed disabled:opacity-60",
         ].join(" ")}
         onPointerDown={(event) => {
@@ -81,7 +81,7 @@ export function ModelSelect({
           type="button"
           disabled={candidates.length === 0 || disabled}
           className={[
-            "flex h-7 w-full items-center justify-between rounded-full border border-ol-divider bg-ol-surface-muted px-2 text-[11px] text-ol-text-secondary",
+            "flex h-7 w-full items-center justify-between rounded-md border border-ol-divider bg-ol-surface-muted px-2 text-[11px] text-ol-text-secondary",
             "hover:bg-ol-divider disabled:cursor-not-allowed disabled:opacity-60",
           ].join(" ")}
           onPointerDown={(event) => {

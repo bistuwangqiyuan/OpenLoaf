@@ -222,7 +222,7 @@ export function SidebarUserAccount() {
                   </span>
                   {membershipLabel ? (
                     <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? "bg-foreground/[0.05] text-foreground/65"}`}
+                      className={`inline-flex shrink-0 items-center rounded-md px-1.5 py-px text-[10px] font-medium leading-4 transition-colors duration-150 ${SIDEBAR_MEMBERSHIP_BADGE_STYLES[membershipLevel ?? "free"] ?? "bg-foreground/[0.05] text-foreground/65"}`}
                     >
                       {membershipLabel}
                     </span>

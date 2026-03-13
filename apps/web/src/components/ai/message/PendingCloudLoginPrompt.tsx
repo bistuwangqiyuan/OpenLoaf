@@ -145,7 +145,7 @@ export default function PendingCloudLoginPrompt() {
                       <button
                         type="button"
                         onClick={handleUseCloud}
-                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full bg-ol-blue px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110"
+                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md bg-ol-blue px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110"
                       >
                         <Cloud className="size-3" />
                         使用云端模型
@@ -153,7 +153,7 @@ export default function PendingCloudLoginPrompt() {
                       <button
                         type="button"
                         onClick={handleGoToProviderConfig}
-                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full border border-ol-blue/25 bg-white/70 px-3 text-[11px] font-medium text-ol-blue transition-colors duration-150 hover:bg-ol-blue-bg-hover dark:bg-ol-blue-bg"
+                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-ol-blue/25 bg-white/70 px-3 text-[11px] font-medium text-ol-blue transition-colors duration-150 hover:bg-ol-blue-bg-hover dark:bg-ol-blue-bg"
                       >
                         <Settings2 className="size-3" />
                         前往模型配置
@@ -164,7 +164,7 @@ export default function PendingCloudLoginPrompt() {
                       <button
                         type="button"
                         onClick={() => handleLogin()}
-                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full bg-ol-blue px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110"
+                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md bg-ol-blue px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110"
                       >
                         <Cloud className="size-3" />
                         登录云端模型
@@ -172,7 +172,7 @@ export default function PendingCloudLoginPrompt() {
                       <button
                         type="button"
                         onClick={() => handleUseLocal()}
-                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full border border-ol-blue/25 bg-white/70 px-3 text-[11px] font-medium text-ol-blue transition-colors duration-150 hover:bg-ol-blue-bg-hover dark:bg-ol-blue-bg"
+                        className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-ol-blue/25 bg-white/70 px-3 text-[11px] font-medium text-ol-blue transition-colors duration-150 hover:bg-ol-blue-bg-hover dark:bg-ol-blue-bg"
                       >
                         {hasConfiguredProviders ? (
                           <HardDrive className="size-3" />

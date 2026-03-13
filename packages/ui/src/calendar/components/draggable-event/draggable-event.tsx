@@ -76,7 +76,7 @@ function EventHoverCard({ event }: { event: CalendarEvent }) {
 	)
 
 	return (
-		<div className="w-64 rounded-lg border bg-popover p-3 text-popover-foreground shadow-md">
+		<div className="w-64 rounded-lg border bg-popover p-3 text-popover-foreground shadow-sm">
 			<div className="flex items-center gap-2 mb-2">
 				<div
 					className={cn('h-3 w-3 rounded-full shrink-0', background.className)}

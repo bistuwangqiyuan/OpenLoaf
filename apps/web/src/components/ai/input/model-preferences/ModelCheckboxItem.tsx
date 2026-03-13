@@ -113,7 +113,7 @@ export function ModelCheckboxItem({
               <span
                 key={tag.key}
                 className={cn(
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-[9px] leading-none',
+                  'inline-flex items-center rounded-md px-2 py-0.5 text-[9px] leading-none',
                   TAG_COLOR_CLASSES[tag.key] ?? TAG_COLOR_CLASSES.default,
                 )}
               >

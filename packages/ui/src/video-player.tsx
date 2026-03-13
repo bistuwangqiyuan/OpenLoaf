@@ -119,7 +119,7 @@ export function VideoPlayer({
             />
             <div className="absolute inset-0 bg-background/60" />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-[18%] min-h-8 aspect-square items-center justify-center rounded-full border border-border bg-background/70 text-foreground">
+              <span className="flex h-[18%] min-h-8 aspect-square items-center justify-center rounded-md border border-border bg-background/70 text-foreground">
                 <Play className="h-[55%] w-[55%] min-h-4 min-w-4 translate-x-[0.5px]" />
               </span>
             </div>

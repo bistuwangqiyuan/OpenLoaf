@@ -255,7 +255,7 @@ function MediaAttachmentList({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex size-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-white/30">
+              <div className="flex size-10 items-center justify-center rounded-full ol-glass-float transition-all duration-300 group-hover:scale-110 group-hover:bg-white/30">
                 <Play className="size-5 fill-white text-white" />
               </div>
             </div>

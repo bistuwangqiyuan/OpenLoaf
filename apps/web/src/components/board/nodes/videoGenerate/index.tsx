@@ -94,7 +94,7 @@ function VideoGenerateProjectionView({
           <span className="text-xs font-medium text-ol-purple">
             {t("videoGenerate.title")}
           </span>
-          <span className={cn("ml-auto rounded-full px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_VIDEO)}>
+          <span className={cn("ml-auto rounded-md px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_VIDEO)}>
             {status === "generating"
               ? t("chatMessage.streaming")
               : status === "error"
@@ -840,7 +840,7 @@ function EditableVideoGenerateNodeView({
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border/30">
           <Film className="h-4 w-4 shrink-0 text-ol-purple" />
           <div className="text-xs font-medium text-ol-purple">{t('videoGenerate.title')}</div>
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] leading-3", BOARD_GENERATE_PILL_VIDEO)}>
+          <span className={cn("rounded-md px-2 py-0.5 text-[10px] leading-3", BOARD_GENERATE_PILL_VIDEO)}>
             {statusLabel}
           </span>
         </div>
@@ -942,7 +942,7 @@ function EditableVideoGenerateNodeView({
           <button
             type="button"
             className={cn(
-              "shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150",
+              "shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150",
               isAdvancedOpen
                 ? "bg-ol-purple-bg text-ol-purple"
                 : "text-ol-text-auxiliary hover:bg-ol-surface-muted",
@@ -959,7 +959,7 @@ function EditableVideoGenerateNodeView({
             type="button"
             disabled={authLoggedIn ? !canGenerate : isLoginBusy}
             className={cn(
-              "shrink-0 inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
+              "shrink-0 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
               BOARD_GENERATE_BTN_VIDEO,
             )}
             onPointerDown={(event) => {
@@ -987,7 +987,7 @@ function EditableVideoGenerateNodeView({
             <div className="relative rounded-lg border border-ol-red/20 bg-ol-red-bg p-2 text-[11px] leading-4 text-ol-red shadow-sm">
               <button
                 type="button"
-                className="absolute right-2 top-2 rounded-full border border-ol-red/20 bg-background px-2 py-0.5 text-[10px] text-ol-red hover:bg-ol-red-bg"
+                className="absolute right-2 top-2 rounded-md border border-ol-red/20 bg-background px-2 py-0.5 text-[10px] text-ol-red hover:bg-ol-red-bg"
                 onPointerDown={(event) => {
                   event.stopPropagation();
                 }}

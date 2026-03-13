@@ -118,7 +118,7 @@ export function EmailForwardEditor({ detail }: EmailForwardEditorProps) {
             <Button
               type="button"
               size="sm"
-              className="h-8 rounded-full bg-ol-blue px-4 text-[12px] text-white transition-colors duration-150 hover:bg-ol-blue/85"
+              className="h-8 rounded-md bg-ol-blue px-4 text-[12px] text-white transition-colors duration-150 hover:bg-ol-blue/85"
               disabled={!canSend || detail.isSending}
               onClick={detail.onSendMessage}
             >
@@ -129,7 +129,7 @@ export function EmailForwardEditor({ detail }: EmailForwardEditorProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-full px-3 text-[12px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                className="h-8 rounded-md px-3 text-[12px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
                 onClick={handleFileSelect}
                 title={t('email.addAttachment')}
               >
@@ -141,7 +141,7 @@ export function EmailForwardEditor({ detail }: EmailForwardEditorProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 rounded-full px-3 text-[12px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+              className="h-8 rounded-md px-3 text-[12px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
               onClick={detail.onCancelCompose}
             >
               {t('cancel')}
@@ -215,7 +215,7 @@ export function EmailForwardEditor({ detail }: EmailForwardEditorProps) {
                   <button
                     type="button"
                     onClick={() => handleRemoveAttachment(index)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-muted"
+                    className="ml-0.5 rounded-md p-0.5 hover:bg-muted"
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>

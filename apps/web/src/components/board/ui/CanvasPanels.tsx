@@ -81,7 +81,7 @@ function ConnectorActionPanel({
   return (
     <div
       data-connector-action
-      className="pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-ol-divider bg-background/90 px-2 py-1 shadow-[0_12px_28px_rgba(15,23,42,0.18)] backdrop-blur"
+      className="pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-md border border-ol-divider bg-background/90 px-2 py-1 shadow-[0_12px_28px_rgba(15,23,42,0.18)] backdrop-blur"
       style={{ left: screen[0], top: screen[1] - offsetScreenY }}
       onPointerDown={event => {
         // 逻辑：避免面板交互触发画布选择。
@@ -155,7 +155,7 @@ function ConnectorActionPanel({
             onDashedChange(!currentDashed);
           }}
           className={cn(
-            "inline-flex h-6 w-6 items-center justify-center rounded-full border border-ol-divider text-ol-text-auxiliary transition-colors duration-150",
+            "inline-flex h-6 w-6 items-center justify-center rounded-md border border-ol-divider text-ol-text-auxiliary transition-colors duration-150",
             currentDashed
               ? "bg-ol-blue-bg-hover text-ol-blue ring-2 ring-ol-blue ring-offset-2 ring-offset-background"
               : "hover:bg-muted/58 dark:hover:bg-muted/46"
@@ -173,7 +173,7 @@ function ConnectorActionPanel({
           event.stopPropagation();
           onDelete();
         }}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ol-text-auxiliary transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ol-text-auxiliary transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
         title={t('connector.deleteConnector')}
       >
         <Trash2 size={14} />
@@ -286,7 +286,7 @@ function ConnectorStyleButton({
         onPointerDown();
       }}
       className={cn(
-        "inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150",
+        "inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150",
         "text-ol-text-auxiliary",
         active
           ? "bg-ol-text-primary text-white shadow-[0_0_0_1px_rgba(15,23,42,0.2)] dark:bg-foreground dark:text-background"
@@ -346,7 +346,7 @@ function NodeInspectorPanel({ element, onClose }: NodeInspectorPanelProps) {
             event.stopPropagation();
             onClose();
           }}
-          className="rounded-full px-1 py-0.5 text-[11px] text-ol-text-auxiliary transition-colors duration-150 hover:text-ol-text-primary"
+          className="rounded-md px-1 py-0.5 text-[11px] text-ol-text-auxiliary transition-colors duration-150 hover:text-ol-text-primary"
         >
           {t('nodeInspector.close')}
         </button>

@@ -68,7 +68,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
                   sidebar.onSelectUnifiedView(item.scope, item.label)
                 }
                 className={cn(
-                  "flex w-full items-center justify-between rounded-full px-3 py-2 text-[13px] transition-colors duration-150",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-[13px] transition-colors duration-150",
                   isActive
                     ? EMAIL_TONE_ACTIVE_CLASS
                     : cn(
@@ -115,7 +115,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
               variant="ghost"
               size="icon"
               className={cn(
-                "h-7 w-7 rounded-full border border-transparent bg-ol-green-bg text-ol-green transition-colors duration-150",
+                "h-7 w-7 rounded-md border border-transparent bg-ol-green-bg text-ol-green transition-colors duration-150",
                 "hover:bg-ol-green-bg-hover",
                 "disabled:bg-muted/28 disabled:text-muted-foreground",
               )}
@@ -133,7 +133,7 @@ export function EmailSidebar({ sidebar, onStartCompose }: EmailSidebarProps) {
               variant="ghost"
               size="icon"
               className={cn(
-                "h-7 w-7 rounded-full border border-transparent bg-ol-green-bg text-ol-green transition-colors duration-150",
+                "h-7 w-7 rounded-md border border-transparent bg-ol-green-bg text-ol-green transition-colors duration-150",
                 "hover:bg-ol-green-bg-hover",
               )}
               onClick={sidebar.onOpenAddAccount}

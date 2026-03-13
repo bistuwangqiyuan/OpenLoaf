@@ -75,7 +75,7 @@ const ViewControls: React.FC<ViewControlsProps> = ({
 			{/* Desktop: segmented control */}
 			<div
 				className={cn(
-					'hidden sm:flex items-center gap-0.5 rounded-full border bg-background p-0.5',
+					'hidden sm:flex items-center gap-0.5 rounded-md border bg-background p-0.5',
 					className
 				)}
 			>
@@ -85,7 +85,7 @@ const ViewControls: React.FC<ViewControlsProps> = ({
 						<button
 							type="button"
 							className={cn(
-								'inline-flex items-center justify-center rounded-full transition-all duration-150',
+								'inline-flex items-center justify-center rounded-md transition-all duration-150',
 								isActive
 									? `h-7 gap-1 px-2.5 ${activeBg} ${activeText} ${darkActiveBg} ${darkActiveText}`
 									: 'h-7 w-7 text-ol-text-auxiliary hover:bg-ol-surface-muted hover:text-ol-text-primary'

@@ -192,7 +192,7 @@ export function CalendarFilterPanel({
         <span className="text-sm font-semibold text-foreground ml-1.5">{t('filter')}</span>
       </div>
       <div className="border-b border-ol-divider mb-1.5" />
-      <div className="flex items-center gap-0.5 rounded-full border bg-background p-0.5 mx-1 mb-2">
+      <div className="flex items-center gap-0.5 rounded-md border bg-background p-0.5 mx-1 mb-2">
         {([
           { value: "all" as const, labelKey: "all", activeBg: "bg-ol-blue-bg", activeText: "text-ol-blue" },
           { value: "local" as const, labelKey: "local", activeBg: "bg-ol-green-bg", activeText: "text-ol-green" },
@@ -203,7 +203,7 @@ export function CalendarFilterPanel({
             <button
               key={value}
               type="button"
-              className={`flex-1 inline-flex items-center justify-center gap-1 rounded-full transition-all duration-150 h-7 text-[11px] font-medium ${
+              className={`flex-1 inline-flex items-center justify-center gap-1 rounded-md transition-all duration-150 h-7 text-[11px] font-medium ${
                 isActive
                   ? `${activeBg} ${activeText}`
                   : "text-ol-text-auxiliary hover:bg-ol-surface-muted hover:text-ol-text-primary"

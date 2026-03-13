@@ -312,7 +312,7 @@ export function VideoNodeView({
             <div className="absolute inset-0 flex items-center justify-center">
               <button
                 type="button"
-                className="flex h-[12%] min-h-5 aspect-square cursor-pointer items-center justify-center rounded-full border border-white/40 bg-black/40 text-white transition-transform duration-200 ease-out hover:scale-125"
+                className="flex h-[12%] min-h-5 aspect-square cursor-pointer items-center justify-center rounded-md border border-white/40 bg-black/40 text-white transition-transform duration-200 ease-out hover:scale-125"
                 onPointerDown={(e) => {
                   e.stopPropagation();
                   handlePlayInline();
@@ -329,7 +329,7 @@ export function VideoNodeView({
           <div className="flex flex-col items-center justify-center gap-2 px-3 text-center">
             <button
               type="button"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-ol-surface-muted text-ol-text-auxiliary transition-transform duration-200 ease-out hover:scale-125"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md bg-ol-surface-muted text-ol-text-auxiliary transition-transform duration-200 ease-out hover:scale-125"
               onPointerDown={(e) => {
                 e.stopPropagation();
                 handlePlayInline();

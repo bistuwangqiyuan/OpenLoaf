@@ -569,7 +569,7 @@ export function ChatInputBox({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="rounded-full w-8 h-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className="rounded-md w-8 h-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       onClick={() => setFilePickerOpen(true)}
                       disabled={!canAttachAll && !canAttachImage}
                       aria-label={t('input.addAttachment')}
@@ -615,7 +615,7 @@ export function ChatInputBox({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 rounded-full px-2.5 text-xs shadow-none"
+                  className="h-7 rounded-md px-2.5 text-xs shadow-none"
                   onClick={onCancel}
                 >
                   {resolvedCancelLabel}
@@ -630,7 +630,7 @@ export function ChatInputBox({
                       variant="ghost"
                       size="icon-sm"
                       className={cn(
-                        "rounded-full w-8 h-8 shrink-0 transition-colors",
+                        "rounded-md w-8 h-8 shrink-0 transition-colors",
                         isListening
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -654,7 +654,7 @@ export function ChatInputBox({
                   disabled={isSendDisabled}
                   size="sm"
                   className={cn(
-                    "h-8 rounded-full px-3 text-xs shrink-0 disabled:opacity-100",
+                    "h-8 rounded-md px-3 text-xs shrink-0 disabled:opacity-100",
                     canSubmit
                       ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                       : "bg-muted text-foreground/60 cursor-not-allowed"
@@ -671,7 +671,7 @@ export function ChatInputBox({
                       disabled={isLoading ? !onStop : isSendDisabled}
                       size="icon-sm"
                       className={cn(
-                        "h-[30px] w-[30px] rounded-full shrink-0 transition-colors duration-200",
+                        "h-[30px] w-[30px] rounded-md shrink-0 transition-colors duration-200",
                         isLoading
                           ? "bg-destructive/10 text-destructive hover:bg-destructive/15 dark:bg-destructive/15"
                           : isOverLimit

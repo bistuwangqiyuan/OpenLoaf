@@ -112,7 +112,7 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="mt-1.5 h-6 rounded-full px-2 text-[11px] text-ol-blue hover:bg-ol-blue/10"
+                          className="mt-1.5 h-6 rounded-md px-2 text-[11px] text-ol-blue hover:bg-ol-blue/10"
                           onClick={() => onOpenChat(log.agentSessionId!)}
                         >
                           <MessageSquare className="mr-1 h-3 w-3" />

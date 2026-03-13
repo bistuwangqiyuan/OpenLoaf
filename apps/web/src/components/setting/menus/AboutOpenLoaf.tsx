@@ -427,7 +427,7 @@ export function AboutOpenLoaf() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1.5 rounded-full text-muted-foreground shadow-none"
+                  className="h-8 gap-1.5 rounded-md text-muted-foreground shadow-none"
                   onClick={() => void openAllChangelogs()}
                 >
                   <FileText className="h-3.5 w-3.5" />
@@ -436,7 +436,7 @@ export function AboutOpenLoaf() {
                 {isElectron && (
                   <Button
                     size="sm"
-                    className="h-8 rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
+                    className="h-8 rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none"
                     disabled={updateActionDisabled}
                     onClick={() => void triggerUpdateAction()}
                   >
@@ -451,13 +451,13 @@ export function AboutOpenLoaf() {
               <div className="mt-2 flex items-center gap-2">
                 {autoUpdateStatus.state === "downloaded" && (
                   <>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-ol-green-bg px-2 py-0.5 text-xs font-medium text-ol-green">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-ol-green-bg px-2 py-0.5 text-xs font-medium text-ol-green">
                       <Download className="h-3 w-3" />
                       {t('aboutAdditions.desktop')} v{autoUpdateStatus.nextVersion ?? "?"} {t('aboutAdditions.readyRestart')}
                     </span>
                     <Button
                       size="sm"
-                      className="rounded-full bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none"
+                      className="rounded-md bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none"
                       onClick={() => void window.openloafElectron?.relaunchApp?.()}
                     >
                       {t('aboutAdditions.installNow')}
@@ -483,13 +483,13 @@ export function AboutOpenLoaf() {
             {(serverHasUpdate || webHasUpdate) && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {serverHasUpdate && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-ol-blue-bg px-2 py-0.5 text-xs font-medium text-ol-blue">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-ol-blue-bg px-2 py-0.5 text-xs font-medium text-ol-blue">
                     <Download className="h-3 w-3" />
                     {t('aboutAdditions.server')} → v{updateStatus?.server?.newVersion}
                   </span>
                 )}
                 {webHasUpdate && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-ol-blue-bg px-2 py-0.5 text-xs font-medium text-ol-blue">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-ol-blue-bg px-2 py-0.5 text-xs font-medium text-ol-blue">
                     <Download className="h-3 w-3" />
                     Web → v{updateStatus?.web?.newVersion}
                   </span>
@@ -528,7 +528,7 @@ export function AboutOpenLoaf() {
               <div className="text-xs text-muted-foreground">{t('aboutAdditions.reloadDesc')}</div>
             </div>
             <OpenLoafSettingsField>
-              <Button type="button" size="sm" className="rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none" onClick={reloadPage}>
+              <Button type="button" size="sm" className="rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none" onClick={reloadPage}>
                 {t('aboutAdditions.reload')}
               </Button>
             </OpenLoafSettingsField>
@@ -558,7 +558,7 @@ export function AboutOpenLoaf() {
                 <Button
                   type="button"
                   size="sm"
-                  className="rounded-full bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none"
+                  className="rounded-md bg-ol-green-bg text-ol-green hover:bg-ol-green-bg-hover shadow-none"
                   onClick={() => void window.openloafElectron?.openLogsFolder?.()}
                 >
                   <FolderOpen className="mr-1.5 h-3.5 w-3.5" />

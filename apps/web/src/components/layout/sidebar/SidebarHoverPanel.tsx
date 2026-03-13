@@ -525,7 +525,7 @@ export function SidebarHoverPanel({
                             item.projectId &&
                             projectNameMap.get(item.projectId) && (
                               <span
-                                className={`shrink-0 max-w-20 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none ${getProjectColor(item.projectId).bg} ${getProjectColor(item.projectId).text}`}
+                                className={`shrink-0 max-w-20 truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-none ${getProjectColor(item.projectId).bg} ${getProjectColor(item.projectId).text}`}
                               >
                                 {projectNameMap.get(item.projectId)}
                               </span>

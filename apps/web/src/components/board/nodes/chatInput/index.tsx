@@ -418,7 +418,7 @@ export function ChatInputNodeView({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "flex items-center gap-1 rounded-md px-3 py-1 text-xs font-medium transition-colors",
                 BOARD_GENERATE_BTN_CHAT,
               )}
               onClick={handleRetry}
@@ -431,7 +431,7 @@ export function ChatInputNodeView({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                "flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                 BOARD_GENERATE_BTN_CHAT,
                 !localText.trim() && "opacity-50 cursor-not-allowed",
               )}

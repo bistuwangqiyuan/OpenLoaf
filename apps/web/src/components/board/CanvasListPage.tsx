@@ -326,7 +326,7 @@ function BoardCard({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-7 w-7 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm"
+                    className="h-7 w-7 rounded-lg ol-glass-float"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -754,7 +754,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("search")}
-              className="h-8 pl-8 pr-7 text-sm rounded-full bg-muted/40 border-transparent focus:border-border"
+              className="h-8 pl-8 pr-7 text-sm rounded-md bg-muted/40 border-transparent focus:border-border"
             />
             {searchQuery && (
               <button
@@ -768,7 +768,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
           </div>
           {!projectId && projectInfoById.size > 0 ? (
             <Select value={filterProjectId} onValueChange={setFilterProjectId}>
-              <SelectTrigger className="h-8 w-auto max-w-40 gap-1.5 rounded-full border-transparent bg-muted/40 px-3 text-sm focus:border-border [&>svg]:h-3.5 [&>svg]:w-3.5">
+              <SelectTrigger className="h-8 w-auto max-w-40 gap-1.5 rounded-md border-transparent bg-muted/40 px-3 text-sm focus:border-border [&>svg]:h-3.5 [&>svg]:w-3.5">
                 <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                 <SelectValue />
               </SelectTrigger>
@@ -797,7 +797,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               <Button
                 variant={groupByTime ? "secondary" : "ghost"}
                 size="icon"
-                className={`h-8 w-8 rounded-full ${groupByTime ? "bg-ol-purple/10 text-ol-purple" : ""}`}
+                className={`h-8 w-8 rounded-md ${groupByTime ? "bg-ol-purple/10 text-ol-purple" : ""}`}
                 onClick={() => setGroupByTime((v) => !v)}
               >
                 <CalendarDays className="h-4 w-4" />
@@ -808,7 +808,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20"
+            className="rounded-md bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20"
             onClick={handleCreate}
             disabled={!canCreateBoard || createMutation.isPending}
           >
@@ -827,7 +827,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-full mt-1 bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20"
+              className="rounded-md mt-1 bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20"
               onClick={handleCreate}
               disabled={!canCreateBoard || createMutation.isPending}
             >
@@ -925,7 +925,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
               type="button"
               variant="ghost"
               size="icon"
-              className={`h-9 w-9 shrink-0 rounded-full shadow-none transition-colors duration-150 ${
+              className={`h-9 w-9 shrink-0 rounded-md shadow-none transition-colors duration-150 ${
                 aiNaming
                   ? "text-muted-foreground opacity-50"
                   : saasLoggedIn
@@ -947,13 +947,13 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
             <DialogClose asChild>
               <Button
                 variant="ghost"
-                className="rounded-full text-muted-foreground shadow-none transition-colors duration-150"
+                className="rounded-md text-muted-foreground shadow-none transition-colors duration-150"
               >
                 {t("cancel")}
               </Button>
             </DialogClose>
             <Button
-              className="rounded-full bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20 shadow-none transition-colors duration-150"
+              className="rounded-md bg-ol-purple/10 text-ol-purple hover:bg-ol-purple/20 shadow-none transition-colors duration-150"
               onClick={handleRenameSave}
               disabled={updateMutation.isPending}
             >

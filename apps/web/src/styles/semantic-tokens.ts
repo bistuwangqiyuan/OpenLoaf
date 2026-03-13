@@ -97,16 +97,29 @@ export const OL_FOCUS = {
 
 /* ── Radius Standards ── */
 
-/** Radius standard — choose by component type */
+/**
+ * Radius standard — TE Industrial Minimal
+ *
+ * All radius values are controlled by CSS variables in index.css:
+ *   --radius: 0.5rem (8px) → rounded-lg
+ *   --radius-md: 6px, --radius-sm: 4px
+ *   --radius-xl/2xl/3xl: all 0.5rem (8px) via --ol-radius-*
+ *
+ * Component → Radius mapping:
+ *   Button / Badge / Tag / Chip → rounded-md (6px)
+ *   Input / Dropdown / Popover  → rounded-md (6px)
+ *   Card / Dialog content       → rounded-lg (8px)
+ *   Large panels / Overlays     → rounded-lg (8px)
+ */
 export const OL_RADIUS = {
   /** Buttons, Badge, Tag, Chip */
-  pill: 'rounded-full',
-  /** Small controls: inputs, small cards, dropdown items */
-  control: 'rounded-lg',
-  /** Medium containers: cards, panels, dialog content */
-  card: 'rounded-xl',
-  /** Large containers: main panels, dialog shells, overlays */
-  panel: 'rounded-2xl',
+  pill: 'rounded-md',
+  /** Small controls: inputs, dropdown items */
+  control: 'rounded-md',
+  /** Cards, dialog content */
+  card: 'rounded-lg',
+  /** Large containers, panels */
+  panel: 'rounded-lg',
   /** No rounding */
   none: 'rounded-none',
 } as const
@@ -121,16 +134,16 @@ export const OL_SHADOW = {
 
 /* ── Glass Effect Presets ── */
 
-/** Glass effect presets — background + blur + shadow */
+/** Glass effect presets — now backed by CSS component classes in index.css */
 export const OL_GLASS = {
-  /** Toolbar overlays (strong blur + medium shadow) */
-  toolbar: 'bg-card/90 dark:bg-sidebar backdrop-blur-md shadow-ol-toolbar',
-  /** Generation node containers (strong blur + light shadow) */
-  node: 'bg-background/95 dark:bg-background/92 backdrop-blur-lg shadow-ol-glass',
-  /** Floating panels (light blur + medium shadow) */
-  float: 'bg-background/90 dark:bg-background/88 backdrop-blur-sm shadow-ol-float',
+  /** Toolbar overlays */
+  toolbar: 'ol-glass-toolbar',
+  /** Generation node containers */
+  node: 'ol-glass-node',
+  /** Floating panels */
+  float: 'ol-glass-float',
   /** Inset areas (no shadow, no blur) */
-  inset: 'bg-ol-surface-inset border border-transparent',
+  inset: 'bg-ol-surface-inset border border-ol-divider',
 } as const
 
 /* ── Transition Standards ── */

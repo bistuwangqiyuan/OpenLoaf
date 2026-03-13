@@ -281,7 +281,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
         </div>
         <Button
           size="sm"
-          className="h-8 rounded-full bg-ol-blue text-white shadow-none hover:bg-ol-blue/85"
+          className="h-8 rounded-md bg-ol-blue text-white shadow-none hover:bg-ol-blue/85"
           onClick={handleCreate}
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
@@ -292,18 +292,18 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
       {/* Tabs */}
       <div className="flex items-center justify-between">
         <Tabs value={filterTab} onValueChange={(value) => setFilterTab(value as TaskFilter)}>
-          <TabsList className="h-8 w-max rounded-full border border-border/40 bg-muted/30 p-1">
-            <TabsTrigger value="all" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+          <TabsList className="h-8 w-max rounded-md border border-border/40 bg-muted/30 p-1">
+            <TabsTrigger value="all" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
               <Layers className="mr-1 h-3.5 w-3.5 text-ol-purple" />
               {t('schedule.all')}
               <span className="ml-1 text-[10px] text-muted-foreground">{allTasks.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="scheduled" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+            <TabsTrigger value="scheduled" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
               <Clock className="mr-1 h-3.5 w-3.5 text-ol-blue" />
               {t('task.scheduled')}
               <span className="ml-1 text-[10px] text-muted-foreground">{scheduledCount}</span>
             </TabsTrigger>
-            <TabsTrigger value="condition" className="h-6 rounded-full px-2 text-xs whitespace-nowrap">
+            <TabsTrigger value="condition" className="h-6 rounded-md px-2 text-xs whitespace-nowrap">
               <Zap className="mr-1 h-3.5 w-3.5 text-ol-amber" />
               {t('schedule.condition')}
               <span className="ml-1 text-[10px] text-muted-foreground">{conditionCount}</span>
@@ -413,7 +413,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-full"
+                          className="rounded-md"
                           disabled={task.lastStatus === 'running'}
                           onClick={() => handleRun(task)}
                         >
@@ -427,7 +427,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="rounded-full"
+                          className="rounded-md"
                           onClick={() => handleEdit(task)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -435,7 +435,7 @@ export const ScheduledTaskList = memo(function ScheduledTaskList({
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

@@ -75,7 +75,7 @@ class PanelErrorBoundary extends React.Component<
         <div className="flex h-full w-full items-center justify-center">
           <button
             type="button"
-            className="rounded-full bg-muted px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted/80"
+            className="rounded-md bg-muted px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted/80"
             onClick={() => this.setState({ hasError: false })}
           >
             重新加载面板

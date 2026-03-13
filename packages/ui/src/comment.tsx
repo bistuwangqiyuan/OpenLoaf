@@ -625,7 +625,7 @@ export function CommentCreateForm({
                 onAddComment();
               }}
             >
-              <div className="flex size-6 items-center justify-center rounded-full">
+              <div className="flex size-6 items-center justify-center rounded-md">
                 <ArrowUpIcon />
               </div>
             </Button>

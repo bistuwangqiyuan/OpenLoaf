@@ -103,7 +103,7 @@ export function ModelPreferencesHeader({
           type="button"
           disabled={disableAuto}
           className={cn(
-            'inline-flex h-6 items-center gap-1 rounded-full px-2 text-[11px] transition-colors',
+            'inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] transition-colors',
             disableAuto && 'cursor-not-allowed opacity-40',
             isAuto
               ? 'bg-ol-green/10 text-ol-green'

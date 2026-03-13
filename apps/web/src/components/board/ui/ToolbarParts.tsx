@@ -71,7 +71,7 @@ function IconBtn(props: {
       onPointerDown={handlePointerDown}
       disabled={disabled}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-full",
+        "inline-flex h-8 w-8 items-center justify-center rounded-md",
         "transition-colors duration-150",
         active
           ? BOARD_ICON_BTN_ACTIVE

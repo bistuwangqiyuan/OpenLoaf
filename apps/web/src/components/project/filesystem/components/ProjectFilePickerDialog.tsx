@@ -484,7 +484,7 @@ export function ProjectFilePickerDialog({
             <Button
               type="button"
               variant="outline"
-              className="rounded-full shadow-none transition-colors duration-150"
+              className="rounded-md shadow-none transition-colors duration-150"
               onClick={handleImportFromComputer}
             >
               {t('project:filesystem.importFromComputer')}
@@ -497,7 +497,7 @@ export function ProjectFilePickerDialog({
               <Button
                 type="button"
                 variant="ghost"
-                className="rounded-full shadow-none transition-colors duration-150"
+                className="rounded-md shadow-none transition-colors duration-150"
               >
                 {t('project:filesystem.cancel')}
               </Button>
@@ -505,7 +505,7 @@ export function ProjectFilePickerDialog({
             <Button
               type="button"
               disabled={confirmDisabled}
-              className="rounded-full bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
+              className="rounded-md bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
               onClick={() => handleConfirm()}
             >
               {t('project:filesystem.selectConfirmLabel')}

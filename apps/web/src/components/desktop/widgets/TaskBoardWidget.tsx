@@ -85,16 +85,16 @@ export default function TaskBoardWidget() {
           <div className="text-sm font-semibold text-foreground">{t('catalog.task-board')}</div>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-ol-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-blue">
+          <span className="inline-flex items-center gap-1 rounded-md bg-ol-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-blue">
             {counts.running} {t('taskBoard.statusRunning')}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-ol-amber/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-amber">
+          <span className="inline-flex items-center gap-1 rounded-md bg-ol-amber/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-amber">
             {counts.review} {t('taskBoard.statusReview')}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-ol-surface-muted px-1.5 py-0.5 text-[10px] font-medium text-ol-text-auxiliary">
+          <span className="inline-flex items-center gap-1 rounded-md bg-ol-surface-muted px-1.5 py-0.5 text-[10px] font-medium text-ol-text-auxiliary">
             {counts.todo} {t('taskBoard.statusTodo')}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-ol-green/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-green">
+          <span className="inline-flex items-center gap-1 rounded-md bg-ol-green/10 px-1.5 py-0.5 text-[10px] font-medium text-ol-green">
             {counts.done} {t('taskBoard.statusDone')}
           </span>
         </div>

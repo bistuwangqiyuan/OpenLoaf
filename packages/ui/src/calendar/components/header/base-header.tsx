@@ -101,7 +101,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 						aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
 						aria-pressed={isSidebarOpen}
 						className={cn(
-							'h-7 w-7 inline-flex items-center justify-center rounded-full transition-colors duration-150',
+							'h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors duration-150',
 							isSidebarOpen
 								? 'bg-ol-purple-bg text-ol-purple'
 								: 'text-ol-purple hover:bg-ol-purple-bg',
@@ -160,7 +160,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 					{hideNewEventButton ? null : (
 					<button
 						type="button"
-						className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none transition-colors duration-150"
+						className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none transition-colors duration-150"
 						onClick={() => openEventForm()}
 					>
 						<Plus className="h-4 w-4" />

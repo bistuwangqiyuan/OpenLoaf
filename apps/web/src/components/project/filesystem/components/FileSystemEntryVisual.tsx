@@ -485,7 +485,7 @@ const VideoThumbnail = memo(function VideoThumbnail({
         </div>
       )}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="flex h-[34%] min-h-2 aspect-square items-center justify-center rounded-full border border-border bg-background/70 text-foreground">
+        <span className="flex h-[34%] min-h-2 aspect-square items-center justify-center rounded-md border border-border bg-background/70 text-foreground">
           <Play className="h-[50%] w-[50%] min-h-2 min-w-2 translate-x-[0.5px]" />
         </span>
       </div>

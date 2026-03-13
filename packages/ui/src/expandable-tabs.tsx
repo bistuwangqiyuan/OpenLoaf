@@ -138,8 +138,8 @@ export function ExpandableTabs({
     },
     dock: {
       container:
-        "rounded-full border border-border/60 bg-background/90 shadow-[0_16px_40px_rgba(0,0,0,0.2)] backdrop-blur",
-      button: "rounded-full",
+        "rounded-md border border-border/60 bg-background/90 shadow-[0_16px_40px_rgba(0,0,0,0.2)] backdrop-blur",
+      button: "rounded-md",
       selected: "bg-background text-foreground shadow-sm",
       unselected:
         "text-muted-foreground/80 hover:bg-background/80 hover:text-foreground",

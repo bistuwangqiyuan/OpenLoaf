@@ -1161,7 +1161,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                           setPenSize(size);
                         }}
                         className={cn(
-                          "inline-flex h-7 w-7 items-center justify-center rounded-full",
+                          "inline-flex h-7 w-7 items-center justify-center rounded-md",
                           penSize === size
                             ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-white"
                             : "hover:bg-accent/60"
@@ -1261,7 +1261,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                           setHlSize(size);
                         }}
                         className={cn(
-                          "inline-flex h-7 w-7 items-center justify-center rounded-full",
+                          "inline-flex h-7 w-7 items-center justify-center rounded-md",
                           hlSize === size
                             ? "bg-foreground/12 text-foreground dark:bg-foreground/18 dark:text-white"
                             : "hover:bg-accent/60"

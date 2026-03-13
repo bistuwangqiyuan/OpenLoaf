@@ -562,7 +562,7 @@ function FilterBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={tl('messages.searchPlaceholder')}
-          className="h-7 w-44 rounded-full border-transparent bg-ol-surface-input pl-8 text-xs text-ol-text-primary placeholder:text-ol-text-auxiliary focus-visible:border-ol-focus-border focus-visible:ring-ol-focus-ring"
+          className="h-7 w-44 rounded-md border-transparent bg-ol-surface-input pl-8 text-xs text-ol-text-primary placeholder:text-ol-text-auxiliary focus-visible:border-ol-focus-border focus-visible:ring-ol-focus-ring"
         />
       </div>
 
@@ -572,7 +572,7 @@ function FilterBar({
           <button
             type="button"
             className={cn(
-              'flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
+              'flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
               'border border-transparent',
               priorityCount > 0
                 ? 'bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover'
@@ -604,7 +604,7 @@ function FilterBar({
                 />
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                    'rounded-md px-2 py-0.5 text-[11px] font-medium',
                     isActive ? colors.active : colors.inactive,
                   )}
                 >
@@ -622,7 +622,7 @@ function FilterBar({
           <button
             type="button"
             className={cn(
-              'flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
+              'flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
               'border border-transparent',
               triggerCount > 0
                 ? 'bg-ol-purple-bg text-ol-purple hover:bg-ol-purple-bg-hover'
@@ -654,7 +654,7 @@ function FilterBar({
                 />
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                    'rounded-md px-2 py-0.5 text-[11px] font-medium',
                     isActive ? colors.active : colors.inactive,
                   )}
                 >
@@ -852,17 +852,17 @@ export default function TaskBoardPage({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 rounded-full px-2.5 text-xs font-medium text-ol-text-auxiliary shadow-none transition-colors duration-150 hover:bg-ol-surface-muted"
+            className="h-7 rounded-md px-2.5 text-xs font-medium text-ol-text-auxiliary shadow-none transition-colors duration-150 hover:bg-ol-surface-muted"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
             <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
           </Button>
-          <div className="flex gap-0.5 rounded-full bg-ol-surface-muted p-0.5">
+          <div className="flex gap-0.5 rounded-md bg-ol-surface-muted p-0.5">
             <button
               type="button"
               className={cn(
-                'rounded-full p-1.5 transition-colors duration-150',
+                'rounded-md p-1.5 transition-colors duration-150',
                 viewMode === 'kanban'
                   ? 'bg-background text-ol-blue shadow-sm'
                   : 'text-ol-text-auxiliary hover:text-ol-text-primary',
@@ -874,7 +874,7 @@ export default function TaskBoardPage({
             <button
               type="button"
               className={cn(
-                'rounded-full p-1.5 transition-colors duration-150',
+                'rounded-md p-1.5 transition-colors duration-150',
                 viewMode === 'list'
                   ? 'bg-background text-ol-blue shadow-sm'
                   : 'text-ol-text-auxiliary hover:text-ol-text-primary',
@@ -886,7 +886,7 @@ export default function TaskBoardPage({
           </div>
           <Button
             size="sm"
-            className="h-7 rounded-full border-transparent bg-ol-blue-bg px-3 text-xs font-medium text-ol-blue shadow-none transition-colors duration-150 hover:bg-ol-blue-bg-hover"
+            className="h-7 rounded-md border-transparent bg-ol-blue-bg px-3 text-xs font-medium text-ol-blue shadow-none transition-colors duration-150 hover:bg-ol-blue-bg-hover"
             onClick={() => setDialogOpen(true)}
           >
             <Plus className="mr-1 h-3.5 w-3.5" />
@@ -895,7 +895,7 @@ export default function TaskBoardPage({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 rounded-full bg-ol-amber-bg px-3 text-xs font-medium text-ol-amber shadow-none transition-colors duration-150 hover:bg-ol-amber-bg-hover"
+            className="h-7 rounded-md bg-ol-amber-bg px-3 text-xs font-medium text-ol-amber shadow-none transition-colors duration-150 hover:bg-ol-amber-bg-hover"
             onClick={activateAiChat}
           >
             <Sparkles className="mr-1 h-3.5 w-3.5" />
@@ -937,7 +937,7 @@ export default function TaskBoardPage({
                       headerExtra={
                         <button
                           type="button"
-                          className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          className="rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                           onClick={() => setShowCancelled((v) => !v)}
                           title={showCancelled ? t('status.done') : t('status.cancelled')}
                         >

@@ -29,7 +29,7 @@ export default function DesktopTileDeleteButton({
     <button
       type="button"
       className={cn(
-        "desktop-edit-action-button desktop-trash-button flex size-6 items-center justify-center rounded-full",
+        "desktop-edit-action-button desktop-trash-button flex size-6 items-center justify-center rounded-md",
         "bg-transparent text-destructive border border-border shadow-sm",
         className
       )}

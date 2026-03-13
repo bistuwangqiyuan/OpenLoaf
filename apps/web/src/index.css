@@ -22,26 +22,26 @@
 
 /* Drag placeholder should match tile rounded corners. */
 .grid-stack-placeholder {
-  border-radius: 1rem;
+  border-radius: var(--ol-radius-2xl);
 }
 .grid-stack-placeholder > .placeholder-content {
-  border-radius: 1rem !important;
+  border-radius: var(--ol-radius-2xl) !important;
   overflow: hidden;
 }
 
 /* While dragging, ensure the temporary dragged content keeps rounded corners. */
 .grid-stack > .grid-stack-item > .grid-stack-item-content {
-  border-radius: 1rem;
+  border-radius: var(--ol-radius-2xl);
 }
 .ui-draggable-dragging > .grid-stack-item-content,
 .ui-resizable-resizing > .grid-stack-item-content {
-  border-radius: 1rem !important;
+  border-radius: var(--ol-radius-2xl) !important;
   box-shadow: none !important;
 }
 
 .grid-stack-item.ui-draggable-dragging,
 .grid-stack-item.ui-resizable-resizing {
-  border-radius: 1rem !important;
+  border-radius: var(--ol-radius-2xl) !important;
 }
 
 .grid-stack-item.desktop-placement-dragging > .grid-stack-item-content {
@@ -95,7 +95,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", "Geist", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Inter", "Helvetica Neue", "Geist", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
@@ -149,88 +149,104 @@ body {
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;  /* TE 工业微圆角：基础值从 10px → 8px */
   --macos-traffic-lights-width: 0px;
   --titlebar-controls-width: 0px;
 
-  /* ── OpenLoaf Design Tokens ── */
+  /* ── OpenLoaf Design Tokens (TE Industrial Minimal) ── */
 
-  /* 语义色 - 基色（文字/图标/圆点） */
-  --ol-blue: oklch(0.546 0.245 262.881);
-  --ol-green: oklch(0.507 0.155 155.77);
-  --ol-amber: oklch(0.702 0.174 62.8);
-  --ol-red: oklch(0.577 0.245 27.325);
-  --ol-purple: oklch(0.541 0.252 293.5);
+  /* 语义色 - 基色（文字/图标/圆点）— TE 色板，精确匹配 style-dna.md hex */
+  --ol-blue: #f05a24;      /* TE 橙（主操作）— 原 #f05a24 */
+  --ol-green: #006837;     /* TE 绿（成功）— 原 #006837 */
+  --ol-amber: #fab413;     /* TE 黄（警告）— 原 #fab413 */
+  --ol-red: #b81d13;       /* TE 红（危险）— 原 #b81d13 */
+  --ol-purple: #0071bb;    /* TE 蓝（代码/调试）— 原 #0071bb */
 
-  /* 语义色 - 浅色背景 */
-  --ol-blue-bg: oklch(0.942 0.032 253);
-  --ol-green-bg: oklch(0.949 0.032 156);
-  --ol-amber-bg: oklch(0.972 0.035 90);
-  --ol-red-bg: oklch(0.961 0.03 25);
-  --ol-purple-bg: oklch(0.955 0.04 295);
+  /* 语义色 - 浅色背景（TE 极淡近中性灰 + 微色调） */
+  --ol-blue-bg: oklch(0.965 0.012 37);
+  --ol-green-bg: oklch(0.960 0.012 160);
+  --ol-amber-bg: oklch(0.970 0.015 85);
+  --ol-red-bg: oklch(0.965 0.010 27);
+  --ol-purple-bg: oklch(0.960 0.012 245);
 
   /* 语义色 - 浅色背景 hover */
-  --ol-blue-bg-hover: oklch(0.901 0.05 254);
-  --ol-green-bg-hover: oklch(0.908 0.055 155);
-  --ol-amber-bg-hover: oklch(0.955 0.05 90);
-  --ol-red-bg-hover: oklch(0.935 0.045 25);
-  --ol-purple-bg-hover: oklch(0.925 0.06 295);
+  --ol-blue-bg-hover: oklch(0.945 0.022 37);
+  --ol-green-bg-hover: oklch(0.940 0.022 160);
+  --ol-amber-bg-hover: oklch(0.950 0.025 85);
+  --ol-red-bg-hover: oklch(0.945 0.020 27);
+  --ol-purple-bg-hover: oklch(0.940 0.022 245);
 
   /* 中性文字 */
-  --ol-text-primary: oklch(0.168 0.004 285);
-  --ol-text-secondary: oklch(0.296 0.006 286);
-  --ol-text-auxiliary: oklch(0.412 0.007 286);
+  /* 中性文字 — 基于 TE 色板 #0f0e12 / #a1a7af */
+  --ol-text-primary: #0f0e12;
+  --ol-text-secondary: #3a3a3c;
+  --ol-text-auxiliary: #a1a7af;
 
-  /* 中性背景 */
-  --ol-surface-muted: oklch(0.951 0.004 264);
-  --ol-surface-inset: oklch(0.972 0.007 258);
-  --ol-surface-input: oklch(0.947 0.012 254);
-  --ol-divider: oklch(0.916 0.008 250);
+  /* 中性背景 — TE 冷灰层次 */
+  --ol-surface-muted: #f5f5f5;
+  --ol-surface-inset: #f0f0f0;
+  --ol-surface-input: #f5f5f5;
+  --ol-divider: #e0e0e0;
 
-  /* 焦点环 */
-  --ol-focus-ring: oklch(0.546 0.245 263 / 22%);
-  --ol-focus-border: oklch(0.901 0.05 254);
+  /* 焦点环（TE 橙） */
+  --ol-focus-ring: rgb(240 90 36 / 22%);
+  --ol-focus-border: rgb(240 90 36 / 40%);
 
-  /* 阴影 */
-  --ol-shadow-glass: 0 10px 24px rgba(15, 23, 42, 0.10);
-  --ol-shadow-toolbar: 0 10px 26px rgba(15, 23, 42, 0.18);
-  --ol-shadow-float: 0 12px 32px rgba(15, 23, 42, 0.12);
+  /* 阴影（TE 极简） */
+  --ol-shadow-glass: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --ol-shadow-toolbar: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --ol-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.10);
+
+  /* 模糊（TE：关闭） */
+  --ol-blur-sm: 0px;
+  --ol-blur-md: 0px;
+  --ol-blur-lg: 0px;
+
+  /* 圆角覆盖（TE 工业微圆角） */
+  --ol-radius-xl: 0.5rem;     /* 原 ~14px → 8px */
+  --ol-radius-2xl: 0.5rem;    /* 原 16px → 8px */
+  --ol-radius-3xl: 0.5rem;    /* 原 24px → 8px */
+
+  /* Glass 效果背景（TE：实心） */
+  --ol-glass-toolbar-bg: var(--card);
+  --ol-glass-float-bg: var(--background);
+  --ol-glass-node-bg: var(--background);
 
   /* 滚动条 */
   --ol-scrollbar-thumb: rgba(127, 127, 127, 0.35);
   --ol-scrollbar-thumb-hover: rgba(127, 127, 127, 0.55);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --background: #ffffff;
+  --foreground: #0f0e12;
+  --card: #ffffff;
+  --card-foreground: #0f0e12;
+  --popover: #ffffff;
+  --popover-foreground: #0f0e12;
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0f0e12;
+  --muted: #f5f5f5;
+  --muted-foreground: #a1a7af;
+  --accent: #f0f0f0;
+  --accent-foreground: #0f0e12;
+  --destructive: #b81d13;
+  --border: #e0e0e0;
+  --input: #e0e0e0;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.94 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.9 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-project-accent: oklch(0.93 0.03 237);
-  --sidebar-project-accent-fg: oklch(0.3 0.08 237);
-  --sidebar-border: oklch(0.90 0 0);
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #0f0e12;
+  --sidebar-primary: #0f0e12;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ebebeb;
+  --sidebar-accent-foreground: #0f0e12;
+  --sidebar-project-accent: #ebebeb;
+  --sidebar-project-accent-fg: #0f0e12;
+  --sidebar-border: #e0e0e0;
   --sidebar-ring: oklch(0.708 0 0);
   --brand: oklch(0.623 0.214 259.815);
   --highlight: oklch(0.852 0.199 91.936);
@@ -248,86 +264,90 @@ body {
   --canvas-connector-handle-fill: #ffffff;
   --canvas-connector-handle-stroke: #262626;
   --canvas-drag-shadow: rgba(15, 23, 42, 0.18);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #b81d13;
   --folder-back: oklch(0.75 0.12 45);
   --folder-front: oklch(0.8 0.14 50);
   --folder-tab: oklch(0.7 0.1 40);
 }
 
 .dark {
-  /* ── OpenLoaf Design Tokens (dark) ── */
-  --ol-blue: oklch(0.748 0.12 233);
-  --ol-green: oklch(0.765 0.12 163);
-  --ol-amber: oklch(0.807 0.135 72);
-  --ol-red: oklch(0.756 0.12 22);
-  --ol-purple: oklch(0.78 0.11 290);
+  /* ── OpenLoaf Design Tokens (TE Dark Industrial) ── */
+  --ol-blue: #ff7b4f;      /* TE 橙亮版 */
+  --ol-green: #2d9d5e;     /* TE 绿亮版 */
+  --ol-amber: #fcc544;     /* TE 黄亮版 */
+  --ol-red: #e04b42;       /* TE 红亮版 */
+  --ol-purple: #4a9fd8;    /* TE 蓝亮版 */
 
-  --ol-blue-bg: oklch(0.28 0.08 233 / 40%);
-  --ol-green-bg: oklch(0.27 0.08 163 / 40%);
-  --ol-amber-bg: oklch(0.28 0.08 72 / 40%);
-  --ol-red-bg: oklch(0.25 0.08 22 / 40%);
-  --ol-purple-bg: oklch(0.27 0.08 290 / 40%);
+  --ol-blue-bg: oklch(0.24 0.07 37 / 35%);
+  --ol-green-bg: oklch(0.24 0.07 163 / 35%);
+  --ol-amber-bg: oklch(0.25 0.07 85 / 35%);
+  --ol-red-bg: oklch(0.23 0.07 22 / 35%);
+  --ol-purple-bg: oklch(0.24 0.07 245 / 35%);
 
-  --ol-blue-bg-hover: oklch(0.28 0.08 233 / 60%);
-  --ol-green-bg-hover: oklch(0.27 0.08 163 / 60%);
-  --ol-amber-bg-hover: oklch(0.28 0.08 72 / 60%);
-  --ol-red-bg-hover: oklch(0.25 0.08 22 / 60%);
-  --ol-purple-bg-hover: oklch(0.27 0.08 290 / 60%);
+  --ol-blue-bg-hover: oklch(0.24 0.07 37 / 55%);
+  --ol-green-bg-hover: oklch(0.24 0.07 163 / 55%);
+  --ol-amber-bg-hover: oklch(0.25 0.07 85 / 55%);
+  --ol-red-bg-hover: oklch(0.23 0.07 22 / 55%);
+  --ol-purple-bg-hover: oklch(0.24 0.07 245 / 55%);
 
-  --ol-text-primary: oklch(0.985 0 0);
-  --ol-text-secondary: oklch(0.87 0 0);
-  --ol-text-auxiliary: oklch(0.708 0 0);
+  --ol-text-primary: #f5f5f5;
+  --ol-text-secondary: #cccccc;
+  --ol-text-auxiliary: #a1a7af;
 
-  --ol-surface-muted: oklch(0.28 0.02 250 / 40%);
-  --ol-surface-inset: oklch(0.269 0.01 250 / 26%);
-  --ol-surface-input: oklch(0.269 0.01 250 / 38%);
-  --ol-divider: oklch(0.37 0 0);
+  --ol-surface-muted: #2a2a2c;
+  --ol-surface-inset: #1a1a1c;
+  --ol-surface-input: #222224;
+  --ol-divider: #3a3a3c;
 
-  --ol-focus-ring: oklch(0.748 0.12 233 / 30%);
-  --ol-focus-border: oklch(0.28 0.08 233 / 50%);
+  --ol-focus-ring: rgb(255 123 79 / 30%);
+  --ol-focus-border: rgb(255 123 79 / 50%);
 
-  --ol-shadow-glass: 0 10px 24px rgba(0, 0, 0, 0.4);
-  --ol-shadow-toolbar: 0 10px 26px rgba(0, 0, 0, 0.5);
-  --ol-shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --ol-shadow-glass: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --ol-shadow-toolbar: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --ol-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --ol-glass-toolbar-bg: var(--card);
+  --ol-glass-float-bg: var(--background);
+  --ol-glass-node-bg: var(--background);
 
   --ol-scrollbar-thumb: rgba(200, 200, 200, 0.3);
   --ol-scrollbar-thumb-hover: rgba(200, 200, 200, 0.5);
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: #0f0e12;
+  --foreground: #f5f5f5;
+  --card: #1a1a1e;
+  --card-foreground: #f5f5f5;
+  --popover: #1a1a1e;
+  --popover-foreground: #f5f5f5;
   --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --primary-foreground: #1a1a1e;
+  --secondary: #2a2a2c;
+  --secondary-foreground: #f5f5f5;
+  --muted: #2a2a2c;
+  --muted-foreground: #a1a7af;
+  --accent: #2a2a2c;
+  --accent-foreground: #f5f5f5;
+  --destructive: #e04b42;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.225 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.3 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-project-accent: oklch(0.28 0.06 237);
-  --sidebar-project-accent-fg: oklch(0.88 0.06 237);
-  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar: #141416;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #ff7b4f;
+  --sidebar-primary-foreground: #f5f5f5;
+  --sidebar-accent: #2a2a2c;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-project-accent: #2a2218;
+  --sidebar-project-accent-fg: #ff7b4f;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: oklch(0.556 0 0);
-  --brand: oklch(0.707 0.165 254.624);
-  --highlight: oklch(0.852 0.199 91.936);
+  --brand: #ff7b4f;
+  --highlight: #fcc544;
   --canvas-connector: #a3a3a3;
   --canvas-connector-selected: #e5e5e5;
   --canvas-connector-draft: #8a8a8a;
@@ -336,7 +356,7 @@ body {
   --canvas-connector-handle-fill: #171717;
   --canvas-connector-handle-stroke: #e5e5e5;
   --canvas-drag-shadow: rgba(0, 0, 0, 0.6);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --destructive-foreground: #e04b42;
   --folder-back: oklch(0.65 0.12 45);
   --folder-front: oklch(0.7 0.14 50);
   --folder-tab: oklch(0.6 0.1 40);
@@ -425,12 +445,43 @@ body {
   --shadow-ol-glass: var(--ol-shadow-glass);
   --shadow-ol-toolbar: var(--ol-shadow-toolbar);
   --shadow-ol-float: var(--ol-shadow-float);
+
+  /* Blur 覆盖 — 使 backdrop-blur-sm/md/lg 受 CSS 变量控制 */
+  --blur-sm: var(--ol-blur-sm);
+  --blur-md: var(--ol-blur-md);
+  --blur-lg: var(--ol-blur-lg);
+
+  /* 圆角覆盖 — 使 rounded-xl/2xl/3xl 受 CSS 变量控制 */
+  --radius-xl: var(--ol-radius-xl);
+  --radius-2xl: var(--ol-radius-2xl);
+  --radius-3xl: var(--ol-radius-3xl);
 }
 
 @keyframes sparkle-float {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   33% { transform: translateY(-1.5px) rotate(-4deg); }
   66% { transform: translateY(-0.5px) rotate(4deg); }
+}
+
+@layer components {
+  .ol-glass-toolbar {
+    background: var(--ol-glass-toolbar-bg);
+    backdrop-filter: blur(var(--ol-blur-md));
+    box-shadow: var(--ol-shadow-toolbar);
+    border: 1px solid var(--border);
+  }
+  .ol-glass-float {
+    background: var(--ol-glass-float-bg);
+    backdrop-filter: blur(var(--ol-blur-sm));
+    box-shadow: var(--ol-shadow-float);
+    border: 1px solid var(--border);
+  }
+  .ol-glass-node {
+    background: var(--ol-glass-node-bg);
+    backdrop-filter: blur(var(--ol-blur-lg));
+    box-shadow: var(--ol-shadow-glass);
+    border: 1px solid var(--border);
+  }
 }
 
 @layer base {

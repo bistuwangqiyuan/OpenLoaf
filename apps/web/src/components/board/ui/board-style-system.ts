@@ -20,7 +20,7 @@
 
 /** Glass-effect toolbar container (canvas-specific exception). */
 export const BOARD_TOOLBAR_SURFACE_CLASS =
-  "bg-card/90 dark:bg-sidebar ring-1 ring-border/70 shadow-ol-toolbar backdrop-blur-md cursor-default [&_*]:!cursor-default";
+  "ol-glass-toolbar ring-1 ring-border/70 cursor-default [&_*]:!cursor-default";
 
 /** Icon button active state — subtle tinted background following design system. */
 export const BOARD_ICON_BTN_ACTIVE =
@@ -130,17 +130,17 @@ export const BOARD_TOOLBAR_ITEM_PURPLE =
 
 /** Glass container base for generation nodes (neutral fallback). */
 export const BOARD_GENERATE_NODE_BASE =
-  "bg-background/95 dark:bg-background/92 shadow-ol-glass backdrop-blur-lg";
+  "ol-glass-node";
 
 /** Semantic glass base — image generation (light blue tint). */
 export const BOARD_GENERATE_NODE_BASE_IMAGE =
-  "bg-[#f0f6ff]/95 shadow-ol-glass backdrop-blur-lg dark:bg-[hsl(210_60%_8%/0.92)]";
+  "ol-glass-node bg-[#f0f6ff]/95 dark:bg-[hsl(210_60%_8%/0.92)]";
 /** Semantic glass base — image prompt (light amber tint). */
 export const BOARD_GENERATE_NODE_BASE_PROMPT =
-  "bg-[#fffbf0]/95 shadow-ol-glass backdrop-blur-lg dark:bg-[hsl(35_50%_8%/0.92)]";
+  "ol-glass-node bg-[#fffbf0]/95 dark:bg-[hsl(35_50%_8%/0.92)]";
 /** Semantic glass base — video generation (light purple tint). */
 export const BOARD_GENERATE_NODE_BASE_VIDEO =
-  "bg-[#f8f0ff]/95 shadow-ol-glass backdrop-blur-lg dark:bg-[hsl(270_50%_8%/0.92)]";
+  "ol-glass-node bg-[#f8f0ff]/95 dark:bg-[hsl(270_50%_8%/0.92)]";
 
 /** Semantic border — image generation (blue). */
 export const BOARD_GENERATE_BORDER_IMAGE = "border-ol-focus-border";
@@ -196,7 +196,7 @@ export const BOARD_GENERATE_INPUT =
 
 /** Node base — chat node (teal tinted). */
 export const BOARD_GENERATE_NODE_BASE_CHAT =
-  "bg-[#f0faf5]/95 shadow-ol-glass backdrop-blur-lg dark:bg-[hsl(160_40%_8%/0.92)]";
+  "ol-glass-node bg-[#f0faf5]/95 dark:bg-[hsl(160_40%_8%/0.92)]";
 
 /** Semantic border — chat node (teal). */
 export const BOARD_GENERATE_BORDER_CHAT = "border-ol-green-bg-hover";

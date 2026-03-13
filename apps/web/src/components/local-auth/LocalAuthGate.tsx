@@ -140,7 +140,7 @@ export default function LocalAuthGate({ children }: { children: React.ReactNode 
   return (
     <>
       {children}
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center ol-glass-float p-6">
         <div className="w-full max-w-md rounded-2xl border border-border/60 bg-background p-6 shadow-lg">
           <div className="space-y-2">
             <h1 className="text-lg font-semibold">{t("localAuth.title")}</h1>

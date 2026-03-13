@@ -399,7 +399,7 @@ const ProjectHistory = memo(function ProjectHistory({
                         {session.title.trim() || t("project.historyUnnamedSession")}
                       </div>
                       {session.isPin ? (
-                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                           {t("project.historyPinned")}
                         </span>
                       ) : null}

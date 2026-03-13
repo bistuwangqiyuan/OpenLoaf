@@ -129,7 +129,7 @@ export default function SelectMode({
       size="icon-sm"
       variant="ghost"
       className={cn(
-        'h-8 w-8 rounded-full transition-colors',
+        'h-8 w-8 rounded-md transition-colors',
         chatMode === 'cli'
           ? 'bg-ol-amber/10 text-ol-amber'
           : 'bg-ol-purple/10 text-ol-purple',
@@ -164,7 +164,7 @@ export default function SelectMode({
         variant="ghost"
         disabled
         className={cn(
-          'h-8 w-8 rounded-full transition-colors pointer-events-none opacity-60',
+          'h-8 w-8 rounded-md transition-colors pointer-events-none opacity-60',
           chatMode === 'cli'
             ? 'bg-ol-amber/10 text-ol-amber'
             : 'bg-ol-purple/10 text-ol-purple',
@@ -210,7 +210,7 @@ export default function SelectMode({
             align="end"
             sideOffset={8}
             className={cn(
-              'w-96 max-w-[94vw] rounded-xl border-border bg-muted/40 p-2 shadow-2xl backdrop-blur-sm',
+              'w-96 max-w-[94vw] rounded-xl ol-glass-float p-2',
             )}
           >
             <ModelPreferencesPanel

@@ -93,7 +93,7 @@ export function AnimatedFolder({
         <div className="relative flex items-center justify-center mb-4" style={{ height: "160px", width: "200px" }}>
           {/* Folder back layer - z-index 10 */}
           <div
-            className="absolute w-32 h-24 bg-folder-back rounded-lg shadow-md"
+            className="absolute w-32 h-24 bg-folder-back rounded-lg shadow-sm"
             style={{
               transformOrigin: "bottom center",
               transform: resolvedHover ? "rotateX(-15deg)" : "rotateX(0deg)",

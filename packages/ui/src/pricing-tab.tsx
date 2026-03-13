@@ -68,7 +68,7 @@ export function Tab({
         <motion.span
           layoutId={layoutId}
           transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
-          className={cn("absolute inset-0.5 z-0 rounded-full", palette.bg)}
+          className={cn("absolute inset-0.5 z-0 rounded-md", palette.bg)}
         />
       )}
     </button>

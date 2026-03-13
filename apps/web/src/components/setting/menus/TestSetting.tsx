@@ -176,12 +176,12 @@ const TestSetting = memo(function TestSetting() {
               </div>
             </div>
             <OpenLoafSettingsField className="flex-wrap gap-2">
-              <Button size="sm" className="rounded-full bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none" onClick={handleCreateThreeStacks}>
+              <Button size="sm" className="rounded-md bg-ol-blue-bg text-ol-blue hover:bg-ol-blue-bg-hover shadow-none" onClick={handleCreateThreeStacks}>
                 Stack: Create 3 (demo)
               </Button>
               <Button
                 size="sm"
-                className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                 onClick={() => {
                   const toolKey = `demo:${Date.now()}`;
                   upsertToolPart("main", toolKey, {
@@ -217,13 +217,13 @@ const TestSetting = memo(function TestSetting() {
             </div>
             <OpenLoafSettingsField className="flex-wrap gap-2">
               {terminalStatus.enabled ? (
-                <Button size="sm" className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none" onClick={handleOpenGlobalTerminal}>
+                <Button size="sm" className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none" onClick={handleOpenGlobalTerminal}>
                   Stack: Terminal (global)
                 </Button>
               ) : null}
               <Button
                 size="sm"
-                className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                 onClick={() => {
                   pushStackItem({
                     id: "project:current",
@@ -240,7 +240,7 @@ const TestSetting = memo(function TestSetting() {
                 <>
                   <Button
                     size="sm"
-                    className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                    className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                     onClick={() => {
                       pushStackItem({
                         id: `browser:${Date.now()}`,
@@ -255,7 +255,7 @@ const TestSetting = memo(function TestSetting() {
                   </Button>
                   <Button
                     size="sm"
-                    className="rounded-full bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
+                    className="rounded-md bg-ol-surface-muted text-ol-text-auxiliary hover:bg-muted shadow-none"
                     onClick={() => {
                       pushStackItem({
                         id: BROWSER_WINDOW_PANEL_ID,
@@ -307,7 +307,7 @@ const TestSetting = memo(function TestSetting() {
             <SettingIcon icon={RefreshCw} bg="bg-ol-amber-bg" fg="text-ol-amber" />
             <div className="text-sm font-medium">重新进入初始化</div>
             <OpenLoafSettingsField>
-              <Button type="button" size="sm" className="rounded-full bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover shadow-none" onClick={handleRestartSetup}>
+              <Button type="button" size="sm" className="rounded-md bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover shadow-none" onClick={handleRestartSetup}>
                 进入
               </Button>
             </OpenLoafSettingsField>
@@ -330,7 +330,7 @@ const TestSetting = memo(function TestSetting() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-xs rounded-full"
+                  className="h-6 px-2 text-xs rounded-md"
                   aria-label="清除"
                   disabled={webContentsViewCount == null || webContentsViewCount === 0}
                   onClick={() => void clearWebContentsViews()}
@@ -360,7 +360,7 @@ const TestSetting = memo(function TestSetting() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="rounded-full"
+                className="rounded-md"
                 onClick={() => {
                   clearStack();
                 }}

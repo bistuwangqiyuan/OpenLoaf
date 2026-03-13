@@ -291,7 +291,7 @@ function MediaModelSelect({
           variant="secondary"
           size="sm"
           disabled={disabled}
-          className="h-8 w-fit max-w-full shrink min-w-0 justify-between rounded-full border border-border/60 bg-background/80 px-3 text-xs"
+          className="h-8 w-fit max-w-full shrink min-w-0 justify-between rounded-md border border-border/60 bg-background/80 px-3 text-xs"
         >
           <span className="flex min-w-0 items-center gap-2">
             {normalizedValue.length > 0 ? (
@@ -493,7 +493,7 @@ function ChatModelSelect({
           variant="secondary"
           size="sm"
           disabled={disabled}
-          className="h-8 w-fit max-w-full shrink min-w-0 justify-between rounded-full border border-border/60 bg-background/80 px-3 text-xs"
+          className="h-8 w-fit max-w-full shrink min-w-0 justify-between rounded-md border border-border/60 bg-background/80 px-3 text-xs"
         >
           <span className="flex min-w-0 items-center gap-2">
             {normalizedValue.length > 0 ? (
@@ -1479,7 +1479,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
                     onOpenLogin={() => setLoginOpen(true)}
                     emptyText={t('settings:agent.panel.noChatModel')}
                   />
-                <div className="flex shrink-0 items-center rounded-full border border-border/70 bg-muted/40">
+                <div className="flex shrink-0 items-center rounded-md border border-border/70 bg-muted/40">
                   <FilterTab
                     text={t('settings:agent.panel.sourceLocal')}
                     selected={!isCloudSource}
@@ -1528,7 +1528,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
                     onOpenLogin={() => setLoginOpen(true)}
                     emptyText={t('settings:agent.panel.noChatModel')}
                   />
-                  <div className="flex shrink-0 items-center rounded-full border border-border/70 bg-muted/40">
+                  <div className="flex shrink-0 items-center rounded-md border border-border/70 bg-muted/40">
                     <FilterTab
                       text={t('settings:agent.panel.sourceLocal')}
                       selected={!isAuxCloudSource}
@@ -1553,7 +1553,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
                   <Gauge className="h-4 w-4 text-ol-purple" />
                   {t('settings:agent.panel.maxSubagents')}
                 </span>
-                <div className="ml-auto flex items-center rounded-full border border-border/70 bg-muted/40">
+                <div className="ml-auto flex items-center rounded-md border border-border/70 bg-muted/40">
                   {[2, 3, 4, 5].map((count) => (
                     <FilterTab
                       key={count}
@@ -1668,24 +1668,24 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
             <div className="sticky top-0 z-10 bg-background">
               <div className="text-sm font-medium">{t('settings:agent.panel.configLabel')}</div>
               <div className="flex items-center justify-between gap-2">
-                <TabsList className="mt-1.5 h-8 w-max rounded-full border border-border/70 bg-muted/40 p-1">
+                <TabsList className="mt-1.5 h-8 w-max rounded-md border border-border/70 bg-muted/40 p-1">
                   <TabsTrigger
                     value="capabilities"
-                    className="h-6 rounded-full px-2.5 text-xs whitespace-nowrap"
+                    className="h-6 rounded-md px-2.5 text-xs whitespace-nowrap"
                   >
                     <Blocks className="mr-1 h-3 w-3 text-ol-blue" />
                     {t('settings:agent.panel.capabilitiesTab')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="skills"
-                    className="h-6 rounded-full px-2.5 text-xs whitespace-nowrap"
+                    className="h-6 rounded-md px-2.5 text-xs whitespace-nowrap"
                   >
                     <Sparkles className="mr-1 h-3 w-3 text-ol-purple" />
                     {t('settings:agent.panel.skillsTab')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="prompt"
-                    className="h-6 rounded-full px-2.5 text-xs whitespace-nowrap"
+                    className="h-6 rounded-md px-2.5 text-xs whitespace-nowrap"
                   >
                     <ScrollText className="mr-1 h-3 w-3 text-ol-amber" />
                     {t('settings:agent.panel.promptTab')}
@@ -1697,7 +1697,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-7 rounded-full px-3 text-xs bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover"
+                      className="h-7 rounded-md px-3 text-xs bg-ol-amber-bg text-ol-amber hover:bg-ol-amber-bg-hover"
                       onClick={() => setPromptPreview((v) => !v)}
                     >
                       {promptPreview ? (
@@ -1712,7 +1712,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="h-7 rounded-full px-3 text-xs"
+                    className="h-7 rounded-md px-3 text-xs"
                     onClick={handleResetToDefault}
                     disabled={!canReset}
                   >

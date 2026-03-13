@@ -144,7 +144,7 @@ const YearView = () => {
 
 					return (
 						<div
-							className="hover:border-primary flex flex-col rounded-lg border p-3 text-left transition-all duration-200 hover:shadow-md"
+							className="hover:border-primary flex flex-col rounded-lg border p-3 text-left transition-all duration-200 hover:shadow-sm"
 							data-testid={`year-month-${month.monthKey}`}
 							key={month.monthKey}
 						>
@@ -165,7 +165,7 @@ const YearView = () => {
 
 								{month.eventCount > 0 && (
 									<span
-										className="bg-primary text-primary-foreground rounded-full px-2 py-1 text-xs"
+										className="bg-primary text-primary-foreground rounded-md px-2 py-1 text-xs"
 										data-testid={`year-month-event-count-${month.monthKey}`}
 									>
 										{getEventCountLabel(month.eventCount)}

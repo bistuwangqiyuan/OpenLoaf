@@ -93,7 +93,7 @@ const DayView = () => {
 					</span>
 					{formatFullDate(currentDate, currentLocale)}
 					{isToday && (
-						<span className="bg-ol-blue text-white ml-2 rounded-full px-1 py-0.5 text-xs sm:px-2 sm:text-sm">
+						<span className="bg-ol-blue text-white ml-2 rounded-md px-1 py-0.5 text-xs sm:px-2 sm:text-sm">
 							{t('today')}
 						</span>
 					)}

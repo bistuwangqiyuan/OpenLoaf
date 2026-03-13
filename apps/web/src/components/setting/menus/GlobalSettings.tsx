@@ -233,7 +233,7 @@ export function GlobalSettings() {
               <Button
                 type="button"
                 size="sm"
-                className="rounded-full bg-ol-red-bg text-ol-red shadow-none hover:bg-ol-red-bg-hover"
+                className="rounded-md bg-ol-red-bg text-ol-red shadow-none hover:bg-ol-red-bg-hover"
                 disabled={clearAllChat.isPending}
                 onClick={() => void handleClearAllChat()}
               >
@@ -253,7 +253,7 @@ export function GlobalSettings() {
               <Button
                 type="button"
                 size="sm"
-                className="rounded-full bg-ol-amber-bg text-ol-amber shadow-none hover:bg-ol-amber-bg-hover"
+                className="rounded-md bg-ol-amber-bg text-ol-amber shadow-none hover:bg-ol-amber-bg-hover"
                 disabled={clearUnboundBoards.isPending}
                 onClick={() => void handleClearUnboundBoards()}
               >

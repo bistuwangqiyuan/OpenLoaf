@@ -485,7 +485,7 @@ function GlobalAgentView() {
           <Button
             type="button"
             size="sm"
-            className="h-8 rounded-full px-2.5 text-xs sm:px-3"
+            className="h-8 rounded-md px-2.5 text-xs sm:px-3"
             onClick={handleCreateAgent}
             aria-label={t("settings:agent.createBtn")}
           >
@@ -498,7 +498,7 @@ function GlobalAgentView() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                className="h-8 rounded-full border border-border/70 bg-background/85 px-2.5 text-xs transition-colors hover:bg-muted/55 sm:px-3"
+                className="h-8 rounded-md border border-border/70 bg-background/85 px-2.5 text-xs transition-colors hover:bg-muted/55 sm:px-3"
                 onClick={() => void handleOpenAgentsRoot()}
                 disabled={!globalAgentsRootUri}
                 aria-label={t("settings:agent.openDirTooltip")}
@@ -530,7 +530,7 @@ function GlobalAgentView() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full"
+                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-md"
                 onClick={() => setSearchQuery("")}
                 aria-label={t("common:clear")}
               >
@@ -542,7 +542,7 @@ function GlobalAgentView() {
             <Checkbox checked={showAllProjects} onCheckedChange={(v) => setShowAllProjects(v === true)} className="h-3.5 w-3.5" />
             {t("settings:agent.allProjects")}
           </label>
-          <div className="flex items-center rounded-full border border-border/70 bg-muted/40">
+          <div className="flex items-center rounded-md border border-border/70 bg-muted/40">
             <FilterTab text={t("settings:agent.statusAll")} selected={statusFilter === 'all'} onSelect={() => setStatusFilter('all')} layoutId="agent-status-filter" />
             <FilterTab text={t("settings:agent.statusEnabled")} selected={statusFilter === 'enabled'} onSelect={() => setStatusFilter('enabled')} layoutId="agent-status-filter" />
             <FilterTab text={t("settings:agent.statusDisabled")} selected={statusFilter === 'disabled'} onSelect={() => setStatusFilter('disabled')} layoutId="agent-status-filter" />

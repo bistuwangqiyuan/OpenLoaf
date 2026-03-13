@@ -67,7 +67,7 @@ function SubAgentSkillsPopover({ agentName, projectId }: { agentName: string; pr
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
           aria-label="管理技能"
         >
           <Sparkles className="h-3.5 w-3.5" />

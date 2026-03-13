@@ -149,7 +149,7 @@ export default function MessageError({ error }: MessageErrorProps) {
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-ol-red/20 bg-white/60 px-3 text-[11px] font-medium text-ol-red transition-colors duration-150 hover:bg-ol-red-bg dark:bg-ol-red-bg"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-ol-red/20 bg-white/60 px-3 text-[11px] font-medium text-ol-red transition-colors duration-150 hover:bg-ol-red-bg dark:bg-ol-red-bg"
           >
             {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
             {copied ? t('error.copied') : t('error.copyLog')}
@@ -158,7 +158,7 @@ export default function MessageError({ error }: MessageErrorProps) {
             type="button"
             onClick={handleRetry}
             disabled={isBusy}
-            className="inline-flex h-7 items-center gap-1.5 rounded-full bg-ol-red px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110 disabled:opacity-40"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-ol-red px-3 text-[11px] font-medium text-white transition-colors duration-150 hover:brightness-110 disabled:opacity-40"
           >
             <RotateCcw className="size-3" />
             {t('error.retry')}

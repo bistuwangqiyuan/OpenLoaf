@@ -28,10 +28,10 @@ export default function WidgetConfigOverlay({
   const displayLabel = label ?? t('overlay.defaultLabel');
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl">
-      <div className="absolute inset-0 rounded-2xl bg-background/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 rounded-2xl ol-glass-float" />
       <button
         type="button"
-        className="relative z-10 flex items-center gap-2 rounded-xl border border-border/60 bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-accent"
+        className="relative z-10 flex items-center gap-2 rounded-xl ol-glass-toolbar px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         onClick={(e) => {
           e.stopPropagation()
           onConfigure()

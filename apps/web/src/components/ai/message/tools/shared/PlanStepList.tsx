@@ -72,7 +72,7 @@ export default function PlanStepList({ plan, className }: PlanStepListProps) {
                 <div className="min-w-0 flex-1 space-y-1">
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                      "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium",
                       meta.badgeClassName,
                     )}
                   >

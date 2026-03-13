@@ -613,7 +613,7 @@ export function ExpandableDockTabs({
         <button
           type="button"
           onClick={onClick}
-          className="flex items-center justify-center rounded-full bg-muted/70 text-muted-foreground"
+          className="flex items-center justify-center rounded-md bg-muted/70 text-muted-foreground"
           style={{
             height: sizeToken.height,
             width: sizeToken.height,
@@ -650,7 +650,7 @@ export function ExpandableDockTabs({
             <div
               key={tab.id}
               style={{ height: sizeToken.height, width }}
-              className="rounded-full"
+              className="rounded-md"
             />
           );
         })}
@@ -662,13 +662,13 @@ export function ExpandableDockTabs({
                 <div
                   key={item.id}
                   style={{ height: sizeToken.height, width: sizeToken.height }}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               ))}
               {hiddenStackCount > 0 ? (
                 <div
                   style={{ height: sizeToken.height, width: sizeToken.height }}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               ) : null}
             </div>
@@ -694,7 +694,7 @@ export function ExpandableDockTabs({
             <div
               key={`${tab.id}-base`}
               style={{ height: sizeToken.height, width }}
-              className="rounded-full"
+              className="rounded-md"
             />
           );
         })}
@@ -718,14 +718,14 @@ export function ExpandableDockTabs({
             <div
               key={`${tab.id}-count`}
               style={{ height: sizeToken.height, width }}
-              className="rounded-full"
+              className="rounded-md"
             />
           );
         })}
         <div className="mx-0.5 h-4 w-px bg-transparent" />
         <div
           style={{ height: sizeToken.height, width: sizeToken.height }}
-          className="rounded-full"
+          className="rounded-md"
         />
       </div>
       <motion.div
@@ -779,7 +779,7 @@ export function ExpandableDockTabs({
                       openStackItem(item);
                       setStackTrayOpen(false);
                     }}
-                    className="flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1 text-left text-muted-foreground"
+                    className="flex items-center gap-2 rounded-md bg-muted/70 px-3 py-1 text-left text-muted-foreground"
                     style={{
                       minHeight: sizeToken.height + 2,
                     }}
@@ -845,7 +845,7 @@ export function ExpandableDockTabs({
                     onPointerEnter={() => setSuggestionIndex(index)}
                     onPointerLeave={() => setSuggestionIndex(-1)}
                     className={cn(
-                      'flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 shadow-sm transition-colors',
+                      'flex items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 shadow-sm transition-colors',
                       isSelected
                         ? 'border-border bg-muted text-foreground dark:border-border'
                         : 'border-border/60 bg-background text-secondary-foreground dark:border-border/40',
@@ -880,7 +880,7 @@ export function ExpandableDockTabs({
           <TooltipTrigger asChild>
             <motion.button
               type="button"
-              className="flex items-center justify-end rounded-full shrink-0 pr-1"
+              className="flex items-center justify-end rounded-md shrink-0 pr-1"
               style={{ height: sizeToken.height, width: sizeToken.sparklesWidth }}
               whileHover={{ scale: 1.05, rotate: 8 }}
               transition={{ type: "spring", stiffness: 360, damping: 24 }}
@@ -990,7 +990,7 @@ export function ExpandableDockTabs({
                 />
                 <motion.button
                   type="button"
-                  className="absolute right-0 top-1/2 flex items-center justify-center rounded-full bg-muted/70 text-foreground -translate-y-1/2"
+                  className="absolute right-0 top-1/2 flex items-center justify-center rounded-md bg-muted/70 text-foreground -translate-y-1/2"
                   style={{ height: sizeToken.height, width: sizeToken.height }}
                   onClick={handleSend}
                   initial={{ opacity: 0, scale: 0, rotate: -90 }}
@@ -1052,7 +1052,7 @@ export function ExpandableDockTabs({
                       key={tab.id}
                       type="button"
                       className={cn(
-                        "relative flex items-center justify-center rounded-full",
+                        "relative flex items-center justify-center rounded-md",
                         colorClass,
                       )}
                       style={{ height: sizeToken.height }}
@@ -1201,7 +1201,7 @@ export function ExpandableDockTabs({
                     const button = (
                       <motion.button
                         type="button"
-                        className={cn("flex items-center justify-center rounded-full transition-colors duration-200", colorClass)}
+                        className={cn("flex items-center justify-center rounded-md transition-colors duration-200", colorClass)}
                         style={{
                           height: sizeToken.height,
                           width: sizeToken.height,

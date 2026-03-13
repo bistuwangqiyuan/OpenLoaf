@@ -228,7 +228,7 @@ function MailboxNodeRow({
           opacity: isDraggingSelf ? 0.4 : 1,
         }}
         className={cn(
-          "flex w-full items-center justify-between rounded-full py-1.5 pr-2 text-[13px] transition-colors duration-150",
+          "flex w-full items-center justify-between rounded-md py-1.5 pr-2 text-[13px] transition-colors duration-150",
           isActive
             ? EMAIL_TONE_ACTIVE_CLASS
             : cn("text-ol-text-secondary", EMAIL_TONE_HOVER_CLASS),
@@ -244,7 +244,7 @@ function MailboxNodeRow({
             {count > 0 ? (
               <span
                 className={cn(
-                  "rounded-full text-[10px]",
+                  "rounded-md text-[10px]",
                   EMAIL_META_CHIP_CLASS,
                   isActive ? "text-ol-blue" : "text-ol-text-auxiliary",
                 )}

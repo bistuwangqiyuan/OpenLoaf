@@ -98,7 +98,7 @@ export function AdvancedSettingsPanel({
                 type="button"
                 disabled={disabled}
                 className={[
-                  "flex h-6 w-26 items-center justify-between rounded-full border border-ol-divider bg-background/90 px-2 text-[11px] text-ol-text-auxiliary",
+                  "flex h-6 w-26 items-center justify-between rounded-md border border-ol-divider bg-background/90 px-2 text-[11px] text-ol-text-auxiliary",
                   "hover:bg-ol-surface-muted disabled:cursor-not-allowed disabled:opacity-60",
                 ].join(" ")}
                 onPointerDown={(event) => {

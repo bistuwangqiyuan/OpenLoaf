@@ -493,7 +493,7 @@ export function MessageDock({
                   <motion.button
                     key="send"
                     onClick={handleSendMessage}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white/90 hover:bg-white transition-colors disabled:opacity-50 cursor-pointer relative z-30"
+                    className="w-10 h-10 flex items-center justify-center rounded-md bg-white/90 hover:bg-white transition-colors disabled:opacity-50 cursor-pointer relative z-30"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     disabled={!messageInput.trim()}

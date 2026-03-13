@@ -106,7 +106,7 @@ export function OpenLoafMentionElement(
       {!readOnly && isFileReference ? (
         <button
           type="button"
-          className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+          className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
           onMouseDown={(event) => event.preventDefault()}
           onClick={handleRemove}
         >

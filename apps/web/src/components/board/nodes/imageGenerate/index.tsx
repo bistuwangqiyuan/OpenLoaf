@@ -98,7 +98,7 @@ function ImageGenerateProjectionView({
           <span className="text-xs font-medium text-ol-blue">
             {t("imageGenerate.title")}
           </span>
-          <span className={cn("ml-auto rounded-full px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_IMAGE)}>
+          <span className={cn("ml-auto rounded-md px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_IMAGE)}>
             {status === "generating"
               ? t("chatMessage.streaming")
               : status === "error"
@@ -767,7 +767,7 @@ function EditableImageGenerateNodeView({
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border/30">
           <ImagePlus className="h-4 w-4 shrink-0 text-ol-blue" />
           <div className="text-xs font-medium text-ol-blue">{t('imageGenerate.title')}</div>
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] leading-3", BOARD_GENERATE_PILL_IMAGE)}>
+          <span className={cn("rounded-md px-2 py-0.5 text-[10px] leading-3", BOARD_GENERATE_PILL_IMAGE)}>
             {subtitleText}
           </span>
         </div>
@@ -855,7 +855,7 @@ function EditableImageGenerateNodeView({
           <button
             type="button"
             className={cn(
-              "shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150",
+              "shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150",
               isAdvancedOpen
                 ? "bg-ol-blue-bg-hover text-ol-blue"
                 : "text-ol-text-auxiliary hover:bg-ol-surface-muted",
@@ -872,7 +872,7 @@ function EditableImageGenerateNodeView({
             type="button"
             disabled={authLoggedIn ? !canGenerate : isLoginBusy}
             className={cn(
-              "shrink-0 inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
+              "shrink-0 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-50",
               BOARD_GENERATE_BTN_IMAGE,
             )}
             onPointerDown={(event) => {
@@ -912,7 +912,7 @@ function EditableImageGenerateNodeView({
                   <button
                     type="button"
                     className={cn(
-                      "absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none",
+                      "absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center rounded-md text-[12px] leading-none",
                       copied
                         ? "text-ol-green"
                         : "text-current/70 hover:text-current",

@@ -73,7 +73,7 @@ export const AllEventDialog: React.FC<AllEventDialogProps> = ({ ref }) => {
 					{selectedDayEvents?.events.map((event) => {
 						return (
 							<DraggableEvent
-								className="relative my-1 h-[30px] rounded-md transition-shadow hover:shadow-md"
+								className="relative my-1 h-[30px] rounded-md transition-shadow hover:shadow-sm"
 								elementId={`all-events-dialog-event-$${event.id}`}
 								event={event}
 								key={event.id}

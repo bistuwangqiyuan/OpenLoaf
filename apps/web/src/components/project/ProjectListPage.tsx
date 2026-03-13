@@ -482,7 +482,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: index * 0.04 }}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-background/70 backdrop-blur-sm cursor-pointer shadow-none transition-colors duration-200 hover:border-ol-blue/60 dark:bg-background/30 ${
+              className={`group relative flex flex-col overflow-hidden rounded-2xl ol-glass-float cursor-pointer shadow-none transition-colors duration-200 hover:border-ol-blue/60 dark:bg-background/30 ${
                 isActive
                   ? "border-ol-blue bg-ol-blue/[0.04] dark:bg-ol-blue/[0.08]"
                   : "border-border/70"
@@ -509,17 +509,17 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                 {/* Badges */}
                 <div className="absolute top-2 left-2 flex items-center gap-1.5">
                   {project.isFavorite && (
-                    <span className="inline-flex items-center rounded-full bg-ol-amber p-1 text-white">
+                    <span className="inline-flex items-center rounded-md bg-ol-amber p-1 text-white">
                       <Star className="h-2.5 w-2.5 fill-current" />
                     </span>
                   )}
                   {project.isGitProject && (
-                    <span className="inline-flex items-center rounded-full bg-black/50 p-1 text-white dark:bg-foreground/20">
+                    <span className="inline-flex items-center rounded-md bg-black/50 p-1 text-white dark:bg-foreground/20">
                       <GitBranch className="h-2.5 w-2.5" />
                     </span>
                   )}
                   {project.depth > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-foreground/15">
+                    <span className="inline-flex items-center rounded-md bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-foreground/15">
                       L{project.depth}
                     </span>
                   )}
@@ -532,7 +532,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-6 w-6 rounded-full bg-background/80 backdrop-blur-sm shadow-none"
+                        className="h-6 w-6 rounded-md ol-glass-float shadow-none"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreHorizontal className="h-3 w-3" />
@@ -697,7 +697,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("search")}
-              className="h-8 pl-8 pr-7 text-sm rounded-full bg-muted/40 border-transparent focus:border-border"
+              className="h-8 pl-8 pr-7 text-sm rounded-md bg-muted/40 border-transparent focus:border-border"
             />
             {searchQuery && (
               <button
@@ -713,7 +713,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             value={filterProjectType}
             onValueChange={setFilterProjectType}
           >
-            <SelectTrigger className="h-8 w-auto max-w-40 gap-1.5 rounded-full border-transparent bg-muted/40 px-3 text-sm focus:border-border [&>svg]:h-3.5 [&>svg]:w-3.5">
+            <SelectTrigger className="h-8 w-auto max-w-40 gap-1.5 rounded-md border-transparent bg-muted/40 px-3 text-sm focus:border-border [&>svg]:h-3.5 [&>svg]:w-3.5">
               <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
               <SelectValue />
             </SelectTrigger>
@@ -740,7 +740,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               <Button
                 variant={groupByType ? "secondary" : "ghost"}
                 size="icon"
-                className={`h-8 w-8 rounded-full ${groupByType ? "bg-ol-blue/10 text-ol-blue" : ""}`}
+                className={`h-8 w-8 rounded-md ${groupByType ? "bg-ol-blue/10 text-ol-blue" : ""}`}
                 onClick={() => setGroupByType((value) => !value)}
               >
                 <Layers3 className="h-4 w-4" />
@@ -753,7 +753,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20"
+            className="rounded-md bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20"
             onClick={openAddDialog}
           >
             <Plus className="mr-1.5 h-4 w-4" />
@@ -861,13 +861,13 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             <DialogClose asChild>
               <Button
                 variant="ghost"
-                className="rounded-full text-muted-foreground shadow-none transition-colors duration-150"
+                className="rounded-md text-muted-foreground shadow-none transition-colors duration-150"
               >
                 {t("cancel")}
               </Button>
             </DialogClose>
             <Button
-              className="rounded-full bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
+              className="rounded-md bg-ol-blue/10 text-ol-blue hover:bg-ol-blue/20 shadow-none transition-colors duration-150"
               onClick={handleRenameSave}
               disabled={updateMutation.isPending}
             >
@@ -1023,7 +1023,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               <Button
                 variant="outline"
                 type="button"
-                className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                className="h-9 rounded-md px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
                 onClick={() => { setAddMode(null); setCreateTitle(""); }}
               >
                 {t("sidebar.back")}
@@ -1031,7 +1031,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               <Button
                 onClick={handleCreateProject}
                 disabled={isBusy || !createTitle.trim()}
-                className="h-9 rounded-full px-5 text-[13px] bg-ol-blue text-white shadow-none hover:opacity-90"
+                className="h-9 rounded-md px-5 text-[13px] bg-ol-blue text-white shadow-none hover:opacity-90"
               >
                 {isBusy ? t("sidebar.creating") : t("sidebar.create")}
               </Button>
@@ -1047,7 +1047,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                     <Button
                       variant="outline"
                       type="button"
-                      className="h-9 rounded-full px-5 text-[13px] text-ol-red border-ol-red/20 hover:bg-ol-red-bg"
+                      className="h-9 rounded-md px-5 text-[13px] text-ol-red border-ol-red/20 hover:bg-ol-red-bg"
                       onClick={handleAbortClone}
                     >
                       <Square className="mr-1.5 h-3.5 w-3.5" />
@@ -1057,7 +1057,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                     <Button
                       variant="outline"
                       type="button"
-                      className="h-9 rounded-full px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
+                      className="h-9 rounded-md px-5 text-[13px] text-ol-text-auxiliary hover:bg-ol-surface-muted"
                       onClick={() => setAddMode(null)}
                     >
                       {t("sidebar.back")}
@@ -1066,7 +1066,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
                   <Button
                     onClick={handleCloneFromGit}
                     disabled={isBusy || !gitUrl.trim()}
-                    className="h-9 rounded-full px-5 text-[13px] bg-ol-purple text-white shadow-none hover:opacity-90"
+                    className="h-9 rounded-md px-5 text-[13px] bg-ol-purple text-white shadow-none hover:opacity-90"
                   >
                     {isBusy ? t("sidebar.cloning") : t("sidebar.startClone")}
                   </Button>
@@ -1074,7 +1074,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
               ) : (
                 <Button
                   onClick={() => setIsCreateOpen(false)}
-                  className="h-9 rounded-full px-5 text-[13px] bg-ol-green text-white shadow-none hover:opacity-90"
+                  className="h-9 rounded-md px-5 text-[13px] bg-ol-green text-white shadow-none hover:opacity-90"
                 >
                   {t("sidebar.done")}
                 </Button>

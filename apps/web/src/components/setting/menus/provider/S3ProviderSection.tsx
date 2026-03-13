@@ -161,7 +161,7 @@ export function S3ProviderSection({
                       <div className="flex items-center gap-2 text-sm">
                         <span>{entry.key}</span>
                         {isActive ? (
-                          <span className="px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-ol-green-bg text-ol-green">
+                          <span className="px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-ol-green-bg text-ol-green">
                             {t("s3.active")}
                           </span>
                         ) : null}

@@ -122,7 +122,7 @@ export function EmailMessageList({
                 disabled={messageList.batchActionPending}
                 title={t('email.archive')}
                 className={cn(
-                  "h-8 w-8 rounded-full text-ol-amber transition-colors duration-150",
+                  "h-8 w-8 rounded-md text-ol-amber transition-colors duration-150",
                   "hover:bg-muted/58 dark:hover:bg-muted/46",
                 )}
               >
@@ -136,7 +136,7 @@ export function EmailMessageList({
                 disabled={messageList.batchActionPending}
                 title={t('delete')}
                 className={cn(
-                  "h-8 w-8 rounded-full text-ol-red transition-colors duration-150",
+                  "h-8 w-8 rounded-md text-ol-red transition-colors duration-150",
                   "hover:bg-muted/58 dark:hover:bg-muted/46",
                 )}
               >
@@ -150,7 +150,7 @@ export function EmailMessageList({
                     size="icon"
                     disabled={messageList.batchActionPending}
                     className={cn(
-                      "h-8 w-8 rounded-full text-ol-purple transition-colors duration-150",
+                      "h-8 w-8 rounded-md text-ol-purple transition-colors duration-150",
                       "hover:bg-muted/58 dark:hover:bg-muted/46",
                     )}
                   >
@@ -173,7 +173,7 @@ export function EmailMessageList({
                 size="icon"
                 disabled
                 className={cn(
-                  "h-8 w-8 rounded-full text-ol-amber transition-colors duration-150",
+                  "h-8 w-8 rounded-md text-ol-amber transition-colors duration-150",
                   "hover:bg-muted/58 dark:hover:bg-muted/46",
                 )}
               >
@@ -187,7 +187,7 @@ export function EmailMessageList({
                 disabled={messageList.isRefreshing}
                 title={t('refresh')}
                 className={cn(
-                  "h-8 w-8 rounded-full text-ol-green transition-colors duration-150",
+                  "h-8 w-8 rounded-md text-ol-green transition-colors duration-150",
                   "hover:bg-muted/58 dark:hover:bg-muted/46",
                 )}
               >
@@ -199,7 +199,7 @@ export function EmailMessageList({
                 size="icon"
                 disabled
                 className={cn(
-                  "h-8 w-8 rounded-full text-ol-purple transition-colors duration-150",
+                  "h-8 w-8 rounded-md text-ol-purple transition-colors duration-150",
                   "hover:bg-muted/58 dark:hover:bg-muted/46",
                 )}
               >
@@ -216,7 +216,7 @@ export function EmailMessageList({
               onClick={handleCycleDensity}
               title={t('email.densityLabel', { label: densityLabels[messageList.density] })}
               className={cn(
-                "h-7 w-7 rounded-full text-ol-text-auxiliary transition-colors duration-150",
+                "h-7 w-7 rounded-md text-ol-text-auxiliary transition-colors duration-150",
                 "hover:bg-muted/58",
               )}
             >
@@ -233,7 +233,7 @@ export function EmailMessageList({
             value={messageList.searchKeyword}
             onChange={(event) => messageList.setSearchKeyword(event.target.value)}
             placeholder={t('email.searchPlaceholder')}
-            className={cn("h-9 rounded-full pl-9 text-xs", EMAIL_FLAT_INPUT_CLASS)}
+            className={cn("h-9 rounded-md pl-9 text-xs", EMAIL_FLAT_INPUT_CLASS)}
           />
           {messageList.isSearching ? (
             <Loader2 className="absolute right-3 top-2.5 h-3.5 w-3.5 animate-spin text-ol-text-auxiliary" />

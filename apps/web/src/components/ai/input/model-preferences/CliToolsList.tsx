@@ -105,7 +105,7 @@ export function CliToolsList({ selectedId, onSelect, onOpenInstall, disabled }: 
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-full px-4"
+            className="rounded-md px-4"
             onClick={onOpenInstall}
           >
             {t('mode.goInstall')}
