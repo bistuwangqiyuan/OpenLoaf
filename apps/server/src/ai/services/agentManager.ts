@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { generateId, type UIMessage, type UIMessageStreamWriter } from 'ai'
+import { generateId, smoothStream, type UIMessage, type UIMessageStreamWriter } from 'ai'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import {
   type RequestContext,
@@ -478,6 +478,10 @@ class AgentManager {
     const agentStream = await toolLoopAgent.stream({
       messages: modelMessages as any,
       abortSignal: agent.abortController.signal,
+      experimental_transform: smoothStream({
+        delayInMs: 10,
+        chunking: new Intl.Segmenter('zh', { granularity: 'word' }),
+      }),
     })
 
     const uiStream = agentStream.toUIMessageStream({

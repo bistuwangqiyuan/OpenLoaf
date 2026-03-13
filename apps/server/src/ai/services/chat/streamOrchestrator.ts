@@ -10,6 +10,7 @@
 import {
   createUIMessageStream,
   JsonToSseTransformStream,
+  smoothStream,
   UI_MESSAGE_STREAM_HEADERS,
   type UIMessage,
 } from "ai";
@@ -217,6 +218,10 @@ export async function createChatStreamResponse(input: ChatStreamResponseInput): 
         const agentStream = await input.agentRunner.agent.stream({
           messages: modelMessages,
           abortSignal: input.abortController.signal,
+          experimental_transform: smoothStream({
+            delayInMs: 10,
+            chunking: new Intl.Segmenter("zh", { granularity: "word" }),
+          }),
         });
         const uiStream = agentStream.toUIMessageStream({
           originalMessages: input.modelMessages as any[],

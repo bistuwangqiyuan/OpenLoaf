@@ -8,7 +8,7 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { Hono } from 'hono'
-import { streamText } from 'ai'
+import { smoothStream, streamText } from 'ai'
 import type { ChatModelSource } from '@openloaf/api/common'
 import { resolveChatModel } from '@/ai/models/resolveChatModel'
 import { logger } from '@/common/logger'
@@ -83,6 +83,10 @@ export function registerAiCommandRoutes(app: Hono) {
       messages: messages as any,
       system,
       abortSignal: c.req.raw.signal,
+      experimental_transform: smoothStream({
+        delayInMs: 10,
+        chunking: new Intl.Segmenter('zh', { granularity: 'word' }),
+      }),
     })
 
     // 逻辑：返回标准 UI Message Stream 格式，Plate.js useChat 直接消费。

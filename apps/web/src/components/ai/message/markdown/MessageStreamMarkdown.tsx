@@ -44,6 +44,70 @@ type MessageStreamMarkdownProps = Omit<
   contentClassName?: string;
 };
 
+/**
+ * 流式文本逐步释放 hook。
+ *
+ * 当 isAnimating 时，新增文本以 rAF 逐步追加（每帧释放若干字符），
+ * 避免 TCP 合并导致一大段文字瞬间出现。
+ * 非 streaming 状态下直接返回完整文本。
+ */
+function useSmoothText(target: string, isAnimating: boolean): string {
+  const [visible, setVisible] = React.useState(target);
+  const targetRef = React.useRef(target);
+  const visibleLenRef = React.useRef(target.length);
+  const rafRef = React.useRef<number | null>(null);
+
+  // 始终跟踪最新目标文本。
+  targetRef.current = target;
+
+  React.useEffect(() => {
+    if (!isAnimating) {
+      // 非流式时直接显示完整内容。
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      visibleLenRef.current = target.length;
+      setVisible(target);
+      return;
+    }
+
+    // 流式模式：启动 rAF 循环逐步追赶目标长度。
+    const step = () => {
+      const t = targetRef.current;
+      const cur = visibleLenRef.current;
+      if (cur >= t.length) {
+        // 已追上目标，等待下一次目标变化再启动。
+        rafRef.current = null;
+        return;
+      }
+      // 每帧释放字符数：基础 3 字符，距离越远释放越快（避免延迟累积）。
+      const gap = t.length - cur;
+      const increment = Math.max(3, Math.ceil(gap / 8));
+      const nextLen = Math.min(cur + increment, t.length);
+      visibleLenRef.current = nextLen;
+      setVisible(t.slice(0, nextLen));
+      rafRef.current = requestAnimationFrame(step);
+    };
+
+    // 如果 rAF 循环未运行且有新内容，启动它。
+    if (rafRef.current === null && visibleLenRef.current < target.length) {
+      rafRef.current = requestAnimationFrame(step);
+    }
+  }, [target, isAnimating]);
+
+  // 组件卸载时清理。
+  React.useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  return visible;
+}
+
 /** Render chat-style streaming markdown with shared tokenizer and component mapping. */
 function MessageStreamMarkdownInner(
   {
@@ -56,9 +120,12 @@ function MessageStreamMarkdownInner(
   }: MessageStreamMarkdownProps,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
+  const isAnimating = Boolean(streamdownProps.isAnimating);
+  const smoothMarkdown = useSmoothText(markdown, isAnimating);
+
   const normalizedMarkdown = React.useMemo(
-    () => preprocessChatText(markdown),
-    [markdown],
+    () => preprocessChatText(smoothMarkdown),
+    [smoothMarkdown],
   );
 
   return (
