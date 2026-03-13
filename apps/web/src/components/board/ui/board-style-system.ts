@@ -132,22 +132,22 @@ export const BOARD_TOOLBAR_ITEM_PURPLE =
 export const BOARD_GENERATE_NODE_BASE =
   "ol-glass-node";
 
-/** Semantic glass base — image generation (light blue tint). */
+/** Semantic glass base — image generation (subtle tint). */
 export const BOARD_GENERATE_NODE_BASE_IMAGE =
-  "ol-glass-node bg-[#f0f6ff]/95 dark:bg-[hsl(210_60%_8%/0.92)]";
-/** Semantic glass base — image prompt (light amber tint). */
+  "ol-glass-node bg-card dark:bg-card";
+/** Semantic glass base — image prompt (subtle tint). */
 export const BOARD_GENERATE_NODE_BASE_PROMPT =
-  "ol-glass-node bg-[#fffbf0]/95 dark:bg-[hsl(35_50%_8%/0.92)]";
-/** Semantic glass base — video generation (light purple tint). */
+  "ol-glass-node bg-card dark:bg-card";
+/** Semantic glass base — video generation (subtle tint). */
 export const BOARD_GENERATE_NODE_BASE_VIDEO =
-  "ol-glass-node bg-[#f8f0ff]/95 dark:bg-[hsl(270_50%_8%/0.92)]";
+  "ol-glass-node bg-card dark:bg-card";
 
-/** Semantic border — image generation (blue). */
-export const BOARD_GENERATE_BORDER_IMAGE = "border-ol-focus-border";
-/** Semantic border — video generation (purple). */
-export const BOARD_GENERATE_BORDER_VIDEO = "border-ol-purple-bg-hover";
-/** Semantic border — image prompt (amber). */
-export const BOARD_GENERATE_BORDER_PROMPT = "border-ol-amber-bg-hover";
+/** Semantic border — image generation (neutral idle). */
+export const BOARD_GENERATE_BORDER_IMAGE = "border-border";
+/** Semantic border — video generation (neutral idle). */
+export const BOARD_GENERATE_BORDER_VIDEO = "border-border";
+/** Semantic border — image prompt (neutral idle). */
+export const BOARD_GENERATE_BORDER_PROMPT = "border-border";
 
 /** Selected state — image generation. */
 export const BOARD_GENERATE_SELECTED_IMAGE =
@@ -194,12 +194,12 @@ export const BOARD_GENERATE_DOT_PROMPT = "bg-ol-amber";
 export const BOARD_GENERATE_INPUT =
   "border-transparent bg-ol-surface-input text-ol-text-primary placeholder:text-ol-text-auxiliary focus-visible:border-ol-focus-border focus-visible:ring-1 focus-visible:ring-ol-focus-ring";
 
-/** Node base — chat node (teal tinted). */
+/** Node base — chat node (neutral). */
 export const BOARD_GENERATE_NODE_BASE_CHAT =
-  "ol-glass-node bg-[#f0faf5]/95 dark:bg-[hsl(160_40%_8%/0.92)]";
+  "ol-glass-node bg-card dark:bg-card";
 
-/** Semantic border — chat node (teal). */
-export const BOARD_GENERATE_BORDER_CHAT = "border-ol-green-bg-hover";
+/** Semantic border — chat node (neutral idle). */
+export const BOARD_GENERATE_BORDER_CHAT = "border-border";
 
 /** Selected state — chat node. */
 export const BOARD_GENERATE_SELECTED_CHAT =

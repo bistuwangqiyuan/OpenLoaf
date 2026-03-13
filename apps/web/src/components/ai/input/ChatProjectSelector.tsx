@@ -128,7 +128,7 @@ export function ChatProjectSelector({
               {t('projectSelector.noProjectFound')}
             </CommandEmpty>
 
-            <CommandGroup heading={t('projectSelector.projectSpace')}>
+            <CommandGroup heading={t('projectSelector.scope')}>
               <CommandItem
                 value="global"
                 onSelect={() => {

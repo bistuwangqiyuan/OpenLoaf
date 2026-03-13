@@ -438,10 +438,11 @@
     "confirm": "启用"
   },
   "projectSelector": {
-    "projectSpace": "项目空间",
+    "projectSpace": "所有项目",
+    "scope": "范围",
     "searchProject": "搜索项目...",
     "noProjectFound": "未找到项目",
-    "projects": "项目",
+    "projects": "项目列表",
     "current": "当前"
   }
 }

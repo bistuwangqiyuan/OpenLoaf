@@ -108,36 +108,36 @@ function ContextMenuTrigger({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {
   const ctx = React.useContext(ContextMenuReopenContext)
-  const triggerRef = React.useRef<HTMLSpanElement>(null)
-  const reopeningRef = React.useRef(false)
   const handleContextMenu = React.useCallback(
     (event: React.MouseEvent<HTMLSpanElement>) => {
-      // 由 setTimeout 重新分发的 contextmenu，正常放行给 Radix 处理
-      if (reopeningRef.current) {
-        reopeningRef.current = false
-        props.onContextMenu?.(event)
-        return
-      }
       // 检测：contextmenu 紧随 pointerdown 导致的 close（< 100ms）
+      // 此时 Radix handler 会更新 pointRef，但 setOpen(false) + setOpen(true)
+      // 被 React 批处理为 no-op，popper 不重新定位。
+      // 解决：让 Radix handler 正常跑（更新 pointRef），然后直接修改 popper DOM 位置。
       const justClosed =
         performance.now() - (ctx?.closedAtRef.current ?? 0) < 100
       if (justClosed) {
-        // 阻止 Radix handler，防止 setOpen(true) 和 setOpen(false) 被批处理
-        event.preventDefault()
         const { clientX, clientY } = event
-        reopeningRef.current = true
-        // setTimeout(0) 让 React 先提交 close，然后再打开
-        setTimeout(() => {
-          triggerRef.current?.dispatchEvent(
-            new MouseEvent("contextmenu", {
-              bubbles: true,
-              cancelable: true,
-              clientX,
-              clientY,
-            }),
-          )
-        }, 0)
-        return
+        // 等待 Radix handler 运行完 + React 完成 DOM commit
+        requestAnimationFrame(() => {
+          const wrapper = document.querySelector(
+            "[data-radix-popper-content-wrapper]",
+          ) as HTMLElement | null
+          if (wrapper) {
+            const rect = wrapper.getBoundingClientRect()
+            const vw = window.innerWidth
+            const vh = window.innerHeight
+            const pad = 8
+            // 碰撞检测：确保菜单不超出视口
+            let x = clientX
+            let y = clientY
+            if (x + rect.width > vw - pad) x = vw - rect.width - pad
+            if (y + rect.height > vh - pad) y = vh - rect.height - pad
+            if (x < pad) x = pad
+            if (y < pad) y = pad
+            wrapper.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
+          }
+        })
       }
       props.onContextMenu?.(event)
     },
@@ -145,7 +145,6 @@ function ContextMenuTrigger({
   )
   return (
     <ContextMenuPrimitive.Trigger
-      ref={triggerRef}
       data-slot="context-menu-trigger"
       {...props}
       onContextMenu={handleContextMenu}

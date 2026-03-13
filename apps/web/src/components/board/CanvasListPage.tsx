@@ -13,7 +13,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Palette, Plus, Edit2, Trash2, MoreHorizontal, Copy, CopyPlus, CalendarDays, Search, X, FolderOpen, Sparkles, Loader2, ExternalLink } from "lucide-react";
-import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 
 import { useAppView } from "@/hooks/use-app-view";
@@ -284,7 +284,7 @@ function BoardCard({
           ref={inViewRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: index * 0.04 }}
+          transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3) }}
           className={`group relative flex flex-col overflow-hidden rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-sm hover:border-ol-purple/60 ${
             isActive
               ? "border-ol-purple shadow-sm ring-1 ring-ol-purple/30"
@@ -501,6 +501,7 @@ export default function CanvasListPage({ tabId, projectId }: CanvasListPageProps
       staleTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
     }),
+    placeholderData: keepPreviousData,
   });
 
   const displayedBoards = useMemo(

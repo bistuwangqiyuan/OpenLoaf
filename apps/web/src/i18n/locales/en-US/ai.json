@@ -438,10 +438,11 @@
     "confirm": "Enable"
   },
   "projectSelector": {
-    "projectSpace": "Project Space",
+    "projectSpace": "All projects",
+    "scope": "Scope",
     "searchProject": "Search projects...",
     "noProjectFound": "No projects found",
-    "projects": "Projects",
+    "projects": "Project list",
     "current": "Current"
   }
 }

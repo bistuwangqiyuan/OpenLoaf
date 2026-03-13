@@ -16,6 +16,7 @@ import { isElectronEnv } from "@/utils/is-electron-env";
 import { useAppState } from "@/hooks/use-app-state";
 import { useLayoutState } from "@/hooks/use-layout-state";
 import { shouldDisableRightChat } from "@/hooks/layout-utils";
+import { isBoardWindowMode } from "@/lib/window-mode";
 import { Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { Button } from "@openloaf/ui/button";
@@ -27,8 +28,9 @@ import { Search as SearchDialog } from "@/components/search/Search";
 export const Header = () => {
   const activeTab = useAppState();
   const canToggleChat =
-    Boolean(activeTab?.base) &&
-    !shouldDisableRightChat(activeTab ?? undefined);
+    isBoardWindowMode() ||
+    (Boolean(activeTab?.base) &&
+    !shouldDisableRightChat(activeTab ?? undefined));
   const isChatCollapsed = Boolean(activeTab?.rightChatCollapsed);
   const setHeaderActionsTarget = useHeaderSlot((s) => s.setHeaderActionsTarget);
   const setHeaderTitleExtraTarget = useHeaderSlot((s) => s.setHeaderTitleExtraTarget);

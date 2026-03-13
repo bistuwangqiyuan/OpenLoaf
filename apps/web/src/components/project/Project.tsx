@@ -19,6 +19,7 @@ import {
   useState,
 } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/utils/trpc";
 import { useTabActive } from "@/components/layout/TabActiveContext";
 import { useAppView } from "@/hooks/use-app-view";
@@ -159,6 +160,7 @@ export default function ProjectPage({
   projectTab,
   fileUri: externalFileUri,
 }: ProjectPageProps) {
+  const { t } = useTranslation("project");
   const tabActive = useTabActive();
   const setLeftWidthPercent = useLayoutState((s) => s.setLeftWidthPercent);
   const setBaseParams = useLayoutState((s) => s.setBaseParams);
@@ -374,8 +376,19 @@ export default function ProjectPage({
 
   const panelBaseClass =
     "absolute inset-0 box-border pt-0 transform-gpu transition-[opacity,transform] duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]";
-  const showIndexTitleExtra = tabActive && activeTab === "index";
-  const showFilesTitleExtra = tabActive && activeTab === "files";
+  const activeTabHeaderTitle = useMemo(() => {
+    const titleMap: Record<ProjectTabValue, string> = {
+      index: t("project.tabHome"),
+      files: t("project.tabFiles"),
+      tasks: t("project.tabHistory"),
+      scheduled: t("project.tabScheduled"),
+      canvas: t("project.tabCanvas"),
+      settings: t("project.tabSettings"),
+    };
+
+    // 逻辑：Header 右侧追加当前项目功能标题，保持与 Dock Tab 标签一致，避免切换后无标题。
+    return titleMap[activeTab];
+  }, [activeTab, t]);
 
   /** Toggle read-only mode for the homepage editor. */
   const handleSetIndexReadOnly = useCallback(
@@ -438,20 +451,11 @@ export default function ProjectPage({
 
   return (
     <div className="project-shell flex h-full w-full flex-col min-h-0">
-      {showIndexTitleExtra && headerTitleExtraTarget
+      {tabActive && headerTitleExtraTarget && activeTabHeaderTitle
         ? createPortal(
             <div className="flex items-center gap-1.5 text-sm text-foreground/50">
               <div className="mx-1 h-5 w-px bg-foreground/20" />
-              <span className="font-medium text-foreground/80">首页</span>
-            </div>,
-            headerTitleExtraTarget,
-          )
-        : null}
-      {showFilesTitleExtra && headerTitleExtraTarget
-        ? createPortal(
-            <div className="flex items-center gap-1.5 text-sm text-foreground/50">
-              <div className="mx-1 h-5 w-px bg-foreground/20" />
-              <span className="font-medium text-foreground/80">文件</span>
+              <span className="font-medium text-foreground/80">{activeTabHeaderTitle}</span>
             </div>,
             headerTitleExtraTarget,
           )

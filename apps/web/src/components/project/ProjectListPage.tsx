@@ -29,7 +29,7 @@ import {
   Layers3,
   Filter,
 } from "lucide-react";
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { queryClient, trpc, trpcClient } from "@/utils/trpc";
 import { toast } from "sonner";
 
@@ -197,6 +197,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       staleTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
     }),
+    placeholderData: keepPreviousData,
   });
 
   const filteredProjects = useMemo(
@@ -481,7 +482,7 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.04 }}
+              transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3) }}
               className={`group relative flex flex-col overflow-hidden rounded-2xl ol-glass-float cursor-pointer shadow-none transition-colors duration-200 hover:border-ol-blue/60 dark:bg-background/30 ${
                 isActive
                   ? "border-ol-blue bg-ol-blue/[0.04] dark:bg-ol-blue/[0.08]"
@@ -765,8 +766,19 @@ export default function ProjectListPage({ tabId }: ProjectListPageProps) {
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-4">
         {isInitialLoading ? (
-          <div className="flex h-60 items-center justify-center">
-            <div className="h-8 w-8 rounded-full border-2 border-border/60 border-t-ol-blue animate-spin" />
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3.5">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-2xl border border-border/60 bg-card/70"
+              >
+                <div className="h-36 animate-pulse bg-muted/60" />
+                <div className="space-y-2 px-3.5 py-2.5">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted/60" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted/50" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="flex flex-col h-60 items-center justify-center gap-3 text-muted-foreground">

@@ -10,6 +10,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChatCommand } from "@openloaf/api/common";
 import { CHAT_COMMANDS } from "@openloaf/api/common";
 import { useQuery } from "@tanstack/react-query";
@@ -78,12 +79,6 @@ const SKILL_GROUP_ITEM: MenuItem = {
   description: "进入技能列表",
 };
 
-/** Display labels for skill scopes. */
-const SCOPE_LABELS: Record<SkillSummary["scope"], string> = {
-  global: "项目空间",
-  project: "项目",
-};
-
 /** Slash trigger for the last token. */
 const SLASH_TRIGGER_REGEX = /(^|\s)(\/\S*)$/u;
 
@@ -122,7 +117,11 @@ function filterCommands(commands: ChatCommand[], query: string): MenuItem[] {
 }
 
 /** Filter skills by query and map to menu items. */
-function filterSkills(skills: SkillSummary[], query: string): MenuItem[] {
+function filterSkills(
+  skills: SkillSummary[],
+  query: string,
+  scopeLabels: Record<SkillSummary["scope"], string>,
+): MenuItem[] {
   const keyword = query.trim().toLowerCase();
   return skills
     .filter((skill) => skill.isEnabled)
@@ -137,7 +136,7 @@ function filterSkills(skills: SkillSummary[], query: string): MenuItem[] {
       kind: "skill" as const,
       id: `skill-${skill.name}`,
       label: skill.name,
-      description: `${SCOPE_LABELS[skill.scope]} · ${skill.description || "未提供说明"}`,
+      description: `${scopeLabels[skill.scope]} · ${skill.description || "未提供说明"}`,
       skillName: skill.name,
     }));
 }
@@ -156,6 +155,8 @@ function replaceSlashToken(input: string, replacement: string): string {
 
 const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
   ({ value, onChange, onRequestFocus, isFocused, projectId, className }, ref) => {
+    const { t } = useTranslation("ai");
+    const { t: tNav } = useTranslation("nav");
     const slashState = resolveSlashState(value);
     const menuMode = slashState?.mode ?? "command";
     const query = slashState?.query ?? "";
@@ -168,15 +169,22 @@ const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
       staleTime: 5 * 60 * 1000,
     });
     const skills = (skillsQuery.data ?? []) as SkillSummary[];
+    const scopeLabels = useMemo<Record<SkillSummary["scope"], string>>(
+      () => ({
+        global: t("projectSelector.projectSpace"),
+        project: tNav("project"),
+      }),
+      [t, tNav],
+    );
 
     const commandItems = useMemo(
       () => filterCommands(CHAT_COMMANDS, query),
       [query]
     );
     const skillItems = useMemo(() => {
-      if (menuMode === "command") return filterSkills(skills, "");
-      return filterSkills(skills, query);
-    }, [menuMode, skills, query]);
+      if (menuMode === "command") return filterSkills(skills, "", scopeLabels);
+      return filterSkills(skills, query, scopeLabels);
+    }, [menuMode, skills, query, scopeLabels]);
     const rootItems = useMemo(() => {
       if (menuMode === "skill") return skillItems;
       if (skillItems.length === 0) return commandItems;
