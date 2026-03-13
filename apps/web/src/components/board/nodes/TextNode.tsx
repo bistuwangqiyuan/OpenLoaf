@@ -118,6 +118,10 @@ const TEXT_NODE_RESIZE_EPSILON = 2;
 const TEXT_NODE_DEFAULT_FONT_SIZE = 18;
 /** Default line height multiplier for text nodes. */
 const TEXT_NODE_LINE_HEIGHT = 1.4;
+/** Default font weight for board text nodes. */
+const TEXT_NODE_DEFAULT_FONT_WEIGHT = 430;
+/** Subtle tracking tweak so board copy feels less loose. */
+const TEXT_NODE_DEFAULT_LETTER_SPACING = "-0.012em";
 /** Maximum font size for text nodes. */
 const TEXT_NODE_MAX_FONT_SIZE = 52;
 /** Default height for a single-line text node. */
@@ -147,6 +151,8 @@ const TEXT_NODE_FONT_SIZE_VALUES = TEXT_NODE_FONT_SIZES.map(option => option.val
 /** The "reset" entry always shown first in color panels. */
 const COLOR_RESET_ENTRY: { label: string; value?: string } = { label: 'Default', value: undefined };
 const BG_RESET_ENTRY: { label: string; value?: string } = { label: 'Transparent', value: undefined };
+/** Markdown shortcut matcher used for backward-compatible heading migration. */
+const TEXT_NODE_HEADING_SHORTCUT_RE = /^(#{1,6})\s+/;
 
 // ---------------------------------------------------------------------------
 // Module-level editor ref map (shared between TextNodeView and toolbar)
@@ -216,6 +222,51 @@ function isSlateValueEmpty(value: Value): boolean {
     if (!children) return true;
     return children.every(child => !child.text || child.text.trim().length === 0);
   });
+}
+
+/** Upgrade legacy paragraph nodes that still keep raw Markdown heading shortcuts. */
+function upgradeMarkdownHeadingShortcuts(value: Value): Value {
+  const headingTypes = [
+    KEYS.h1,
+    KEYS.h2,
+    KEYS.h3,
+    KEYS.h4,
+    KEYS.h5,
+    KEYS.h6,
+  ] as const;
+  let changed = false;
+
+  const nextValue = value.map(node => {
+    if (!node || typeof node !== "object") return node;
+    const element = node as Record<string, unknown>;
+    if (element.type !== KEYS.p || !Array.isArray(element.children) || element.children.length === 0) {
+      return node;
+    }
+
+    const firstChild = element.children[0];
+    if (!firstChild || typeof firstChild !== "object" || typeof (firstChild as { text?: unknown }).text !== "string") {
+      return node;
+    }
+
+    const text = String((firstChild as { text: string }).text);
+    const match = text.match(TEXT_NODE_HEADING_SHORTCUT_RE);
+    if (!match) return node;
+
+    const level = Math.max(1, Math.min(headingTypes.length, match[1]?.length ?? 1));
+    const nextChildren = [...element.children];
+    nextChildren[0] = {
+      ...(firstChild as Record<string, unknown>),
+      text: text.slice(match[0].length),
+    };
+    changed = true;
+    return {
+      ...element,
+      type: headingTypes[level - 1],
+      children: nextChildren,
+    };
+  });
+
+  return changed ? (nextValue as Value) : value;
 }
 
 /** Resolve font size to the closest heading size. */
@@ -341,6 +392,8 @@ function ReadOnlyMarkdownProjection(props: {
           fontSize: props.fontSize,
           lineHeight: TEXT_NODE_LINE_HEIGHT,
           color: props.color,
+          fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+          letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
         }}
       />
     </div>
@@ -795,13 +848,29 @@ function EditableTextNodeView({
   const resizeRafRef = useRef<number | null>(null);
 
   // Normalize stored value to Slate Value (handles legacy string migration)
-  const slateValue = useMemo(
+  const incomingSlateValue = useMemo(
     () => normalizeTextValue(element.props.value, {
       fontWeight: element.props.fontWeight,
       fontStyle: element.props.fontStyle,
       textDecoration: element.props.textDecoration,
     }),
     [element.props.value, element.props.fontWeight, element.props.fontStyle, element.props.textDecoration]
+  );
+  const slateValue = useMemo(
+    () => upgradeMarkdownHeadingShortcuts(incomingSlateValue),
+    [incomingSlateValue],
+  );
+  const incomingSlateValueJson = useMemo(
+    () => JSON.stringify(incomingSlateValue),
+    [incomingSlateValue],
+  );
+  const slateValueJson = useMemo(
+    () => JSON.stringify(slateValue),
+    [slateValue],
+  );
+  const needsHeadingShortcutUpgrade = useMemo(
+    () => incomingSlateValueJson !== slateValueJson,
+    [incomingSlateValueJson, slateValueJson],
   );
 
   const textAlign = element.props.textAlign ?? TEXT_NODE_DEFAULT_TEXT_ALIGN;
@@ -819,6 +888,8 @@ function EditableTextNodeView({
     fontSize: resolvedFontSize,
     textAlign,
     lineHeight: TEXT_NODE_LINE_HEIGHT,
+    fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+    letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
     color: resolvedColor || undefined,
   }), [resolvedFontSize, textAlign, resolvedColor]);
 
@@ -838,13 +909,32 @@ function EditableTextNodeView({
 
   // Sync external value changes when NOT editing
   const lastValueJsonRef = useRef('');
+  const reportedHeadingUpgradeRef = useRef<string>('');
   useEffect(() => {
     if (isGhost || isEditing) return;
-    const json = JSON.stringify(slateValue);
-    if (json === lastValueJsonRef.current) return;
-    lastValueJsonRef.current = json;
+    if (slateValueJson === lastValueJsonRef.current) return;
+    lastValueJsonRef.current = slateValueJson;
     editor.tf.setValue(slateValue);
-  }, [editor, isEditing, isGhost, slateValue]);
+  }, [editor, isEditing, isGhost, slateValue, slateValueJson]);
+
+  useEffect(() => {
+    if (isGhost || isEditing || !needsHeadingShortcutUpgrade) return;
+    const reportKey = `${element.id}:${incomingSlateValueJson}`;
+    if (reportKey === reportedHeadingUpgradeRef.current) return;
+    // 逻辑：已有节点如果仍保存着 `## title` 这类纯文本段落，首次加载时自动升级为标题块。
+    reportedHeadingUpgradeRef.current = reportKey;
+    lastValueJsonRef.current = slateValueJson;
+    onUpdate({ value: slateValue, autoFocus: false });
+  }, [
+    element.id,
+    incomingSlateValueJson,
+    isEditing,
+    isGhost,
+    needsHeadingShortcutUpgrade,
+    onUpdate,
+    slateValue,
+    slateValueJson,
+  ]);
 
   // ---- Edit mode lifecycle ----
 
@@ -1179,7 +1269,13 @@ function EditableTextNodeView({
       {isEmpty ? (
         <div
           className="pointer-events-none absolute inset-0 flex items-center px-4 text-neutral-400 dark:text-neutral-500"
-          style={{ textAlign, fontSize: textStyle.fontSize, lineHeight: textStyle.lineHeight }}
+          style={{
+            textAlign,
+            fontSize: textStyle.fontSize,
+            lineHeight: textStyle.lineHeight,
+            fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+            letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
+          }}
         >
           {getTextNodePlaceholder()}
         </div>

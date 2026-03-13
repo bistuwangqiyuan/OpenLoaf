@@ -816,7 +816,7 @@ function buildSceneGeometry(
       if (element.type === "text") {
         const rawText = normalizeTextValue((element.props as any) ?? {});
         const isPlaceholder = rawText.trim().length === 0;
-        const textValue = isPlaceholder ? "输入 Markdown 内容" : rawText;
+        const textValue = isPlaceholder ? "输入 Markdown" : rawText;
         const fontSize = 13;
         const lineHeight = fontSize + 4;
         const ctx = atlas?.ctx;

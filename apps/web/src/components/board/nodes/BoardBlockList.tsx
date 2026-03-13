@@ -43,14 +43,15 @@ function BoardList(props: PlateElementProps) {
   return (
     <ListTag
       className={cn(
-        "my-0 pl-5",
+        // 逻辑：白板文本节点空间更紧凑，列表整体向左回收一点，避免 marker 区域过宽。
+        "my-0 -ml-2 pl-3",
         "marker:text-current/70 marker:font-medium"
       )}
       data-board-text-list={isOrderedList(element) ? "ordered" : "unordered"}
       style={{ listStyleType }}
       start={isOrderedList(element) ? element.listStart : undefined}
     >
-      <li className="pl-1">{props.children}</li>
+      <li className="pl-0.5">{props.children}</li>
     </ListTag>
   );
 }
