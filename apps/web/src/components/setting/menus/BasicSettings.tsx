@@ -33,7 +33,6 @@ import {
   Palette,
   PanelBottomClose,
   Sparkles,
-  SunMoon,
   Type,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -283,6 +282,41 @@ export function BasicSettings() {
                         <TabsTrigger value="xlarge">{t('basicSettings.fontSizeXLarge')}</TabsTrigger>
                       </TabsList>
                     </Tabs>
+                  </OpenLoafSettingsField>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 py-3">
+                  <SettingIcon icon={PanelBottomClose} bg="bg-amber-500/10" fg="text-amber-600 dark:text-amber-400" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium">{t('basicSettings.projectOpenMode')}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t('basicSettings.projectOpenModeDesc')}
+                    </div>
+                  </div>
+
+                  <OpenLoafSettingsField className="w-full sm:w-72 shrink-0 justify-end">
+                    <div className="flex flex-col items-end gap-2">
+                      <Tabs
+                        value={basic.projectOpenMode}
+                        onValueChange={(next) =>
+                          void setBasic({ projectOpenMode: next as "sidebar" | "window" })
+                        }
+                      >
+                        <TabsList>
+                          <TabsTrigger value="sidebar">
+                            {t('basicSettings.projectOpenModeSidebar')}
+                          </TabsTrigger>
+                          <TabsTrigger value="window" disabled={!isElectron}>
+                            {t('basicSettings.projectOpenModeWindow')}
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      {!isElectron ? (
+                        <div className="text-xs text-muted-foreground">
+                          {t('basicSettings.projectOpenModeWindowElectronOnly')}
+                        </div>
+                      ) : null}
+                    </div>
                   </OpenLoafSettingsField>
                 </div>
 

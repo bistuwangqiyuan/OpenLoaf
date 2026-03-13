@@ -151,11 +151,11 @@ function resolveEntryDisplayName(entry: FileSystemEntry) {
 /** Resolve list type label for an entry. */
 function resolveEntryTypeLabel(entry: FileSystemEntry, t: (key: string) => string) {
   if (entry.kind === "folder") {
-    return isBoardFolderName(entry.name) ? t('workspace:filesystem.typeBoard') : t('workspace:filesystem.typeFolder');
+    return isBoardFolderName(entry.name) ? t('project:filesystem.typeBoard') : t('project:filesystem.typeFolder');
   }
   const ext = getEntryExt(entry);
-  if (!ext) return t('workspace:filesystem.typeFile');
-  if (isBoardFileExt(ext)) return t('workspace:filesystem.typeBoard');
+  if (!ext) return t('project:filesystem.typeFile');
+  if (isBoardFileExt(ext)) return t('project:filesystem.typeBoard');
   const override = FILE_TYPE_LABEL_OVERRIDES[ext];
   if (override) return override;
   return ext.toUpperCase();
@@ -175,7 +175,7 @@ const FileSystemListRowContent = memo(function FileSystemListRowContent({
   nameSlot,
   visualOverride,
 }: FileSystemListRowContentProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const displayName = useMemo(() => resolveEntryDisplayName(entry), [entry]);
   const typeLabel = useMemo(() => resolveEntryTypeLabel(entry, t), [entry, t]);
   const sizeLabel = useMemo(() => formatSize(entry.size), [entry.size]);
@@ -447,7 +447,7 @@ const FileSystemList = memo(function FileSystemList({
   resolveSelectionMode,
   onGridContextMenuCapture,
 }: FileSystemListProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   // 上一级入口仅在可回退时显示，允许回到根目录。
   const shouldShowParentEntry = parentUri !== null && parentUri !== undefined;
   const searchText = searchQuery?.trim() ?? "";
@@ -462,7 +462,7 @@ const FileSystemList = memo(function FileSystemList({
       parentUri !== null && parentUri !== undefined
         ? {
             uri: parentUri,
-            name: t('workspace:filesystem.parentDir'),
+            name: t('project:filesystem.parentDir'),
             kind: "folder",
           }
         : null,

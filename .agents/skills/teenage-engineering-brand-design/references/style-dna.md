@@ -1,4 +1,3 @@
-# Teenage Engineering Style DNA
 
 ## Positioning
 
@@ -55,8 +54,6 @@
 - 过度时髦或过度互联网化的默认字体方案
 - 粗重标题到处堆满，导致页面失去空气感
 
-## Layout
-
 ### Structural Rules
 
 - 使用强栅格，优先 12 列或同等强度的自定义网格
@@ -94,8 +91,6 @@
 - 常规 lifestyle 电商图堆满页面
 - 过度情绪化的光效
 - 大量三维悬浮特效
-
-## Component Grammar
 
 ### Navigation
 
@@ -172,30 +167,11 @@
 
 如果要落到 CSS / Design Token，可从下面起步：
 
-```css
-:root {
-  --te-black: #0f0e12;
-  --te-white: #f5f5f5;
-  --te-gray-100: #e5e5e5;
-  --te-gray-200: #cccccc;
-  --te-gray-500: #a1a7af;
-  --te-orange: #f05a24;
-  --te-blue: #0071bb;
-  --te-green: #006837;
-  --te-yellow: #fab413;
-  --te-red: #b81d13;
-  --te-radius-card: 20px;
-  --te-duration-fast: 180ms;
-}
-```
-
 实现时优先：
 
 - 先搭网格，再上组件
 - 先确定 hero 对象，再决定标签密度
 - 先处理黑白灰关系，再打入橙/蓝/绿点色
-
-## Do / Don't
 
 ### Do
 

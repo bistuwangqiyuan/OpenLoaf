@@ -17,7 +17,6 @@ import { useBoardContext } from "../../core/BoardProvider";
 import { useMediaModels } from "@/hooks/use-media-models";
 import { filterVideoMediaModels } from "../lib/image-generation";
 import { Switch } from "@openloaf/ui/switch";
-import { getWorkspaceIdFromCookie } from "../../core/boardSession";
 import type { ImageNodeProps } from "../ImageNode";
 import { normalizeProjectRelativePath } from "@/components/project/filesystem/utils/file-system-utils";
 import {
@@ -57,12 +56,84 @@ import { VideoGenerateNodeSchema, type VideoGenerateNodeProps } from "./types";
 import { isEmptyParamValue, normalizeTextValue, resolveParameterDefaults } from "./utils";
 import { ModelSelect } from "./ModelSelect";
 import { AdvancedSettingsPanel } from "./AdvancedSettingsPanel";
+import { getBoardChatMessageMeta } from "../../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../../utils/board-chat-toolbar";
 
 export { VIDEO_GENERATE_NODE_TYPE };
 
 
-/** Render the video generation node. */
-export function VideoGenerateNodeView({
+/** Render the read-only chat projection for video generation parts. */
+function VideoGenerateProjectionView({
+  element,
+  selected,
+  onSelect,
+}: CanvasNodeViewProps<VideoGenerateNodeProps>) {
+  const { t } = useTranslation("board");
+  const { fileContext } = useBoardContext();
+  const status = element.props.projectionStatus ?? (
+    element.props.errorText
+      ? "error"
+      : element.props.resultVideo
+        ? "done"
+        : "generating"
+  );
+
+  return (
+    <NodeFrame>
+      <div
+        className={cn(
+          "flex h-full w-full flex-col overflow-hidden rounded-xl border-2",
+          BOARD_GENERATE_NODE_BASE_VIDEO,
+          selected ? BOARD_GENERATE_SELECTED_VIDEO : BOARD_GENERATE_BORDER_VIDEO,
+          status === "error" && BOARD_GENERATE_ERROR,
+        )}
+        onClick={onSelect}
+      >
+        <div className="flex items-center gap-2 border-b border-border/30 px-3 py-2">
+          <Film className="h-4 w-4 text-[#9334e6] dark:text-violet-400" />
+          <span className="text-xs font-medium text-[#9334e6] dark:text-violet-400">
+            {t("videoGenerate.title")}
+          </span>
+          <span className={cn("ml-auto rounded-full px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_VIDEO)}>
+            {status === "generating"
+              ? t("chatMessage.streaming")
+              : status === "error"
+                ? t("videoGenerate.hints.generateFailed")
+                : t("videoGenerate.status.completed")}
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+          {element.props.promptText ? (
+            <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+              {element.props.promptText}
+            </div>
+          ) : null}
+          {status === "generating" ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className={cn("h-2 w-2 rounded-full animate-pulse", BOARD_GENERATE_DOT_VIDEO)} />
+              <span>{t("chatMessage.thinking")}</span>
+            </div>
+          ) : null}
+          {status === "error" && element.props.errorText ? (
+            <div className="text-xs text-destructive whitespace-pre-wrap break-words">
+              {element.props.errorText}
+            </div>
+          ) : null}
+          {element.props.resultVideo ? (
+            <video
+              src={getPreviewEndpoint(element.props.resultVideo, { projectId: fileContext?.projectId })}
+              className="aspect-video w-full rounded-lg border border-border/30 object-cover"
+              controls
+            />
+          ) : null}
+        </div>
+      </div>
+    </NodeFrame>
+  );
+}
+
+/** Render the editable video generation node. */
+function EditableVideoGenerateNodeView({
   element,
   selected,
   onSelect,
@@ -98,8 +169,6 @@ export function VideoGenerateNodeView({
   const abortControllerRef = useRef<AbortController | null>(null);
   /** Loading node id for the current generation. */
   const loadingNodeIdRef = useRef<string | null>(null);
-  /** Workspace id used for requests. */
-  const resolvedWorkspaceId = useMemo(() => getWorkspaceIdFromCookie(), []);
   const [isAdvancedOpen, setAdvancedOpen] = useState(false);
   const isLocked = engine.isLocked() || element.locked === true;
   const [loginOpen, setLoginOpen] = useState(false);
@@ -366,7 +435,6 @@ export function VideoGenerateNodeView({
     }
     const previewUrl = getPreviewEndpoint(projectPath, {
       projectId: currentProjectId,
-      workspaceId: resolvedWorkspaceId || undefined,
     });
     if (!previewUrl) {
       invalidImageCount += 1;
@@ -543,7 +611,6 @@ export function VideoGenerateNodeView({
               taskType: "video_generate",
               sourceNodeId: nodeId,
               promptText: promptText,
-              workspaceId: resolvedWorkspaceId || undefined,
               projectId: currentProjectId || undefined,
               saveDir: videoSaveDir || undefined,
             },
@@ -607,7 +674,6 @@ export function VideoGenerateNodeView({
             duration: durationSeconds || undefined,
           },
           parameters: requestParameters,
-          workspaceId: resolvedWorkspaceId || undefined,
           projectId: currentProjectId || undefined,
           saveDir: videoSaveDir || undefined,
           sourceNodeId: nodeId,
@@ -651,7 +717,6 @@ export function VideoGenerateNodeView({
       resolvedParameters,
       parameterFields.length,
       resolvedImages,
-      resolvedWorkspaceId,
       supportsStartEnd,
       videoSaveDir,
       maxInputImages,
@@ -955,6 +1020,15 @@ export function VideoGenerateNodeView({
   );
 }
 
+/** Render a video generation node, switching to chat projection mode when needed. */
+export function VideoGenerateNodeView(props: CanvasNodeViewProps<VideoGenerateNodeProps>) {
+  if (props.element.props.readOnlyProjection) {
+    return <VideoGenerateProjectionView {...props} />;
+  }
+
+  return <EditableVideoGenerateNodeView {...props} />;
+}
+
 /** Definition for the video generation node. */
 export const VideoGenerateNodeDefinition: CanvasNodeDefinition<VideoGenerateNodeProps> = {
   type: VIDEO_GENERATE_NODE_TYPE,
@@ -963,11 +1037,17 @@ export const VideoGenerateNodeDefinition: CanvasNodeDefinition<VideoGenerateNode
     promptText: "",
     outputAudio: false,
     resultVideo: "",
+    readOnlyProjection: false,
   },
   view: VideoGenerateNodeView,
   capabilities: {
     resizable: false,
     connectable: "anchors",
     minSize: { w: 320, h: 280 },
+  },
+  toolbar: (ctx) => {
+    if (!ctx.element.props.readOnlyProjection) return [];
+    const messageMeta = getBoardChatMessageMeta(ctx.element);
+    return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
   },
 };

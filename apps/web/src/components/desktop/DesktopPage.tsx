@@ -247,7 +247,7 @@ function isUriUnderRoot(rootUri: string, targetUri: string) {
 interface DesktopPageProps {
   /** Items in rendering order. */
   items: DesktopItem[];
-  /** Desktop scope (workspace or project). */
+  /** Desktop scope (global or project). */
   scope: DesktopScope;
   /** Whether desktop is in edit mode. */
   editMode: boolean;

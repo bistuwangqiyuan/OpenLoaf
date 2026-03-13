@@ -24,14 +24,13 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 import "react-data-grid/lib/styles.css";
 import "@/components/file/style/spreadsheet-viewer.css";
 
 interface ExcelViewerProps {
-  /** Absolute or workspace-relative file uri. */
+  /** Absolute or project-root-relative file uri. */
   uri?: string;
   /** Original open uri for system open. */
   openUri?: string;
@@ -41,8 +40,6 @@ interface ExcelViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
-  /** Workspace id for file queries (overrides useWorkspace). */
-  workspaceId?: string;
   /** Root uri for external open. */
   rootUri?: string;
   /** Stack panel key for close handling. */
@@ -179,7 +176,6 @@ export default function ExcelViewer({
   name,
   ext,
   projectId,
-  workspaceId: workspaceIdProp,
   rootUri,
   panelKey,
   tabId,
@@ -192,8 +188,6 @@ export default function ExcelViewer({
   const canEdit = !readOnly;
   const [isEditing, setIsEditing] = useState(false);
   const isReadOnly = !canEdit || !isEditing;
-  const { workspace } = useWorkspace();
-  const workspaceId = workspaceIdProp || workspace?.id || "";
   /** Tracks the current loading status. */
   const [status, setStatus] = useState<ExcelViewerStatus>("idle");
   /** Track whether the workbook has unsaved changes. */
@@ -215,11 +209,10 @@ export default function ExcelViewer({
   /** Holds the binary payload fetched from the fs API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),
-    enabled: shouldUseFs && Boolean(uri) && Boolean(workspaceId),
+    enabled: shouldUseFs && Boolean(uri),
   });
   /** Mutation handler for persisting binary payloads. */
   const writeBinaryMutation = useMutation(trpc.fs.writeBinary.mutationOptions());
@@ -365,10 +358,6 @@ export default function ExcelViewer({
       toast.error(t('file.noSaveTarget'));
       return;
     }
-    if (!projectId || !workspaceId) {
-      toast.error(t('file.noWorkspace'));
-      return;
-    }
     try {
       const workbook = XLSX.utils.book_new();
       const sheetList = sheets.length > 0 ? sheets : [{ name: "Sheet1", rows: [] }];
@@ -383,7 +372,6 @@ export default function ExcelViewer({
       const arrayBuffer = XLSX.write(workbook, { type: "array", bookType });
       const contentBase64 = encodeArrayBufferToBase64(arrayBuffer as ArrayBuffer);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri,
         contentBase64,
@@ -394,7 +382,7 @@ export default function ExcelViewer({
       console.error("[ExcelViewer] save failed", error);
       toast.error(t('saveFailed'));
     }
-  }, [projectId, sheets, shouldUseFs, uri, workspaceId, writeBinaryMutation]);
+  }, [projectId, sheets, shouldUseFs, t, uri, writeBinaryMutation]);
 
   /** Current grid theme class. */
   const gridThemeClass = resolvedTheme === "dark" ? "rdg-dark" : "rdg-light";

@@ -23,7 +23,6 @@ import { resolveOfficeCommandAck } from "@/modules/office/officePending";
 
 const registerSchema = z.object({
   appType: z.enum(OFFICE_APP_TYPES),
-  workspaceId: z.string().optional(),
   projectId: z.string().optional(),
   capabilities: z.array(z.enum(OFFICE_ACTIONS)).optional(),
   clientMeta: z.record(z.string(), z.unknown()).optional(),

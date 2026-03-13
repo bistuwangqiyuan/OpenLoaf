@@ -32,6 +32,10 @@ export type VideoGenerateNodeProps = {
   resultVideo?: string;
   /** Error text for failed runs. */
   errorText?: string;
+  /** Render as a read-only chat projection. */
+  readOnlyProjection?: boolean;
+  /** Projection status for chat tool mapping. */
+  projectionStatus?: "generating" | "done" | "error";
 };
 
 /** Schema for video generation node props. */
@@ -47,4 +51,6 @@ export const VideoGenerateNodeSchema = z.object({
   parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   resultVideo: z.string().optional(),
   errorText: z.string().optional(),
+  readOnlyProjection: z.boolean().optional(),
+  projectionStatus: z.enum(["generating", "done", "error"]).optional(),
 });

@@ -11,7 +11,6 @@ import Imap from "imap";
 
 import { prisma } from "@openloaf/db";
 import { logger } from "@/common/logger";
-import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
 import { readEmailConfigFile } from "./emailConfigStore";
 import { getEmailEnvValue } from "./emailEnvStore";
 import { syncRecentMailboxMessages } from "./emailSyncService";
@@ -33,7 +32,6 @@ type WorkerStatus = "idle" | "connecting" | "error" | "stopped" | "skipped" | "p
 
 type EmailIdleWorker = {
   key: string;
-  workspaceId: string;
   accountEmail: string;
   status: WorkerStatus;
   lastError?: string;
@@ -50,7 +48,6 @@ type EmailIdleManagerSnapshot = {
   enabled: boolean;
   workerCount: number;
   workers: Array<{
-    workspaceId: string;
     accountEmail: string;
     status: WorkerStatus;
     lastError?: string;
@@ -91,9 +88,9 @@ function normalizeEmailAddress(emailAddress: string): string {
 }
 
 /** Resolve email account and password from configuration. */
-function resolveEmailAccountCredential(workspaceId: string, accountEmail: string) {
+function resolveEmailAccountCredential(accountEmail: string) {
   const normalizedEmail = normalizeEmailAddress(accountEmail);
-  const config = readEmailConfigFile(workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
   );
@@ -111,9 +108,9 @@ function resolveEmailAccountCredential(workspaceId: string, accountEmail: string
 }
 
 /** Check if account uses OAuth auth. */
-function isOAuthAccount(workspaceId: string, accountEmail: string): boolean {
+function isOAuthAccount(accountEmail: string): boolean {
   const normalizedEmail = normalizeEmailAddress(accountEmail);
-  const config = readEmailConfigFile(workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (item) => normalizeEmailAddress(item.emailAddress) === normalizedEmail,
   );
@@ -152,8 +149,8 @@ function tryImapIdle(imap: Imap): void {
 }
 
 /** Build a worker key. */
-function buildWorkerKey(workspaceId: string, accountEmail: string): string {
-  return `${workspaceId}:${normalizeEmailAddress(accountEmail)}`;
+function buildWorkerKey(accountEmail: string): string {
+  return normalizeEmailAddress(accountEmail);
 }
 
 /** Build manager snapshot. */
@@ -162,7 +159,6 @@ function toSnapshot(enabled: boolean, workers: Map<string, EmailIdleWorker>): Em
     enabled,
     workerCount: workers.size,
     workers: Array.from(workers.values()).map((worker) => ({
-      workspaceId: worker.workspaceId,
       accountEmail: worker.accountEmail,
       status: worker.status,
       lastError: worker.lastError,
@@ -182,16 +178,13 @@ class EmailIdleManager {
       return;
     }
     this.enabled = true;
-    const workspaces = getWorkspaces();
-    for (const workspace of workspaces) {
-      const config = readEmailConfigFile(workspace.id);
-      for (const account of config.emailAccounts) {
-        const key = buildWorkerKey(workspace.id, account.emailAddress);
-        if (this.workers.has(key)) continue;
-        const worker: EmailIdleWorker = {
-          key,
-          workspaceId: workspace.id,
-          accountEmail: account.emailAddress,
+    const config = readEmailConfigFile();
+    for (const account of config.emailAccounts) {
+      const key = buildWorkerKey(account.emailAddress);
+      if (this.workers.has(key)) continue;
+      const worker: EmailIdleWorker = {
+        key,
+        accountEmail: account.emailAddress,
           status: "connecting",
           reconnectDelayMs: RECONNECT_BASE_MS,
           stopRequested: false,
@@ -207,7 +200,6 @@ class EmailIdleManager {
           this.connectWorker(worker);
         }
       }
-    }
   }
 
   /** Stop idle connections and polling timers. */
@@ -298,7 +290,6 @@ class EmailIdleManager {
       }
       worker.status = "connecting";
       const { account, password, normalizedEmail } = resolveEmailAccountCredential(
-        worker.workspaceId,
         worker.accountEmail,
       );
       const imap = new Imap({
@@ -393,14 +384,12 @@ class EmailIdleManager {
     try {
       await syncRecentMailboxMessages({
         prisma,
-        workspaceId: worker.workspaceId,
         accountEmail: worker.accountEmail,
         mailboxPath: getIdleMailboxPath(),
         limit: getIdleSyncLimit(),
       });
       // 逻辑：同步完成后通知前端有新邮件。
       emailEventBus.emitNewMail({
-        workspaceId: worker.workspaceId,
         accountEmail: worker.accountEmail,
         mailboxPath: getIdleMailboxPath(),
       });

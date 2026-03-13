@@ -1,181 +1,95 @@
-# 跨项目通信设计
+# Cross-Project Communication
 
-## 概览
+## 文档定位
 
-三种通信模式，分别对应已有或新增的产品概念：
+这是多项目协作的规划参考，描述目标交互模型和约束边界，不把它当成已经落地的接口契约。
 
-| 模式 | 载体 | 方向 | 触发方式 |
-|------|------|------|---------|
-| 引用/查询 | 主 Agent 对话 | A → B（只读） | 对话中 @ 项目 |
-| 请求/委托 | 任务模块 | A → B（执行） | 对话中 @ 项目 / 手动创建任务 |
-| 订阅/通知 | 群组消息 | 事件 → 群组（广播） | 自动触发 |
+## Code Links
 
-## 模式一：引用/查询
+| 代码 | 作用 |
+|------|------|
+| [agentFactory.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/services/agentFactory.ts) | 当前主 Agent 创建与基础 prompt 入口 |
+| [masterAgentRunner.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/services/masterAgentRunner.ts) | 主 Agent 运行时装配入口 |
+| [project.prisma](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/packages/db/prisma/schema/project.prisma) | 当前项目模型里的类型字段 |
+| [Sidebar.tsx](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/layout/sidebar/Sidebar.tsx) | 当前 Sidebar 入口 |
+| [ProjectSidebar.tsx](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/layout/sidebar/ProjectSidebar.tsx) | 当前项目侧边栏主要实现 |
 
-### 流程
+## 三种通信模式
 
-```
-用户在项目A对话中输入：
-"帮我查一下 @产品知识库 里关于定价策略的文档"
+| 模式 | 载体 | 方向 | 目标 |
+|------|------|------|------|
+| 引用 / 查询 | 主 Agent 对话 | A -> B | 从其他项目获取只读信息 |
+| 请求 / 委托 | 任务模块 | A -> B | 把执行任务交给目标项目 |
+| 订阅 / 通知 | 群组消息 | 事件 -> 群组 | 向多个项目广播重要事件 |
 
-项目A主Agent:
-  1. 解析 @ 引用 → 识别目标项目 "产品知识库"
-  2. 检查协作权限 → 是否已建立连接
-  3. 向项目B主Agent发起查询请求
-  4. 项目B主Agent在内部资料中检索
-  5. 返回结果给项目A
-  6. 项目A主Agent整合结果回答用户
-```
+## 1. 引用 / 查询
 
-### 关键约束
+适用场景：当前项目需要读取其他项目的知识、状态或结论，但不应直接修改对方数据。
 
-- 只读操作，不修改目标项目数据
-- 目标项目主 Agent 控制返回的信息粒度
-- 查询记录留痕（双方都可追溯）
+约束：
 
-## 模式二：请求/委托
+- 默认只读，不直接改动目标项目数据
+- 查询结果由目标项目主 Agent 裁剪，不能绕过其权限边界
+- 查询过程需要留痕，便于发起方和目标方追溯来源
 
-### 流程
+## 2. 请求 / 委托
 
-```
-用户在项目A对话中输入：
-"帮我让 @数据分析 出一份上个月的销售报告"
+适用场景：当前项目需要目标项目真正执行一项工作，并在完成后回传结果。
 
-项目A主Agent:
-  1. 解析 @ 引用 → 识别目标项目 "数据分析"
-  2. 在目标项目中创建一个任务（Task）
-  3. 任务携带 sourceProjectId = A.id
-  4. 目标项目的 Agent 团队接收并执行任务
-  5. 任务完成 → 结果自动回传给项目A
-  6. 项目A收到通知，展示结果
-```
+约束：
 
-### 数据模型扩展
+- 委托优先复用现有任务模型，不另起一套平行任务系统
+- 目标项目主 Agent 可以基于容量、权限或优先级拒绝委托
+- 结果完成后应回传给发起方，且双方都能看到任务记录
 
-复用现有 Task 模型，新增字段：
+## 3. 订阅 / 通知
 
-```typescript
-// 新增字段
-sourceProjectId?: string    // 发起方项目 ID
-sourceSessionId?: string    // 发起方对话 ID（用于结果回传）
-crossProjectStatus?: 'pending' | 'accepted' | 'rejected' | 'completed'
-```
+适用场景：多个项目共享同一类事件，例如版本发布、报告完成、文档更新。
 
-### 关键约束
+初期可关注的事件类型：
 
-- 目标项目主 Agent 有权拒绝任务（容量/优先级）
-- 任务完成后结果自动回传到发起方
-- 双方任务面板都可见该任务
-
-## 模式三：订阅/通知（群组广播）
-
-### 流程
-
-```
-代码仓库完成版本发布 → 触发事件 "version.released"
-↓
-"产品发布群" 订阅了该事件类型
-↓
-群组内自动发送通知消息：
-"[代码仓库] 已发布 v2.1.0，包含 3 个新功能、5 个 bug 修复"
-↓
-群组内的营销项目主Agent看到通知，自动或等待用户指令后开始更新宣传材料
-```
-
-### 群组数据模型
-
-```typescript
-interface Group {
-  id: string
-  name: string
-  workspaceId: string
-  memberProjectIds: string[]    // 关联的项目列表
-  createdAt: Date
-  updatedAt: Date
-}
-
-interface GroupMessage {
-  id: string
-  groupId: string
-  type: 'notification' | 'chat' | 'task-result'
-  sourceProjectId?: string      // 消息来源项目
-  content: string
-  createdAt: Date
-}
-```
-
-### 事件类型（初期）
-
-| 事件 | 触发场景 |
-|------|---------|
-| `task.completed` | 任务完成 |
-| `task.failed` | 任务失败 |
-| `version.released` | 版本发布（代码仓库） |
-| `document.updated` | 重要文档更新（知识库） |
-| `report.generated` | 报告生成完成（数据分析） |
-| `content.published` | 内容发布（内容创作） |
+- `task.completed`
+- `task.failed`
+- `version.released`
+- `document.updated`
+- `report.generated`
+- `content.published`
 
 ## 主 Agent 网关模式
 
-每个项目的主 Agent 是对外唯一接口：
+每个项目的主 Agent 是对外唯一入口，负责：
 
-```
-外部请求 → 目标项目主Agent（网关）→ 内部分发
-                ↓
-          权限检查（协作关系是否建立）
-                ↓
-          请求分类（查询 / 委托 / 通知）
-                ↓
-          执行或拒绝
-                ↓
-          结果返回（控制信息边界）
-```
+- 判断该项目愿意暴露哪些信息
+- 决定是否接受跨项目任务
+- 控制返回内容的粒度与安全边界
 
-### 协作关系
+这意味着跨项目协作应优先经过“项目主 Agent -> 项目内部能力”的链路，而不是让外部项目直接调用目标项目内部细节。
 
-```typescript
-interface ProjectCollaboration {
-  id: string
-  projectAId: string
-  projectBId: string
-  permissions: {
-    queryAllowed: boolean       // 允许查询
-    taskDelegation: boolean     // 允许委托任务
-  }
-  createdAt: Date
-}
-```
+## 协作关系与权限
 
-- 默认不互通，需要用户手动建立
-- 管理层（AI小助理）默认可访问所有项目
-- 同一群组内的项目自动建立查询权限
+- 项目之间默认不互通，需要显式建立协作关系
+- 管理层入口默认拥有跨项目可见性，但仍应尊重每个项目的边界规则
+- 同一群组内的项目可以天然获得更高的查询可达性，但是否允许执行委托仍应单独判断
 
-## @ 引用解析
+## 前端触发语义
 
-### 前端
+- 输入框支持 `@项目` 作为跨项目意图的显式触发器
+- 发送消息时，前端应把提及到的项目信息结构化传给后端，而不是只保留纯文本标记
+- 若后续引入任务创建器或群组广播面板，它们都应复用同一套项目选择与权限判断逻辑
 
-- 输入框支持 `@` 触发项目选择器（类似现有 @ 人的交互）
-- 选中后插入 `@项目名` 标记
-- 发送时携带 `mentionedProjectIds` 字段
+## 分阶段落地建议
 
-### 后端
+| 阶段 | 内容 |
+|------|------|
+| P0 | Sidebar 重构与项目导航模型稳定 |
+| P1 | 项目类型模板稳定，明确主 Agent 角色 |
+| P2 | 引用 / 查询链路 |
+| P3 | 请求 / 委托链路 |
+| P4 | 群组实体与群组消息 |
+| P5 | 事件驱动通知 |
 
-```
-AiExecuteService.execute(request)
-  1. 解析消息中的 @项目引用
-  2. 校验协作权限
-  3. 对每个引用的项目，通过主Agent网关发起请求
-  4. 收集结果，注入到当前Agent的上下文中
-  5. 继续正常的Agent执行流程
-```
+## Working Rules
 
-## 实施优先级
-
-| 阶段 | 内容 | 依赖 |
-|------|------|------|
-| P0 | Sidebar 重构（单列视图 + hover 浮层） | 无 |
-| P1 | 项目类型模板（创建时选类型） | P0 |
-| P2 | 引用/查询（@ 项目 + 主Agent网关） | P1 |
-| P3 | 请求/委托（跨项目任务） | P2 |
-| P4 | 群组（创建群组 + 消息 + 通知） | P2 |
-| P5 | 订阅/通知（事件驱动广播） | P4 |
+- 只写规则和代码链接，不放示例代码
+- 不要把“查询”“委托”“通知”混成同一条协议；三者的权限、状态和回执要求不同
+- 不要让外部项目直接依赖目标项目内部子 Agent 或内部工具；统一经过主 Agent 网关

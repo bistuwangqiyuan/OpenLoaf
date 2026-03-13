@@ -32,11 +32,10 @@ import {
 interface MessageListProps {
   className?: string;
   projectId?: string;
-  workspaceId?: string;
 }
 
 /** Chat message list for the active session. */
-export default function MessageList({ className, projectId, workspaceId }: MessageListProps) {
+export default function MessageList({ className, projectId }: MessageListProps) {
   // 中文注释：统计渲染频率，用于定位流式渲染压力。
   incrementChatPerf("render.messageList");
   const { messages, status, error, isHistoryLoading, stepThinking, pendingCloudMessage } =
@@ -150,7 +149,7 @@ export default function MessageList({ className, projectId, workspaceId }: Messa
               description="输入消息开始与 AI 交互"
               className="flex-1"
             >
-              <MessageHelper projectId={projectId} workspaceId={workspaceId} />
+              <MessageHelper projectId={projectId} />
             </ConversationEmptyState>
           ) : null}
 

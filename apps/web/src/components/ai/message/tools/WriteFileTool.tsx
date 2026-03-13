@@ -113,7 +113,7 @@ export default function WriteFileTool({
   className?: string
 }) {
   const { t } = useTranslation('ai')
-  const { tabId, workspaceId, projectId } = useChatSession()
+  const { tabId, projectId } = useChatSession()
   const { toolParts } = useChatTools()
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   /** Track refresh emission to avoid duplicates. */
@@ -220,7 +220,6 @@ export default function WriteFileTool({
       params: {
         toolCallIds,
         tabId,
-        workspaceId: workspaceId ?? '',
         projectId,
         __isStreaming: isStreaming,
       },

@@ -12,7 +12,6 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { openSettingsTab, useGlobalOverlay } from "@/lib/globalShortcuts";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
@@ -36,7 +35,7 @@ import type { DesktopIconKey } from "./types";
 interface DesktopTileContentProps {
   item: DesktopItem;
   scope: DesktopScope;
-  webContext?: { projectId?: string; workspaceId?: string };
+  webContext?: { projectId?: string };
   onWebOpen?: () => void;
   /** Callback to trigger widget configuration (folder/url/file selection). */
   onConfigure?: () => void;
@@ -51,7 +50,6 @@ export default function DesktopTileContent({
   onConfigure,
 }: DesktopTileContentProps) {
   const { t } = useTranslation('desktop');
-  const { workspace } = useWorkspace();
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
   const setTabBaseParams = useTabRuntime((state) => state.setTabBaseParams);
@@ -70,12 +68,8 @@ export default function DesktopTileContent({
         setSearchOpen(true);
         return;
       }
-      if (!workspace?.id) {
-        toast.error(t('content.noWorkspace'));
-        return;
-      }
-      if (iconKey === "settings" && scope === "workspace") {
-        openSettingsTab(workspace.id);
+      if (iconKey === "settings" && scope === "global") {
+        openSettingsTab();
         return;
       }
       if (iconKey === "agent-settings") {
@@ -99,7 +93,7 @@ export default function DesktopTileContent({
         return;
       }
       const activeTab = tabs.find(
-        (tab) => tab.id === activeTabId && tab.workspaceId === workspace.id
+        (tab) => tab.id === activeTabId
       );
       if (!activeTab) {
         toast.error(t('content.tabNotFound'));
@@ -115,7 +109,7 @@ export default function DesktopTileContent({
       // 中文注释：仅更新当前激活的项目 tab 子页签。
       setTabBaseParams(activeTab.id, { projectTab: nextTab });
     },
-    [activeTabId, scope, setSearchOpen, setTabBaseParams, tabs, workspace?.id]
+    [activeTabId, scope, setSearchOpen, setTabBaseParams, t, tabs]
   );
 
   React.useEffect(() => {
@@ -287,7 +281,6 @@ export default function DesktopTileContent({
         <WebStackWidget
           item={item}
           projectId={webContext?.projectId}
-          workspaceId={webContext?.workspaceId}
           onOpen={onWebOpen}
         />
         {!item.webUrl && onConfigure ? (
@@ -319,7 +312,6 @@ export default function DesktopTileContent({
         <DynamicWidgetRenderer
           widgetId={item.dynamicWidgetId}
           projectId={item.dynamicProjectId}
-          workspaceId={webContext?.workspaceId ?? ''}
         />
       </div>
     );

@@ -74,7 +74,7 @@ const taskConfigSchema = z.object({
   updatedAt: z.string(),
   completedAt: z.string().optional(),
   createdBy: z.enum(['user', 'agent']),
-  scope: z.enum(['workspace', 'project']),
+  scope: z.enum(['global', 'project']),
   filePath: z.string(),
   projectId: z.string().optional(),
 })
@@ -119,14 +119,12 @@ const taskTemplateSchema = z.object({
 export const scheduledTaskSchemas = {
   list: {
     input: z.object({
-      workspaceId: z.string(),
       projectId: z.string().optional(),
     }),
     output: z.array(taskConfigSchema),
   },
   create: {
     input: z.object({
-      workspaceId: z.string(),
       projectId: z.string().optional(),
       name: z.string().min(1),
       description: z.string().optional(),
@@ -146,7 +144,7 @@ export const scheduledTaskSchemas = {
       autoExecute: z.boolean().optional(),
       parentTaskId: z.string().optional(),
       dependsOn: z.array(z.string()).optional(),
-      scope: z.enum(['workspace', 'project']).optional(),
+      scope: z.enum(['global', 'project']).optional(),
       createdBy: z.enum(['user', 'agent']).optional(),
     }),
     output: taskConfigSchema,
@@ -191,7 +189,6 @@ export const scheduledTaskSchemas = {
   runLogs: {
     input: z.object({
       taskId: z.string(),
-      workspaceId: z.string(),
       projectId: z.string().optional(),
       limit: z.number().optional(),
     }),
@@ -218,14 +215,12 @@ export const scheduledTaskSchemas = {
   getTaskDetail: {
     input: z.object({
       id: z.string(),
-      workspaceId: z.string(),
       projectId: z.string().optional(),
     }),
     output: taskConfigSchema,
   },
   listByStatus: {
     input: z.object({
-      workspaceId: z.string(),
       projectId: z.string().optional(),
       status: z.array(z.enum(['todo', 'running', 'review', 'done', 'cancelled'])).optional(),
     }),
@@ -240,21 +235,17 @@ export const scheduledTaskSchemas = {
   },
   // Template endpoints
   listTemplates: {
-    input: z.object({
-      workspaceId: z.string(),
-    }),
+    input: z.object({}),
     output: z.array(taskTemplateSchema),
   },
   getTemplate: {
     input: z.object({
       id: z.string(),
-      workspaceId: z.string(),
     }),
     output: taskTemplateSchema,
   },
   createTemplate: {
     input: z.object({
-      workspaceId: z.string(),
       name: z.string().min(1),
       description: z.string().optional(),
       agentName: z.string().optional(),
@@ -271,18 +262,16 @@ export const scheduledTaskSchemas = {
   deleteTemplate: {
     input: z.object({
       id: z.string(),
-      workspaceId: z.string(),
     }),
     output: z.object({ ok: z.boolean() }),
   },
   createFromTemplate: {
     input: z.object({
-      workspaceId: z.string(),
       projectId: z.string().optional(),
       templateId: z.string(),
       name: z.string().optional(),
       description: z.string().optional(),
-      scope: z.enum(['workspace', 'project']).optional(),
+      scope: z.enum(['global', 'project']).optional(),
     }),
     output: taskConfigSchema,
   },

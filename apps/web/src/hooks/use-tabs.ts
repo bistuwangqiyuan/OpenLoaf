@@ -14,16 +14,22 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_TAB_INFO, type DockItem } from "@openloaf/api/common";
 import { createChatSessionId } from "@/lib/chat-session-id";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
+import {
+  resolveProjectShellForNewTab,
+  resolveProjectShellSectionFromBase,
+} from "@/lib/project-shell-tab";
+import { isProjectWindowMode } from "@/lib/window-mode";
 import { useChatRuntime } from "./use-chat-runtime";
 import { useTabRuntime } from "./use-tab-runtime";
 import type { TabMeta } from "./tab-types";
 import { LEFT_DOCK_DEFAULT_PERCENT, LEFT_DOCK_MIN_PX } from "./tab-utils";
+import type { ProjectShellState } from "@/lib/project-shell";
 
 export const TABS_STORAGE_KEY = "openloaf:tabs";
 export { LEFT_DOCK_DEFAULT_PERCENT, LEFT_DOCK_MIN_PX };
 
 type AddTabInput = {
-  workspaceId: string; // 所属工作区ID
   title?: string; // 标签页标题
   icon?: string; // 标签页图标
   isPin?: boolean; // 是否固定标签页
@@ -34,6 +40,7 @@ type AddTabInput = {
   chatSessionId?: string; // 聊天会话ID
   chatParams?: Record<string, unknown>; // 聊天参数
   chatLoadHistory?: boolean; // 是否加载聊天历史
+  projectShell?: ProjectShellState; // 项目上下文元信息
 };
 
 export interface TabsState {
@@ -43,9 +50,7 @@ export interface TabsState {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   getTabById: (tabId: string) => TabMeta | undefined;
-  getWorkspaceTabs: (workspaceId: string) => TabMeta[];
   reorderTabs: (
-    workspaceId: string,
     sourceTabId: string,
     targetTabId: string,
     position?: "before" | "after",
@@ -73,13 +78,8 @@ export interface TabsState {
   ) => void;
   /** Merge chat params for a tab. */
   setTabChatParams: (tabId: string, patch: Record<string, unknown>) => void;
-  /** Remove all tabs under a workspace and cleanup related runtime state. */
-  removeTabsByWorkspace: (
-    workspaceId: string,
-    options?: { fallbackWorkspaceId?: string },
-  ) => void;
-  /** Reset target workspace tabs and keep only one desktop tab. */
-  resetWorkspaceTabsToDesktop: (workspaceId: string) => void;
+  /** Set or clear project-shell state for a tab. */
+  setTabProjectShell: (tabId: string, projectShell: ProjectShellState | null) => void;
 }
 
 function generateId(prefix = "id") {
@@ -119,7 +119,7 @@ function shouldUnmountTab(tab: TabMeta, runtime: { base?: DockItem }): boolean {
   return true;
 }
 
-function orderWorkspaceTabs(tabs: TabMeta[]) {
+function orderTabs(tabs: TabMeta[]) {
   // 固定标签始终排在前面；普通标签保持相对顺序。
   const pinned: TabMeta[] = [];
   const regular: TabMeta[] = [];
@@ -162,6 +162,12 @@ function normalizeTabSessionState(tab: TabMeta) {
   };
 }
 
+/** Resolve tab storage by renderer mode to isolate project windows. */
+function resolveTabsStorage() {
+  if (typeof window === "undefined") return localStorage;
+  return isProjectWindowMode() ? window.sessionStorage : window.localStorage;
+}
+
 export const useTabs = create<TabsState>()(
   persist(
     (set, get): TabsState => ({
@@ -173,7 +179,6 @@ export const useTabs = create<TabsState>()(
         const now = Date.now();
         const {
           createNew = false,
-          workspaceId,
           base,
           title,
           icon,
@@ -183,9 +188,47 @@ export const useTabs = create<TabsState>()(
           chatSessionId: requestedChatSessionId,
           chatParams,
           chatLoadHistory,
+          projectShell,
         } = input;
 
         const normalizedBase = base?.component === "ai-chat" ? undefined : base;
+        const currentActiveTab =
+          get().activeTabId
+            ? get().tabs.find((tab) => tab.id === get().activeTabId)
+            : undefined;
+        const inputChatParams =
+          typeof chatParams === "object" && chatParams
+            ? ({ ...(chatParams as Record<string, unknown>) } as Record<string, unknown>)
+            : undefined;
+        const inferredSection = resolveProjectShellSectionFromBase(normalizedBase);
+        const activeProjectShell = resolveProjectModeProjectShell(
+          currentActiveTab?.projectShell,
+          inferredSection ?? projectShell?.section ?? "assistant",
+        );
+        const resolvedProjectShell = resolveProjectShellForNewTab(
+          {
+            base: normalizedBase,
+            chatParams: inputChatParams,
+            projectShell,
+          },
+          activeProjectShell,
+        );
+        const hasExplicitProjectId = Boolean(
+          inputChatParams
+          && Object.prototype.hasOwnProperty.call(inputChatParams, "projectId"),
+        );
+        const resolvedChatParams =
+          resolvedProjectShell
+          && (
+            !hasExplicitProjectId
+            || (typeof inputChatParams?.projectId === "string"
+              && inputChatParams.projectId.trim().length === 0)
+          )
+            ? {
+                ...(inputChatParams ?? {}),
+                projectId: resolvedProjectShell.projectId,
+              }
+            : inputChatParams;
 
         const tabId = generateId("tab");
         const createdChatSessionId = requestedChatSessionId ?? createChatSessionId();
@@ -193,8 +236,8 @@ export const useTabs = create<TabsState>()(
 
         // 初始化 session → projectId 映射
         const initialProjectId =
-          typeof (chatParams as Record<string, unknown> | undefined)?.projectId === "string"
-            ? ((chatParams as Record<string, unknown>).projectId as string)
+          typeof resolvedChatParams?.projectId === "string"
+            ? (resolvedChatParams.projectId as string)
             : "";
         const chatSessionProjectIds = initialProjectId
           ? { [createdChatSessionId]: initialProjectId }
@@ -202,16 +245,16 @@ export const useTabs = create<TabsState>()(
 
         const nextTab: TabMeta = {
           id: tabId,
-          workspaceId,
           title: title ?? i18next.t(DEFAULT_TAB_INFO.titleKey),
           icon: icon ?? DEFAULT_TAB_INFO.icon,
           isPin: isPin ?? false,
           chatSessionId: createdChatSessionId,
           chatSessionIds: [createdChatSessionId],
           activeSessionIndex: 0,
-          chatParams,
+          chatParams: resolvedChatParams,
           chatSessionProjectIds,
           chatLoadHistory: createdChatLoadHistory,
+          projectShell: resolvedProjectShell,
           createdAt: now,
           lastActiveAt: now,
         };
@@ -237,20 +280,18 @@ export const useTabs = create<TabsState>()(
         set((state) => {
           // 关闭标签规则：
           // - 固定标签不可关闭
-          // - 工作区至少保留 1 个标签
-          // - 如果关闭的是当前激活标签，回退到该工作区 lastActiveAt 最新的标签
+          // - 至少保留 1 个标签
+          // - 如果关闭的是当前激活标签，回退到 lastActiveAt 最新的标签
           const tabToClose = state.tabs.find((tab) => tab.id === tabId);
           if (!tabToClose || tabToClose.isPin) return state;
 
-          const workspaceTabs = state.tabs.filter((tab) => tab.workspaceId === tabToClose.workspaceId);
-          if (workspaceTabs.length <= 1) return state;
+          if (state.tabs.length <= 1) return state;
 
           const nextTabs = state.tabs.filter((tab) => tab.id !== tabId);
           let nextActiveTabId = state.activeTabId;
           if (state.activeTabId === tabId) {
-            const remaining = nextTabs.filter((tab) => tab.workspaceId === tabToClose.workspaceId);
             const fallback =
-              remaining.reduce<TabMeta | null>(
+              nextTabs.reduce<TabMeta | null>(
                 (best, tab) => (!best || tab.lastActiveAt > best.lastActiveAt ? tab : best),
                 null,
               ) ?? null;
@@ -307,27 +348,24 @@ export const useTabs = create<TabsState>()(
         return meta ?? undefined;
       },
 
-      getWorkspaceTabs: (workspaceId) =>
-        orderWorkspaceTabs(get().tabs.filter((tab) => tab.workspaceId === workspaceId)),
-
-      reorderTabs: (workspaceId, sourceTabId, targetTabId, position = "before") => {
+      reorderTabs: (sourceTabId, targetTabId, position = "before") => {
         set((state) => {
           // 拖拽排序：
           // - 固定区/非固定区各自独立排序，禁止跨区混排
           // - position 控制插入到目标前/后
           if (sourceTabId === targetTabId) return state;
 
-          const workspaceTabs = orderWorkspaceTabs(state.tabs.filter((tab) => tab.workspaceId === workspaceId));
-          const pinnedCount = workspaceTabs.filter((tab) => tab.isPin).length;
+          const allTabs = orderTabs([...state.tabs]);
+          const pinnedCount = allTabs.filter((tab) => tab.isPin).length;
 
-          const fromIndex = workspaceTabs.findIndex((tab) => tab.id === sourceTabId);
-          const toIndex = workspaceTabs.findIndex((tab) => tab.id === targetTabId);
+          const fromIndex = allTabs.findIndex((tab) => tab.id === sourceTabId);
+          const toIndex = allTabs.findIndex((tab) => tab.id === targetTabId);
           if (fromIndex === -1 || toIndex === -1) return state;
 
-          const sourcePinned = Boolean(workspaceTabs[fromIndex]?.isPin);
-          const targetPinned = Boolean(workspaceTabs[toIndex]?.isPin);
+          const sourcePinned = Boolean(allTabs[fromIndex]?.isPin);
+          const targetPinned = Boolean(allTabs[toIndex]?.isPin);
 
-          const reordered = [...workspaceTabs];
+          const reordered = [...allTabs];
           const [moved] = reordered.splice(fromIndex, 1);
           let targetIndex = toIndex;
 
@@ -347,12 +385,7 @@ export const useTabs = create<TabsState>()(
           const boundedIndex = Math.max(lowerBound, Math.min(targetIndex, upperBound));
           reordered.splice(boundedIndex, 0, moved!);
 
-          const workspaceQueue = [...reordered];
-          const nextTabs = state.tabs.map((tab) =>
-            tab.workspaceId !== workspaceId ? tab : (workspaceQueue.shift() as TabMeta),
-          );
-
-          return { tabs: nextTabs };
+          return { tabs: reordered };
         });
       },
 
@@ -363,13 +396,7 @@ export const useTabs = create<TabsState>()(
 
           const updatedTabs = state.tabs.map((tab) => (tab.id === tabId ? { ...tab, isPin } : tab));
 
-          const workspaceTabs = orderWorkspaceTabs(updatedTabs.filter((tab) => tab.workspaceId === target.workspaceId));
-          const workspaceQueue = [...workspaceTabs];
-          const nextTabs = updatedTabs.map((tab) =>
-            tab.workspaceId !== target.workspaceId ? tab : (workspaceQueue.shift() as TabMeta),
-          );
-
-          return { tabs: nextTabs };
+          return { tabs: orderTabs(updatedTabs) };
         });
       },
 
@@ -619,60 +646,23 @@ export const useTabs = create<TabsState>()(
           }),
         }));
       },
-      removeTabsByWorkspace: (workspaceId, options) => {
-        let removedTabIds: string[] = [];
-        set((state) => {
-          if (!workspaceId) return state;
-          const removedTabs = state.tabs.filter((tab) => tab.workspaceId === workspaceId);
-          if (!removedTabs.length) return state;
-          removedTabIds = removedTabs.map((tab) => tab.id);
-          const removedTabIdSet = new Set(removedTabIds);
-          const nextTabs = state.tabs.filter((tab) => !removedTabIdSet.has(tab.id));
-
-          let nextActiveTabId = state.activeTabId;
-          if (!nextActiveTabId || removedTabIdSet.has(nextActiveTabId)) {
-            const fallbackWorkspaceTabs = options?.fallbackWorkspaceId
-              ? orderWorkspaceTabs(
-                  nextTabs.filter((tab) => tab.workspaceId === options.fallbackWorkspaceId),
-                )
-              : [];
-            const fallbackTab =
-              fallbackWorkspaceTabs[0] ??
-              nextTabs.reduce<TabMeta | null>(
-                (best, tab) => (!best || tab.lastActiveAt > best.lastActiveAt ? tab : best),
-                null,
-              );
-            nextActiveTabId = fallbackTab?.id ?? null;
-          }
-
-          return {
-            tabs: nextTabs,
-            activeTabId: nextActiveTabId,
-          };
-        });
-        // 中文注释：workspace 被删除后，立即释放其 tab 的运行时状态，避免保活面板继续发起请求。
-        removedTabIds.forEach((tabId) => {
-          useTabRuntime.getState().clearRuntimeByTabId(tabId);
-          useChatRuntime.getState().clearRuntimeByTabId(tabId);
-        });
-      },
-      resetWorkspaceTabsToDesktop: (workspaceId) => {
-        if (!workspaceId) return;
-        get().removeTabsByWorkspace(workspaceId);
-        get().addTab({
-          workspaceId,
-          createNew: true,
-          title: i18next.t(DEFAULT_TAB_INFO.titleKey),
-          icon: DEFAULT_TAB_INFO.icon,
-          leftWidthPercent: 0,
-          rightChatCollapsed: false,
-        });
+      setTabProjectShell: (tabId, projectShell) => {
+        set((state) => ({
+          tabs: updateTabById(state.tabs, tabId, (tab) => {
+            const nextProjectShell = projectShell ?? undefined;
+            if (tab.projectShell === nextProjectShell) return tab;
+            return {
+              ...tab,
+              projectShell: nextProjectShell,
+            };
+          }),
+        }));
       },
     }),
     {
       name: TABS_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
-      version: 8,
+      storage: createJSONStorage(resolveTabsStorage),
+      version: 10,
       migrate: (persisted: any) => {
         const now = Date.now();
         const tabs = Array.isArray(persisted?.tabs) ? persisted.tabs : [];
@@ -681,10 +671,6 @@ export const useTabs = create<TabsState>()(
           ...persisted,
           tabs: tabs.map((tab: any): TabMeta => ({
             id: typeof tab?.id === "string" && tab.id ? tab.id : generateId("tab"),
-            workspaceId:
-              typeof tab?.workspaceId === "string" && tab.workspaceId
-                ? tab.workspaceId
-                : "unknown",
             title:
               typeof tab?.title === "string" && tab.title
                 ? tab.title
@@ -714,6 +700,10 @@ export const useTabs = create<TabsState>()(
               typeof tab?.chatParams === "object" && tab.chatParams ? tab.chatParams : undefined,
             chatLoadHistory:
               typeof tab?.chatLoadHistory === "boolean" ? tab.chatLoadHistory : undefined,
+            projectShell:
+              tab?.projectShell && typeof tab.projectShell === "object"
+                ? (tab.projectShell as ProjectShellState)
+                : undefined,
             createdAt: Number.isFinite(tab?.createdAt) ? tab.createdAt : now,
             lastActiveAt: Number.isFinite(tab?.lastActiveAt) ? tab.lastActiveAt : now,
           })).map((tab: TabMeta) => {

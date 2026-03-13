@@ -20,6 +20,8 @@ import { Info, Loader2, Play, Sparkles } from "lucide-react";
 import i18next from "i18next";
 import { BOARD_TOOLBAR_ITEM_BLUE, BOARD_TOOLBAR_ITEM_GREEN } from "../ui/board-style-system";
 import { IMAGE_PROMPT_GENERATE_NODE_TYPE } from "./imagePromptGenerate";
+import { getBoardChatMessageMeta } from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 import { openFilePreview } from "@/components/file/lib/file-preview-store";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
@@ -60,14 +62,12 @@ function resolveProjectRelativePath(path: string, fileContext?: BoardFileContext
 
 /** Open video in the file preview dialog (same as double-click). */
 async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileContext) {
-  const workspaceId = fileContext?.workspaceId ?? "";
   const boardId = fileContext?.boardId ?? "";
   const projectRelativePath = resolveProjectRelativePath(props.sourcePath, fileContext);
   const resolvedPath = projectRelativePath || props.sourcePath;
   const displayName = props.fileName || resolvedPath.split("/").pop() || "Video";
 
   const metadata = await fetchVideoMetadata({
-    workspaceId,
     projectId: fileContext?.projectId,
     uri: projectRelativePath || props.sourcePath,
   });
@@ -82,7 +82,6 @@ async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileCo
         width: metadata?.width ?? props.naturalWidth,
         height: metadata?.height ?? props.naturalHeight,
         projectId: fileContext?.projectId,
-        workspaceId,
         rootUri: fileContext?.rootUri,
         boardId,
       },
@@ -95,7 +94,7 @@ async function openVideoPreview(props: VideoNodeProps, fileContext?: BoardFileCo
 
 /** Build toolbar items for video nodes. */
 function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
-  return [
+  const baseItems = [
     {
       id: 'play',
       label: i18next.t('board:videoNode.toolbar.play'),
@@ -111,17 +110,22 @@ function createVideoToolbarItems(ctx: CanvasToolbarContext<VideoNodeProps>) {
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
+  const messageMeta = getBoardChatMessageMeta(ctx.element);
+  if (!messageMeta) return baseItems;
+  const chatItems = createBoardChatMessageToolbarItems(ctx, messageMeta);
+  return (messageMeta.status ?? "streaming") === "complete"
+    ? [...chatItems, ...baseItems]
+    : chatItems;
 }
 
 /** Build an HLS manifest URL for a project-relative video path. */
 function buildHlsManifestUrl(
   path: string,
-  ids: { projectId?: string; workspaceId?: string; boardId?: string },
+  ids: { projectId?: string; boardId?: string },
 ) {
   const baseUrl = resolveServerUrl();
   const query = new URLSearchParams({ path });
   if (ids.projectId) query.set("projectId", ids.projectId);
-  if (ids.workspaceId) query.set("workspaceId", ids.workspaceId);
   if (ids.boardId) query.set("boardId", ids.boardId);
   const prefix = baseUrl ? `${baseUrl}/media/hls/manifest` : "/media/hls/manifest";
   return `${prefix}?${query.toString()}`;
@@ -131,12 +135,11 @@ function buildHlsManifestUrl(
 function buildHlsQualityUrl(
   path: string,
   quality: string,
-  ids: { projectId?: string; workspaceId?: string; boardId?: string },
+  ids: { projectId?: string; boardId?: string },
 ) {
   const baseUrl = resolveServerUrl();
   const query = new URLSearchParams({ path, quality });
   if (ids.projectId) query.set("projectId", ids.projectId);
-  if (ids.workspaceId) query.set("workspaceId", ids.workspaceId);
   if (ids.boardId) query.set("boardId", ids.boardId);
   const prefix = baseUrl ? `${baseUrl}/media/hls/manifest` : "/media/hls/manifest";
   return `${prefix}?${query.toString()}`;
@@ -168,11 +171,10 @@ export function VideoNodeView({
   const ids = useMemo(
     () => ({
       projectId: effectiveProjectId,
-      workspaceId: fileContext?.workspaceId,
       // 逻辑：仅 board-relative 路径需要 boardId，否则服务端会错误拼接板路径前缀。
       boardId: isBoardRelativePath(element.props.sourcePath) ? fileContext?.boardId : undefined,
     }),
-    [effectiveProjectId, fileContext?.workspaceId, fileContext?.boardId, element.props.sourcePath],
+    [effectiveProjectId, fileContext?.boardId, element.props.sourcePath],
   );
 
   const handlePlayInline = useCallback(() => {

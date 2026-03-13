@@ -43,7 +43,6 @@ import { sortEntriesByType } from "../utils/entry-sort";
 import { getEntryVisual } from "./FileSystemEntryVisual";
 import { useFileSystemDrag } from "../hooks/use-file-system-drag";
 import { useFolderThumbnails } from "../hooks/use-folder-thumbnails";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 type FileSystemGitTreeProps = {
   /** Project root uri. */
@@ -272,9 +271,7 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
   shouldBlockPointerEvent,
   onContextMenuCapture,
 }: FileSystemGitTreeNodeProps) {
-  const { t } = useTranslation(['workspace']);
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const { t } = useTranslation(['project']);
   const isExpanded = expandedNodes[node.entry.uri] ?? false;
   const isSelected = selectedUris.has(node.entry.uri);
   const canExpand = node.isFolder && node.entry.isEmpty !== true;
@@ -286,9 +283,8 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
   // 逻辑：仅在展开时拉取子目录，避免深层目录导致请求爆炸。
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
-      shouldFetchChildren && workspaceId
+      shouldFetchChildren
         ? {
-            workspaceId,
             projectId,
             uri: node.entry.uri,
             includeHidden: showHidden,
@@ -465,21 +461,21 @@ const FileSystemGitTreeNode = memo(function FileSystemGitTreeNode({
               className="py-1 pl-8 text-xs text-muted-foreground"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.loading')}
+              {t('project:filesystem.loading')}
             </div>
           ) : listQuery.isError ? (
             <div
               className="py-1 pl-8 text-xs text-destructive"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.loadError')}
+              {t('project:filesystem.loadError')}
             </div>
           ) : childNodes.length === 0 ? (
             <div
               className="py-1 pl-8 text-xs text-muted-foreground"
               style={{ paddingLeft: `${childDepth * 12 + 8}px` }}
             >
-              {t('workspace:filesystem.emptyParens')}
+              {t('project:filesystem.emptyParens')}
             </div>
           ) : (
             childNodes.map((child) => (
@@ -573,7 +569,7 @@ export default function FileSystemGitTree({
   );
   const rootRelative = useMemo(() => {
     const relative = getRelativePathFromUri(rootUri, rootUri);
-    // file:// URI 的自身相对路径为空，但空字符串会被服务端解析为工作空间根目录。
+    // file:// URI 的自身相对路径为空，但空字符串会被服务端解析为全局根目录。
     // 直接使用 file:// URI 作为根节点 URI，服务端 resolveScopedPath 支持 file: 协议。
     if (!relative && rootUri.startsWith("file://")) return rootUri;
     return relative;

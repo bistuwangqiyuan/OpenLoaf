@@ -14,12 +14,11 @@ import { createBrowserTabId } from "@/hooks/tab-id";
 
 /** Build the browser view key for stack entries. */
 function buildBrowserViewKey(input: {
-  workspaceId: string;
   tabId: string;
   chatSessionId: string;
   browserTabId: string;
 }) {
-  return `browser:${input.workspaceId}:${input.tabId}:${input.chatSessionId}:${input.browserTabId}`;
+  return `browser:${input.tabId}:${input.chatSessionId}:${input.browserTabId}`;
 }
 
 export type OpenLinkInput = {
@@ -51,7 +50,6 @@ export function openLinkInStack({ url, title, activeTabId }: OpenLinkInput) {
   if (!tab) return;
 
   const viewKey = buildBrowserViewKey({
-    workspaceId: tab.workspaceId ?? "unknown",
     tabId,
     chatSessionId: tab.chatSessionId ?? "unknown",
     browserTabId: createBrowserTabId(),

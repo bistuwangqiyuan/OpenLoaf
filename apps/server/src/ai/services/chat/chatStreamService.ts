@@ -31,7 +31,6 @@ import {
   setAssistantParentMessageId,
   setCliSession,
   setCliRewindTarget,
-  getWorkspaceId,
   getProjectId,
 } from "@/ai/shared/context/requestContext";
 import {
@@ -45,8 +44,6 @@ import { buildSessionPrefaceText } from "@/ai/shared/prefaceBuilder";
 import { assembleDefaultAgentInstructions } from "@/ai/shared/agentPromptAssembler";
 import {
   getProjectRootPath,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
 } from "@openloaf/api/services/vfsService";
 import { resolveImagePrompt, type GenerateImagePrompt } from "@/ai/services/image/imagePrompt";
 import { saveChatImageAttachment } from "@/ai/services/image/attachmentResolver";
@@ -144,7 +141,6 @@ type ImageModelResult = {
 
 /** Resolve model IDs from master agent config + global chatSource. */
 function resolveAgentModelIds(input: {
-  workspaceId?: string
   projectId?: string
 }): {
   chatModelId?: string
@@ -155,7 +151,6 @@ function resolveAgentModelIds(input: {
 } {
   return resolveAgentModelIdsFromConfig({
     agentName: 'master',
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
   })
 }
@@ -179,7 +174,6 @@ function normalizeSelectedSkills(input?: unknown): string[] {
 /** Resolve active skills from master agent config.
  *  Empty array = all skills enabled (backward compatible). */
 function resolveAgentSkills(input: {
-  workspaceId?: string
   projectId?: string
 }): string[] {
   const roots: string[] = []
@@ -187,12 +181,6 @@ function resolveAgentSkills(input: {
     const projectRoot = getProjectRootPath(input.projectId)
     if (projectRoot) roots.push(projectRoot)
   }
-  if (input.workspaceId) {
-    const wsRoot = getWorkspaceRootPathById(input.workspaceId)
-    if (wsRoot) roots.push(wsRoot)
-  }
-  const fallbackWs = getWorkspaceRootPath()
-  if (fallbackWs && !roots.includes(fallbackWs)) roots.push(fallbackWs)
 
   for (const rootPath of roots) {
     const descriptor = readAgentJson(resolveAgentDir(rootPath, 'master'))
@@ -270,14 +258,13 @@ export async function runChatStream(input: {
     clientId,
     timezone,
     tabId,
-    workspaceId,
     projectId,
     boardId,
     trigger,
   } = input.request;
 
   // 逻辑：从 master agent 配置读取模型，不再依赖请求参数。
-  const agentModelIds = resolveAgentModelIds({ workspaceId, projectId })
+  const agentModelIds = resolveAgentModelIds({ projectId })
   let chatModelId = agentModelIds.chatModelId
   let chatModelSource = agentModelIds.chatModelSource
 
@@ -288,7 +275,7 @@ export async function runChatStream(input: {
   }
 
   // 逻辑：优先从 master agent config 读取已启用技能，/skill/ 命令作为临时覆盖。
-  const configSkills = resolveAgentSkills({ workspaceId, projectId })
+  const configSkills = resolveAgentSkills({ projectId })
   const selectedSkills = configSkills
   const { abortController, assistantMessageId, requestStartAt } = initRequestContext({
     sessionId,
@@ -296,7 +283,6 @@ export async function runChatStream(input: {
     clientId,
     timezone,
     tabId,
-    workspaceId,
     projectId,
     boardId,
     selectedSkills,
@@ -365,13 +351,11 @@ export async function runChatStream(input: {
 
   // 逻辑：在首条用户消息前确保 preface 已落库。
   const parentProjectRootPaths = await resolveParentProjectRootPaths(projectId);
-  const resolvedWorkspaceId = getWorkspaceId() ?? workspaceId ?? undefined;
   const resolvedProjectId = getProjectId() ?? projectId ?? undefined;
   await ensureSessionPreface({
     sessionId,
     text: await buildSessionPrefaceText({
       sessionId,
-      workspaceId: resolvedWorkspaceId,
       projectId: resolvedProjectId,
       selectedSkills,
       parentProjectRootPaths,
@@ -379,7 +363,6 @@ export async function runChatStream(input: {
       clientPlatform: input.request.clientPlatform,
     }),
     createdAt: requestStartAt,
-    workspaceId: resolvedWorkspaceId,
     projectId: resolvedProjectId,
     boardId: boardId ?? undefined,
   });
@@ -691,7 +674,6 @@ export async function runChatStream(input: {
     assistantMessageId,
     parentMessageId,
     requestStartAt,
-    workspaceId: resolvedWorkspaceId ?? workspaceId ?? undefined,
     modelMessages,
     agentRunner: masterAgent,
     agentMetadata,
@@ -718,7 +700,6 @@ export async function runChatImageRequest(input: {
     clientId,
     timezone,
     tabId,
-    workspaceId,
     projectId,
     boardId,
     imageSaveDir,
@@ -726,18 +707,17 @@ export async function runChatImageRequest(input: {
   } = input.request;
 
   // 逻辑：从 master agent 配置读取模型，不再依赖请求参数。
-  const imageAgentModelIds = resolveAgentModelIds({ workspaceId, projectId })
+  const imageAgentModelIds = resolveAgentModelIds({ projectId })
   const chatModelId = imageAgentModelIds.chatModelId
   const chatModelSource = imageAgentModelIds.chatModelSource
 
-  const selectedSkills = resolveAgentSkills({ workspaceId, projectId })
+  const selectedSkills = resolveAgentSkills({ projectId })
   const { abortController, assistantMessageId, requestStartAt } = initRequestContext({
     sessionId,
     cookies: input.cookies,
     clientId,
     timezone,
     tabId,
-    workspaceId,
     projectId,
     boardId,
     selectedSkills,
@@ -756,13 +736,11 @@ export async function runChatImageRequest(input: {
 
   // 逻辑：在首条用户消息前确保 preface 已落库。
   const parentProjectRootPaths = await resolveParentProjectRootPaths(projectId);
-  const resolvedWorkspaceId = getWorkspaceId() ?? workspaceId ?? undefined;
   const resolvedProjectId = getProjectId() ?? projectId ?? undefined;
   await ensureSessionPreface({
     sessionId,
     text: await buildSessionPrefaceText({
       sessionId,
-      workspaceId: resolvedWorkspaceId,
       projectId: resolvedProjectId,
       selectedSkills,
       parentProjectRootPaths,
@@ -770,7 +748,6 @@ export async function runChatImageRequest(input: {
       clientPlatform: input.request.clientPlatform,
     }),
     createdAt: requestStartAt,
-    workspaceId: resolvedWorkspaceId,
     projectId: resolvedProjectId,
     boardId: boardId ?? undefined,
   });
@@ -971,17 +948,12 @@ async function generateImageModelResult(input: ImageModelRequest): Promise<Image
       : undefined,
     messages: input.metadataMessages ?? input.messages,
   });
-  const workspaceId = getWorkspaceId();
-  if (!workspaceId) {
-    throw new Error("workspaceId 缺失，无法保存图片");
-  }
   const projectId = getProjectId();
   const imageSaveDirRaw =
     typeof input.imageSaveDir === "string" ? input.imageSaveDir.trim() : "";
   if (imageSaveDirRaw) {
     const resolvedSaveDir = await resolveImageSaveDirectory({
       imageSaveDir: imageSaveDirRaw,
-      workspaceId,
       projectId: projectId || undefined,
     });
     if (!resolvedSaveDir) {
@@ -1002,7 +974,6 @@ async function generateImageModelResult(input: ImageModelRequest): Promise<Image
     const ext = resolveImageExtension(downloaded.mediaType);
     const fileName = `${baseName}.${ext}`;
     const saved = await saveChatImageAttachment({
-      workspaceId,
       projectId: projectId || undefined,
       boardId: input.boardId || undefined,
       sessionId: input.sessionId,
@@ -1195,7 +1166,6 @@ async function resolveSaasImageInputs(input: {
   abortSignal: AbortSignal;
 }): Promise<AiImageRequest["inputs"] | undefined> {
   if (input.images.length === 0 && !input.mask) return undefined;
-  const workspaceId = getWorkspaceId();
   const projectId = getProjectId();
   const resolvedImages = await Promise.all(
     input.images.map((image, index) =>
@@ -1204,7 +1174,6 @@ async function resolveSaasImageInputs(input: {
         mediaType: image.mediaType,
         fallbackName: `image-${index + 1}`,
         projectId: projectId || undefined,
-        workspaceId: workspaceId || undefined,
         abortSignal: input.abortSignal,
       }).then((resolved) => ({
         base64: resolved.buffer.toString("base64"),
@@ -1218,7 +1187,6 @@ async function resolveSaasImageInputs(input: {
         mediaType: input.mask.mediaType,
         fallbackName: "mask",
         projectId: projectId || undefined,
-        workspaceId: workspaceId || undefined,
         abortSignal: input.abortSignal,
       }).then((resolved) => ({
         base64: resolved.buffer.toString("base64"),
@@ -1396,7 +1364,6 @@ function buildImageMetadata(input: {
       "[chat] image metadata sanitized",
     );
   }
-  const workspaceId = getWorkspaceId();
   const projectId = getProjectId();
 
   return {
@@ -1408,7 +1375,6 @@ function buildImageMetadata(input: {
     chatModelId: input.chatModelId,
     modelSource: input.chatModelSource,
     providerId: input.providerId,
-    workspaceId: workspaceId || undefined,
     projectId: projectId || undefined,
     boardId: input.boardId || undefined,
     trigger: input.trigger,

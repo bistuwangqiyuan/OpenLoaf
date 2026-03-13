@@ -3,8 +3,6 @@ name: ai-test-development
 description: Use when creating, extending, or debugging automated tests for server modules or web utilities — covers test environment setup, test runner selection, layer-based test organization, pure function extraction, environment isolation, and concurrent test patterns
 ---
 
-# AI Test Development
-
 ## Overview
 
 项目维护两套独立测试体系：
@@ -24,29 +22,11 @@ description: Use when creating, extending, or debugging automated tests for serv
 - 调试现有测试失败
 - 设计测试分层策略（纯函数 → I/O → 集成）
 
-## Quick Reference
-
-### 测试运行器选择
-
-```
-需要测试的代码在哪里？
-├── apps/server/  → 服务端测试（node:assert + 自定义 runner）
-│   文件：src/**/__tests__/*.test.ts
-│   运行：cd apps/server && node --enable-source-maps --import tsx/esm \
-│         --import ./scripts/registerMdTextLoader.mjs src/path/__tests__/xxx.test.ts
-│
-└── apps/web/     → Web 端测试（Vitest）
-    文件：src/**/__tests__/*.vitest.ts
-    运行：cd apps/web && pnpm vitest --run src/path/__tests__/xxx.vitest.ts
-```
-
 ### 文件命名约定
 
 - 服务端：`apps/server/src/<module>/__tests__/<name>.test.ts`
 - Web 端：`apps/web/src/lib/<module>/__tests__/<name>.vitest.ts`
 - 测试辅助：`__tests__/helpers/` 目录下
-
-## Core Patterns
 
 ### 1. 分层测试组织（A → B → C）
 
@@ -58,75 +38,11 @@ description: Use when creating, extending, or debugging automated tests for serv
 
 参考：`apps/server/src/ai/__tests__/chatFileStore.test.ts`
 
-### 2. 服务端测试模板
-
-```typescript
-import assert from 'node:assert/strict'
-// ... 业务导入
-
-// ---- Test runner ----
-let passed = 0
-let failed = 0
-const errors: string[] = []
-
-async function test(name: string, fn: () => Promise<void> | void) {
-  try {
-    await fn()
-    passed++
-    console.log(`  \u2713 ${name}`)
-  } catch (err: any) {
-    failed++
-    const m = err?.message ?? String(err)
-    errors.push(`${name}: ${m}`)
-    console.log(`  \u2717 ${name}: ${m}`)
-  }
-}
-
-// ---- Main ----
-async function main() {
-  // Setup: 临时目录 + root override + DB session
-  // Tests: A → B → C 分层
-  // Teardown: 清理 DB + 重置 override + 删除临时目录
-  // Summary: 输出统计
-}
-
-main().catch((err) => { console.error(err); process.exit(1) })
-```
-
 ### 3. Web 端测试模板
-
-```typescript
-import { describe, expect, it } from 'vitest'
-import { myFunction } from '../my-module'
-
-describe('myFunction', () => {
-  it('描述行为', () => {
-    expect(myFunction(input)).toBe(expected)
-  })
-})
-```
 
 Vitest 配置：`apps/web/vitest.config.ts`（jsdom 环境，`@/` 别名已配置）。
 
 ### 4. 环境隔离模式
-
-```typescript
-import os from 'node:os'
-import path from 'node:path'
-import { promises as fs } from 'node:fs'
-import { setOpenLoafRootOverride } from '@openloaf/config'
-
-// Setup
-const tempDir = path.join(os.tmpdir(), `mytest_${Date.now()}`)
-await fs.mkdir(tempDir, { recursive: true })
-setOpenLoafRootOverride(tempDir)
-
-// ... 测试代码 ...
-
-// Teardown（放在 finally 块中）
-setOpenLoafRootOverride(null)
-await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
-```
 
 需要 DB 隔离时，额外创建 Prisma session 并在 teardown 中删除。
 
@@ -170,8 +86,6 @@ await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
 
 详细代码模板见 [references/test-patterns.md](references/test-patterns.md)。
 
-## AI Agent 行为测试（Promptfoo）
-
 ### 概述
 
 除了上述分层测试体系外，项目还使用 [Promptfoo](https://github.com/promptfoo/promptfoo) 进行 **AI Agent 行为质量测试**。这类测试关注的不是代码逻辑正确性，而是 Agent 在面对自然语言指令时的行为质量：
@@ -195,8 +109,6 @@ await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
 
 **覆盖率验证**：`pnpm run check:tool-coverage` 对比已注册工具与已测试工具，报告缺失和孤立。新增或删除工具后应运行此命令确认一致性。
 
-### 架构
-
 #### 统一 Provider（openloaf-universal-provider.ts）
 
 项目使用**单一统一 Provider**，通过 `vars.agentType` 路由到不同的执行路径：
@@ -207,17 +119,6 @@ await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
 | `calendar`/`email`/... | `createSubAgent()` | 手动 `toolIds` | 无 | 不支持 | 直接调用子 Agent 调试 |
 
 **默认路径（完整 pipeline）**：
-
-```
-AiExecuteService.execute()
-  ├─ initRequestContext()           — 完整请求上下文
-  ├─ Command 解析                   — 识别 /summary-title 等斜杠命令
-  ├─ Skill 注入                     — 注入已启用的 Skill
-  ├─ resolveChatModel()             — 从 agent config 自动解析模型
-  ├─ assembleDefaultAgentInstructions() — 动态组装系统提示
-  ├─ createMasterAgentRunner()      — 创建 Master Agent（含 ToolSearch）
-  └─ createChatStreamResponse()     — 返回 SSE Response
-```
 
 **子 Agent 路径**：通过 `vars.agentType` + `vars.toolIds` 直接调用 `createSubAgent()`，跳过会话管理，用于快速工具选择调试。
 
@@ -230,37 +131,6 @@ AiExecuteService.execute()
 
 测试用例按领域拆分到独立 YAML 文件：
 
-```
-apps/server/src/ai/__tests__/agent-behavior/
-├── promptfooconfig.yaml            # 主配置（评分模型、Provider 引用）
-├── openloaf-universal-provider.ts  # 统一 Provider
-├── fixtures/                       # 共享基础（环境配置 + 跨域文件）
-│   ├── .gitignore                  # 忽略运行时生成文件
-│   ├── settings.json               # 模型设置
-│   ├── providers.json.template     # Provider 模板
-│   ├── workspaces.json             # 工作区定义
-│   └── workspace/                  # 共享 workspace 基础
-│       ├── .openloaf/tasks/        # 任务元数据
-│       └── README.md               # 多域共用
-│
-└── tests/
-    ├── master/
-    │   ├── master.yaml    (39 tests) — 通用对话、工具选择、项目/任务/时间查询
-    │   └── workspace/              # master 专属 fixtures（web-app/、data-analysis/、docs/）
-    ├── tools/
-    │   ├── tools.yaml     (36 tests) — 文件/图片/视频/文档工具
-    │   └── workspace/              # tools 专属 fixtures（xlsx、pdf、docx、pptx、ts）
-    ├── calendar/
-    │   └── calendar.yaml  (10 tests) — 日历场景（无 fixtures，纯 DB）
-    ├── email/
-    │   ├── email.yaml     (10 tests) — 邮件场景（子 Agent 调用）
-    │   └── workspace/              # email fixtures（email.json）
-    ├── commands/
-    │   └── commands.yaml  (3 tests)  — 斜杠命令（/summary-title 等）
-    └── regression/
-        └── regression.yaml          — 真实用户故障回归（跨域，由 /ai-test-regression 生成）
-```
-
 命名规范：`<domain>-NNN` 或 `<domain>-<sub>-NNN`（如 `master-001`、`tools-imgproc-001`、`cmd-summarytitle-001`、`regression-001`）。
 
 新测试用例添加到对应领域的 `tests/<domain>/<domain>.yaml` 文件中，不要修改 `promptfooconfig.yaml`。
@@ -269,46 +139,9 @@ apps/server/src/ai/__tests__/agent-behavior/
 
 `promptfooconfig.yaml` 的 `defaultTest.options.provider` 配置了 llm-rubric 断言的评分模型：
 
-```yaml
-defaultTest:
-  options:
-    timeout: 90000
-    provider:
-      id: openai:chat:qwen3-235b-a22b
-      config:
-        apiBaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
-        apiKeyEnvar: PROMPTFOO_GRADING_API_KEY
-```
-
 评分模型使用阿里云 DashScope 的 Qwen3-235B，需设置 `PROMPTFOO_GRADING_API_KEY` 环境变量。
 
 ### 运行方式
-
-```bash
-cd apps/server
-
-# 运行全部测试（默认启用缓存加速迭代）
-pnpm run test:ai:behavior
-
-# 禁用缓存（修改了 prompt/工具代码后需要刷新）
-pnpm run test:ai:behavior -- --no-cache
-
-# 按前缀过滤（支持正则）
-pnpm run test:ai:behavior -- --filter-pattern "master-001"
-
-# 指定模型（用于模型对比，运行多次后在 UI 中对比结果）
-pnpm run test:ai:behavior -- --model "profileId:modelId"
-
-# 每个用例运行 2 次（测试稳定性）
-pnpm run test:ai:behavior -- --filter-pattern "master-001" --repeat 2
-
-# 打开 Web UI 查看结果矩阵
-pnpm run test:ai:behavior:view
-
-# Red Teaming 安全测试
-pnpm run test:ai:redteam:generate   # 首次：生成对抗性测试用例
-pnpm run test:ai:redteam            # 运行安全测试
-```
 
 也可通过 Claude Code 的 `/ai-test` 命令运行。
 
@@ -326,12 +159,6 @@ pnpm run test:ai:redteam            # 运行安全测试
 
 **简化断言**：当只需要检查输出文本（而非 metadata）时，优先使用 `contains` / `not-icontains` 等简单断言替代冗长的 javascript：
 
-```yaml
-# 检查输出不包含错误提示（比 javascript 更简洁）
-- type: not-icontains
-  value: "无法完成"
-```
-
 ### llm-rubric 写作规范
 
 **核心原则**：
@@ -344,22 +171,7 @@ pnpm run test:ai:redteam            # 运行安全测试
 
 **模板**：
 
-```yaml
-- type: llm-rubric
-  value: "回复应<核心期望>，或指出<合理替代情况>（<容错补充>也可接受）"
-```
-
 **示例**：
-
-```yaml
-# Good：覆盖多种合理表述，有容错
-- type: llm-rubric
-  value: "回复应展示图片的基本信息（如尺寸、格式），或指出文件未找到/不存在（提示检查路径也可接受）"
-
-# Bad：要求过于精确，容易误判
-- type: llm-rubric
-  value: "回复必须包含'图片尺寸为 1920x1080'字样"
-```
 
 ### 测试 Fixture 文件管理
 

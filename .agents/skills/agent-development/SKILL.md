@@ -4,8 +4,6 @@ description: This skill should be used when the user asks to "create an agent", 
 version: 0.1.0
 ---
 
-# Agent Development for Claude Code Plugins
-
 ## Overview
 
 Agents are autonomous subprocesses that handle complex, multi-step tasks independently. Understanding agent structure, triggering conditions, and system prompt design enables creating powerful autonomous capabilities.
@@ -16,48 +14,6 @@ Agents are autonomous subprocesses that handle complex, multi-step tasks indepen
 - Triggering via description field with examples
 - System prompt defines agent behavior
 - Model and color customization
-
-## Agent File Structure
-
-### Complete Format
-
-```markdown
----
-name: agent-identifier
-description: Use this agent when [triggering conditions]. Examples:
-
-<example>
-Context: [Situation description]
-user: "[User request]"
-assistant: "[How assistant should respond and use this agent]"
-<commentary>
-[Why this agent should be triggered]
-</commentary>
-</example>
-
-<example>
-[Additional example...]
-</example>
-
-model: inherit
-color: blue
-tools: ["Read", "Write", "Grep"]
----
-
-You are [agent role description]...
-
-**Your Core Responsibilities:**
-1. [Responsibility 1]
-2. [Responsibility 2]
-
-**Analysis Process:**
-[Step-by-step workflow]
-
-**Output Format:**
-[What to return]
-```
-
-## Frontmatter Fields
 
 ### name (required)
 
@@ -90,20 +46,6 @@ Defines when Claude should trigger this agent. **This is the most critical field
 4. `<commentary>` explaining why agent triggers
 
 **Format:**
-```
-Use this agent when [conditions]. Examples:
-
-<example>
-Context: [Scenario description]
-user: "[What user says]"
-assistant: "[How Claude should respond]"
-<commentary>
-[Why this agent is appropriate]
-</commentary>
-</example>
-
-[More examples...]
-```
 
 **Best practices:**
 - Include 2-4 concrete examples
@@ -145,10 +87,6 @@ Restrict agent to specific tools.
 
 **Format:** Array of tool names
 
-```yaml
-tools: ["Read", "Write", "Grep", "Bash"]
-```
-
 **Default:** If omitted, agent has access to all tools
 
 **Best practice:** Limit tools to minimum needed (principle of least privilege)
@@ -166,34 +104,6 @@ The markdown body becomes the agent's system prompt. Write in second person, add
 ### Structure
 
 **Standard template:**
-```markdown
-You are [role] specializing in [domain].
-
-**Your Core Responsibilities:**
-1. [Primary responsibility]
-2. [Secondary responsibility]
-3. [Additional responsibilities...]
-
-**Analysis Process:**
-1. [Step one]
-2. [Step two]
-3. [Step three]
-[...]
-
-**Quality Standards:**
-- [Standard 1]
-- [Standard 2]
-
-**Output Format:**
-Provide results in this format:
-- [What to include]
-- [How to structure]
-
-**Edge Cases:**
-Handle these situations:
-- [Edge case 1]: [How to handle]
-- [Edge case 2]: [How to handle]
-```
 
 ### Best Practices
 
@@ -214,34 +124,9 @@ Handle these situations:
 - Skip quality guidance
 - Ignore error cases
 
-## Creating Agents
-
 ### Method 1: AI-Assisted Generation
 
 Use this prompt pattern (extracted from Claude Code):
-
-```
-Create an agent configuration based on this request: "[YOUR DESCRIPTION]"
-
-Requirements:
-1. Extract core intent and responsibilities
-2. Design expert persona for the domain
-3. Create comprehensive system prompt with:
-   - Clear behavioral boundaries
-   - Specific methodologies
-   - Edge case handling
-   - Output format
-4. Create identifier (lowercase, hyphens, 3-50 chars)
-5. Write description with triggering conditions
-6. Include 2-3 <example> blocks showing when to use
-
-Return JSON with:
-{
-  "identifier": "agent-name",
-  "whenToUse": "Use this agent when... Examples: <example>...</example>",
-  "systemPrompt": "You are..."
-}
-```
 
 Then convert to agent file format with frontmatter.
 
@@ -257,14 +142,7 @@ See `examples/agent-creation-prompt.md` for complete template.
 6. Write system prompt with structure above
 7. Save as `agents/agent-name.md`
 
-## Validation Rules
-
 ### Identifier Validation
-
-```
-✅ Valid: code-reviewer, test-gen, api-analyzer-v2
-❌ Invalid: ag (too short), -start (starts with hyphen), my_agent (underscore)
-```
 
 **Rules:**
 - 3-50 characters
@@ -284,17 +162,7 @@ See `examples/agent-creation-prompt.md` for complete template.
 **Best:** 500-3,000 characters
 **Structure:** Clear responsibilities, process, output format
 
-## Agent Organization
-
 ### Plugin Agents Directory
-
-```
-plugin-name/
-└── agents/
-    ├── analyzer.md
-    ├── reviewer.md
-    └── generator.md
-```
 
 All `.md` files in `agents/` are auto-discovered.
 
@@ -303,8 +171,6 @@ All `.md` files in `agents/` are auto-discovered.
 Agents are namespaced automatically:
 - Single plugin: `agent-name`
 - With subdirectories: `plugin:subdir:agent-name`
-
-## Testing Agents
 
 ### Test Triggering
 
@@ -324,27 +190,6 @@ Ensure system prompt is complete:
 3. Verify output format is correct
 4. Test edge cases mentioned in prompt
 5. Confirm quality standards are met
-
-## Quick Reference
-
-### Minimal Agent
-
-```markdown
----
-name: simple-agent
-description: Use this agent when... Examples: <example>...</example>
-model: inherit
-color: blue
----
-
-You are an agent that [does X].
-
-Process:
-1. [Step 1]
-2. [Step 2]
-
-Output: [What to provide]
-```
 
 ### Frontmatter Fields Summary
 
@@ -373,8 +218,6 @@ Output: [What to provide]
 - ❌ Grant unnecessary tool access
 - ❌ Write vague system prompts
 - ❌ Skip testing
-
-## Additional Resources
 
 ### Reference Files
 

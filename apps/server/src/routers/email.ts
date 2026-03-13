@@ -173,9 +173,9 @@ function extractSenderEmail(value: unknown): string | null {
   return null;
 }
 
-/** Build private sender set for workspace. */
-function buildPrivateSenderSet(workspaceId: string): Set<string> {
-  const senders = listPrivateSenders(workspaceId);
+/** Build private sender set. */
+function buildPrivateSenderSet(): Set<string> {
+  const senders = listPrivateSenders();
   return new Set(senders);
 }
 
@@ -358,11 +358,10 @@ function normalizeAttachments(value: unknown): AttachmentMeta[] {
 /** 查找账号的 Trash 邮箱路径。 */
 async function findTrashMailboxPath(
   prisma: PrismaClient,
-  workspaceId: string,
   accountEmail: string,
 ): Promise<string | null> {
   const mailboxes = await prisma.emailMailbox.findMany({
-    where: { workspaceId, accountEmail },
+    where: { accountEmail },
     select: { path: true, attributes: true },
   });
   // 逻辑：优先匹配 \\Trash 属性，其次匹配路径名。
@@ -387,13 +386,12 @@ async function findTrashMailboxPath(
 /** 将邮件移动到 Trash 邮箱（IMAP + DB + 文件系统）。 */
 async function moveMessageToTrash(input: {
   prisma: PrismaClient;
-  workspaceId: string;
   row: { id: string; accountEmail: string; mailboxPath: string; externalId: string };
   trashPath: string;
 }) {
-  const { prisma, workspaceId, row, trashPath } = input;
+  const { prisma, row, trashPath } = input;
   if (row.mailboxPath === trashPath) return; // 已在 Trash 中
-  const config = readEmailConfigFile(workspaceId);
+  const config = readEmailConfigFile();
   const account = config.emailAccounts.find(
     (a) =>
       a.emailAddress.trim().toLowerCase() ===
@@ -408,7 +406,6 @@ async function moveMessageToTrash(input: {
       smtp: account.smtp,
     },
     {
-      workspaceId,
       password:
         account.auth.type === "password"
           ? getEmailEnvValue(account.auth.envKey)
@@ -424,7 +421,6 @@ async function moveMessageToTrash(input: {
       data: { mailboxPath: trashPath },
     });
     void moveEmailMessageFile({
-      workspaceId,
       accountEmail: row.accountEmail,
       fromMailboxPath: row.mailboxPath,
       toMailboxPath: trashPath,
@@ -441,8 +437,8 @@ export class EmailRouterImpl extends BaseEmailRouter {
   /** Define email router implementation. */
   public static createRouter() {
     /** Get active account emails from config for defensive filtering. */
-    function getActiveAccountEmails(workspaceId: string): Set<string> {
-      const config = readEmailConfigFile(workspaceId);
+    function getActiveAccountEmails(): Set<string> {
+      const config = readEmailConfigFile();
       return new Set(
         config.emailAccounts.map((a) => a.emailAddress.trim().toLowerCase()),
       );
@@ -453,7 +449,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.listAccounts.input)
         .output(emailSchemas.listAccounts.output)
         .query(async ({ input }) => {
-          const config = readEmailConfigFile(input.workspaceId);
+          const config = readEmailConfigFile();
           return config.emailAccounts.map((account) =>
             toEmailAccountView({
               emailAddress: account.emailAddress,
@@ -470,15 +466,14 @@ export class EmailRouterImpl extends BaseEmailRouter {
           let created: { emailAddress: string; label?: string; status?: { lastSyncAt?: string; lastError?: string | null } };
           if (input.authType === "oauth2-graph" || input.authType === "oauth2-gmail") {
             created = addOAuthEmailAccount({
-              workspaceId: input.workspaceId,
+
               emailAddress: input.emailAddress,
               label: input.label,
               authType: input.authType,
             });
           } else {
-            const pwInput = input as { workspaceId: string; emailAddress: string; label?: string; imap: { host: string; port: number; tls: boolean }; smtp: { host: string; port: number; tls: boolean }; password: string };
+            const pwInput = input as { emailAddress: string; label?: string; imap: { host: string; port: number; tls: boolean }; smtp: { host: string; port: number; tls: boolean }; password: string };
             created = addEmailAccount({
-              workspaceId: pwInput.workspaceId,
               emailAddress: pwInput.emailAddress,
               label: pwInput.label,
               imap: pwInput.imap,
@@ -490,7 +485,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             // 逻辑：异步触发首次同步，避免阻塞新增流程。
             void syncRecentMailboxMessages({
               prisma: ctx.prisma,
-              workspaceId: input.workspaceId,
+
               accountEmail: created.emailAddress,
               mailboxPath: "INBOX",
               limit: DEFAULT_INITIAL_SYNC_LIMIT,
@@ -499,7 +494,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             });
             void syncEmailMailboxes({
               prisma: ctx.prisma,
-              workspaceId: input.workspaceId,
+
               accountEmail: created.emailAddress,
             }).catch((error) => {
               console.warn("email mailbox sync failed", error);
@@ -517,26 +512,26 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .output(emailSchemas.removeAccount.output)
         .mutation(async ({ input, ctx }) => {
           removeEmailAccount({
-            workspaceId: input.workspaceId,
+
             emailAddress: input.emailAddress,
           });
           const normalizedEmail = input.emailAddress.trim().toLowerCase();
           // 逻辑：清理数据库中该账号的邮件和邮箱文件夹记录。
           await ctx.prisma.emailMessage.deleteMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: normalizedEmail,
             },
           });
           await ctx.prisma.emailMailbox.deleteMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: normalizedEmail,
             },
           });
           // 逻辑：清理文件系统中该账号的所有文件。
           void deleteAccountFiles({
-            workspaceId: input.workspaceId,
+
             accountEmail: normalizedEmail,
           }).catch((err) => {
             logger.warn({ err }, "email file store account cleanup failed");
@@ -548,12 +543,12 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.listMessages.input)
         .output(emailSchemas.listMessages.output)
         .query(async ({ input, ctx }) => {
-          const privateSenders = buildPrivateSenderSet(input.workspaceId);
+          const privateSenders = buildPrivateSenderSet();
           const pageSize = resolveMessagePageSize(input.pageSize);
           const { rows, nextCursor } = await fetchMessageRowsPage({
             prisma: ctx.prisma,
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
               mailboxPath: input.mailbox,
             },
@@ -585,7 +580,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .query(async ({ input, ctx }) => {
           const rows = await ctx.prisma.emailMailbox.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
             },
             orderBy: [{ sort: "asc" }, { path: "asc" }],
@@ -606,7 +601,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .mutation(async ({ input, ctx }) => {
           await markEmailMessageRead({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
+
             id: input.id,
           });
           return { ok: true };
@@ -618,7 +613,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .mutation(async ({ input, ctx }) => {
           await setEmailMessageFlagged({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
+
             id: input.id,
             flagged: input.flagged,
           });
@@ -632,7 +627,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
           const rows = await ctx.prisma.emailMessage.groupBy({
             by: ["mailboxPath"],
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
             },
             _count: { _all: true },
@@ -647,10 +642,10 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.listUnreadCount.input)
         .output(emailSchemas.listUnreadCount.output)
         .query(async ({ input, ctx }) => {
-          const activeEmails = getActiveAccountEmails(input.workspaceId);
+          const activeEmails = getActiveAccountEmails();
           const rows = await ctx.prisma.emailMessage.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: { in: [...activeEmails] },
             },
             select: { flags: true },
@@ -667,10 +662,10 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.listMailboxUnreadStats.input)
         .output(emailSchemas.listMailboxUnreadStats.output)
         .query(async ({ input, ctx }) => {
-          const activeEmails = getActiveAccountEmails(input.workspaceId);
+          const activeEmails = getActiveAccountEmails();
           const rows = await ctx.prisma.emailMessage.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: { in: [...activeEmails] },
             },
             select: { accountEmail: true, mailboxPath: true, flags: true },
@@ -698,7 +693,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .query(async ({ input, ctx }) => {
           const scope = input.scope;
           const pageSize = resolveMessagePageSize(input.pageSize);
-          const privateSenders = buildPrivateSenderSet(input.workspaceId);
+          const privateSenders = buildPrivateSenderSet();
           if (scope === "mailbox") {
             if (!input.accountEmail || !input.mailbox) {
               throw new Error("Mailbox scope requires accountEmail and mailbox.");
@@ -706,7 +701,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             const { rows, nextCursor } = await fetchMessageRowsPage({
               prisma: ctx.prisma,
               where: {
-                workspaceId: input.workspaceId,
+  
                 accountEmail: input.accountEmail,
                 mailboxPath: input.mailbox,
               },
@@ -732,11 +727,11 @@ export class EmailRouterImpl extends BaseEmailRouter {
             };
           }
 
-          const activeEmails = getActiveAccountEmails(input.workspaceId);
+          const activeEmails = getActiveAccountEmails();
 
           const mailboxes = await ctx.prisma.emailMailbox.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: { in: [...activeEmails] },
             },
             select: { accountEmail: true, path: true, attributes: true },
@@ -763,7 +758,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               const { rows, nextCursor, hasMore } = await fetchMessageRowsPage({
                 prisma: ctx.prisma,
                 where: {
-                  workspaceId: input.workspaceId,
+    
                   accountEmail: { in: [...activeEmails] },
                 },
                 pageSize: batchSize,
@@ -827,7 +822,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               const { rows, nextCursor, hasMore } = await fetchMessageRowsPage({
                 prisma: ctx.prisma,
                 where: {
-                  workspaceId: input.workspaceId,
+    
                   accountEmail: { in: [...activeEmails] },
                 },
                 pageSize: batchSize,
@@ -888,7 +883,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
           const { rows, nextCursor } = await fetchMessageRowsPage({
             prisma: ctx.prisma,
             where: {
-              workspaceId: input.workspaceId,
+
               OR: mailboxTargets.map((item) => ({
                 accountEmail: item.accountEmail,
                 mailboxPath: item.mailboxPath,
@@ -921,10 +916,10 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.listUnifiedUnreadStats.input)
         .output(emailSchemas.listUnifiedUnreadStats.output)
         .query(async ({ input, ctx }) => {
-          const activeEmails = getActiveAccountEmails(input.workspaceId);
+          const activeEmails = getActiveAccountEmails();
           const mailboxes = await ctx.prisma.emailMailbox.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: { in: [...activeEmails] },
             },
             select: { accountEmail: true, path: true, attributes: true },
@@ -956,7 +951,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             if (!targets.length) return 0;
             const rows = await ctx.prisma.emailMessage.findMany({
               where: {
-                workspaceId: input.workspaceId,
+  
                 OR: targets.map((item) => ({
                   accountEmail: item.accountEmail,
                   mailboxPath: item.mailboxPath,
@@ -979,7 +974,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
 
           const flaggedRows = await ctx.prisma.emailMessage.findMany({
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: { in: [...activeEmails] },
             },
             select: { flags: true },
@@ -1002,8 +997,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             input.sorts.map((entry) =>
               ctx.prisma.emailMailbox.update({
                 where: {
-                  workspaceId_accountEmail_path: {
-                    workspaceId: input.workspaceId,
+                  accountEmail_path: {
                     accountEmail: input.accountEmail,
                     path: entry.mailboxPath,
                   },
@@ -1021,7 +1015,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .mutation(async ({ input, ctx }) => {
           logger.info(
             {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
               mailbox: input.mailbox,
               limit: input.limit ?? DEFAULT_INITIAL_SYNC_LIMIT,
@@ -1030,14 +1024,14 @@ export class EmailRouterImpl extends BaseEmailRouter {
           );
           await syncRecentMailboxMessages({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
+
             accountEmail: input.accountEmail,
             mailboxPath: input.mailbox,
             limit: input.limit ?? DEFAULT_INITIAL_SYNC_LIMIT,
           });
           logger.info(
             {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
               mailbox: input.mailbox,
             },
@@ -1051,16 +1045,16 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .output(emailSchemas.syncMailboxes.output)
         .mutation(async ({ input, ctx }) => {
           logger.info(
-            { workspaceId: input.workspaceId, accountEmail: input.accountEmail },
+            { accountEmail: input.accountEmail },
             "email sync mailboxes request",
           );
           await syncEmailMailboxes({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
+
             accountEmail: input.accountEmail,
           });
           logger.info(
-            { workspaceId: input.workspaceId, accountEmail: input.accountEmail },
+            { accountEmail: input.accountEmail },
             "email sync mailboxes completed",
           );
           return { ok: true };
@@ -1071,30 +1065,30 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .output(emailSchemas.getMessage.output)
         .query(async ({ input, ctx }) => {
           const row = await ctx.prisma.emailMessage.findFirst({
-            where: { id: input.id, workspaceId: input.workspaceId },
+            where: { id: input.id },
           });
           if (!row) {
             throw new Error(getErrorMessage('EMAIL_NOT_FOUND', ctx.lang));
           }
-          const privateSenders = buildPrivateSenderSet(input.workspaceId);
+          const privateSenders = buildPrivateSenderSet();
           const fromAddress = extractSenderEmail(row.from ?? "");
           const isPrivate = fromAddress ? privateSenders.has(fromAddress) : false;
           // 逻辑：从文件系统读取正文内容。
           const [bodyHtml, bodyHtmlRaw, bodyText] = await Promise.all([
             readEmailBodyHtml({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               mailboxPath: row.mailboxPath,
               externalId: row.externalId,
             }),
             readEmailBodyHtmlRaw({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               mailboxPath: row.mailboxPath,
               externalId: row.externalId,
             }),
             readEmailBodyMd({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               mailboxPath: row.mailboxPath,
               externalId: row.externalId,
@@ -1123,7 +1117,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.setPrivateSender.input)
         .output(emailSchemas.setPrivateSender.output)
         .mutation(async ({ input }) => {
-          addPrivateSender({ workspaceId: input.workspaceId, senderEmail: input.senderEmail });
+          addPrivateSender({ senderEmail: input.senderEmail });
           return { ok: true };
         }),
       removePrivateSender: shieldedProcedure
@@ -1131,7 +1125,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .output(emailSchemas.removePrivateSender.output)
         .mutation(async ({ input }) => {
           removePrivateSender({
-            workspaceId: input.workspaceId,
+
             senderEmail: input.senderEmail,
           });
           return { ok: true };
@@ -1141,7 +1135,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .output(emailSchemas.sendMessage.output)
         .mutation(async ({ input }) => {
           const result = await sendEmail({
-            workspaceId: input.workspaceId,
+
             accountEmail: input.accountEmail,
             input: {
               to: input.to,
@@ -1161,7 +1155,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .input(emailSchemas.testConnection.input)
         .output(emailSchemas.testConnection.output)
         .mutation(async ({ input, ctx }) => {
-          const config = readEmailConfigFile(input.workspaceId);
+          const config = readEmailConfigFile();
           const account = config.emailAccounts.find(
             (a) =>
               a.emailAddress.trim().toLowerCase() ===
@@ -1178,7 +1172,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               smtp: account.smtp,
             },
             {
-              workspaceId: input.workspaceId,
+
               password: account.auth.type === "password"
                 ? getEmailEnvValue(account.auth.envKey)
                 : undefined,
@@ -1268,7 +1262,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             data: { flags: newFlags },
           });
           void updateEmailFlags({
-            workspaceId: input.workspaceId,
+
             accountEmail: row.accountEmail,
             mailboxPath: row.mailboxPath,
             externalId: row.externalId,
@@ -1279,14 +1273,13 @@ export class EmailRouterImpl extends BaseEmailRouter {
           // 逻辑：移动到 Trash 邮箱，使账号级"已删除"视图可见。
           const trashPath = await findTrashMailboxPath(
             prisma,
-            input.workspaceId,
             row.accountEmail,
           );
           if (trashPath) {
             try {
               await moveMessageToTrash({
                 prisma,
-                workspaceId: input.workspaceId,
+  
                 row: {
                   id: row.id,
                   accountEmail: row.accountEmail,
@@ -1318,7 +1311,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             data: { flags: newFlags },
           });
           void updateEmailFlags({
-            workspaceId: input.workspaceId,
+
             accountEmail: row.accountEmail,
             mailboxPath: row.mailboxPath,
             externalId: row.externalId,
@@ -1337,7 +1330,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             where: { id: input.id },
           });
           if (!row) throw new Error(getErrorMessage('EMAIL_NOT_FOUND', ctx.lang));
-          const config = readEmailConfigFile(input.workspaceId);
+          const config = readEmailConfigFile();
           const account = config.emailAccounts.find(
             (a) =>
               a.emailAddress.trim().toLowerCase() ===
@@ -1352,7 +1345,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               smtp: account.smtp,
             },
             {
-              workspaceId: input.workspaceId,
+
               password: account.auth.type === "password"
                 ? getEmailEnvValue(account.auth.envKey)
                 : undefined,
@@ -1369,7 +1362,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             });
             // 逻辑：双写文件系统移动。
             void moveEmailMessageFile({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               fromMailboxPath: row.mailboxPath,
               toMailboxPath: input.toMailbox,
@@ -1393,7 +1386,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             where: { id },
             create: {
               id,
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
               mode: input.mode,
               to: input.to,
@@ -1430,7 +1423,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             updatedAt: row.updatedAt.toISOString(),
           };
           void saveDraftFile({
-            workspaceId: input.workspaceId,
+
             accountEmail: input.accountEmail,
             draft: draftData,
           }).catch((err) => {
@@ -1456,14 +1449,13 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .query(async ({ input, ctx }) => {
           const prisma = ctx.prisma as PrismaClient;
           const rows = await (prisma as any).emailDraft.findMany({
-            where: { workspaceId: input.workspaceId },
             orderBy: { updatedAt: "desc" },
           });
           // 逻辑：从文件系统读取 body。
           const results = await Promise.all(
             rows.map(async (row: any) => {
               const draftFile = await readDraftFile({
-                workspaceId: input.workspaceId,
+  
                 accountEmail: row.accountEmail,
                 draftId: row.id,
               });
@@ -1495,7 +1487,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
           if (!row) throw new Error(getErrorMessage('DRAFT_NOT_FOUND', ctx.lang));
           // 逻辑：从文件系统读取 body。
           const draftFile = await readDraftFile({
-            workspaceId: input.workspaceId,
+
             accountEmail: row.accountEmail,
             draftId: row.id,
           });
@@ -1527,7 +1519,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
           // 逻辑：同时删除文件系统中的草稿文件。
           if (row) {
             void deleteDraftFile({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               draftId: input.id,
             }).catch((err) => {
@@ -1543,7 +1535,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
           for (const id of input.ids) {
             await markEmailMessageRead({
               prisma: ctx.prisma as PrismaClient,
-              workspaceId: input.workspaceId,
+
               id,
             });
           }
@@ -1567,7 +1559,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               data: { flags: newFlags },
             });
             void updateEmailFlags({
-              workspaceId: input.workspaceId,
+
               accountEmail: row.accountEmail,
               mailboxPath: row.mailboxPath,
               externalId: row.externalId,
@@ -1580,7 +1572,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
             if (!trashPathCache.has(cacheKey)) {
               trashPathCache.set(
                 cacheKey,
-                await findTrashMailboxPath(prisma, input.workspaceId, row.accountEmail),
+                await findTrashMailboxPath(prisma, row.accountEmail),
               );
             }
             const trashPath = trashPathCache.get(cacheKey);
@@ -1588,7 +1580,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               try {
                 await moveMessageToTrash({
                   prisma,
-                  workspaceId: input.workspaceId,
+    
                   row: {
                     id: row.id,
                     accountEmail: row.accountEmail,
@@ -1612,14 +1604,14 @@ export class EmailRouterImpl extends BaseEmailRouter {
           for (const id of input.ids) {
             const row = await prisma.emailMessage.findUnique({ where: { id } });
             if (!row) continue;
-            const config = readEmailConfigFile(input.workspaceId);
+            const config = readEmailConfigFile();
             const account = config.emailAccounts.find(
               (a) => a.emailAddress.trim().toLowerCase() === row.accountEmail.trim().toLowerCase(),
             );
             if (!account) continue;
             const transport = createTransport(
               { emailAddress: account.emailAddress, auth: account.auth, imap: account.imap, smtp: account.smtp },
-              { workspaceId: input.workspaceId, password: account.auth.type === "password" ? getEmailEnvValue(account.auth.envKey) : undefined },
+              { password: account.auth.type === "password" ? getEmailEnvValue(account.auth.envKey) : undefined },
             );
             try {
               if (transport.moveMessage) {
@@ -1631,7 +1623,7 @@ export class EmailRouterImpl extends BaseEmailRouter {
               });
               // 逻辑：双写文件系统移动。
               void moveEmailMessageFile({
-                workspaceId: input.workspaceId,
+  
                 accountEmail: row.accountEmail,
                 fromMailboxPath: row.mailboxPath,
                 toMailboxPath: input.toMailbox,
@@ -1651,12 +1643,12 @@ export class EmailRouterImpl extends BaseEmailRouter {
         .query(async ({ input, ctx }) => {
           const prisma = ctx.prisma as PrismaClient;
           const pageSize = resolveMessagePageSize(input.pageSize);
-          const privateSenders = buildPrivateSenderSet(input.workspaceId);
+          const privateSenders = buildPrivateSenderSet();
           // 逻辑：服务端搜索先查本地数据库（subject/snippet 模糊匹配）。
           const { rows, nextCursor } = await fetchMessageRowsPage({
             prisma,
             where: {
-              workspaceId: input.workspaceId,
+
               accountEmail: input.accountEmail,
               OR: [
                 { subject: { contains: input.query } },
@@ -1691,13 +1683,11 @@ export class EmailRouterImpl extends BaseEmailRouter {
             "@/modules/email/emailEvents"
           );
           const queue: Array<{
-            workspaceId: string;
             accountEmail: string;
             mailboxPath: string;
           }> = [];
           let resolve: (() => void) | null = null;
           const cleanup = emailEventBus.onNewMail((event) => {
-            if (event.workspaceId !== input.workspaceId) return;
             queue.push(event);
             resolve?.();
           });

@@ -50,37 +50,37 @@ export const PROJECT_TABS = [
   {
     value: "index",
     icon: LayoutDashboard,
-    labelKey: "workspace:project.tabHome",
+    labelKey: "project:project.tabHome",
     tone: "sky",
   },
   {
     value: "files",
     icon: Folder,
-    labelKey: "workspace:project.tabFiles",
+    labelKey: "project:project.tabFiles",
     tone: "emerald",
   },
   {
     value: "tasks",
     icon: CalendarDays,
-    labelKey: "workspace:project.tabHistory",
+    labelKey: "project:project.tabHistory",
     tone: "amber",
   },
   {
     value: "scheduled",
     icon: Clock,
-    labelKey: "workspace:project.tabScheduled",
+    labelKey: "project:project.tabScheduled",
     tone: "amber",
   },
   {
     value: "canvas",
     icon: Palette,
-    labelKey: "workspace:project.tabCanvas",
+    labelKey: "project:project.tabCanvas",
     tone: "teal",
   },
   {
     value: "settings",
     icon: Settings,
-    labelKey: "workspace:project.tabSettings",
+    labelKey: "project:project.tabSettings",
     tone: "slate",
   },
 ] as const;
@@ -106,7 +106,7 @@ export default function ProjectTabs({
   tabId,
   revealDelayMs = 0,
 }: ProjectTabsProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation("project");
   const [dockHost, setDockHost] = useState<HTMLElement | null>(null);
   // 根据当前值映射到选中索引
   const selectedIndex = useMemo(() => {
@@ -125,7 +125,7 @@ export default function ProjectTabs({
     () =>
       PROJECT_TABS.map((tab) => ({
         id: tab.value,
-        label: t(tab.labelKey.replace("workspace:", "")),
+        label: t(tab.labelKey.replace("project:", "")),
         icon: tab.icon,
         tone: tab.tone,
       })),

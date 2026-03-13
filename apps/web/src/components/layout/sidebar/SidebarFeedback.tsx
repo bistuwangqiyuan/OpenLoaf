@@ -28,7 +28,6 @@ import {
 } from "@openloaf/ui/select";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@openloaf/ui/sidebar";
 import { Textarea } from "@openloaf/ui/textarea";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
@@ -63,7 +62,6 @@ function buildDeviceInfo(): { platform?: string; userAgent?: string } | undefine
 /** Sidebar feedback entry with popover form. */
 export function SidebarFeedback() {
   const { t } = useTranslation('nav');
-  const { workspace: activeWorkspace } = useWorkspace();
   const activeTabId = useTabs((state) => state.activeTabId);
   const tabs = useTabs((state) => state.tabs);
   const runtimeByTabId = useTabRuntime((state) => state.runtimeByTabId);
@@ -85,9 +83,8 @@ export function SidebarFeedback() {
   const activeTab = React.useMemo(() => {
     if (!activeTabId) return null;
     const target = tabs.find((tab) => tab.id === activeTabId) ?? null;
-    if (activeWorkspace && target?.workspaceId !== activeWorkspace.id) return null;
     return target;
-  }, [activeTabId, tabs, activeWorkspace]);
+  }, [activeTabId, tabs]);
 
   /** Resolve active runtime params for context. */
   const activeParams = React.useMemo(() => {
@@ -121,8 +118,6 @@ export function SidebarFeedback() {
       env: isElectron ? "electron" : "web",
       device: buildDeviceInfo(),
       appVersion: toOptionalText(appVersion ?? ""),
-      workspaceId: toOptionalText(activeWorkspace?.id ?? ""),
-      workspaceRootUri: toOptionalText(activeWorkspace?.rootUri ?? ""),
       tabId: toOptionalText(activeTab?.id ?? ""),
       tabTitle: toOptionalText(activeTab?.title ?? ""),
       projectId,
@@ -134,7 +129,7 @@ export function SidebarFeedback() {
     return Object.fromEntries(
       Object.entries(context).filter(([, value]) => value !== undefined && value !== null)
     );
-  }, [activeParams, activeTab, activeWorkspace]);
+  }, [activeParams, activeTab]);
 
   /** Submit feedback to SaaS. */
   const submitFeedback = React.useCallback(async () => {

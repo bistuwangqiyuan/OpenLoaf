@@ -23,11 +23,11 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import os from 'node:os'
-import { setRequestContext, runWithContext } from '@/ai/shared/context/requestContext'
+import { runWithContext } from '@/ai/shared/context/requestContext'
 import { isTargetOutsideScope, resolveToolPath } from '@/ai/tools/toolScope'
 import { readFileTool, listDirTool } from '@/ai/tools/fileTools'
 import { grepFilesTool } from '@/ai/tools/grepFilesTool'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 
 // ---------------------------------------------------------------------------
 // Test runner
@@ -54,16 +54,8 @@ async function test(name: string, fn: () => Promise<void> | void) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** 以有效 workspaceId 运行函数（完整 E2E 工作区上下文）。 */
+/** 以完整 E2E 上下文运行函数。 */
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
-  return runWithContext(
-    { sessionId: 'toolscope-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
-    fn as () => Promise<T>,
-  )
-}
-
-/** 以空 workspaceId 运行函数（模拟无有效工作区的情况）。 */
-function withNoWorkspace<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
     { sessionId: 'toolscope-test', cookies: {} },
     fn as () => Promise<T>,
@@ -82,11 +74,11 @@ function callNeedsApproval(tool: any, input: Record<string, unknown>): boolean {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  // Setup：初始化 E2E 环境（workspaces.json + settings.json → 临时目录）
+  // Setup：初始化 E2E 环境（project-root + settings.json → 临时目录）
   setupE2eTestEnv()
-  // 动态获取实际 workspace root（通过 resolveToolPath 解析 "." 得到）
-  const workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
-  // 明确在 workspace 之外的绝对路径
+  // 动态获取实际项目根目录（通过 resolveToolPath 解析 "." 得到）
+  const projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  // 明确在项目根目录之外的绝对路径
   const outsidePath = os.tmpdir()
 
   // -----------------------------------------------------------------------
@@ -94,29 +86,22 @@ async function main() {
   // -----------------------------------------------------------------------
   console.log('\nA 层 — isTargetOutsideScope')
 
-  await test('无 workspaceId 时不抛出，返回 false', () =>
-    withNoWorkspace(() => {
-      const result = isTargetOutsideScope('/any/path')
-      assert.equal(result, false)
-    }),
-  )
-
-  await test('workspace 根目录（相对 "."）→ false', () =>
+  await test('project 根目录（相对 "."）→ false', () =>
     withCtx(() => assert.equal(isTargetOutsideScope('.'), false)),
   )
 
-  await test('workspace 内相对路径 → false', () =>
+  await test('project 内相对路径 → false', () =>
     withCtx(() => assert.equal(isTargetOutsideScope('subdir/file.txt'), false)),
   )
 
-  await test('workspace 内绝对路径 → false', () =>
+  await test('project 内绝对路径 → false', () =>
     withCtx(() => {
-      const insidePath = path.join(workspaceRoot, 'some-file.txt')
+      const insidePath = path.join(projectRoot, 'some-file.txt')
       assert.equal(isTargetOutsideScope(insidePath), false)
     }),
   )
 
-  await test('workspace 外绝对路径（os.tmpdir 同级）→ true', () =>
+  await test('project 外绝对路径（os.tmpdir 同级）→ true', () =>
     withCtx(() => assert.equal(isTargetOutsideScope(outsidePath), true)),
   )
 
@@ -129,34 +114,25 @@ async function main() {
   // -----------------------------------------------------------------------
   console.log('\nB 层 — resolveToolPath')
 
-  await test('相对路径解析为 workspace 内绝对路径', () =>
+  await test('相对路径解析为 project 内绝对路径', () =>
     withCtx(() => {
       const { absPath } = resolveToolPath({ target: 'notes.txt' })
-      assert.equal(absPath, path.join(workspaceRoot, 'notes.txt'))
+      assert.equal(absPath, path.join(projectRoot, 'notes.txt'))
     }),
   )
 
-  await test('workspace 内路径 rootLabel = "workspace"', () =>
+  await test('project 内路径 rootLabel = "project"', () =>
     withCtx(() => {
       const { rootLabel } = resolveToolPath({ target: '.' })
-      assert.equal(rootLabel, 'workspace')
+      assert.equal(rootLabel, 'project')
     }),
   )
 
-  await test('workspace 外绝对路径 rootLabel = "external"（不抛出）', () =>
+  await test('project 外绝对路径 rootLabel = "external"（不抛出）', () =>
     withCtx(() => {
       const { rootLabel, absPath } = resolveToolPath({ target: outsidePath })
       assert.equal(rootLabel, 'external')
       assert.equal(absPath, path.resolve(outsidePath))
-    }),
-  )
-
-  await test('无 workspaceId 时抛出 Error', () =>
-    withNoWorkspace(() => {
-      assert.throws(
-        () => resolveToolPath({ target: 'file.txt' }),
-        /workspaceId is required/,
-      )
     }),
   )
 
@@ -165,42 +141,42 @@ async function main() {
   // -----------------------------------------------------------------------
   console.log('\nC 层 — needsApproval 集成')
 
-  await test('readFileTool: workspace 内相对路径 → needsApproval = false', () =>
+  await test('readFileTool: project 内相对路径 → needsApproval = false', () =>
     withCtx(() => {
       const result = callNeedsApproval(readFileTool, { actionName: 'test', path: 'readme.md' })
       assert.equal(result, false)
     }),
   )
 
-  await test('readFileTool: workspace 外绝对路径 → needsApproval = true', () =>
+  await test('readFileTool: project 外绝对路径 → needsApproval = true', () =>
     withCtx(() => {
       const result = callNeedsApproval(readFileTool, { actionName: 'test', path: '/etc/hosts' })
       assert.equal(result, true)
     }),
   )
 
-  await test('listDirTool: workspace 内相对路径 → needsApproval = false', () =>
+  await test('listDirTool: project 内相对路径 → needsApproval = false', () =>
     withCtx(() => {
       const result = callNeedsApproval(listDirTool, { actionName: 'test', path: '.' })
       assert.equal(result, false)
     }),
   )
 
-  await test('listDirTool: workspace 外绝对路径 → needsApproval = true', () =>
+  await test('listDirTool: project 外绝对路径 → needsApproval = true', () =>
     withCtx(() => {
       const result = callNeedsApproval(listDirTool, { actionName: 'test', path: outsidePath })
       assert.equal(result, true)
     }),
   )
 
-  await test('grepFilesTool: 无 path（默认 workspace 根）→ needsApproval = false', () =>
+  await test('grepFilesTool: 无 path（默认 project 根）→ needsApproval = false', () =>
     withCtx(() => {
       const result = callNeedsApproval(grepFilesTool, { actionName: 'test', pattern: 'TODO' })
       assert.equal(result, false)
     }),
   )
 
-  await test('grepFilesTool: workspace 外绝对路径 → needsApproval = true', () =>
+  await test('grepFilesTool: project 外绝对路径 → needsApproval = true', () =>
     withCtx(() => {
       const result = callNeedsApproval(grepFilesTool, {
         actionName: 'test',

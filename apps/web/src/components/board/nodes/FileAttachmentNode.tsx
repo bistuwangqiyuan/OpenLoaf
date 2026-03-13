@@ -20,7 +20,6 @@ import i18next from "i18next";
 import { BOARD_TOOLBAR_ITEM_BLUE } from "../ui/board-style-system";
 import { openFilePreview } from "@/components/file/lib/file-preview-store";
 import type { FilePreviewViewer } from "@/components/file/lib/file-preview-types";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useBoardContext, type BoardFileContext } from "../core/BoardProvider";
 import {
   resolveBoardFolderScope,
@@ -29,6 +28,8 @@ import {
 import { parseScopedProjectPath } from "@/components/project/filesystem/utils/file-system-utils";
 import { NodeFrame } from "./NodeFrame";
 import { resolveViewerType } from "../utils/board-asset";
+import { getBoardChatMessageMeta } from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 
 export type FileAttachmentNodeProps = {
   /** Board-relative path. */
@@ -95,7 +96,7 @@ function getExtBadgeColor(ext?: string): string {
 function createFileAttachmentToolbarItems(
   ctx: CanvasToolbarContext<FileAttachmentNodeProps>,
 ) {
-  return [
+  const baseItems = [
     {
       id: "inspect",
       label: i18next.t("board:fileAttachmentNode.toolbar.detail"),
@@ -104,6 +105,12 @@ function createFileAttachmentToolbarItems(
       onSelect: () => ctx.openInspector(ctx.element.id),
     },
   ];
+  const messageMeta = getBoardChatMessageMeta(ctx.element);
+  if (!messageMeta) return baseItems;
+  const chatItems = createBoardChatMessageToolbarItems(ctx, messageMeta);
+  return (messageMeta.status ?? "streaming") === "complete"
+    ? [...chatItems, ...baseItems]
+    : chatItems;
 }
 
 /** Render a file attachment node card. */
@@ -111,8 +118,6 @@ export function FileAttachmentNodeView({
   element,
 }: CanvasNodeViewProps<FileAttachmentNodeProps>) {
   const { fileContext } = useBoardContext();
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
 
   const projectRelativePath = useMemo(
     () => resolveProjectRelativePath(element.props.sourcePath, fileContext),
@@ -147,7 +152,6 @@ export function FileAttachmentNodeView({
           title: displayName,
           ext,
           projectId: effectiveProjectId,
-          workspaceId,
           rootUri: fileContext?.rootUri,
           boardId,
         },
@@ -165,7 +169,6 @@ export function FileAttachmentNodeView({
     fileContext?.rootUri,
     resolvedPath,
     viewerType,
-    workspaceId,
   ]);
 
   return (

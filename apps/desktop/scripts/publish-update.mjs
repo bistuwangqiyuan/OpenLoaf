@@ -27,7 +27,8 @@
  *       latest-mac.yml              ← beta 渠道更新清单
  *       latest.yml
  *       latest-linux.yml
- *     beta/latest-mac.yml           ← beta 渠道更新清单
+ *     beta/latest-mac.yml           ← beta 渠道更新清单（x64）
+ *     beta/latest-mac-arm64.yml    ← beta 渠道更新清单（arm64）
  *     latest.yml
  *     latest-linux.yml
  *     0.1.1-beta.1/
@@ -92,7 +93,7 @@ if (cosConfig) {
 // 全平台产物匹配规则
 // ---------------------------------------------------------------------------
 
-const AUTO_UPDATE_YMLS = ['latest-mac.yml', 'latest.yml', 'latest-linux.yml']
+const AUTO_UPDATE_YMLS = ['latest-mac.yml', 'latest-mac-arm64.yml', 'latest.yml', 'latest-linux.yml']
 
 function isAutoUpdateYml(filename) {
   return AUTO_UPDATE_YMLS.includes(filename)
@@ -119,7 +120,7 @@ const PLATFORM_FILTERS = {
   'mac-arm64': {
     installerFilter: (f) =>
       /[-_]arm64[-_.]/.test(f) || f.includes('-MacOS-arm64'),
-    ymls: ['latest-mac.yml'],
+    ymls: ['latest-mac-arm64.yml'],
   },
   'mac-x64': {
     installerFilter: (f) =>
@@ -207,15 +208,16 @@ function computeSha512Base64(filePath) {
  * 从上传的安装包列表中，按平台生成 electron-updater 格式的 yml 文件。
  *
  * 平台 → yml 文件名映射：
- * - mac-arm64 / mac-x64 → latest-mac.yml（使用 .zip 作为更新源）
- * - win-x64             → latest.yml（使用 .exe）
- * - linux-x64           → latest-linux.yml（使用 .AppImage）
+ * - mac-arm64 → latest-mac-arm64.yml（arm64 客户端优先查找此文件）
+ * - mac-x64   → latest-mac.yml（x64 客户端使用此文件）
+ * - win-x64   → latest.yml（使用 .exe）
+ * - linux-x64 → latest-linux.yml（使用 .AppImage）
  */
 const YML_PLATFORM_MAP = {
-  'mac-arm64':  { yml: 'latest-mac.yml',   ext: '.zip' },
-  'mac-x64':    { yml: 'latest-mac.yml',   ext: '.zip' },
-  'win-x64':    { yml: 'latest.yml',       ext: '.exe' },
-  'linux-x64':  { yml: 'latest-linux.yml', ext: '.AppImage' },
+  'mac-arm64':  { yml: 'latest-mac-arm64.yml', ext: '.zip' },
+  'mac-x64':    { yml: 'latest-mac.yml',       ext: '.zip' },
+  'win-x64':    { yml: 'latest.yml',           ext: '.exe' },
+  'linux-x64':  { yml: 'latest-linux.yml',     ext: '.AppImage' },
 }
 
 async function generateAndUploadYmls(version, channel, installerFiles, distDir, publicUrl = r2Config.publicUrl) {

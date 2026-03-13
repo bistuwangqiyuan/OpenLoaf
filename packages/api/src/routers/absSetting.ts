@@ -64,7 +64,7 @@ const cliModelSchema = z.object({
 });
 
 /** Skill / Agent scope enum. */
-const skillScopeSchema = z.enum(["workspace", "project", "global"]);
+const skillScopeSchema = z.enum(["project", "global"]);
 
 /** Skill summary payload. */
 const skillSummarySchema = z.object({
@@ -77,7 +77,7 @@ const skillSummarySchema = z.object({
   /** Skill folder name. */
   folderName: z.string(),
   /** Skill ignore key. */
-  ignoreKey: z.string().describe("workspace:folder or parentId:folder or folder"),
+  ignoreKey: z.string().describe("global:folder or parentId:folder or folder"),
   /** Skill scope. */
   scope: skillScopeSchema,
   /** Whether the skill is enabled for current scope. */
@@ -133,6 +133,12 @@ export const settingSchemas = {
   getBasic: {
     output: basicConfigSchema,
   },
+  getProjectStorageRoot: {
+    output: z.object({
+      /** Default project storage root URI (file://...). */
+      rootUri: z.string().min(1),
+    }),
+  },
   getCliToolsStatus: {
     output: z.array(cliToolStatusSchema),
   },
@@ -160,7 +166,7 @@ export const settingSchemas = {
       .optional(),
     output: z.array(skillSummarySchema),
   },
-  /** Toggle skill enabled state for workspace or project. */
+  /** Toggle skill enabled state for global or project scope. */
   setSkillEnabled: {
     input: z.object({
       scope: skillScopeSchema,
@@ -188,7 +194,7 @@ export const settingSchemas = {
         includeAllProjects: z.boolean().optional(),
         includeChildProjects: z.boolean().optional(),
         /** Filter agents by scope. Defaults to 'all'. */
-        scopeFilter: z.enum(['workspace', 'project', 'all']).optional(),
+        scopeFilter: z.enum(['global', 'project', 'all']).optional(),
       })
       .optional(),
     output: z.array(agentSummarySchema),
@@ -245,7 +251,7 @@ export const settingSchemas = {
       scope: skillScopeSchema,
     }),
   },
-  /** Copy a workspace agent to a project. */
+  /** Copy a global agent to a project. */
   copyAgentToProject: {
     input: z.object({
       sourceAgentPath: z.string(),
@@ -464,7 +470,6 @@ export const settingSchemas = {
   generateChatSuggestions: {
     input: z.object({
       projectId: z.string().optional(),
-      workspaceId: z.string().optional(),
       currentInput: z.string().optional(),
     }),
     output: z.object({
@@ -490,8 +495,8 @@ export const settingSchemas = {
   /** Infer board name via auxiliary model. */
   inferBoardName: {
     input: z.object({
-      workspaceId: z.string(),
       boardFolderUri: z.string(),
+      projectId: z.string().optional(),
       saasAccessToken: z.string().optional(),
     }),
     output: z.object({
@@ -523,6 +528,11 @@ export abstract class BaseSettingRouter {
         }),
       getBasic: shieldedProcedure
         .output(settingSchemas.getBasic.output)
+        .query(async () => {
+          throw new Error("Not implemented in base class");
+        }),
+      getProjectStorageRoot: shieldedProcedure
+        .output(settingSchemas.getProjectStorageRoot.output)
         .query(async () => {
           throw new Error("Not implemented in base class");
         }),

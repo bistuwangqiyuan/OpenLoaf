@@ -35,18 +35,17 @@ type FileWatchPayload = {
 export function registerFileSseRoutes(app: Hono) {
   app.get("/fs/watch", async (c) => {
     const projectId = c.req.query("projectId")?.trim() ?? "";
-    const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
     const rawDirUri = c.req.query("dirUri");
-    if (!projectId || !workspaceId || rawDirUri === undefined) {
-      return c.json({ error: "Missing projectId, workspaceId or dirUri" }, 400);
+    if (!projectId || rawDirUri === undefined) {
+      return c.json({ error: "Missing projectId or dirUri" }, 400);
     }
     const dirUri = rawDirUri.trim();
 
     let fullPath: string;
     try {
       fullPath = dirUri
-        ? resolveScopedPath({ workspaceId, projectId, target: dirUri })
-        : resolveScopedRootPath({ workspaceId, projectId });
+        ? resolveScopedPath({ projectId, target: dirUri })
+        : resolveScopedRootPath({ projectId });
     } catch (error) {
       logger.warn({ err: error }, "[fs] invalid dirUri");
       return c.json({ error: "Invalid dirUri" }, 400);

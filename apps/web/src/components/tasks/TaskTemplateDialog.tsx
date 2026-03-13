@@ -42,11 +42,9 @@ type TaskTemplate = {
 export function TaskTemplateDialog({
   open,
   onOpenChange,
-  workspaceId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  workspaceId: string
 }) {
   const { t } = useTranslation(['tasks', 'common'])
   const queryClient = useQueryClient()
@@ -59,7 +57,7 @@ export function TaskTemplateDialog({
   const [newPriority, setNewPriority] = useState<string>('medium')
 
   const { data: templates = [], isLoading } = useQuery(
-    trpc.scheduledTask.listTemplates.queryOptions({ workspaceId }),
+    trpc.scheduledTask.listTemplates.queryOptions({}),
   )
 
   const createFromTemplateMutation = useMutation(
@@ -113,22 +111,20 @@ export function TaskTemplateDialog({
   const handleCreateFromTemplate = useCallback(() => {
     if (!selectedTemplate) return
     createFromTemplateMutation.mutate({
-      workspaceId,
       templateId: selectedTemplate.id,
       name: overrideName || undefined,
       description: overrideDesc || undefined,
     })
-  }, [selectedTemplate, workspaceId, overrideName, overrideDesc, createFromTemplateMutation])
+  }, [selectedTemplate, overrideName, overrideDesc, createFromTemplateMutation])
 
   const handleCreateTemplate = useCallback(() => {
     if (!newName.trim()) return
     createTemplateMutation.mutate({
-      workspaceId,
       name: newName.trim(),
       description: newDesc.trim() || undefined,
       priority: newPriority as 'urgent' | 'high' | 'medium' | 'low',
     })
-  }, [newName, newDesc, newPriority, workspaceId, createTemplateMutation])
+  }, [newName, newDesc, newPriority, createTemplateMutation])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,7 +235,7 @@ export function TaskTemplateDialog({
                       className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
                       onClick={(e) => {
                         e.stopPropagation()
-                        deleteTemplateMutation.mutate({ id: tpl.id, workspaceId })
+                        deleteTemplateMutation.mutate({ id: tpl.id })
                       }}
                     >
                       <Trash2 className="h-3 w-3" />

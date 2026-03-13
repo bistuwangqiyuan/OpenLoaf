@@ -92,7 +92,7 @@
     "manualMode": "手动审批模式",
     "autoMode": "自动审批模式",
     "enableDialog": "启用自动批准？",
-    "enableDescription": "开启后，AI 将自动执行需要审批的操作（如运行命令、修改邮件/日历/工作区等），不再逐一请求确认。请确保你信任当前的 AI 操作环境。",
+    "enableDescription": "开启后，AI 将自动执行需要审批的操作（如运行命令、修改邮件/日历/项目等），不再逐一请求确认。请确保你信任当前的 AI 操作环境。",
     "cancel": "取消",
     "confirmEnable": "确认开启"
   },
@@ -127,8 +127,8 @@
     "calendar-query": "日历查询",
     "calendar-mutate": "日历变更",
     "chart-render": "图表渲染",
-    "project-query": "工作区查询",
-    "project-mutate": "工作区变更",
+    "project-query": "项目查询",
+    "project-mutate": "项目变更",
     "email-query": "邮件查询",
     "email-mutate": "邮件操作",
     "jsx-create": "组件渲染",
@@ -212,10 +212,30 @@
     "exportFailed": "会话导出失败，请稍后重试",
     "exportFailedWithMessage": "会话导出失败：{{message}}"
   },
+  "copyToCanvas": {
+    "button": "复制到画布",
+    "title": "复制对话到画布",
+    "description": "会将当前对话复制一份到画布中，原始对话会保留不变。",
+    "targetMode": "导入位置",
+    "createNew": "新建画布",
+    "useExisting": "已有画布",
+    "targetBoard": "目标画布",
+    "targetPlaceholder": "请选择画布",
+    "emptyBoards": "当前范围内还没有可导入的画布",
+    "sessionMissing": "未找到当前会话",
+    "targetRequired": "请选择目标画布",
+    "rootMissing": "未找到画布目录",
+    "confirm": "复制",
+    "cancel": "取消",
+    "submitting": "复制中…",
+    "successNew": "已复制到新画布",
+    "successExisting": "已复制到画布",
+    "failed": "复制到画布失败"
+  },
   "image": {
     "noEditingSupport": "当前模型不支持图片编辑",
     "noInputSupport": "当前模型不支持图片输入",
-    "workspaceRequired": "当前标签页未绑定工作区，无法上传图片",
+    "projectSpaceRequired": "当前标签页未绑定项目空间，无法上传图片",
     "uploadFailed": "图片上传失败，请重试",
     "noServerUrl": "图片上传失败：服务端未返回地址",
     "networkError": "图片上传失败，请检查网络连接",
@@ -243,8 +263,8 @@
     "allowImage": "松开鼠标即可添加图片",
     "allowFile": "松开鼠标即可添加文件",
     "denyImageDesc": "请切换到支持图片输入的模型",
-    "denyFileDesc": "仅支持拖入工作区文件引用",
-    "allowFileDesc": "支持拖入工作区文件引用",
+    "denyFileDesc": "仅支持拖入项目文件引用",
+    "allowFileDesc": "支持拖入项目文件引用",
     "allowImageDesc": "支持 PNG / JPEG / WebP，单文件不超过 {{max}}，可多选"
   },
   "debug": {
@@ -307,7 +327,7 @@
     "aiAssistant": "AI助手",
     "inputPlaceholder": "输入内容",
     "suggestion1": "帮我总结今天的工作进展",
-    "suggestion2": "分析当前工作区的代码质量",
+    "suggestion2": "分析当前项目的代码质量",
     "suggestion3": "生成一份本周工作周报"
   },
   "tool": {
@@ -407,21 +427,21 @@
   },
   "featureIntro": {
     "index": {
-      "title": "启用工作区看板",
-      "description": "工作区看板是一个可自定义的信息面板，展示工作区概览、关键指标和快速入口。确定后将为此工作区创建看板。"
+      "title": "启用项目看板",
+      "description": "项目看板是一个可自定义的信息面板，展示项目概览、关键指标和快速入口。确定后将为此项目创建看板。"
     },
     "tasks": {
-      "title": "启用工作区历史",
-      "description": "工作区历史会记录和展示文件变更摘要与每日工作汇总。确定后将为此工作区启用历史记录功能。"
+      "title": "启用项目历史",
+      "description": "项目历史会记录和展示文件变更摘要与每日工作汇总。确定后将为此项目启用历史记录功能。"
     },
     "cancel": "取消",
     "confirm": "启用"
   },
   "projectSelector": {
-    "workspace": "工作空间",
-    "searchProject": "搜索工作区...",
-    "noProjectFound": "未找到工作区",
-    "projects": "工作区",
+    "projectSpace": "项目空间",
+    "searchProject": "搜索项目...",
+    "noProjectFound": "未找到项目",
+    "projects": "项目",
     "current": "当前"
   }
 }

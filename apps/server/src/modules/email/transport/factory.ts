@@ -25,16 +25,13 @@ export type TransportAccountConfig = {
 
 export function createTransport(
   account: TransportAccountConfig,
-  options?: { password?: string; workspaceId?: string },
+  options?: { password?: string },
 ): EmailTransportAdapter {
   switch (account.auth.type) {
     case "oauth2-graph": {
-      const workspaceId = options?.workspaceId;
-      if (!workspaceId) throw new Error("workspaceId required for Graph OAuth transport");
       return new GraphTransportAdapter({
         getAccessToken: async () => {
           const tokens = await ensureValidAccessToken(
-            workspaceId,
             account.emailAddress,
             "microsoft",
           );
@@ -43,12 +40,9 @@ export function createTransport(
       });
     }
     case "oauth2-gmail": {
-      const workspaceId = options?.workspaceId;
-      if (!workspaceId) throw new Error("workspaceId required for Gmail OAuth transport");
       return new GmailTransportAdapter({
         getAccessToken: async () => {
           const tokens = await ensureValidAccessToken(
-            workspaceId,
             account.emailAddress,
             "google",
           );

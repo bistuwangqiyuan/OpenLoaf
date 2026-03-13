@@ -29,8 +29,6 @@ model SchedulerTaskRecord {
   id          String   @id
   /// 项目 ID
   projectId   String
-  /// 工作空间 ID
-  workspaceId String?
   /// 任务类型
   type        String
   /// 涉及的日期列表（自然日）
@@ -47,5 +45,20 @@ model SchedulerTaskRecord {
   createdAt   DateTime @default(now())
   /// 更新时间
   updatedAt   DateTime @updatedAt
+}
+
+/// Activity record for the main window timeline.
+model ActivityRecord {
+  id            String   @id
+  type          String /// Activity type: project_open, chat_message, canvas_edit, board_update.
+  title         String /// Display title.
+  referenceId   String? /// Related entity id (project id, session id, board id).
+  referenceType String? /// Related entity type: project, chat_session, canvas.
+  projectId     String? /// Associated project id (if applicable).
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([projectId])
 }
 

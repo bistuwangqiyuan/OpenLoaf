@@ -47,7 +47,6 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import dynamicIconImports from "lucide-react/dynamicIconImports"
-import { useWorkspace } from "@/components/workspace/workspaceContext"
 import { useTabs } from "@/hooks/use-tabs"
 import { useTabRuntime } from "@/hooks/use-tab-runtime"
 import { useSettingsValues } from "@/hooks/use-settings"
@@ -57,7 +56,7 @@ import { buildChatModelOptions } from "@/lib/provider-models"
 import { getModelLabel } from "@/lib/model-registry"
 import { toast } from "sonner"
 
-type AgentScope = "workspace" | "project" | "global"
+type AgentScope = "project" | "global"
 
 type AgentSummary = {
   name: string
@@ -152,7 +151,7 @@ function resolveLucideIcon(name: string): LucideIcon | null {
   return Component
 }
 
-/** 从工作空间复制 Agent 的选择对话框 */
+/** 从全局范围复制 Agent 的选择对话框 */
 function CopyAgentDialog({
   open,
   onOpenChange,
@@ -167,14 +166,14 @@ function CopyAgentDialog({
   const { t } = useTranslation(["settings"])
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("settings:agent.copyDialogTitle")}</DialogTitle>
+          <DialogTitle>{t("settings:agent.copyDialogTitleGlobal")}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[480px] space-y-1.5 overflow-y-auto py-2">
           {agents.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              {t("settings:agent.noWorkspaceAgents")}
+              {t("settings:agent.noGlobalAgents")}
             </p>
           ) : (
             agents.map((agent) => (
@@ -243,11 +242,11 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
   )
   const agents = (agentsQuery.data ?? []) as AgentSummary[]
 
-  // 逻辑：查询工作空间 agent（用于复制对话框）。
-  const wsAgentsQuery = useQuery(
-    trpc.settings.getAgents.queryOptions({ scopeFilter: "workspace" }),
+  // 逻辑：查询全局 agent（用于复制对话框）。
+  const globalAgentsQuery = useQuery(
+    trpc.settings.getAgents.queryOptions({ scopeFilter: "global" }),
   )
-  const wsAgents = (wsAgentsQuery.data ?? []) as AgentSummary[]
+  const globalAgents = (globalAgentsQuery.data ?? []) as AgentSummary[]
 
   const capGroupsQuery = useQuery(trpc.settings.getCapabilityGroups.queryOptions())
   const capGroups = useMemo(
@@ -274,9 +273,9 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
     [agents],
   )
   const hasMaster = Boolean(masterAgent)
-  const wsAgentFolderSet = useMemo(
-    () => new Set(wsAgents.map((agent) => agent.folderName)),
-    [wsAgents],
+  const globalAgentFolderSet = useMemo(
+    () => new Set(globalAgents.map((agent) => agent.folderName)),
+    [globalAgents],
   )
   // 逻辑：合并本地/云端模型配置，用于解析 Agent 的模型显示名。
   const agentModelMap = useMemo(() => {
@@ -406,13 +405,13 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
     })
   }, [activeTabId, projectId, pushStackItem])
 
-  const handleOpenWorkspaceAgents = useCallback(() => {
+  const handleOpenGlobalAgents = useCallback(() => {
     if (!activeTabId) return
     pushStackItem(activeTabId, {
-      id: "workspace-agents",
-      sourceKey: "workspace-agents",
+      id: "global-agents",
+      sourceKey: "global-agents",
       component: "agent-management",
-      title: t("settings:agent.workspaceTitle"),
+      title: t("settings:agent.globalTitle"),
       params: {},
     })
   }, [activeTabId, pushStackItem])
@@ -447,7 +446,7 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
     [deleteAgentMutation, projectId],
   )
 
-  const handleCopyFromWorkspace = useCallback(
+  const handleCopyFromGlobal = useCallback(
     (agent: AgentSummary) => {
       setCopyDialogOpen(false)
       copyAgentMutation.mutate({
@@ -508,7 +507,7 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleStartCopyNormal}>
                 <Copy className="mr-2 h-4 w-4" />
-                {t("settings:agent.copyFromWorkspace")}
+                {t("settings:agent.copyFromGlobal")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -519,15 +518,15 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
                 size="sm"
                 variant="secondary"
                 className="h-8 rounded-full border border-border/70 bg-background/85 px-2.5 text-xs transition-colors hover:bg-muted/55 sm:px-3"
-                onClick={handleOpenWorkspaceAgents}
+                onClick={handleOpenGlobalAgents}
                 disabled={!activeTabId}
               >
                 <ArrowRight className="h-3.5 w-3.5" />
-                <span className="ml-1.5 hidden sm:inline">{t("settings:agent.viewWorkspace")}</span>
+                <span className="ml-1.5 hidden sm:inline">{t("settings:agent.viewGlobal")}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={6}>
-              {t("settings:agent.viewWorkspace")}
+              {t("settings:agent.viewGlobal")}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -593,8 +592,8 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
                             {t("settings:agent.system")}
                           </span>
                         ) : null}
-                        {/* 逻辑：当前项目 Agent 与工作空间同名时显示覆盖标记。 */}
-                        {!agent.isInherited && wsAgentFolderSet.has(agent.folderName) ? (
+                        {/* 逻辑：当前项目 Agent 与全局同名时显示覆盖标记。 */}
+                        {!agent.isInherited && globalAgentFolderSet.has(agent.folderName) ? (
                           <span className="shrink-0 rounded px-1 py-px text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
                             {t("settings:agent.override")}
                           </span>
@@ -683,8 +682,8 @@ export function ProjectAgentView({ projectId }: { projectId: string }) {
       <CopyAgentDialog
         open={copyDialogOpen}
         onOpenChange={setCopyDialogOpen}
-        agents={wsAgents}
-        onSelect={handleCopyFromWorkspace}
+        agents={globalAgents}
+        onSelect={handleCopyFromGlobal}
       />
     </div>
   )

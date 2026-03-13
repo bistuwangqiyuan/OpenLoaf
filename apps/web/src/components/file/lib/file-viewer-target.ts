@@ -17,6 +17,7 @@ import {
   IMAGE_EXTS,
   MARKDOWN_EXTS,
   PDF_EXTS,
+  PPTX_EXTS,
   SPREADSHEET_EXTS,
   VIDEO_EXTS,
   isTextFallbackExt,
@@ -41,6 +42,11 @@ export function resolveFileViewerTarget(entry: FileSystemEntry): FileViewerTarge
   if (DOC_EXTS.has(ext)) {
     // 逻辑：doc 仅作为不可预览文件处理，避免误走 docx 解析链路。
     if (ext === "docx") return { viewer: "doc", ext };
+    return { viewer: "file", ext };
+  }
+  if (PPTX_EXTS.has(ext)) {
+    // 逻辑：pptx 通过服务端转 PDF 预览，ppt 降级为通用文件查看。
+    if (ext === "pptx") return { viewer: "pptx", ext };
     return { viewer: "file", ext };
   }
   if (SPREADSHEET_EXTS.has(ext)) return { viewer: "sheet", ext };

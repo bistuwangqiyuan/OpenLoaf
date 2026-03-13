@@ -7,7 +7,7 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import { getWorkspaceRootPath } from '@openloaf/api'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { generateText } from 'ai'
 import { logger } from '@/common/logger'
 import {
@@ -59,8 +59,8 @@ class TaskOrchestrator {
 
   /** Enqueue a task for execution (sets autoExecute and triggers tick). */
   async enqueue(taskId: string, projectRoot?: string | null): Promise<void> {
-    const workspaceRoot = getWorkspaceRootPath()
-    const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+    const globalRoot = getOpenLoafRootDir()
+    const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
     if (!task) return
 
     if (task.status !== 'todo') {
@@ -69,13 +69,13 @@ class TaskOrchestrator {
     }
 
     // Trigger immediate evaluation
-    void this.evaluateCandidate(task, workspaceRoot, projectRoot)
+    void this.evaluateCandidate(task, globalRoot, projectRoot)
   }
 
   /** Cancel a task. */
   async cancel(taskId: string, projectRoot?: string | null): Promise<void> {
-    const workspaceRoot = getWorkspaceRootPath()
-    const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+    const globalRoot = getOpenLoafRootDir()
+    const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
     if (!task) return
 
     const previousStatus = task.status
@@ -88,14 +88,14 @@ class TaskOrchestrator {
     }
 
     if (previousStatus === 'todo' || previousStatus === 'review') {
-      updateTask(taskId, { status: 'cancelled' }, workspaceRoot, projectRoot ?? undefined)
+      updateTask(taskId, { status: 'cancelled' }, globalRoot, projectRoot ?? undefined)
 
       appendActivityLog(taskId, {
         from: previousStatus,
         to: 'cancelled',
         actor: 'user',
         reason: '用户取消任务',
-      }, workspaceRoot, projectRoot ?? undefined)
+      }, globalRoot, projectRoot ?? undefined)
 
       taskEventBus.emitStatusChange({
         taskId,
@@ -121,8 +121,8 @@ class TaskOrchestrator {
     reason?: string,
     projectRoot?: string | null,
   ): Promise<TaskConfig | null> {
-    const workspaceRoot = getWorkspaceRootPath()
-    const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+    const globalRoot = getOpenLoafRootDir()
+    const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
     if (!task || task.status !== 'review') return null
 
     if (task.reviewType === 'plan') {
@@ -139,7 +139,7 @@ class TaskOrchestrator {
           reviewType: 'plan',
           actor: 'user',
           reason: reason ?? '用户拒绝计划',
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
       }
     } else if (task.reviewType === 'completion') {
       if (action === 'approve') {
@@ -147,7 +147,7 @@ class TaskOrchestrator {
         updateTask(taskId, {
           status: 'done',
           reviewType: undefined,
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         appendActivityLog(taskId, {
           from: 'review',
@@ -155,7 +155,7 @@ class TaskOrchestrator {
           reviewType: 'completion',
           actor: 'user',
           reason: reason ?? '用户通过审查',
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         taskEventBus.emitStatusChange({
           taskId,
@@ -169,7 +169,7 @@ class TaskOrchestrator {
         updateTask(taskId, {
           status: 'todo',
           reviewType: undefined,
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         appendActivityLog(taskId, {
           from: 'review',
@@ -177,7 +177,7 @@ class TaskOrchestrator {
           reviewType: 'completion',
           actor: 'user',
           reason: reason ?? '用户要求返工',
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         taskEventBus.emitStatusChange({
           taskId,
@@ -196,7 +196,7 @@ class TaskOrchestrator {
         updateTask(taskId, {
           status: 'cancelled',
           reviewType: undefined,
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         appendActivityLog(taskId, {
           from: 'review',
@@ -204,7 +204,7 @@ class TaskOrchestrator {
           reviewType: 'completion',
           actor: 'user',
           reason: reason ?? '用户拒绝完成结果',
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         taskEventBus.emitStatusChange({
           taskId,
@@ -216,7 +216,7 @@ class TaskOrchestrator {
       }
     }
 
-    return getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+    return getTask(taskId, globalRoot, projectRoot ?? undefined)
   }
 
   // ─── Periodic Tick ──────────────────────────────────────────────────
@@ -224,8 +224,8 @@ class TaskOrchestrator {
   /** Periodic scan: collect candidates, check conflicts, start tasks. */
   private async tick(): Promise<void> {
     try {
-      const workspaceRoot = getWorkspaceRootPath()
-      const allTasks = listTasks(workspaceRoot)
+      const globalRoot = getOpenLoafRootDir()
+      const allTasks = listTasks(globalRoot)
 
       // Collect candidates
       const candidates = this.collectCandidates(allTasks)
@@ -235,14 +235,14 @@ class TaskOrchestrator {
       const runningTasks = allTasks.filter((t) => t.status === 'running')
 
       for (const candidate of candidates) {
-        await this.evaluateCandidate(candidate, workspaceRoot, null, runningTasks)
+        await this.evaluateCandidate(candidate, globalRoot, null, runningTasks)
       }
 
       // Check timeouts
-      this.checkTimeouts(allTasks, workspaceRoot)
+      this.checkTimeouts(allTasks, globalRoot)
 
       // Auto-archive done tasks older than 7 days
-      this.checkAutoArchive(allTasks, workspaceRoot)
+      this.checkAutoArchive(allTasks, globalRoot)
     } catch (err) {
       logger.error({ err }, '[task-orchestrator] Tick failed')
     }
@@ -275,22 +275,22 @@ class TaskOrchestrator {
   /** Evaluate a single candidate task for execution. */
   private async evaluateCandidate(
     candidate: TaskConfig,
-    workspaceRoot: string,
+    globalRoot: string,
     projectRoot?: string | null,
     runningTasks?: TaskConfig[],
   ): Promise<void> {
     if (taskExecutor.isRunning(candidate.id)) return
 
-    const running = runningTasks ?? listTasks(workspaceRoot).filter((t) => t.status === 'running')
+    const running = runningTasks ?? listTasks(globalRoot).filter((t) => t.status === 'running')
 
     if (running.length === 0) {
       // No conflicts possible, start immediately
-      void taskExecutor.execute(candidate.id, workspaceRoot, projectRoot)
+      void taskExecutor.execute(candidate.id, globalRoot, projectRoot)
     } else {
       // Check for conflicts with running tasks
       const conflict = await this.checkConflict(candidate, running)
       if (!conflict.conflict) {
-        void taskExecutor.execute(candidate.id, workspaceRoot, projectRoot)
+        void taskExecutor.execute(candidate.id, globalRoot, projectRoot)
       } else {
         // Conflict detected, delay
         appendActivityLog(candidate.id, {
@@ -298,7 +298,7 @@ class TaskOrchestrator {
           to: 'todo',
           actor: 'agent',
           reason: `延迟执行：与运行中任务冲突 — ${conflict.reason}`,
-        }, workspaceRoot, projectRoot ?? undefined)
+        }, globalRoot, projectRoot ?? undefined)
 
         logger.info(
           { taskId: candidate.id, reason: conflict.reason },
@@ -330,7 +330,7 @@ class TaskOrchestrator {
   }
 
   /** Check for timed-out running tasks. */
-  private checkTimeouts(allTasks: TaskConfig[], workspaceRoot: string): void {
+  private checkTimeouts(allTasks: TaskConfig[], globalRoot: string): void {
     for (const task of allTasks) {
       if (task.status !== 'running') continue
       if (!task.lastRunAt) continue
@@ -344,7 +344,7 @@ class TaskOrchestrator {
   }
 
   /** Auto-archive tasks that have been done for more than 7 days. */
-  private checkAutoArchive(allTasks: TaskConfig[], workspaceRoot: string): void {
+  private checkAutoArchive(allTasks: TaskConfig[], globalRoot: string): void {
     const ARCHIVE_AFTER_MS = 7 * 24 * 60 * 60 * 1000
     const now = Date.now()
 
@@ -354,7 +354,7 @@ class TaskOrchestrator {
       const completedTime = task.completedAt ?? task.updatedAt
       const elapsed = now - new Date(completedTime).getTime()
       if (elapsed > ARCHIVE_AFTER_MS) {
-        const success = archiveTask(task.id, workspaceRoot)
+        const success = archiveTask(task.id, globalRoot)
         if (success) {
           logger.info({ taskId: task.id }, '[task-orchestrator] Auto-archived completed task')
         }

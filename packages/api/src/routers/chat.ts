@@ -15,11 +15,11 @@ import {
   buildProjectTitleMap,
   collectProjectSubtreeIds,
   findProjectNodeWithParent,
-  readWorkspaceProjectTrees,
+  readProjectTrees,
 } from '../services/projectTreeService'
 import {
-  getWorkspaceProjectTitleMap,
-  syncWorkspaceProjectsFromDisk,
+  getProjectTitleMap,
+  syncProjectsFromDisk,
 } from '../services/projectDbService'
 import {
   clearProjectChatData,
@@ -68,6 +68,28 @@ export type ChatSessionSummary = {
   projectIcon: string | null
   /** Session message count. */
   messageCount: number
+}
+
+export type CopySessionToBoardResult = {
+  /** Target board metadata. */
+  board: {
+    id: string
+    title: string
+    folderUri: string
+    projectId: string | null
+  }
+  /** Target session id (always equals board id). */
+  targetSessionId: string
+  /** Whether this call created a new board. */
+  createdBoard: boolean
+  /** Import batch id used for copied resources. */
+  importBatchId: string
+  /** Number of imported messages. */
+  importedMessageCount: number
+  /** Number of copied files. */
+  copiedFileCount: number
+  /** Imported messages in chronological order. */
+  importedMessages: Array<ChatUIMessage & { createdAt: string }>
 }
 
 const MAX_VIEW_LIMIT = 200
@@ -154,7 +176,6 @@ export const chatRouter = t.router({
   listSessions: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().optional(),
         boardId: z.string().trim().min(1).nullable().optional(),
       }),
@@ -165,7 +186,7 @@ export const chatRouter = t.router({
       let projectIdFilter: string[] | null = null
       let projectTitleMap = new Map<string, string>()
 
-      const projectTrees = await readWorkspaceProjectTrees(input.workspaceId)
+      const projectTrees = await readProjectTrees()
       if (projectId) {
         const entry = findProjectNodeWithParent(projectTrees, projectId)
         if (!entry) return []
@@ -173,8 +194,8 @@ export const chatRouter = t.router({
       }
 
       try {
-        await syncWorkspaceProjectsFromDisk(ctx.prisma, input.workspaceId, projectTrees)
-        projectTitleMap = await getWorkspaceProjectTitleMap(ctx.prisma, input.workspaceId)
+        await syncProjectsFromDisk(ctx.prisma, projectTrees)
+        projectTitleMap = await getProjectTitleMap(ctx.prisma)
       } catch {
         projectTitleMap = new Map<string, string>()
       }
@@ -187,7 +208,6 @@ export const chatRouter = t.router({
       const sessions = await ctx.prisma.chatSession.findMany({
         where: {
           deletedAt: null,
-          workspaceId: input.workspaceId,
           ...(boardId !== undefined ? { boardId } : {}),
           ...(projectIdFilter ? { projectId: { in: projectIdFilter } } : {}),
         },
@@ -345,6 +365,18 @@ export const chatRouter = t.router({
     }),
 
   /**
+   * Copy an existing chat session into a board-backed chat session.
+   */
+  copySessionToBoard: shieldedProcedure
+    .input(z.object({
+      sourceSessionId: z.string().min(1),
+      targetBoardId: z.string().min(1).optional(),
+    }))
+    .mutation(async (): Promise<CopySessionToBoardResult> => {
+      throw new Error('Not implemented: override in server chat router.')
+    }),
+
+  /**
    * 根据会话历史自动生成标题（MVP）
    * - 具体实现放在 server（tRPC router override）
    */
@@ -356,12 +388,11 @@ export const chatRouter = t.router({
     }),
 
   /**
-   * List chat sessions by workspace (for WorkspaceChatList)
+   * List chat sessions for sidebar overview.
    */
-  listByWorkspace: shieldedProcedure
+  listSidebarSessions: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().nullable().optional(),
         limit: z.number().optional(),
       }),
@@ -370,7 +401,6 @@ export const chatRouter = t.router({
       const sessions = await ctx.prisma.chatSession.findMany({
         where: {
           deletedAt: null,
-          workspaceId: input.workspaceId,
           projectId: input.projectId,
         },
         orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
@@ -409,7 +439,6 @@ export const chatRouter = t.router({
           errorMessage: true,
           projectId: true,
           messageCount: true,
-          workspaceId: true,
         },
       })
 

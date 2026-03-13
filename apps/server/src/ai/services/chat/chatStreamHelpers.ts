@@ -107,8 +107,6 @@ export function initRequestContext(input: {
   timezone?: string | null;
   /** Tab id for UI event targeting. */
   tabId?: string | null;
-  /** Workspace id for request scope. */
-  workspaceId?: string | null;
   /** Project id for request scope. */
   projectId?: string | null;
   /** Board id for request scope. */
@@ -143,7 +141,6 @@ export function initRequestContext(input: {
         ? input.timezone.trim()
         : undefined,
     tabId: input.tabId || undefined,
-    workspaceId: input.workspaceId || undefined,
     projectId: input.projectId || undefined,
     // 逻辑：仅在请求参数中显式选择时注入技能列表。
     selectedSkills:

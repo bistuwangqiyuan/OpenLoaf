@@ -35,6 +35,7 @@ export const VIDEO_EXTS = new Set(["mp4", "mov", "avi", "mkv", "webm"]);
 export const SPREADSHEET_EXTS = new Set(["xls", "xlsx", "csv", "tsv", "numbers"]);
 export const PDF_EXTS = new Set(["pdf"]);
 export const DOC_EXTS = new Set(["doc", "docx"]);
+export const PPTX_EXTS = new Set(["pptx", "ppt"]);
 /** File extensions treated as markdown documents. */
 export const MARKDOWN_EXTS = new Set(["md", "mdc", "mdx", "markdown"]);
 /** File extensions treated as plain text for the code viewer fallback. */

@@ -4,8 +4,6 @@ description: This skill should be used when the user asks to "做成 teenage eng
 version: 0.1.0
 ---
 
-# Teenage Engineering Brand Design
-
 ## Purpose
 
 提炼并复用 `teenage.engineering` 的品牌视觉 DNA，用于：
@@ -32,8 +30,6 @@ version: 0.1.0
 1. 用户本次明确要求
 2. `references/style-dna.md`
 3. `../web-style-system/SKILL.md`
-
-## Mode Selection
 
 ### Analysis Mode
 
@@ -110,8 +106,6 @@ version: 0.1.0
 5. 最后检查是否掉进泛科技/SaaS 模板：
    渐变背景、发光边框、重阴影、过度圆润、组件堆砌、无差别按钮强调。
 
-## Hard Rules
-
 ### 1. Product First
 
 让产品、设备、包装、结构件或核心对象成为视觉主角。不要让 UI 装饰抢走主体。
@@ -142,8 +136,6 @@ version: 0.1.0
 - 依赖大段营销文案驱动首屏，而不是对象驱动首屏
 - 使用 `Inter`、`Poppins`、`Space Grotesk` 一类常见默认方案后不做个性化处理
 - 页面信息层级全靠颜色，不靠字号、位置、间距和密度
-
-## Output Template
 
 ### Analysis Template
 

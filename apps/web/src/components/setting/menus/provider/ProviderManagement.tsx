@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ConfirmDeleteDialog } from "@/components/setting/menus/provider/ConfirmDeleteDialog";
 import { ModelDialog } from "@/components/setting/menus/provider/ModelDialog";
 import { ProviderDialog } from "@/components/setting/menus/provider/ProviderDialog";
@@ -36,7 +36,6 @@ import type { LucideIcon } from "lucide-react";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { Switch } from "@openloaf/ui/animate-ui/components/radix/switch";
 import { toast } from "sonner";
-import { trpc } from "@/utils/trpc";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useSettingsValues } from "@/hooks/use-settings";
@@ -84,8 +83,6 @@ export function ProviderManagement({ panelKey }: ProviderManagementProps) {
       ),
     [providerItems, cloudModels, installedCliProviderIds],
   );
-  const workspaceQuery = useQuery(trpc.workspace.getActive.queryOptions());
-  const workspaceId = workspaceQuery.data?.id ?? "";
   const activeTabId = useTabs((state) => state.activeTabId);
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
   const {

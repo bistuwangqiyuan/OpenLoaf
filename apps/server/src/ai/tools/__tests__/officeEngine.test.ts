@@ -41,7 +41,7 @@ import {
   parsePptxStructure,
 } from '@/ai/tools/office/structureParser'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 
 // ---------------------------------------------------------------------------
 // Test runner
@@ -356,14 +356,14 @@ async function main() {
     // write op resolves source via resolveToolPath → needs RequestContext
     setupE2eTestEnv()
     await runWithContext(
-      { sessionId: 'engine-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+      { sessionId: 'engine-test', cookies: {} },
       async () => {
         const editedPath = path.join(tempDir, 'edited-write.zip')
         await fs.copyFile(zipPath, editedPath)
-        // Write a local file as source for the write op (inside workspace)
+        // Write a local file as source for the write op (inside project)
         const { resolveToolPath } = await import('@/ai/tools/toolScope')
-        const wsRoot = resolveToolPath({ target: '.' }).absPath
-        const srcFilePath = path.join(wsRoot, '_c9_test_src.txt')
+        const projectRoot = resolveToolPath({ target: '.' }).absPath
+        const srcFilePath = path.join(projectRoot, '_c9_test_src.txt')
         await fs.writeFile(srcFilePath, 'brand new content', 'utf-8')
         try {
           await editZip(editedPath, editedPath, [

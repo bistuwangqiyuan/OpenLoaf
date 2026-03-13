@@ -18,7 +18,6 @@ import { resolveProjectAncestorIds } from "@openloaf/api/services/projectDbServi
 
 type CalendarSourceRow = {
   id: string;
-  workspaceId: string;
   provider: string;
   kind: string;
   externalId: string | null;
@@ -33,7 +32,6 @@ type CalendarSourceRow = {
 
 type CalendarItemRow = {
   id: string;
-  workspaceId: string;
   sourceId: string;
   kind: string;
   title: string;
@@ -53,7 +51,6 @@ type CalendarItemRow = {
 
 type CalendarItemView = {
   id: string;
-  workspaceId: string;
   sourceId: string;
   kind: "event" | "reminder";
   title: string;
@@ -75,7 +72,6 @@ type CalendarItemView = {
 function toCalendarSourceView(row: CalendarSourceRow) {
   return {
     id: row.id,
-    workspaceId: row.workspaceId,
     provider: row.provider,
     kind: row.kind,
     externalId: row.externalId,
@@ -93,7 +89,6 @@ function toCalendarSourceView(row: CalendarSourceRow) {
 function toCalendarItemView(row: CalendarItemRow): CalendarItemView {
   return {
     id: row.id,
-    workspaceId: row.workspaceId,
     sourceId: row.sourceId,
     kind: row.kind === "reminder" ? "reminder" : "event",
     title: row.title,
@@ -115,11 +110,10 @@ function toCalendarItemView(row: CalendarItemRow): CalendarItemView {
 /** Ensure calendar source is writable for user operations. */
 async function assertWritableSource(input: {
   prisma: any;
-  workspaceId: string;
   sourceId: string;
 }) {
   const source = await input.prisma.calendarSource.findFirst({
-    where: { id: input.sourceId, workspaceId: input.workspaceId },
+    where: { id: input.sourceId },
   });
   if (!source) throw new Error("Calendar source not found.");
   if (source.readOnly || source.isSubscribed) {
@@ -131,7 +125,6 @@ async function assertWritableSource(input: {
 /** Resolve project-scoped filter for CalendarSource.projectId. */
 async function resolveVisibleSourceFilter(
   prisma: any,
-  workspaceId: string,
   projectId?: string,
 ): Promise<{ OR: object[] } | undefined> {
   if (!projectId) return undefined;
@@ -154,11 +147,10 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
         .query(async ({ input, ctx }) => {
           const projectFilter = await resolveVisibleSourceFilter(
             ctx.prisma,
-            input.workspaceId,
             input.projectId,
           );
           let rows = await ctx.prisma.calendarSource.findMany({
-            where: { workspaceId: input.workspaceId, ...projectFilter },
+            where: { ...projectFilter },
             orderBy: { title: "asc" },
           });
           if (rows.length === 0 && !input.projectId) {
@@ -167,7 +159,6 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
               ctx.prisma.calendarSource.create({
                 data: {
                   id: randomUUID(),
-                  workspaceId: input.workspaceId,
                   provider: "local",
                   kind: "calendar",
                   externalId: null,
@@ -181,7 +172,6 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
               ctx.prisma.calendarSource.create({
                 data: {
                   id: randomUUID(),
-                  workspaceId: input.workspaceId,
                   provider: "local",
                   kind: "reminder",
                   externalId: null,
@@ -209,11 +199,10 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
           if (input.projectId) {
             const projectFilter = await resolveVisibleSourceFilter(
               ctx.prisma,
-              input.workspaceId,
               input.projectId,
             );
             const sources = await ctx.prisma.calendarSource.findMany({
-              where: { workspaceId: input.workspaceId, ...projectFilter },
+              where: { ...projectFilter },
               select: { id: true },
             });
             visibleSourceIds = sources.map((s: { id: string }) => s.id);
@@ -231,7 +220,6 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
           })();
           const rows = await ctx.prisma.calendarItem.findMany({
             where: {
-              workspaceId: input.workspaceId,
               deletedAt: null,
               ...sourceIdFilter,
               AND: [
@@ -253,14 +241,12 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
           if (input.projectId) {
             const projectFilter = await resolveVisibleSourceFilter(
               ctx.prisma,
-              input.workspaceId,
               input.projectId,
             );
             if (projectFilter) {
               const source = await ctx.prisma.calendarSource.findFirst({
                 where: {
                   id: item.sourceId,
-                  workspaceId: input.workspaceId,
                   ...projectFilter,
                 },
               });
@@ -271,13 +257,11 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
           }
           await assertWritableSource({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
             sourceId: item.sourceId,
           });
           const created = await ctx.prisma.calendarItem.create({
             data: {
               id: item.id ?? randomUUID(),
-              workspaceId: input.workspaceId,
               sourceId: item.sourceId,
               kind: item.kind,
               title: item.title,
@@ -303,14 +287,13 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
         .mutation(async ({ input, ctx }) => {
           const item = input.item;
           const existing = await ctx.prisma.calendarItem.findFirst({
-            where: { id: item.id, workspaceId: input.workspaceId },
+            where: { id: item.id },
           });
           if (!existing) {
             throw new Error("Calendar item not found.");
           }
           await assertWritableSource({
             prisma: ctx.prisma,
-            workspaceId: input.workspaceId,
             sourceId: item.sourceId,
           });
           const updated = await ctx.prisma.calendarItem.update({
@@ -341,7 +324,7 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
         .output(calendarSchemas.deleteItem.output)
         .mutation(async ({ input, ctx }) => {
           const updated = await ctx.prisma.calendarItem.updateMany({
-            where: { id: input.id, workspaceId: input.workspaceId },
+            where: { id: input.id },
             data: { deletedAt: new Date() },
           });
           if (updated.count === 0) {
@@ -355,7 +338,7 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
         .output(calendarSchemas.toggleReminderCompleted.output)
         .mutation(async ({ input, ctx }) => {
           const existing = await ctx.prisma.calendarItem.findFirst({
-            where: { id: input.id, workspaceId: input.workspaceId },
+            where: { id: input.id },
           });
           if (!existing) {
             throw new Error("Calendar item not found.");
@@ -384,8 +367,7 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
             }
             return ctx.prisma.calendarSource.upsert({
               where: {
-                workspaceId_provider_kind_externalId: {
-                  workspaceId: input.workspaceId,
+                provider_kind_externalId: {
                   provider: input.provider,
                   kind: source.kind,
                   externalId,
@@ -393,7 +375,6 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
               },
               create: {
                 id: randomUUID(),
-                workspaceId: input.workspaceId,
                 provider: input.provider,
                 kind: source.kind,
                 externalId,
@@ -427,15 +408,13 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
             return [
               ctx.prisma.calendarItem.upsert({
                 where: {
-                  workspaceId_sourceId_externalId: {
-                    workspaceId: input.workspaceId,
+                  sourceId_externalId: {
                     sourceId,
                     externalId: item.externalId,
                   },
                 },
                 create: {
                   id: randomUUID(),
-                  workspaceId: input.workspaceId,
                   sourceId,
                   kind: item.kind,
                   title: item.title,
@@ -482,7 +461,6 @@ export class CalendarRouterImpl extends BaseCalendarRouter {
           if (sourceIds.length > 0) {
             await ctx.prisma.calendarItem.updateMany({
               where: {
-                workspaceId: input.workspaceId,
                 sourceId: { in: sourceIds },
                 deletedAt: null,
                 externalId:

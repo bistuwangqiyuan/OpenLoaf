@@ -24,8 +24,9 @@ import picomatch from "picomatch";
 import { resolveToolPath, resolveToolRoots, isTargetOutsideScope } from "@/ai/tools/toolScope";
 import { resolveSecretTokens } from "@/ai/tools/secretStore";
 import { buildGitignoreMatcher } from "@/ai/tools/gitignoreMatcher";
-import { getProjectId, getWorkspaceId } from "@/ai/shared/context/requestContext";
-import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getProjectId } from "@/ai/shared/context/requestContext";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 
 const MAX_LINE_LENGTH = 500;
 const DEFAULT_READ_LIMIT = 2000;
@@ -144,16 +145,14 @@ function isPathInside(root: string, target: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-/** Resolve a write target path within the current project/workspace root. */
+/** Resolve a write target path within the current project root. */
 function resolveWriteTargetPath(targetPath: string): { absPath: string; rootPath: string } {
-  const workspaceId = getWorkspaceId();
-  if (!workspaceId) throw new Error("workspaceId is required.");
   const projectId = getProjectId();
   const rootPath = projectId
-    ? getProjectRootPath(projectId, workspaceId)
-    : getWorkspaceRootPathById(workspaceId);
+    ? getProjectRootPath(projectId)
+    : getOpenLoafRootDir();
   if (!rootPath) {
-    throw new Error(projectId ? "Project not found." : "Workspace not found.");
+    throw new Error("Project not found.");
   }
 
   const trimmed = targetPath.trim();
@@ -176,7 +175,7 @@ function resolveWriteTargetPath(targetPath: string): { absPath: string; rootPath
     ? path.resolve(normalized)
     : path.resolve(resolvedRoot, normalized);
   if (!isPathInside(resolvedRoot, absPath)) {
-    throw new Error("Path is outside the current project/workspace scope.");
+    throw new Error("Path is outside the current project scope.");
   }
   return { absPath, rootPath: resolvedRoot };
 }
@@ -535,9 +534,9 @@ export const listDirTool = tool({
       : await buildGitignoreMatcher({ rootPath: absPath });
     const { entries, stats } = await collectDirEntries(absPath, resolvedDepth, ignoreMatcher);
 
-    // Compute relative path from project/workspace root
-    const { projectRoot, workspaceRoot } = resolveToolRoots();
-    const rootPath = projectRoot ?? workspaceRoot;
+    // Compute relative path from project/global root
+    const { projectRoot, globalRoot } = resolveToolRoots();
+    const rootPath = projectRoot ?? globalRoot;
     const relativePath = path.relative(rootPath, absPath) || ".";
 
     const output: string[] = [

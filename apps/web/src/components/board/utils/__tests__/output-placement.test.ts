@@ -9,7 +9,10 @@
  */
 import assert from "node:assert/strict";
 
-import { resolveRightStackPlacement } from "../output-placement";
+import {
+  resolveDirectionalStackPlacement,
+  resolveRightStackPlacement,
+} from "../output-placement";
 
 type Rect = [number, number, number, number];
 
@@ -49,6 +52,65 @@ const source: Rect = [0, 0, 200, 200];
   assert.ok(placement);
   assert.equal(placement?.baseX, 320);
   assert.equal(placement?.startY, 232);
+}
+
+{
+  const placement = resolveDirectionalStackPlacement(source, [], {
+    direction: "right",
+    sideGap: 60,
+    stackGap: 16,
+    outputSize: [100, 80],
+  });
+  assert.deepEqual(placement, { x: 260, y: 60 });
+}
+
+{
+  const placement = resolveDirectionalStackPlacement(source, [], {
+    direction: "left",
+    sideGap: 60,
+    stackGap: 16,
+    outputSize: [100, 80],
+  });
+  assert.deepEqual(placement, { x: -160, y: 60 });
+}
+
+{
+  const placement = resolveDirectionalStackPlacement(source, [], {
+    direction: "bottom",
+    sideGap: 60,
+    stackGap: 16,
+    outputSize: [100, 80],
+  });
+  assert.deepEqual(placement, { x: 50, y: 260 });
+}
+
+{
+  const existing: Rect[] = [
+    [260, 10, 100, 90],
+    [260, 140, 120, 80],
+    [-180, 24, 80, 60],
+  ];
+  const placement = resolveDirectionalStackPlacement(source, existing, {
+    direction: "right",
+    sideGap: 60,
+    stackGap: 16,
+    outputSize: [90, 70],
+  });
+  assert.deepEqual(placement, { x: 260, y: 236 });
+}
+
+{
+  const existing: Rect[] = [
+    [-180, 24, 120, 60],
+    [20, -140, 80, 90],
+  ];
+  const placement = resolveDirectionalStackPlacement(source, existing, {
+    direction: "left",
+    sideGap: 60,
+    stackGap: 16,
+    outputSize: [90, 70],
+  });
+  assert.deepEqual(placement, { x: -150, y: 100 });
 }
 
 console.log("output placement tests passed.");

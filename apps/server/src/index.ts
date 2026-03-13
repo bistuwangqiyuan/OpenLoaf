@@ -20,9 +20,9 @@ import { startServer } from "@/bootstrap/startServer";
 import { flushBoardDocuments } from "@/modules/board/boardCollabWebSocket";
 import { installHttpProxy } from "@/modules/proxy/httpProxy";
 import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
-import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
+import { getAppConfig } from "@openloaf/api/services/appConfigService";
 import { migrateLegacyServerData } from "@openloaf/config";
-import { ensureActiveWorkspaceDefaultAgent } from "@/ai/shared/workspaceAgentInit";
+import { ensureDefaultAgentCleanup } from "@/ai/shared/agentCleanup";
 import { initDatabase } from "@openloaf/db";
 import { runPendingMigrations } from "@openloaf/db/migrationRunner";
 import { embeddedMigrations } from "@openloaf/db/migrations.generated";
@@ -38,12 +38,12 @@ initFfmpegPaths();
 installHttpProxy();
 void syncSystemProxySettings();
 
-// 启动时确保配置文件存在，避免运行中首次访问 workspace 时才触发创建。
+// 启动时确保配置文件存在，避免运行中首次访问配置时才触发创建。
 migrateLegacyServerData();
-getWorkspaces();
+getAppConfig();
 
-// 启动时确保活跃 workspace 有默认 agent 文件。
-ensureActiveWorkspaceDefaultAgent();
+// 启动时清理旧版 agent 文件夹。
+ensureDefaultAgentCleanup();
 
 // 数据库迁移：检查并应用所有待执行的 schema 迁移。
 // 必须在 initDatabase() 之前完成，确保表结构就绪。
@@ -60,7 +60,7 @@ if (applied.length > 0) {
 await initDatabase();
 
 const { app } = startServer();
-// 暂停启动时自动总结调度，避免无 workspace/project 上下文触发总结流程。
+// 暂停启动时自动总结调度，避免无项目上下文时触发总结流程。
 // void initSummaryScheduler();
 
 // 响应 SIGINT/SIGTERM，退出前先刷盘画布文档，防止热重载丢失未持久化的 Yjs 数据。

@@ -17,7 +17,6 @@ import { BROWSER_WINDOW_COMPONENT, BROWSER_WINDOW_PANEL_ID } from "@openloaf/api
 import { cn } from "@/lib/utils";
 import { GlowingEffect } from "@openloaf/ui/glowing-effect";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { normalizeUrl } from "@/components/browser/browser-utils";
 import { fetchWebMeta } from "@/lib/web-meta";
 import { Button } from "@openloaf/ui/button";
@@ -50,10 +49,11 @@ import ProjectFileSystemTransferDialog from "@/components/project/filesystem/com
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { createBrowserTabId } from "@/hooks/tab-id";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 
 interface DesktopTileGridstackProps {
   item: DesktopItem;
-  /** Desktop scope (workspace or project). */
+  /** Desktop scope (global or project). */
   scope: DesktopScope;
   editMode: boolean;
   onEnterEditMode: () => void;
@@ -82,7 +82,7 @@ export default function DesktopTileGridstack({
   const longPressTimerRef = React.useRef<number | null>(null);
   const pointerStartRef = React.useRef<{ id: number; x: number; y: number } | null>(null);
   const { basic } = useBasicConfig();
-  const { workspace } = useWorkspace();
+  const projectStorageRootUri = useProjectStorageRootUri();
   const tabs = useTabs((state) => state.tabs);
   const activeTabId = useTabs((state) => state.activeTabId);
   const tabRuntime = useTabRuntime((state) =>
@@ -110,10 +110,9 @@ export default function DesktopTileGridstack({
       : typeof activeTab?.chatParams?.projectId === "string"
         ? String(activeTab.chatParams.projectId)
         : undefined;
-  const workspaceId = workspace?.id ?? activeTab?.workspaceId;
   const projectRootUri =
     typeof tabParams?.rootUri === "string" ? String(tabParams.rootUri) : undefined;
-  const defaultRootUri = projectRootUri || workspace?.rootUri;
+  const defaultRootUri = projectRootUri || projectStorageRootUri;
   // 网页组件修改对话框状态。
   const [isWebDialogOpen, setIsWebDialogOpen] = React.useState(false);
   const [webUrlInput, setWebUrlInput] = React.useState("");
@@ -279,7 +278,7 @@ export default function DesktopTileGridstack({
       return;
     }
     if (!defaultRootUri) {
-      setWebError(t('tile.noWorkspaceDir'));
+      setWebError(t('tile.noProjectSpaceDir'));
       return;
     }
     let hostname = "";
@@ -434,7 +433,7 @@ export default function DesktopTileGridstack({
           <DesktopTileContent
             item={item}
             scope={scope}
-            webContext={{ projectId, workspaceId }}
+            webContext={{ projectId }}
             onWebOpen={handleWebOpen}
             onConfigure={handleConfigure}
           />

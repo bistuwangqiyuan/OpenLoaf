@@ -39,6 +39,7 @@ const MONOREPO_NODE_MODULES = path.resolve(REPO_ROOT, 'node_modules');
  */
 const NATIVE_DEP_ROOTS = [
   'sharp', // 图片处理（webpack external: sharp）
+  '@img', // sharp 内部依赖（@img/colour 等），scope 枚举确保不遗漏
   'libsql', // SQLite native binding（webpack external: libsql）
   '@libsql', // Prisma libsql adapter 全部子包（webpack external: @libsql/*）
   'playwright-core', // 网页自动化（esbuild external）
@@ -265,6 +266,7 @@ const config: ForgeConfig = {
       // Pre-built SQLite DB with schema applied (copied to userData on first run).
       '../../apps/server/dist/seed.db',
       '../../apps/web/out',
+      '../../apps/desktop/resources/docx-sfdt',
       '../../apps/desktop/resources/speech',
       '../../apps/desktop/resources/calendar',
       '../../apps/desktop/resources/runtime.env',

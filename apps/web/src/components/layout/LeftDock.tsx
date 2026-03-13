@@ -21,7 +21,7 @@ import {
 import { useTabView } from "@/hooks/use-tab-view";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import type { DockItem } from "@openloaf/api/common";
-import WorkspaceSwitchDockTabs from "./WorkspaceSwitchDockTabs";
+import GlobalEntryDockTabs from "./GlobalEntryDockTabs";
 import { StackHeader } from "./StackHeader";
 import { Skeleton } from "@openloaf/ui/skeleton";
 import { trpc } from "@/utils/trpc";
@@ -53,11 +53,11 @@ import {
   parseScopedProjectPath,
 } from "@/components/project/filesystem/utils/file-system-utils";
 
-const WORKSPACE_SWITCH_COMPONENTS = new Set([
+const GLOBAL_ENTRY_COMPONENTS = new Set([
   "calendar-page",
   "email-page",
   "scheduled-tasks-page",
-  "workspace-desktop",
+  "global-desktop",
   "canvas-list-page",
 ]);
 
@@ -272,7 +272,6 @@ function parseRenamePath(uri: string) {
 // Render the left dock contents for a tab.
 export function LeftDock({ tabId }: { tabId: string }) {
   const tab = useTabView(tabId);
-  const workspaceId = tab?.workspaceId ?? "";
   const stackHidden = Boolean(tab?.stackHidden);
   const activeStackItemId = tab?.activeStackItemId;
   const removeStackItem = useTabRuntime((s) => s.removeStackItem);
@@ -298,11 +297,11 @@ export function LeftDock({ tabId }: { tabId: string }) {
   const activeStackId = activeStackItemId || stack.at(-1)?.id || "";
   const hasOverlay = Boolean(base) && stack.length > 0 && !stackHidden;
   const floating = Boolean(base);
-  const showWorkspaceSwitchDock = Boolean(
-    base?.component && WORKSPACE_SWITCH_COMPONENTS.has(base.component),
+  const showGlobalEntryDock = Boolean(
+    base?.component && GLOBAL_ENTRY_COMPONENTS.has(base.component),
   );
   // 中文注释：存在底部 DockTabs 时，stack 顶层面板需要预留底部显示区域。
-  const showBottomDockGap = base?.component === "plant-page" || showWorkspaceSwitchDock;
+  const showBottomDockGap = base?.component === "plant-page" || showGlobalEntryDock;
 
   const requestCloseStackItem = React.useCallback(
     async (item: DockItem | undefined) => {
@@ -326,14 +325,12 @@ export function LeftDock({ tabId }: { tabId: string }) {
       if (isBoardEmpty(uri)) {
         try {
           await deleteMutation.mutateAsync({
-            workspaceId,
             projectId,
             uri,
             recursive: true,
           });
           await queryClient.invalidateQueries({
             queryKey: trpc.fs.list.queryOptions({
-              workspaceId,
               projectId,
               uri: getParentUri(uri),
             }).queryKey,
@@ -347,26 +344,23 @@ export function LeftDock({ tabId }: { tabId: string }) {
       setRenameValue(getBoardDisplayName(name));
       setRenameDialog({ tabId, itemId: item.id, uri, name, ext, projectId });
     },
-    [removeStackItem, tabId, deleteMutation, workspaceId, queryClient],
+    [removeStackItem, tabId, deleteMutation, queryClient],
   );
 
   const handleRenameConfirm = React.useCallback(async () => {
     if (!renameDialog) return;
-    if (!workspaceId) return;
     const rawName = renameValue.trim();
     if (!rawName) return;
     const nextName = ensureBoardFolderName(rawName);
     const nextUri = buildRenamedUri(renameDialog.uri, nextName);
     try {
       await renameMutation.mutateAsync({
-        workspaceId,
         projectId: renameDialog.projectId,
         from: renameDialog.uri,
         to: nextUri,
       });
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: renameDialog.projectId,
           uri: getParentUri(renameDialog.uri),
         }).queryKey,
@@ -382,24 +376,20 @@ export function LeftDock({ tabId }: { tabId: string }) {
     renameDialog,
     renameMutation,
     renameValue,
-    workspaceId,
     queryClient,
   ]);
 
   /** Delete the board folder and close the stack item. */
   const handleDeleteBoard = React.useCallback(async () => {
     if (!renameDialog) return;
-    if (!workspaceId) return;
     try {
       await deleteMutation.mutateAsync({
-        workspaceId,
         projectId: renameDialog.projectId,
         uri: renameDialog.uri,
         recursive: true,
       });
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: renameDialog.projectId,
           uri: getParentUri(renameDialog.uri),
         }).queryKey,
@@ -411,7 +401,7 @@ export function LeftDock({ tabId }: { tabId: string }) {
       console.warn("[LeftDock] delete board failed", error);
       toast.error("删除画布失败");
     }
-  }, [removeStackItem, renameDialog, deleteMutation, workspaceId, queryClient]);
+  }, [removeStackItem, renameDialog, deleteMutation, queryClient]);
 
   React.useEffect(() => {
     if (stack.length === 0) return;
@@ -498,9 +488,9 @@ export function LeftDock({ tabId }: { tabId: string }) {
         />
       ) : null}
 
-      {showWorkspaceSwitchDock ? (
+      {showGlobalEntryDock ? (
         <div className="absolute inset-x-0 bottom-0 h-24 z-[80] px-2 pb-2">
-          <WorkspaceSwitchDockTabs tabId={tabId} />
+          <GlobalEntryDockTabs tabId={tabId} />
         </div>
       ) : null}
 

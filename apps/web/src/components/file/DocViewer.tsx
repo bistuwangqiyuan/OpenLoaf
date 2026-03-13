@@ -36,7 +36,6 @@ import { getBlockType, setBlockType } from "@/components/editor/transforms";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { StackHeader } from "@/components/layout/StackHeader";
 import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { Button } from "@openloaf/ui/button";
 import {
   DropdownMenu,
@@ -66,8 +65,6 @@ interface DocViewerProps {
   ext?: string;
   /** Project id for file access. */
   projectId?: string;
-  /** Workspace id for file queries (overrides useWorkspace). */
-  workspaceId?: string;
   /** Root uri for system open. */
   rootUri?: string;
   /** Stack panel key. */
@@ -168,15 +165,12 @@ export default function DocViewer({
   openUri,
   name,
   projectId,
-  workspaceId: workspaceIdProp,
   rootUri,
   panelKey,
   tabId,
   readOnly,
 }: DocViewerProps) {
   const { t } = useTranslation('common');
-  const { workspace } = useWorkspace();
-  const workspaceId = workspaceIdProp || workspace?.id || "";
   /** Current viewer status. */
   const [status, setStatus] = useState<DocViewerStatus>("idle");
   /** Track whether content has been edited. */
@@ -227,11 +221,10 @@ export default function DocViewer({
   /** Load binary payload from file system API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: readUri,
     }),
-    enabled: shouldUseFs && Boolean(readUri) && Boolean(workspaceId),
+    enabled: shouldUseFs && Boolean(readUri),
   });
 
   /** Persist binary payload back to file system. */
@@ -262,7 +255,6 @@ export default function DocViewer({
         uri,
         readUri,
         projectId,
-        workspaceId,
       });
       setStatus("error");
       initializingRef.current = false;
@@ -326,10 +318,6 @@ export default function DocViewer({
       toast.error(t('file.noSaveTarget'));
       return;
     }
-    if (!workspaceId) {
-      toast.error(t('noWorkspace'));
-      return;
-    }
     if (!canEdit || !isDirty || !editor) return;
     try {
       const blob = await exportToDocx(editor.children, {
@@ -339,7 +327,6 @@ export default function DocViewer({
       const buffer = await blob.arrayBuffer();
       const contentBase64 = encodeArrayBufferToBase64(buffer);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri,
         contentBase64,

@@ -11,7 +11,6 @@
 
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { EmailAddAccountDialog } from "./EmailAddAccountDialog";
 import { EmailMessageList } from "./EmailMessageList";
@@ -27,12 +26,9 @@ export default function EmailPage({
   tabId: string;
 }) {
   const { t } = useTranslation('common');
-  const { workspace } = useWorkspace();
   const pushStackItem = useTabRuntime((state) => state.pushStackItem);
   const removeStackItem = useTabRuntime((state) => state.removeStackItem);
-  const { sidebar, messageList, addDialog } = useEmailPageState({
-    workspaceId: workspace?.id,
-  });
+  const { sidebar, messageList, addDialog } = useEmailPageState();
 
   useEffect(() => {
     if (!tabId) return;
@@ -62,11 +58,10 @@ export default function EmailPage({
       component: "email-compose-stack",
       title: t('email.compose'),
       params: {
-        workspaceId: workspace?.id,
         __opaque: true,
       },
     });
-  }, [pushStackItem, removeStackItem, tabId, workspace?.id]);
+  }, [pushStackItem, removeStackItem, t, tabId]);
 
   /** Open message detail in stack panel (Gmail-style list -> stack detail). */
   const handleOpenMessageStack = useCallback(
@@ -83,7 +78,6 @@ export default function EmailPage({
         title: detailTitle,
         params: {
           messageId: message.id,
-          workspaceId: workspace?.id,
           fallbackFrom: message.from,
           fallbackTime: message.time ?? "",
           fallbackPreview: message.preview,
@@ -91,7 +85,7 @@ export default function EmailPage({
         },
       });
     },
-    [messageList.hasSelection, pushStackItem, tabId, workspace?.id],
+    [messageList.hasSelection, pushStackItem, t, tabId],
   );
 
   return (

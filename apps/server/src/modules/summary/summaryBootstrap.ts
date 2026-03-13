@@ -10,7 +10,7 @@
 import { randomUUID } from "node:crypto";
 import { setSummaryRuntime } from "@openloaf/api/services/summaryRuntime";
 import { getProjectRootPath } from "@openloaf/api/services/vfsService";
-import { readWorkspaceProjectTrees, type ProjectNode } from "@openloaf/api/services/projectTreeService";
+import { readProjectTrees, type ProjectNode } from "@openloaf/api/services/projectTreeService";
 import { SummaryScheduler } from "@/ai/services/summary/summaryScheduler";
 
 /** Initialize summary scheduler and runtime. */
@@ -39,20 +39,19 @@ export async function initSummaryScheduler(): Promise<void> {
       });
       return { taskId };
     },
-    runDailySummaryForWorkspace: async ({ workspaceId, dateKey, triggeredBy }) => {
-      const trees = await readWorkspaceProjectTrees(workspaceId);
+    runDailySummaryForAllProjects: async ({ dateKey, triggeredBy }) => {
+      const trees = await readProjectTrees();
       const nodes = collectProjectNodes(trees);
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const taskIds: string[] = [];
       for (const node of nodes) {
-        const rootPath = getProjectRootPath(node.projectId, workspaceId);
+        const rootPath = getProjectRootPath(node.projectId);
         if (!rootPath) continue;
         const taskId = randomUUID();
         taskIds.push(taskId);
         void runner.run({
           taskId,
           projectId: node.projectId,
-          workspaceId,
           rootPath,
           now: new Date(),
           triggeredBy,
@@ -68,8 +67,8 @@ export async function initSummaryScheduler(): Promise<void> {
         ? { taskId: result.taskId, status: result.status, metadata: result.metadata }
         : null;
     },
-    listTaskStatus: async ({ projectId, workspaceId }) => {
-      const results = await statusRepo.listStatuses?.({ projectId, workspaceId });
+    listTaskStatus: async ({ projectId }) => {
+      const results = await statusRepo.listStatuses?.({ projectId });
       return (results ?? []).map((record) => ({
         taskId: record.taskId,
         status: record.status,
@@ -79,7 +78,7 @@ export async function initSummaryScheduler(): Promise<void> {
   });
 }
 
-/** Collect project nodes from workspace trees. */
+/** Collect project nodes from the top-level project trees. */
 function collectProjectNodes(trees: ProjectNode[]): ProjectNode[] {
   const nodes: ProjectNode[] = [];
   const queue = [...trees];

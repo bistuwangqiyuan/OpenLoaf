@@ -9,7 +9,6 @@
  */
 import { appRouterDefine, t } from "@openloaf/api";
 import { chatRouterImplementation } from "@/routers/chat";
-import { workspaceRouterImplementation } from "@/routers/workspace";
 import { tabRouterImplementation } from "@/routers/tab";
 import { settingsRouterImplementation } from "@/routers/settings";
 import { aiRouterImplementation } from "@/routers/ai";
@@ -29,7 +28,6 @@ import { scheduledTaskRouterImplementation } from "@/routers/scheduledTask";
 export const serverAppRouter = t.router({
   ...appRouterDefine,
   chat: chatRouterImplementation,
-  workspace: workspaceRouterImplementation,
   tab: tabRouterImplementation,
   settings: settingsRouterImplementation,
   ai: aiRouterImplementation,

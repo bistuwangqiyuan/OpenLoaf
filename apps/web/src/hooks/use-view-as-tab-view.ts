@@ -21,7 +21,6 @@ import type { TabView } from "./tab-types";
  * 注意：这是一个临时适配方案，LeftDock 应该最终重构为使用 Navigation 系统
  */
 export function useViewAsTabView(): TabView | undefined {
-  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
   const activeView = useNavigation((s) => s.activeView);
   const getViewRuntime = useNavigation((s) => s.getViewRuntime);
 
@@ -40,7 +39,6 @@ export function useViewAsTabView(): TabView | undefined {
   return {
     // Meta 字段（LeftDock 可能用到）
     id: viewKey || "",
-    workspaceId: activeWorkspaceId || "",
     title: "",
     icon: "",
 
@@ -59,6 +57,7 @@ export function useViewAsTabView(): TabView | undefined {
     chatSessionIds: undefined,
     activeSessionIndex: undefined,
     chatSessionTitles: undefined,
+    projectShell: undefined,
     chatParams: undefined,
     chatLoadHistory: undefined,
     isPin: false,

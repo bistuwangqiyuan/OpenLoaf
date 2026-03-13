@@ -12,8 +12,6 @@ import type { ErrorCode } from "./ErrorCode";
 type AiErrorContext = {
   /** Session id for the request. */
   sessionId?: string;
-  /** Workspace id for the request. */
-  workspaceId?: string;
   /** Project id for the request. */
   projectId?: string;
   /** Request correlation id. */

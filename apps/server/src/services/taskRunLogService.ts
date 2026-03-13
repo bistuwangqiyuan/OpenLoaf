@@ -82,17 +82,16 @@ export function readRunLogs(
   }
 }
 
-/** Read run logs from both workspace and project roots. */
+/** Read run logs from both global and project roots. */
 export function readRunLogsMultiScope(
   taskId: string,
-  workspaceRoot: string,
+  globalRoot: string,
   projectRoot?: string | null,
   limit = 50,
 ): TaskRunLog[] {
-  // 逻辑：先查 project 级，再查 workspace 级。
   if (projectRoot) {
     const logs = readRunLogs(taskId, projectRoot, limit)
     if (logs.length > 0) return logs
   }
-  return readRunLogs(taskId, workspaceRoot, limit)
+  return readRunLogs(taskId, globalRoot, limit)
 }

@@ -144,7 +144,6 @@ export function LinkNodeView({
       <WebStackWidget
         item={previewItem}
         projectId={fileContext?.projectId}
-        workspaceId={fileContext?.workspaceId}
         onOpen={openLinkInStack}
       />
     </NodeFrame>

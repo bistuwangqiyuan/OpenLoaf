@@ -11,7 +11,7 @@ import { generateId } from 'ai'
 import { prisma } from '@openloaf/db'
 import type { ChatMessageKind, OpenLoafUIMessage } from '@openloaf/api'
 import { replaceFileTokensWithNames } from '@/common/chatTitle'
-import { getBoardId, getProjectId, getWorkspaceId } from '@/ai/shared/context/requestContext'
+import { getBoardId, getProjectId } from '@/ai/shared/context/requestContext'
 import { toNumberOrUndefined, isRecord } from '@/ai/shared/util'
 import {
   appendMessage,
@@ -46,7 +46,6 @@ type SaveMessageInput = {
   message: OpenLoafUIMessage | UIMessageLike
   parentMessageId: string | null
   pathOverride?: string
-  workspaceId?: string
   projectId?: string
   boardId?: string
   allowEmpty?: boolean
@@ -71,7 +70,6 @@ export async function ensureSessionPreface(input: {
   sessionId: string
   text: string
   createdAt?: Date
-  workspaceId?: string
   projectId?: string
   boardId?: string
 }): Promise<void> {
@@ -79,7 +77,6 @@ export async function ensureSessionPreface(input: {
   if (!text) return
 
   await ensureSession(input.sessionId, {
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
     boardId: input.boardId,
   })
@@ -183,7 +180,6 @@ export async function saveMessage(input: SaveMessageInput): Promise<SaveMessageR
     role === 'user' && messageKind !== 'compact_prompt'
       ? normalizeTitle(extractTitleTextFromParts(parts))
       : ''
-  const workspaceId = normalizeOptionalId(input.workspaceId) ?? getWorkspaceId()
   const projectId = normalizeOptionalId(input.projectId) ?? getProjectId()
   const boardId = normalizeOptionalId(input.boardId) ?? getBoardId()
 
@@ -193,12 +189,11 @@ export async function saveMessage(input: SaveMessageInput): Promise<SaveMessageR
   }
 
   // 逻辑：提前注册 session 目录路径，避免后续文件操作时查 DB
-  registerSessionDir(input.sessionId, workspaceId, projectId, boardId)
+  registerSessionDir(input.sessionId, projectId, boardId)
 
   // 确保 session 存在
   await ensureSession(input.sessionId, {
     title: title || undefined,
-    workspaceId,
     projectId,
     boardId,
   })
@@ -476,25 +471,21 @@ async function ensureSession(
   sessionId: string,
   input: {
     title?: string
-    workspaceId?: string
     projectId?: string
     boardId?: string
   },
 ) {
-  const workspaceId = normalizeOptionalId(input.workspaceId)
   const projectId = normalizeOptionalId(input.projectId)
   const boardId = normalizeOptionalId(input.boardId)
   await prisma.chatSession.upsert({
     where: { id: sessionId },
     update: {
-      ...(workspaceId ? { workspaceId } : {}),
       ...(projectId ? { projectId } : {}),
       ...(boardId ? { boardId } : {}),
     },
     create: {
       id: sessionId,
       ...(input.title ? { title: input.title } : {}),
-      ...(workspaceId ? { workspaceId } : {}),
       ...(projectId ? { projectId } : {}),
       ...(boardId ? { boardId } : {}),
     },
@@ -511,7 +502,6 @@ async function ensureSession(
         isPin: full.isPin,
         errorMessage: full.errorMessage,
         sessionPreface: full.sessionPreface,
-        workspaceId: full.workspaceId,
         projectId: full.projectId,
         boardId: full.boardId,
         cliId: full.cliId,

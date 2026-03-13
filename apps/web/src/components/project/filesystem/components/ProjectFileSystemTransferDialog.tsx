@@ -51,7 +51,6 @@ import { Ban, FolderPlus, PencilLine } from "lucide-react";
 import { useFileSelection } from "@/hooks/use-file-selection";
 import { useFileRename } from "@/hooks/use-file-rename";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { isBoardFolderName } from "@/lib/file-name";
 import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 import {
@@ -145,9 +144,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
   onSelectTarget,
   onSelectFileRefs,
 }: ProjectFileSystemTransferDialogProps) {
-  const { t } = useTranslation(['workspace']);
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
+  const { t } = useTranslation(['project']);
   const queryClient = useQueryClient();
   const projectListQuery = useProjects();
   const [activeRootUri, setActiveRootUri] = useState<string | null>(
@@ -178,8 +175,8 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
   );
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
-      activeUri !== null && workspaceId
-        ? { workspaceId, projectId: activeProjectId, uri: activeUri }
+      activeUri !== null
+        ? { projectId: activeProjectId, uri: activeUri }
         : skipToken
     )
   );
@@ -254,20 +251,19 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       try {
         const targetUri = buildChildUri(activeUri, nextName);
         await renameMutation.mutateAsync({
-          workspaceId,
           projectId: activeProjectId,
           from: target.uri,
           to: targetUri,
         });
         await listQuery.refetch();
-        toast.success(t('workspace:filesystem.renamed'));
+        toast.success(t('project:filesystem.renamed'));
         return targetUri;
       } catch (error: any) {
-        toast.error(error?.message ?? t('workspace:filesystem.renameFailed'));
+        toast.error(error?.message ?? t('project:filesystem.renameFailed'));
         return null;
       }
     },
-    [activeProjectId, activeUri, listQuery, renameMutation, workspaceId]
+    [activeProjectId, activeUri, listQuery, renameMutation, t]
   );
 
   /** Manage rename state for folder entries. */
@@ -392,7 +388,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         onSelectFileRefs?.(selectedFileRefs);
       } else {
         if (isActiveBoardFolder) {
-          toast.error(t('workspace:filesystem.boardFolderNotSelectable'));
+          toast.error(t('project:filesystem.boardFolderNotSelectable'));
           return;
         }
         const selectedFolder = selectedEntries.find((entry) => entry.kind === "folder");
@@ -414,7 +410,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
           : getRelativePathFromUri("", targetUri);
         const projectId = activeRootUri ? projectIdByRootUri.get(activeRootUri) : undefined;
         if (!projectId) {
-          toast.error(t('workspace:filesystem.selectProjectFirst'));
+          toast.error(t('project:filesystem.selectProjectFirst'));
           return;
         }
         const resolvedTarget = relativePath
@@ -433,7 +429,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
     try {
       const targetList = await queryClient.fetchQuery(
         trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: activeProjectId,
           uri: activeUri,
         })
@@ -445,7 +440,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         if (mode === "move" && entry.kind === "folder") {
           // 中文注释：禁止移动到自身或子目录。
           if (isSubPath(entry.uri, activeUri)) {
-            toast.error(t('workspace:filesystem.cannotMoveToSelf'));
+            toast.error(t('project:filesystem.cannotMoveToSelf'));
             return;
           }
         }
@@ -460,14 +455,12 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         if (mode === "move") {
           if (targetUri === entry.uri) continue;
           await renameMutation.mutateAsync({
-            workspaceId,
             projectId: activeProjectId,
             from: entry.uri,
             to: targetUri,
           });
         } else {
           await copyMutation.mutateAsync({
-            workspaceId,
             projectId: activeProjectId,
             from: entry.uri,
             to: targetUri,
@@ -483,7 +476,6 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       invalidateUris.forEach((uri) => {
         queryClient.invalidateQueries({
           queryKey: trpc.fs.list.queryOptions({
-            workspaceId,
             projectId: activeProjectId,
             uri,
           }).queryKey,
@@ -492,15 +484,15 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
       const successLabel =
         mode === "move"
           ? transferEntries.length > 1
-            ? t('workspace:filesystem.movedMultiple')
-            : t('workspace:filesystem.movedSingle')
+            ? t('project:filesystem.movedMultiple')
+            : t('project:filesystem.movedSingle')
           : transferEntries.length > 1
-            ? t('workspace:filesystem.copiedMultiple')
-            : t('workspace:filesystem.copiedSingle');
+            ? t('project:filesystem.copiedMultiple')
+            : t('project:filesystem.copiedSingle');
       toast.success(successLabel);
       onOpenChange(false);
     } catch (error: any) {
-      const errorLabel = mode === "move" ? t('workspace:filesystem.moveFailed') : t('workspace:filesystem.copyFailed');
+      const errorLabel = mode === "move" ? t('project:filesystem.moveFailed') : t('project:filesystem.copyFailed');
       toast.error(error?.message ?? errorLabel);
     }
   };
@@ -540,19 +532,18 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
     try {
       // 以默认名称创建并做唯一性处理，避免覆盖已有目录。
       const existingNames = new Set(gridEntries.map((item) => item.name));
-      const targetName = getUniqueName(t('workspace:filesystem.newFolderDefaultName'), existingNames);
+      const targetName = getUniqueName(t('project:filesystem.newFolderDefaultName'), existingNames);
       const targetUri = buildChildUri(activeUri, targetName);
       await mkdirMutation.mutateAsync({
-        workspaceId,
         projectId: activeProjectId,
         uri: targetUri,
         recursive: true,
       });
       requestRenameByInfo({ uri: targetUri, name: targetName });
       await listQuery.refetch();
-      toast.success(t('workspace:filesystem.createFolderSuccess'));
+      toast.success(t('project:filesystem.createFolderSuccess'));
     } catch (error: any) {
-      toast.error(error?.message ?? t('workspace:filesystem.createFolderFailed'));
+      toast.error(error?.message ?? t('project:filesystem.createFolderFailed'));
     }
   };
 
@@ -566,15 +557,15 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
   /** Dialog title based on current transfer mode. */
   const dialogTitle =
     mode === "move"
-      ? t('workspace:filesystem.moveTo')
+      ? t('project:filesystem.moveTo')
       : mode === "select"
         ? selectTarget === "file"
-          ? t('workspace:filesystem.selectFileTitle')
-          : t('workspace:filesystem.selectFolderTitle')
-        : t('workspace:filesystem.copyTo');
+          ? t('project:filesystem.selectFileTitle')
+          : t('project:filesystem.selectFolderTitle')
+        : t('project:filesystem.copyTo');
   /** Confirm button label based on current transfer mode. */
   const confirmLabel =
-    mode === "move" ? t('workspace:filesystem.moveConfirmLabel') : mode === "select" ? t('workspace:filesystem.selectConfirmLabel') : t('workspace:filesystem.copyConfirmLabel');
+    mode === "move" ? t('project:filesystem.moveConfirmLabel') : mode === "select" ? t('project:filesystem.selectConfirmLabel') : t('project:filesystem.copyConfirmLabel');
   /** Whether confirm should be disabled for current state. */
   const confirmDisabled =
     activeUri === null ||
@@ -642,10 +633,10 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         <div className="grid gap-2 md:grid-cols-[280px_minmax(0,1fr)] flex-1 min-h-0 overflow-hidden">
           <div className="rounded-2xl border border-border/60 bg-card/60 p-3 min-h-0 overflow-y-auto">
             <div className="mb-2 flex h-6 items-center text-xs text-muted-foreground">
-              {t('workspace:filesystem.projectLabel')}
+              {t('project:filesystem.projectLabel')}
             </div>
             {projectOptions.length === 0 ? (
-              <div className="text-xs text-muted-foreground">{t('workspace:filesystem.noProject')}</div>
+              <div className="text-xs text-muted-foreground">{t('project:filesystem.noProject')}</div>
             ) : (
               <PageTreePicker
                 projects={projectTree}
@@ -660,7 +651,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
                 <BreadcrumbList>
                   {breadcrumbItems.length === 0 ? (
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{t('workspace:filesystem.selectProject')}</BreadcrumbPage>
+                      <BreadcrumbPage>{t('project:filesystem.selectProject')}</BreadcrumbPage>
                     </BreadcrumbItem>
                   ) : (
                     breadcrumbItems.map((item, index) => {
@@ -690,8 +681,8 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
                 size="icon"
                 className="h-7 w-7"
                 type="button"
-                aria-label={t('workspace:filesystem.newFolder')}
-                title={t('workspace:filesystem.newFolder')}
+                aria-label={t('project:filesystem.newFolder')}
+                title={t('project:filesystem.newFolder')}
                 onClick={handleCreateFolder}
               >
                 <FolderPlus className="h-3.5 w-3.5" />
@@ -710,11 +701,11 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
                         icon={PencilLine}
                         onSelect={() => requestRename(contextEntry)}
                       >
-                        {t('workspace:filesystem.rename')}
+                        {t('project:filesystem.rename')}
                       </ContextMenuItem>
                     ) : (
                       <ContextMenuItem icon={Ban} disabled>
-                        {t('workspace:filesystem.noAction')}
+                        {t('project:filesystem.noAction')}
                       </ContextMenuItem>
                     )}
                   </ContextMenuContent>
@@ -725,7 +716,7 @@ const ProjectFileSystemTransferDialog = memo(function ProjectFileSystemTransferD
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost">{t('workspace:filesystem.cancel')}</Button>
+            <Button variant="ghost">{t('project:filesystem.cancel')}</Button>
           </DialogClose>
           <Button
             type="button"

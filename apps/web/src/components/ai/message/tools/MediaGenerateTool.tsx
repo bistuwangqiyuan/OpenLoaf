@@ -67,7 +67,7 @@ function parseMediaErrorInfo(
 // 逻辑：相对路径通过预览端点加载，绝对 URL 保持不变。
 function resolveMediaUrl(
   url: string,
-  ctx?: { workspaceId?: string; projectId?: string },
+  ctx?: { projectId?: string },
 ): string {
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return url
   return getPreviewEndpoint(url, ctx)
@@ -82,10 +82,10 @@ type GeneratedMediaKind = "image" | "video";
 
 export default function MediaGenerateTool({ part, messageId }: MediaGenerateToolProps) {
   const { toolParts } = useChatTools();
-  const { workspaceId, projectId } = useChatSession();
+  const { projectId } = useChatSession();
   const previewCtx = React.useMemo(
-    () => ({ workspaceId, projectId }),
-    [workspaceId, projectId],
+    () => ({ projectId }),
+    [projectId],
   );
   const toolCallId = part.toolCallId ?? "";
   const toolSnapshot = toolCallId ? toolParts[toolCallId] : undefined;
@@ -178,7 +178,7 @@ type MediaAttachmentRecord = {
 function buildMediaAttachments(input: {
   urls: string[];
   kind: GeneratedMediaKind;
-  previewCtx?: { workspaceId?: string; projectId?: string };
+  previewCtx?: { projectId?: string };
 }): MediaAttachmentRecord[] {
   const { urls, kind, previewCtx } = input;
   return urls.map((url, index) => {
@@ -203,7 +203,7 @@ function MediaAttachmentList({
   urls: string[];
   kind: GeneratedMediaKind;
   kindLabel: string;
-  previewCtx?: { workspaceId?: string; projectId?: string };
+  previewCtx?: { projectId?: string };
 }) {
   const { tabId } = useChatSession();
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
@@ -232,7 +232,6 @@ function MediaAttachmentList({
         params: {
           uri: record.sourceUrl,
           name: `生成的${kindLabel}`,
-          workspaceId: previewCtx?.workspaceId,
           __customHeader: true,
         },
       });

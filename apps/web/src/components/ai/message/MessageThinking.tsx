@@ -17,11 +17,13 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { useTranslation } from "react-i18next";
+import AssistantMessageHeader from "./AssistantMessageHeader";
 
 export default function MessageThinking() {
   const { t } = useTranslation("ai");
   return (
     <Message from="assistant" className="max-w-[80%] mt-2">
+      <AssistantMessageHeader />
       <MessageContent className="gap-0">
         <Reasoning isStreaming defaultOpen={false} className="mb-0 px-1">
           <ReasoningTrigger

@@ -18,8 +18,8 @@ type AssembleInstructionsInput = {
 
 /** Input for assembling memory section. */
 type AssembleMemoryInput = {
-  /** Workspace root path. */
-  workspaceRootPath?: string
+  /** User home path (~/.openloaf/). */
+  userHomePath?: string
   /** Project root path. */
   projectRootPath?: string
   /** Parent project root paths (top-level first). */
@@ -45,7 +45,7 @@ export function assembleMemoryBlocks(
   input: AssembleMemoryInput,
 ): string[] {
   const blocks = resolveMemoryBlocks({
-    workspaceRootPath: input.workspaceRootPath,
+    userHomePath: input.userHomePath,
     projectRootPath: input.projectRootPath,
     parentProjectRootPaths: input.parentProjectRootPaths,
   })
@@ -65,7 +65,7 @@ export function assembleMemorySection(
   input: AssembleMemoryInput,
 ): string {
   const content = resolveMemoryContent({
-    workspaceRootPath: input.workspaceRootPath,
+    userHomePath: input.userHomePath,
     projectRootPath: input.projectRootPath,
     parentProjectRootPaths: input.parentProjectRootPaths,
   })

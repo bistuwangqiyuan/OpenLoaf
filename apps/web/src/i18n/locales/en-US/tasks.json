@@ -165,7 +165,7 @@
     "typeLabel": "Type",
     "scheduled": "Scheduled",
     "scopeLabel": "Scope",
-    "workspace": "Workspace",
+    "projectSpace": "Project Space",
     "project": "Project",
     "selectProject": "Select Project",
     "loadingProjects": "Loading projects...",
@@ -217,7 +217,7 @@
     "conditionExtensionsPlaceholder": "e.g. .ts, .tsx",
     "conditionRulePlaceholder": "Natural language rule (optional) — Agent uses this to decide whether to execute",
     "projectScope": "Project",
-    "workspaceScope": "Workspace"
+    "projectSpaceScope": "Project Space"
   },
   "actorLabels": {
     "system": "System",

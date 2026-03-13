@@ -13,7 +13,7 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState, useId, ty
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Copy, CopyPlus, FolderDown, Loader2, MoreHorizontal, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { Copy, CopyPlus, FolderDown, FolderOpen, Loader2, MoreHorizontal, PencilLine, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@openloaf/ui/button";
 import {
@@ -34,6 +34,8 @@ import {
 import { Input } from "@openloaf/ui/input";
 import ProjectFileSystemTransferDialog from "@/components/project/filesystem/components/ProjectFileSystemTransferDialog";
 import { useTabs } from "@/hooks/use-tabs";
+import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { buildBoardChatTabState } from "../utils/board-chat-tab";
 import { BoardProvider, type ImagePreviewPayload } from "./BoardProvider";
 import { CanvasEngine } from "../engine/CanvasEngine";
 import type { CanvasElement, CanvasNodeDefinition } from "../engine/types";
@@ -48,7 +50,6 @@ import {
   waitForAnimationFrames,
 } from "../utils/board-export";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import {
   closeFilePreview,
   openFilePreview,
@@ -57,14 +58,17 @@ import {
 import {
   buildChildUri,
   buildFileUriFromRoot,
+  getRelativePathFromUri,
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { BOARD_INDEX_FILE_NAME } from "@/lib/file-name";
 import { trpc, trpcClient } from "@/utils/trpc";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { getCachedAccessToken } from "@/lib/saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 import i18next from "i18next";
+import { isElectronEnv } from "@/utils/is-electron-env";
 
 export type BoardCanvasProps = {
   /** External engine instance, optional for integration scenarios. */
@@ -73,8 +77,6 @@ export type BoardCanvasProps = {
   nodes?: CanvasNodeDefinition<any>[];
   /** Initial elements inserted once when mounted. */
   initialElements?: CanvasElement[];
-  /** Workspace id for storage isolation. */
-  workspaceId?: string;
   /** Project id used for file resolution. */
   projectId?: string;
   /** Project root uri for attachment resolution. */
@@ -188,7 +190,6 @@ export function BoardCanvas({
   engine: externalEngine,
   nodes,
   initialElements,
-  workspaceId,
   projectId,
   rootUri,
   boardId,
@@ -199,8 +200,9 @@ export function BoardCanvas({
   uiHidden,
   className,
 }: BoardCanvasProps) {
-  const { workspace } = useWorkspace();
-  const resolvedWorkspaceId = workspaceId ?? workspace?.id ?? "";
+  const projectStorageRootUri = useProjectStorageRootUri();
+  // 逻辑：全局画布统一回退到默认项目存储根，不再依赖旧版存储根兼容查询。
+  const resolvedRootUri = rootUri?.trim() || projectStorageRootUri;
   const queryClient = useQueryClient();
   // 逻辑：提取画布文件夹名（末段路径），服务端通过 .openloaf/boards/<boardId>/ 前缀还原完整路径。
   // decodeURIComponent 防止 URI 中已编码的中文被 URLSearchParams 双重编码。
@@ -215,6 +217,22 @@ export function BoardCanvas({
       return segment;
     }
   }, [boardFolderUri, boardId]);
+  const resolvedBoardFolderUri = useMemo(() => {
+    const source = boardFolderUri?.trim() || "";
+    if (!source) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(source)) return source;
+    if (!resolvedRootUri) return "";
+    return buildFileUriFromRoot(resolvedRootUri, source);
+  }, [boardFolderUri, resolvedRootUri]);
+  const boardFolderRelativeUri = useMemo(() => {
+    const source = boardFolderUri?.trim() || "";
+    if (!source) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(source)) {
+      if (!resolvedRootUri) return "";
+      return getRelativePathFromUri(resolvedRootUri, source) ?? "";
+    }
+    return source;
+  }, [boardFolderUri, resolvedRootUri]);
   /** Root container element for canvas interactions. */
   const containerRef = useRef<HTMLDivElement | null>(null);
   /** Latest canvas element reference used for exports. */
@@ -263,20 +281,21 @@ export function BoardCanvas({
   const [saveToProjectOpen, setSaveToProjectOpen] = useState(false);
   const closeTab = useTabs((s) => s.closeTab);
   const addTab = useTabs((s) => s.addTab);
+  const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const inferBoardNameMutation = useMutation(trpc.settings.inferBoardName.mutationOptions());
   const deleteBoardMutation = useMutation(trpc.fs.delete.mutationOptions());
   const duplicateBoardMutation = useMutation(trpc.board.duplicate.mutationOptions({
     onSuccess: (newBoard) => {
       queryClient.invalidateQueries({ queryKey: trpc.board.list.queryKey() });
       toast.success(i18next.t('nav:canvasList.duplicateSuccess'));
-      if (!rootUri) return;
-      const newBoardFolderUri = buildFileUriFromRoot(rootUri, newBoard.folderUri);
-      const newBoardFileUri = buildFileUriFromRoot(rootUri, `${newBoard.folderUri}${BOARD_INDEX_FILE_NAME}`);
+      if (!resolvedRootUri) return;
+      const newBoardFolderUri = buildFileUriFromRoot(resolvedRootUri, newBoard.folderUri);
+      const newBoardFileUri = buildFileUriFromRoot(resolvedRootUri, `${newBoard.folderUri}${BOARD_INDEX_FILE_NAME}`);
       addTab({
-        workspaceId: resolvedWorkspaceId,
         createNew: true,
         title: newBoard.title,
         icon: "🎨",
+        ...buildBoardChatTabState(newBoard.id, projectId),
         leftWidthPercent: 100,
         base: {
           id: `board:${newBoardFolderUri}`,
@@ -286,20 +305,19 @@ export function BoardCanvas({
             boardFileUri: newBoardFileUri,
             boardId: newBoard.id,
             projectId,
-            rootUri,
+            rootUri: resolvedRootUri,
           },
         },
       });
     },
   }));
   const handleDuplicateBoard = useCallback(() => {
-    if (!resolvedBoardId || !resolvedWorkspaceId || duplicateBoardMutation.isPending) return;
+    if (!resolvedBoardId || duplicateBoardMutation.isPending) return;
     duplicateBoardMutation.mutate({
       boardId: resolvedBoardId,
-      workspaceId: resolvedWorkspaceId,
       ...(projectId ? { projectId } : {}),
     });
-  }, [resolvedBoardId, resolvedWorkspaceId, projectId, duplicateBoardMutation]);
+  }, [resolvedBoardId, projectId, duplicateBoardMutation]);
   const handleCopyBoardPath = useCallback(() => {
     if (!boardFolderUri) return;
     const fullPath = boardFolderUri.startsWith("file://")
@@ -308,6 +326,45 @@ export function BoardCanvas({
     navigator.clipboard.writeText(fullPath);
     toast.success(i18next.t('nav:canvasList.pathCopied'));
   }, [boardFolderUri]);
+  const handleOpenBoardFolder = useCallback(async () => {
+    if (isElectronEnv()) {
+      if (!resolvedBoardFolderUri) {
+        toast.error(tBoard("panelHeader.openBoardFolderMissing"));
+        return;
+      }
+      const result = await window.openloafElectron?.openPath?.({ uri: resolvedBoardFolderUri });
+      if (!result?.ok) {
+        toast.error(result?.reason ?? tBoard("panelHeader.openBoardFolderFailed"));
+      }
+      return;
+    }
+
+    if (!tabId || !resolvedRootUri || !boardFolderRelativeUri) {
+      toast.error(tBoard("panelHeader.openBoardFolderMissing"));
+      return;
+    }
+
+    pushStackItem(tabId, {
+      id: `board-folder:${boardFolderRelativeUri}`,
+      sourceKey: `board-folder:${boardFolderRelativeUri}`,
+      component: "folder-tree-preview",
+      title: currentTabTitle || i18next.t("nav:canvasList.untitled"),
+      params: {
+        rootUri: resolvedRootUri,
+        currentUri: boardFolderRelativeUri,
+        projectId,
+      },
+    });
+  }, [
+    boardFolderRelativeUri,
+    currentTabTitle,
+    projectId,
+    pushStackItem,
+    resolvedBoardFolderUri,
+    resolvedRootUri,
+    tBoard,
+    tabId,
+  ]);
   const handleRenameOpen = useCallback((open: boolean) => {
     if (open) setRenameValue(currentTabTitle);
     setRenameOpen(open);
@@ -320,7 +377,7 @@ export function BoardCanvas({
     setRenameOpen(false);
   }, [renameValue, tabId, setTabTitle]);
   const handleAiName = useCallback(async () => {
-    if (!boardFolderUri || !resolvedWorkspaceId) return;
+    if (!boardFolderUri) return;
     if (!saasLoggedIn) {
       setLoginOpen(true);
       return;
@@ -328,7 +385,6 @@ export function BoardCanvas({
     setAiNaming(true);
     try {
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId: resolvedWorkspaceId,
         boardFolderUri,
         saasAccessToken: getCachedAccessToken() ?? undefined,
       });
@@ -342,17 +398,17 @@ export function BoardCanvas({
     } finally {
       setAiNaming(false);
     }
-  }, [boardFolderUri, resolvedWorkspaceId, saasLoggedIn, inferBoardNameMutation]);
+  }, [boardFolderUri, saasLoggedIn, inferBoardNameMutation]);
   const handleDeleteBoard = useCallback(() => {
-    if (!boardFolderUri || !resolvedWorkspaceId || !tabId) return;
+    if (!boardFolderUri || !tabId) return;
     if (!confirm(i18next.t('nav:canvasList.confirmDelete'))) return;
     // Derive relative URI from boardFolderUri
-    const rootUriBase = workspace?.rootUri ?? '';
+    const rootUriBase = resolvedRootUri ?? '';
     const relativeUri = rootUriBase && boardFolderUri.startsWith(rootUriBase)
       ? boardFolderUri.slice(rootUriBase.length).replace(/^\//, '')
       : boardFolderUri;
     deleteBoardMutation.mutate(
-      { workspaceId: resolvedWorkspaceId, uri: relativeUri },
+      { uri: relativeUri },
       {
         onSuccess: () => {
           // Close current tab and open a fresh canvas
@@ -360,7 +416,7 @@ export function BoardCanvas({
         },
       },
     );
-  }, [boardFolderUri, resolvedWorkspaceId, tabId, workspace?.rootUri, deleteBoardMutation, closeTab]);
+  }, [boardFolderUri, resolvedRootUri, tabId, deleteBoardMutation, closeTab]);
   // Auto-close login dialog on successful login
   useEffect(() => {
     if (saasLoggedIn && loginOpen) setLoginOpen(false);
@@ -441,7 +497,6 @@ export function BoardCanvas({
   const saveBoardThumbnail = useCallback(
     (reason: "close" | "autoLayout" | "init") => {
       if (!boardFolderUri) return;
-      if (!resolvedWorkspaceId) return;
       // 逻辑：空画布不截图，保持默认渐变预览。
       if (elementCountRef.current === 0) return;
       // 逻辑：顺序执行截图任务，避免并发占用渲染资源。
@@ -469,7 +524,6 @@ export function BoardCanvas({
             const contentBase64 = await blobToBase64(thumbnailBlob);
             const uri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
             await writeThumbnailRef.current({
-              workspaceId: resolvedWorkspaceId,
               projectId,
               uri,
               contentBase64,
@@ -488,13 +542,12 @@ export function BoardCanvas({
           }
         });
     },
-    [boardFolderUri, projectId, resolveExportTarget, resolvedWorkspaceId, queryClient, engine]
+    [boardFolderUri, projectId, resolveExportTarget, queryClient, engine]
   );
 
   /** Schedule a thumbnail capture after auto layout. */
   const scheduleAutoLayoutThumbnail = useCallback(() => {
     if (!boardFolderUri) return;
-    if (!resolvedWorkspaceId) return;
     if (autoLayoutTimerRef.current) {
       window.clearTimeout(autoLayoutTimerRef.current);
     }
@@ -502,7 +555,7 @@ export function BoardCanvas({
     autoLayoutTimerRef.current = window.setTimeout(() => {
       saveBoardThumbnail("autoLayout");
     }, AUTO_LAYOUT_THUMBNAIL_DELAY);
-  }, [boardFolderUri, resolvedWorkspaceId, saveBoardThumbnail]);
+  }, [boardFolderUri, saveBoardThumbnail]);
 
   /** Track board modifications via engine subscription. */
   useEffect(() => {
@@ -517,11 +570,11 @@ export function BoardCanvas({
   useEffect(() => {
     if (elementCount === 0) return;
     if (thumbnailInitDoneRef.current) return;
-    if (!boardFolderUri || !resolvedWorkspaceId) return;
+    if (!boardFolderUri) return;
     thumbnailInitDoneRef.current = true;
     // 逻辑：元素首次从协作层加载完成后截取缩略图，确保预览图反映最新内容。
     saveBoardThumbnail("init");
-  }, [elementCount, boardFolderUri, resolvedWorkspaceId, saveBoardThumbnail]);
+  }, [elementCount, boardFolderUri, saveBoardThumbnail]);
 
   /** On unmount (close/back): capture thumbnail if board was modified. */
   useEffect(() => {
@@ -531,7 +584,7 @@ export function BoardCanvas({
         autoLayoutTimerRef.current = null;
       }
       if (!boardModifiedRef.current) return;
-      if (!boardFolderUri || !resolvedWorkspaceId) return;
+      if (!boardFolderUri) return;
       if (elementCountRef.current === 0) return;
       const target = resolveExportTarget();
       if (!target || !target.isConnected) return;
@@ -551,7 +604,6 @@ export function BoardCanvas({
           const contentBase64 = await blobToBase64(thumbnailBlob);
           const uri = buildChildUri(boardFolderUri, BOARD_THUMBNAIL_FILE_NAME);
           await writeThumbnailRef.current({
-            workspaceId: resolvedWorkspaceId,
             projectId,
             uri,
             contentBase64,
@@ -560,7 +612,7 @@ export function BoardCanvas({
         })
         .catch(() => {});
     };
-  }, [boardFolderUri, projectId, resolvedWorkspaceId, resolveExportTarget, queryClient]);
+  }, [boardFolderUri, projectId, resolveExportTarget, queryClient]);
 
   // 逻辑：预览优先使用原图地址，缺失时回退到压缩预览。
   return (
@@ -658,6 +710,12 @@ export function BoardCanvas({
                 <Copy className="mr-2 size-4" />
                 {i18next.t('nav:canvasList.copyPath')}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void handleOpenBoardFolder()}>
+                <FolderOpen className="mr-2 size-4" />
+                {isElectronEnv()
+                  ? tBoard("panelHeader.openInFileSystem")
+                  : tBoard("panelHeader.openBoardFolder")}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -690,9 +748,8 @@ export function BoardCanvas({
           closeImagePreview,
         }}
         fileContext={{
-          workspaceId: resolvedWorkspaceId || undefined,
           projectId,
-          rootUri,
+          rootUri: resolvedRootUri,
           boardId: resolvedBoardId || undefined,
           boardFolderUri,
         }}
@@ -700,9 +757,8 @@ export function BoardCanvas({
         <BoardCanvasCollab
           engine={engine}
           initialElements={initialElements}
-          workspaceId={resolvedWorkspaceId}
           projectId={projectId}
-          rootUri={rootUri}
+          rootUri={resolvedRootUri}
           boardFolderUri={boardFolderUri}
           boardFileUri={boardFileUri}
           onSyncLogChange={setSyncLogState}
@@ -712,7 +768,7 @@ export function BoardCanvas({
           snapshot={snapshot}
           containerRef={containerRef}
           projectId={projectId}
-          rootUri={rootUri}
+          rootUri={resolvedRootUri}
           tabId={tabId}
           panelKey={panelKey}
           uiHidden={uiHidden}

@@ -17,6 +17,7 @@ import MessagePlan from "./tools/MessagePlan";
 import ClaudeCodeStatusBar from "./ClaudeCodeStatusBar";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { useChatSession } from "../context";
+import AssistantMessageHeader from "./AssistantMessageHeader";
 
 interface MessageAiProps {
   /** Message data to render. */
@@ -40,6 +41,7 @@ export default React.memo(function MessageAi({ message, className, isAnimating, 
 
   return (
     <Message from="assistant" className={cn("min-w-0 w-full", className)}>
+      <AssistantMessageHeader message={message} />
       <MessageContent className="min-w-0 w-full space-y-2">
         <MessagePlan metadata={message.metadata} parts={message.parts as unknown[]} />
         <MessageParts parts={messageParts} options={{ isAnimating, messageId: message.id }} />

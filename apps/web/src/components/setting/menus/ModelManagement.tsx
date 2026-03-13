@@ -35,7 +35,7 @@ export function ModelManagement() {
   const { models: cloudModels } = useCloudModels();
   const installedCliProviderIds = useInstalledCliProviderIds();
 
-  const workspaceProjectRule =
+  const projectSpaceProjectRule =
     typeof basic.appProjectRule === "string" ? basic.appProjectRule : "";
   const defaultChatModelId =
     typeof basic.modelDefaultChatModelId === "string" ? basic.modelDefaultChatModelId : "";
@@ -59,7 +59,7 @@ export function ModelManagement() {
         <div className="divide-y divide-border/40">
           <div className="flex flex-wrap items-start gap-2 py-3">
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">工作空间项目划分规范</div>
+              <div className="text-sm font-medium">项目空间项目划分规范</div>
               <div className="text-xs text-muted-foreground">
                 影响项目/会话的分类与组织方式
               </div>
@@ -67,7 +67,7 @@ export function ModelManagement() {
 
             <OpenLoafSettingsField className="w-full sm:w-[420px] shrink-0 justify-end">
               <OpenLoafAutoWidthInput
-                value={workspaceProjectRule}
+                value={projectSpaceProjectRule}
                 onChange={(event) => void setBasic({ appProjectRule: event.target.value })}
                 className="bg-background"
               />

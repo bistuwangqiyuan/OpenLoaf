@@ -77,7 +77,7 @@ export function renderPackageJsonFromInit(input: WidgetInitInput): string {
       type: 'widget',
       defaultSize: toDesktopWidgetSize(size.defaultW, size.defaultH),
       constraints: size,
-      support: { workspace: true, project: true },
+      support: { global: true, project: true },
     },
   }
   return JSON.stringify(pkg, null, 2)
@@ -193,7 +193,7 @@ export function renderPackageJson(input: WidgetInput): string {
       type: 'widget',
       defaultSize: toDesktopWidgetSize(size.defaultW, size.defaultH),
       constraints: size,
-      support: { workspace: true, project: true },
+      support: { global: true, project: true },
     },
   }
   return JSON.stringify(pkg, null, 2)

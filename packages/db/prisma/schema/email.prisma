@@ -1,6 +1,5 @@
 model EmailMessage {
   id           String   @id /// 记录 ID
-  workspaceId  String /// 工作空间 ID
   accountEmail String /// 邮箱账号
   mailboxPath  String /// 邮件夹路径（IMAP mailbox 或 API folder ID）
   externalId   String /// 外部标识（IMAP UID 字符串化 或 API message ID）
@@ -21,13 +20,12 @@ model EmailMessage {
   createdAt    DateTime @default(now()) /// 创建时间
   updatedAt    DateTime @updatedAt /// 更新时间
 
-  @@unique([workspaceId, accountEmail, mailboxPath, externalId])
-  @@index([workspaceId, accountEmail, date])
+  @@unique([accountEmail, mailboxPath, externalId])
+  @@index([accountEmail, date])
 }
 
 model EmailMailbox {
   id           String   @id /// 记录 ID
-  workspaceId  String /// 工作空间 ID
   accountEmail String /// 邮箱账号
   path         String /// 邮件夹完整路径
   name         String /// 邮件夹显示名称
@@ -38,13 +36,12 @@ model EmailMailbox {
   createdAt    DateTime @default(now()) /// 创建时间
   updatedAt    DateTime @updatedAt /// 更新时间
 
-  @@unique([workspaceId, accountEmail, path])
-  @@index([workspaceId, accountEmail, parentPath])
+  @@unique([accountEmail, path])
+  @@index([accountEmail, parentPath])
 }
 
 model EmailDraft {
   id           String   @id /// 草稿 ID
-  workspaceId  String /// 工作空间 ID
   accountEmail String /// 发送账号
   mode         String /// 编辑模式：compose/reply/replyAll/forward
   to           String   @default("") /// 收件人（逗号分隔）
@@ -56,5 +53,5 @@ model EmailDraft {
   createdAt    DateTime @default(now()) /// 创建时间
   updatedAt    DateTime @updatedAt /// 更新时间
 
-  @@index([workspaceId, accountEmail])
+  @@index([accountEmail])
 }

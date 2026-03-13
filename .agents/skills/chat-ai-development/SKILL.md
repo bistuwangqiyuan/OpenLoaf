@@ -9,7 +9,7 @@ description: >
 
 # Chat & AI Development
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「工作区」。
+> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「项目」。
 
 ## Overview
 
@@ -28,30 +28,6 @@ Chat & AI 系统分为前端 Chat UI 和后端 AI Agent 两层。前端基于 Ve
 - 调试工具审批机制
 - 修改模型注册或路由
 
-## Architecture
-
-```
-┌─────────────────── 前端 (apps/web) ───────────────────┐
-│  ChatCoreProvider (useChat 集成、消息树、分支导航)       │
-│    ├── ChatStateProvider     (messages, status, error)  │
-│    ├── ChatSessionProvider   (sessionId, siblingNav)    │
-│    ├── ChatActionsProvider   (send, regenerate, retry)  │
-│    ├── ChatOptionsProvider   (input, attachments)       │
-│    └── ChatToolProvider      (toolParts, subAgentStreams)│
-│              ↓ SSE transport                            │
-├─────────────────── 后端 (apps/server) ─────────────────┤
-│  AiExecuteController → AiExecuteService                 │
-│    → ChatStreamUseCase → chatStreamService              │
-│      ├── RequestContext (AsyncLocalStorage)              │
-│      ├── resolveChatModel() → LanguageModelV3           │
-│      ├── createMasterAgentRunner()                      │
-│      │     └── ToolLoopAgent (tools from toolRegistry)  │
-│      └── streamOrchestrator → UIMessageStreamWriter     │
-│                                                         │
-│  @openloaf/api/types/tools/ ← 前后端共享工具类型定义     │
-└─────────────────────────────────────────────────────────┘
-```
-
 ## Detailed References
 
 按功能领域拆分为独立文件，按需查阅：
@@ -61,72 +37,6 @@ Chat & AI 系统分为前端 Chat UI 和后端 AI Agent 两层。前端基于 Ve
 | [chat-frontend.md](chat-frontend.md) | Context 架构、消息渲染管线、输入区、分支导航、Hooks 速查 | 修改前端聊天 UI |
 | [ai-backend.md](ai-backend.md) | Agent 系统、工具注册、SSE 流式管线、RequestContext、审批机制 | 修改后端 AI 逻辑 |
 | [fullstack-patterns.md](fullstack-patterns.md) | 添加新工具全流程（含前端执行/审批/UI 事件）、添加子代理、修改 Prompt、Skills 系统 | 新增功能或全栈修改 |
-
-## Key Files Map
-
-```
-apps/web/src/components/chat/
-├── Chat.tsx                    ← 主容器（拖拽、附件、模型选择）
-├── ChatCoreProvider.tsx        ← 核心状态中枢 (~1290行)
-├── context/
-│   ├── ChatStateContext.tsx    ← messages, status, error
-│   ├── ChatSessionContext.tsx  ← sessionId, branchMessageIds, siblingNav
-│   ├── ChatActionsContext.tsx  ← send, regenerate, switchSibling, retry
-│   ├── ChatOptionsContext.tsx  ← input, imageOptions, attachments
-│   └── ChatToolContext.tsx     ← toolParts, subAgentStreams
-├── hooks/                      ← 分支、工具流、生命周期、模型选择、消息组装
-├── input/ChatInput.tsx         ← 主输入框
-├── message/
-│   ├── MessageList.tsx         ← 消息列表容器
-│   ├── MessageItem.tsx         ← 单条消息（按 role 分发）
-│   ├── MessageParts.tsx        ← Part 渲染 (renderMessageParts)
-│   ├── tools/MessageTool.tsx   ← 工具路由 → UnifiedTool/SubAgentTool/PlanTool
-│   ├── tools/MediaGenerateTool.tsx ← 图片/视频生成工具卡片（进度+结果+错误）
-│   ├── tools/OpenUrlTool.tsx   ← open-url 前端工具卡片
-│   └── markdown/               ← Markdown 渲染组件
-│
-apps/web/src/lib/chat/
-├── frontend-tool-executor.ts   ← 前端工具执行器 + handler 注册
-└── open-url-ack.ts             ← Electron WebContentsView 加载等待
-│
-apps/web/src/components/layout/
-└── TabLayout.tsx               ← 右侧多会话栏（RightChatPanel + 会话堆叠）
-│
-apps/server/src/ai/
-├── bootstrap.ts                ← 依赖组装入口
-├── interface/controllers/AiExecuteController.ts
-├── services/chat/
-│   ├── AiExecuteService.ts     ← 统一请求路由
-│   ├── chatStreamService.ts    ← 核心编排 (~1037行)
-│   └── streamOrchestrator.ts   ← SSE 流式响应构建
-├── agents/
-│   ├── masterAgent/
-│   │   ├── masterAgent.ts      ← ToolLoopAgent 配置
-│   │   ├── masterAgentRunner.ts
-│   │   ├── skillsLoader.ts     ← .agents/skills/ 扫描
-│   │   └── masterAgentPrompt.zh.md
-│   └── subagent/               ← Browser/DocumentAnalysis/TestApproval
-├── tools/
-│   ├── toolRegistry.ts         ← 工具注册表 (TOOL_REGISTRY)
-│   ├── subAgentTool.ts         ← 子代理分发
-│   ├── openUrl.ts              ← open-url 前端执行工具
-│   ├── mediaGenerateTools.ts   ← 图片/视频生成工具（SaaS API 调用+轮询+进度推送）
-│   ├── pendingRegistry.ts      ← 前端工具 Promise 注册/回执/超时
-│   ├── fileTools.ts / shellTool.ts / browserAutomationTools.ts / ...
-│   └── commandApproval.ts      ← 命令审批逻辑
-├── interface/routes/
-│   └── frontendToolAckRoutes.ts ← POST /ai/tools/ack 回执路由
-├── shared/
-│   ├── context/requestContext.ts ← AsyncLocalStorage 请求上下文
-│   ├── messageConverter.ts      ← UIMessage → ModelMessage
-│   ├── promptBuilder.ts         ← Prompt 构建
-│   └── prefaceBuilder.ts        ← Session preface 构建
-└── models/
-    ├── modelRegistry.ts         ← 模型注册（JSON 加载）
-    └── resolveChatModel.ts      ← 模型实例解析
-│
-packages/api/src/types/tools/    ← 前后端共享工具类型定义 (ToolDef)
-```
 
 ## Skill Sync Policy
 

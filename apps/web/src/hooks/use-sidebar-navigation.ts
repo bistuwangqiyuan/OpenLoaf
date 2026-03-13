@@ -14,49 +14,188 @@ import i18next from 'i18next'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
+import { useOpenSessionIds } from '@/hooks/use-open-session-ids'
+import { useProjectOpen } from '@/hooks/use-project-open'
 import { AI_ASSISTANT_TAB_INPUT, TEMP_CHAT_TAB_INPUT, TEMP_CANVAS_TAB_INPUT } from '@openloaf/api/common'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_INDEX_FILE_NAME } from '@/lib/file-name'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { resolveProjectModeProjectShell } from '@/lib/project-mode'
+import { buildBoardChatTabState } from '@/components/board/utils/board-chat-tab'
 
-export function useSidebarNavigation(workspaceId: string) {
-  const { workspace } = useWorkspace()
+export function useSidebarNavigation() {
   const addTab = useTabs((s) => s.addTab)
+  const activeTabId = useTabs((s) => s.activeTabId)
   const setActiveTab = useTabs((s) => s.setActiveTab)
-  const setTabTitle = useTabs((s) => s.setTabTitle)
-  const setTabIcon = useTabs((s) => s.setTabIcon)
+  const setActiveTabSession = useTabs((s) => s.setActiveTabSession)
+  const setTabChatParams = useTabs((s) => s.setTabChatParams)
+  const setSessionProjectId = useTabs((s) => s.setSessionProjectId)
   const tabs = useTabs((s) => s.tabs)
   const runtimeByTabId = useTabRuntime((s) => s.runtimeByTabId)
-  const setTabBase = useTabRuntime((s) => s.setTabBase)
-  const clearStack = useTabRuntime((s) => s.clearStack)
   const setActiveView = useNavigation((s) => s.setActiveView)
-  const setActiveWorkspaceChat = useNavigation((s) => s.setActiveWorkspaceChat)
+  const setActiveGlobalChat = useNavigation((s) => s.setActiveGlobalChat)
+  const { sessionToTabId } = useOpenSessionIds()
+  const openProjectWithPreference = useProjectOpen()
+  const activeTab = activeTabId
+    ? tabs.find((item) => item.id === activeTabId)
+    : undefined
+  const activeProjectShell = resolveProjectModeProjectShell(activeTab?.projectShell)
+  const activeProjectId = activeProjectShell?.projectId
+
+  const currentTabSessionIds = activeTabId
+    ? (() => {
+        const tab = tabs.find((item) => item.id === activeTabId)
+        if (!tab) return new Set<string>()
+        const sessionIds =
+          Array.isArray(tab.chatSessionIds) && tab.chatSessionIds.length > 0
+            ? tab.chatSessionIds
+            : [tab.chatSessionId]
+        return new Set(
+          sessionIds.filter((sessionId): sessionId is string => typeof sessionId === 'string' && Boolean(sessionId)),
+        )
+      })()
+    : new Set<string>()
 
   const openChat = useCallback(
-    (chatId: string, chatTitle: string) => {
-      const existingTab = tabs.find(
-        (tab) => tab.workspaceId === workspaceId && tab.chatSessionId === chatId,
-      )
+    (chatId: string, chatTitle: string, input?: { projectId?: string | null }) => {
+      const projectId = input?.projectId?.trim() || activeProjectId
 
-      if (existingTab) {
-        startTransition(() => setActiveTab(existingTab.id))
-      } else {
-        addTab({
-          workspaceId,
-          createNew: true,
-          title: chatTitle,
-          icon: '\uD83D\uDCAC',
-          chatSessionId: chatId,
-          chatParams: { projectId: null },
-          leftWidthPercent: 0,
-          rightChatCollapsed: false,
-          chatLoadHistory: true,
+      // 逻辑：优先复用当前 Tab 中已存在的会话，避免打断用户当前的多会话上下文。
+      if (activeTabId && currentTabSessionIds.has(chatId)) {
+        if (projectId) {
+          setSessionProjectId(activeTabId, chatId, projectId)
+          setActiveGlobalChat(null)
+        } else {
+          setActiveGlobalChat(chatId)
+        }
+        startTransition(() => {
+          setActiveTabSession(activeTabId, chatId, { loadHistory: true })
         })
+        return
       }
 
-      setActiveWorkspaceChat(chatId)
+      const ownerTabId = sessionToTabId.get(chatId)
+      if (ownerTabId) {
+        if (projectId) {
+          setSessionProjectId(ownerTabId, chatId, projectId)
+          setActiveGlobalChat(null)
+        } else {
+          setActiveGlobalChat(chatId)
+        }
+        startTransition(() => {
+          setActiveTab(ownerTabId)
+          setActiveTabSession(ownerTabId, chatId, { loadHistory: true })
+        })
+        return
+      }
+
+      addTab({
+        createNew: true,
+        title: chatTitle,
+        icon: '\uD83D\uDCAC',
+        chatSessionId: chatId,
+        chatParams: { projectId: projectId ?? null },
+        leftWidthPercent: 0,
+        rightChatCollapsed: false,
+        chatLoadHistory: true,
+      })
+
+      if (projectId) {
+        setActiveGlobalChat(null)
+        return
+      }
+      setActiveGlobalChat(chatId)
     },
-    [workspaceId, tabs, addTab, setActiveTab, setActiveWorkspaceChat],
+    [
+      activeTabId,
+      activeProjectId,
+      addTab,
+      currentTabSessionIds,
+      sessionToTabId,
+      setActiveTab,
+      setActiveTabSession,
+      setActiveGlobalChat,
+      setSessionProjectId,
+    ],
+  )
+
+  const openProject = useCallback(
+    (input: {
+      projectId: string
+      title: string
+      rootUri: string
+      icon?: string | null
+    }) => {
+      openProjectWithPreference(input, { section: 'assistant' })
+      setActiveGlobalChat(null)
+    },
+    [openProjectWithPreference, setActiveGlobalChat],
+  )
+
+  const openBoard = useCallback(
+    (input: {
+      boardId: string
+      title: string
+      folderUri: string
+      rootUri: string
+      projectId?: string | null
+    }) => {
+      const resolvedProjectId = input.projectId?.trim() || activeProjectId
+      const boardFolderUri = buildFileUriFromRoot(input.rootUri, input.folderUri)
+      const boardFileUri = buildFileUriFromRoot(
+        input.rootUri,
+        `${input.folderUri}${BOARD_INDEX_FILE_NAME}`,
+      )
+      const baseId = `board:${boardFolderUri}`
+
+      const existingTab = tabs.find((tab) => {
+        const base = runtimeByTabId[tab.id]?.base
+        return base?.id === baseId
+      })
+
+      if (existingTab) {
+        const boardChatState = buildBoardChatTabState(input.boardId, resolvedProjectId)
+        setActiveTabSession(existingTab.id, boardChatState.chatSessionId, {
+          loadHistory: true,
+          replaceCurrent: true,
+        })
+        setTabChatParams(existingTab.id, boardChatState.chatParams)
+        startTransition(() => {
+          setActiveTab(existingTab.id)
+        })
+        setActiveGlobalChat(null)
+        return
+      }
+
+      addTab({
+        createNew: true,
+        title: input.title,
+        icon: '\uD83C\uDFA8',
+        ...buildBoardChatTabState(input.boardId, resolvedProjectId),
+        leftWidthPercent: 100,
+        base: {
+          id: baseId,
+          component: 'board-viewer',
+          params: {
+            boardFolderUri,
+            boardFileUri,
+            boardId: input.boardId,
+            projectId: resolvedProjectId,
+            rootUri: input.rootUri,
+          },
+        },
+      })
+      setActiveGlobalChat(null)
+    },
+    [
+      activeProjectId,
+      tabs,
+      runtimeByTabId,
+      addTab,
+      setActiveTab,
+      setActiveTabSession,
+      setTabChatParams,
+      setActiveGlobalChat,
+    ],
   )
 
   const openTempChat = useCallback(() => {
@@ -65,7 +204,6 @@ export function useSidebarNavigation(workspaceId: string) {
     const state = useTabs.getState()
     const rtById = useTabRuntime.getState().runtimeByTabId
     const existing = state.tabs.find((tab) => {
-      if (tab.workspaceId !== workspaceId) return false
       if (rtById[tab.id]?.base) return false
       return tab.title === tabTitle
     })
@@ -74,7 +212,6 @@ export function useSidebarNavigation(workspaceId: string) {
       startTransition(() => setActiveTab(existing.id))
     } else {
       addTab({
-        workspaceId,
         createNew: true,
         title: tabTitle,
         icon: TEMP_CHAT_TAB_INPUT.icon,
@@ -83,22 +220,20 @@ export function useSidebarNavigation(workspaceId: string) {
       })
     }
 
-    setActiveWorkspaceChat(null)
+    setActiveGlobalChat(null)
     setActiveView('ai-assistant')
-  }, [workspaceId, addTab, setActiveTab, setActiveView, setActiveWorkspaceChat])
+  }, [addTab, setActiveTab, setActiveView, setActiveGlobalChat])
 
   const openTempCanvas = useCallback(() => {
-    const rootUri = workspace?.rootUri
-    if (!rootUri) return
     const tabTitle = i18next.t(TEMP_CANVAS_TAB_INPUT.titleKey)
 
     const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase()
     const canvasLabel = i18next.t('nav:canvasList.defaultName')
     const boardName = `tnboard_${canvasLabel}_${randomSuffix}`
-    const boardFolderUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}`)
-    const boardFileUri = buildFileUriFromRoot(rootUri, `.openloaf/boards/${boardName}/${BOARD_INDEX_FILE_NAME}`)
+    // 逻辑：临时画布先保留相对板路径，具体全局根目录由 board-viewer 通过项目存储根查询补齐。
+    const boardFolderUri = `.openloaf/boards/${boardName}`
+    const boardFileUri = `.openloaf/boards/${boardName}/${BOARD_INDEX_FILE_NAME}`
     addTab({
-      workspaceId,
       createNew: true,
       title: tabTitle,
       icon: TEMP_CANVAS_TAB_INPUT.icon,
@@ -106,13 +241,13 @@ export function useSidebarNavigation(workspaceId: string) {
       base: {
         id: `board:${boardFolderUri}`,
         component: 'board-viewer',
-        params: { boardFolderUri, boardFileUri, rootUri },
+        params: { boardFolderUri, boardFileUri },
       },
     })
 
-    setActiveWorkspaceChat(null)
+    setActiveGlobalChat(null)
     setActiveView('canvas-list')
-  }, [workspace, workspaceId, addTab, setActiveView, setActiveWorkspaceChat])
+  }, [addTab, setActiveView, setActiveGlobalChat])
 
-  return { openChat, openTempChat, openTempCanvas }
+  return { openChat, openProject, openBoard, openTempChat, openTempCanvas }
 }

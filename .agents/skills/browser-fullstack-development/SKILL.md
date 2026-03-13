@@ -3,8 +3,6 @@ name: browser-fullstack-development
 description: Use when building, extending, or debugging the in-app browser system across web UI, Electron WebContentsView/IPC, server tools, CDP automation, or tab snapshot/open-url ack flows (viewKey mismatch, cdpTargetId missing, loading stuck, tool ack timeout).
 ---
 
-# Browser Fullstack Development
-
 ## Overview
 
 OpenLoaf 的内置浏览器由三层协作完成：
@@ -23,26 +21,6 @@ OpenLoaf 的内置浏览器由三层协作完成：
 - 开发/维护浏览器自动化（browser-* tools, CDP）
 - 排查加载卡住、viewKey 匹配失败、cdpTargetId 丢失、open-url 超时等问题
 
-## Architecture (High-level)
-
-```
-Renderer (apps/web)
-  ElectrronBrowserWindow
-    ├─ ensureWebContentsView / upsertWebContentsView
-    ├─ listen: openloaf:webcontents-view:status / window-open
-    └─ update browserTabs + upsertTabSnapshotNow
-          ↓
-Electron Main (apps/desktop)
-  webContentsViews.ts
-    ├─ manage WebContentsView lifecycle
-    ├─ emit status/window-open
-    └─ expose cdpTargetId via ensure
-          ↓
-Server (apps/server)
-  open-url tool + pendingRegistry + ack
-  browserAutomationTools -> CDP -> targetId
-```
-
 ## Key Invariants
 
 - `viewKey` 必须唯一且稳定，用于匹配 `openloaf:webcontents-view:status` 事件。
@@ -57,46 +35,6 @@ Server (apps/server)
 - [server-tools.md](server-tools.md) - open-url 工具、ack、CDP 自动化与 tab 快照。
 - [troubleshooting.md](troubleshooting.md) - 常见问题与排查清单。
 
-## Key Files Map
-
-```
-apps/web/src/components/browser/
-  BrowserTabsBar.tsx
-  BrowserProgressBar.tsx
-  BrowserLoadingOverlay.tsx
-  BrowserErrorOverlay.tsx
-  BrowserHome.tsx
-  ElectrronBrowserWindow.tsx
-  browser-storage.ts
-  browser-types.ts
-  browser-utils.ts
-apps/web/src/hooks/browser-panel.ts
-apps/web/src/hooks/use-tab-runtime.ts
-apps/web/src/lib/chat/frontend-tool-executor.ts
-apps/web/src/lib/chat/open-url-ack.ts
-apps/web/src/lib/tab-snapshot.ts
-
-apps/desktop/src/preload/index.ts
-apps/desktop/src/main/ipc/index.ts
-apps/desktop/src/main/ipc/webContentsViews.ts
-apps/desktop/src/main/windows/mainWindow.ts
-apps/desktop/src/main/services/portAllocation.ts
-
-apps/server/src/ai/tools/openUrl.ts
-apps/server/src/ai/tools/browserAutomationTools.ts
-apps/server/src/ai/interface/routes/frontendToolAckRoutes.ts
-apps/server/src/modules/browser/cdpClient.ts
-apps/server/src/modules/browser/cdpSessionPool.ts
-apps/server/src/modules/tab/TabSnapshotStoreAdapter.ts
-apps/server/src/routers/tab.ts
-
-packages/api/src/types/tools/browser.ts
-packages/api/src/types/tools/browserAutomation.ts
-packages/api/src/types/tabs.ts
-packages/api/src/common/tabs.ts
-packages/api/src/types/event.ts
-```
-
 ## Quick Reference
 
 | Task | Files |
@@ -107,36 +45,6 @@ packages/api/src/types/event.ts
 | WebContentsView behavior | `apps/desktop/src/main/ipc/webContentsViews.ts` |
 | CDP automation errors | `apps/server/src/ai/tools/browserAutomationTools.ts`, `apps/server/src/modules/browser/cdpClient.ts` |
 | Tab snapshot/cdpTargetId | `apps/web/src/lib/tab-snapshot.ts`, `apps/server/src/modules/tab/TabSnapshotStoreAdapter.ts` |
-
-## Example (TypeScript)
-
-```ts
-// 中文注释：Electron 返回 cdpTargetId 后写回并同步快照。
-const patchTargetId = (tabId: string, activeId: string, targetId: string) => {
-  const runtime = useTabRuntime.getState().runtimeByTabId[tabId];
-  const stack = runtime?.stack ?? [];
-  const item = stack.find((s) => s.component === BROWSER_WINDOW_COMPONENT);
-  if (!item) return;
-
-  const tabs = Array.isArray((item.params as any)?.browserTabs)
-    ? ((item.params as any).browserTabs as BrowserTab[])
-    : [];
-
-  const nextTabs = tabs.map((t) =>
-    t.id === activeId
-      ? { ...t, cdpTargetIds: [...(t.cdpTargetIds ?? []), targetId] }
-      : t,
-  );
-
-  useTabRuntime.getState().setStackItemParams(tabId, item.id, {
-    ...(item.params ?? {}),
-    browserTabs: nextTabs,
-  });
-
-  const sessionId = useTabs.getState().getTabById(tabId)?.chatSessionId;
-  if (sessionId) void upsertTabSnapshotNow({ sessionId, tabId });
-};
-```
 
 ## Common Mistakes
 
@@ -157,4 +65,3 @@ const patchTargetId = (tabId: string, activeId: string, targetId: string) => {
 | `browserAutomationTools.ts` / `cdpClient.ts` 变更 | server-tools.md |
 | `TabSnapshotStoreAdapter.ts` 变更 | server-tools.md |
 | `packages/api/src/types/tools/browser*.ts` 变更 | SKILL.md + server-tools.md |
-```

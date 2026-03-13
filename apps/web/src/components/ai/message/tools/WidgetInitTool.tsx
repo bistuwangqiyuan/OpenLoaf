@@ -13,7 +13,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { FolderOpen, FileCode } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useProject } from '@/hooks/use-project'
 import { useChatSession } from '../../context'
 import {
   getApprovalId,
@@ -25,7 +25,11 @@ import {
   type AnyToolPart,
 } from './shared/tool-utils'
 import { TrafficLights } from '@openloaf/ui/traffic-lights'
-import { parseOutputJson } from './shared/widget-shared'
+import {
+  parseOutputJson,
+  resolveWidgetFolderUri,
+  resolveWidgetMainFileUri,
+} from './shared/widget-shared'
 import ToolApprovalActions from './shared/ToolApprovalActions'
 
 export default function WidgetInitTool({
@@ -35,8 +39,8 @@ export default function WidgetInitTool({
   part: AnyToolPart
   className?: string
 }) {
-  const { tabId, workspaceId, projectId } = useChatSession()
-  const { workspace } = useWorkspace()
+  const { tabId, projectId } = useChatSession()
+  const projectQuery = useProject(projectId)
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   const input = asPlainObject(normalizeToolInput(part.input))
 
@@ -63,13 +67,14 @@ export default function WidgetInitTool({
         : ('idle' as const)
 
   const handleOpenWidget = () => {
-    if (!tabId || !workspaceId || !widgetId) return
-    const baseRootUri = projectId
-      ? workspace?.projects?.[projectId]
-      : workspace?.rootUri
-    if (!baseRootUri) return
-    const widgetFolderUri = `${baseRootUri.replace(/\/$/, '')}/.openloaf/dynamic-widgets/${widgetId}`
-    const mainFileUri = `${widgetFolderUri}/widget.tsx`
+    if (!tabId || !widgetId) return
+    const widgetFolderUri = resolveWidgetFolderUri({
+      outputJson,
+      widgetId,
+      projectRootUri: projectQuery.data?.project?.rootUri,
+    })
+    if (!widgetFolderUri) return
+    const mainFileUri = resolveWidgetMainFileUri(widgetFolderUri)
     pushStackItem(tabId, {
       id: `widget:${widgetId}`,
       sourceKey: `widget:${widgetId}`,
@@ -81,7 +86,7 @@ export default function WidgetInitTool({
         currentEntryKind: 'file',
         projectId,
         projectTitle: widgetId,
-        viewerRootUri: baseRootUri,
+        viewerRootUri: projectQuery.data?.project?.rootUri,
       },
     })
   }

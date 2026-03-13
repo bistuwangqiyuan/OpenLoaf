@@ -46,6 +46,10 @@ import { Plate, usePlateEditor } from 'platejs/react';
 import { PlateContent } from 'platejs/react';
 import { toggleList } from '@platejs/list';
 import {
+  MessageStreamMarkdown,
+  MESSAGE_STREAM_MARKDOWN_CLASSNAME,
+} from "@/components/ai/message/markdown/MessageStreamMarkdown";
+import {
   BOARD_TOOLBAR_ITEM_BLUE,
   BOARD_TOOLBAR_ITEM_PURPLE,
 } from "../ui/board-style-system";
@@ -54,6 +58,12 @@ import { VIDEO_GENERATE_NODE_TYPE } from "./videoGenerate";
 import { MINDMAP_META } from "../engine/mindmap-layout";
 import { HueSlider, buildColorSwatches, DEFAULT_COLOR_PRESETS } from "../ui/HueSlider";
 import { BoardTextEditorKit } from "./text-editor-kit";
+import {
+  getBoardChatMessageMeta,
+  getBoardChatPartMeta,
+  layoutBoardChatMessageGroup,
+} from "../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../utils/board-chat-toolbar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +96,10 @@ export type TextNodeProps = {
   color?: string;
   /** Custom background color for the text node. */
   backgroundColor?: string;
+  /** Render the node as a read-only chat projection. */
+  readOnlyProjection?: boolean;
+  /** Markdown text shown in read-only chat projection mode. */
+  markdownText?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -104,6 +118,10 @@ const TEXT_NODE_RESIZE_EPSILON = 2;
 const TEXT_NODE_DEFAULT_FONT_SIZE = 18;
 /** Default line height multiplier for text nodes. */
 const TEXT_NODE_LINE_HEIGHT = 1.4;
+/** Default font weight for board text nodes. */
+const TEXT_NODE_DEFAULT_FONT_WEIGHT = 430;
+/** Subtle tracking tweak so board copy feels less loose. */
+const TEXT_NODE_DEFAULT_LETTER_SPACING = "-0.012em";
 /** Maximum font size for text nodes. */
 const TEXT_NODE_MAX_FONT_SIZE = 52;
 /** Default height for a single-line text node. */
@@ -133,6 +151,8 @@ const TEXT_NODE_FONT_SIZE_VALUES = TEXT_NODE_FONT_SIZES.map(option => option.val
 /** The "reset" entry always shown first in color panels. */
 const COLOR_RESET_ENTRY: { label: string; value?: string } = { label: 'Default', value: undefined };
 const BG_RESET_ENTRY: { label: string; value?: string } = { label: 'Transparent', value: undefined };
+/** Markdown shortcut matcher used for backward-compatible heading migration. */
+const TEXT_NODE_HEADING_SHORTCUT_RE = /^(#{1,6})\s+/;
 
 // ---------------------------------------------------------------------------
 // Module-level editor ref map (shared between TextNodeView and toolbar)
@@ -204,6 +224,51 @@ function isSlateValueEmpty(value: Value): boolean {
   });
 }
 
+/** Upgrade legacy paragraph nodes that still keep raw Markdown heading shortcuts. */
+function upgradeMarkdownHeadingShortcuts(value: Value): Value {
+  const headingTypes = [
+    KEYS.h1,
+    KEYS.h2,
+    KEYS.h3,
+    KEYS.h4,
+    KEYS.h5,
+    KEYS.h6,
+  ] as const;
+  let changed = false;
+
+  const nextValue = value.map(node => {
+    if (!node || typeof node !== "object") return node;
+    const element = node as Record<string, unknown>;
+    if (element.type !== KEYS.p || !Array.isArray(element.children) || element.children.length === 0) {
+      return node;
+    }
+
+    const firstChild = element.children[0];
+    if (!firstChild || typeof firstChild !== "object" || typeof (firstChild as { text?: unknown }).text !== "string") {
+      return node;
+    }
+
+    const text = String((firstChild as { text: string }).text);
+    const match = text.match(TEXT_NODE_HEADING_SHORTCUT_RE);
+    if (!match) return node;
+
+    const level = Math.max(1, Math.min(headingTypes.length, match[1]?.length ?? 1));
+    const nextChildren = [...element.children];
+    nextChildren[0] = {
+      ...(firstChild as Record<string, unknown>),
+      text: text.slice(match[0].length),
+    };
+    changed = true;
+    return {
+      ...element,
+      type: headingTypes[level - 1],
+      children: nextChildren,
+    };
+  });
+
+  return changed ? (nextValue as Value) : value;
+}
+
 /** Resolve font size to the closest heading size. */
 function resolveHeadingFontSize(fontSize?: number): number {
   const fallback = TEXT_NODE_DEFAULT_FONT_SIZE;
@@ -254,6 +319,85 @@ function getAutoTextColor(backgroundColor?: string): string | undefined {
   if (!rgb) return undefined;
   const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
   return luminance < 0.5 ? TEXT_NODE_AUTO_TEXT_DARK : TEXT_NODE_AUTO_TEXT_LIGHT;
+}
+
+/** Render a read-only markdown projection for board chat text parts. */
+function ReadOnlyMarkdownProjection(props: {
+  /** Current text node element id. */
+  elementId: string;
+  /** Markdown source text. */
+  markdownText: string;
+  /** Resolved font size from node props. */
+  fontSize: number;
+  /** Resolved text color from node props/background. */
+  color?: string;
+  /** Node background color. */
+  backgroundColor?: string;
+}) {
+  const { engine } = useBoardContext();
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const element = engine.doc.getElementById(props.elementId);
+  const partMeta = getBoardChatPartMeta(element);
+  const messageGroupMeta =
+    getBoardChatMessageMeta(element)
+    ?? (partMeta
+      ? getBoardChatMessageMeta(engine.doc.getElementById(partMeta.messageGroupId))
+      : null);
+  const isAnimating = messageGroupMeta?.status === "streaming";
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const node = engine.doc.getElementById(props.elementId);
+      if (!node || node.kind !== "node") return;
+      const nextHeight = Math.max(
+        TEXT_NODE_DEFAULT_HEIGHT,
+        Math.ceil(content.scrollHeight + 24),
+      );
+      const [, , width, currentHeight] = node.xywh;
+      if (Math.abs(currentHeight - nextHeight) <= TEXT_NODE_RESIZE_EPSILON) return;
+      const partMeta = getBoardChatPartMeta(node);
+      // 逻辑：只读聊天文本高度变化时，同时同步消息组内垂直布局，避免后续节点重叠。
+      engine.batch(() => {
+        engine.doc.transact(() => {
+          engine.doc.updateElement(props.elementId, {
+            xywh: [node.xywh[0], node.xywh[1], width, nextHeight],
+          });
+        });
+      });
+      if (partMeta?.messageGroupId) {
+        layoutBoardChatMessageGroup(engine, partMeta.messageGroupId);
+      }
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [engine, props.elementId]);
+
+  return (
+    <div
+      className={cn(
+        "relative w-full rounded-xl box-border p-3",
+        props.backgroundColor ? "" : "bg-[#f5f5f5] dark:bg-neutral-800/60",
+        "text-neutral-800 dark:text-neutral-100",
+      )}
+      style={props.backgroundColor ? { backgroundColor: props.backgroundColor } : undefined}
+    >
+      <MessageStreamMarkdown
+        ref={contentRef}
+        markdown={props.markdownText}
+        className={MESSAGE_STREAM_MARKDOWN_CLASSNAME}
+        isAnimating={isAnimating}
+        style={{
+          fontSize: props.fontSize,
+          lineHeight: TEXT_NODE_LINE_HEIGHT,
+          color: props.color,
+          fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+          letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
+        }}
+      />
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -667,8 +811,8 @@ function createTextToolbarItems(ctx: CanvasToolbarContext<TextNodeProps>) {
 // TextNodeView — main component
 // ---------------------------------------------------------------------------
 
-/** Render a text node with Plate rich-text editing. */
-export function TextNodeView({
+/** Render the editable text node with Plate rich-text editing. */
+function EditableTextNodeView({
   element,
   selected,
   editing,
@@ -704,13 +848,29 @@ export function TextNodeView({
   const resizeRafRef = useRef<number | null>(null);
 
   // Normalize stored value to Slate Value (handles legacy string migration)
-  const slateValue = useMemo(
+  const incomingSlateValue = useMemo(
     () => normalizeTextValue(element.props.value, {
       fontWeight: element.props.fontWeight,
       fontStyle: element.props.fontStyle,
       textDecoration: element.props.textDecoration,
     }),
     [element.props.value, element.props.fontWeight, element.props.fontStyle, element.props.textDecoration]
+  );
+  const slateValue = useMemo(
+    () => upgradeMarkdownHeadingShortcuts(incomingSlateValue),
+    [incomingSlateValue],
+  );
+  const incomingSlateValueJson = useMemo(
+    () => JSON.stringify(incomingSlateValue),
+    [incomingSlateValue],
+  );
+  const slateValueJson = useMemo(
+    () => JSON.stringify(slateValue),
+    [slateValue],
+  );
+  const needsHeadingShortcutUpgrade = useMemo(
+    () => incomingSlateValueJson !== slateValueJson,
+    [incomingSlateValueJson, slateValueJson],
   );
 
   const textAlign = element.props.textAlign ?? TEXT_NODE_DEFAULT_TEXT_ALIGN;
@@ -728,6 +888,8 @@ export function TextNodeView({
     fontSize: resolvedFontSize,
     textAlign,
     lineHeight: TEXT_NODE_LINE_HEIGHT,
+    fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+    letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
     color: resolvedColor || undefined,
   }), [resolvedFontSize, textAlign, resolvedColor]);
 
@@ -747,13 +909,32 @@ export function TextNodeView({
 
   // Sync external value changes when NOT editing
   const lastValueJsonRef = useRef('');
+  const reportedHeadingUpgradeRef = useRef<string>('');
   useEffect(() => {
     if (isGhost || isEditing) return;
-    const json = JSON.stringify(slateValue);
-    if (json === lastValueJsonRef.current) return;
-    lastValueJsonRef.current = json;
+    if (slateValueJson === lastValueJsonRef.current) return;
+    lastValueJsonRef.current = slateValueJson;
     editor.tf.setValue(slateValue);
-  }, [editor, isEditing, isGhost, slateValue]);
+  }, [editor, isEditing, isGhost, slateValue, slateValueJson]);
+
+  useEffect(() => {
+    if (isGhost || isEditing || !needsHeadingShortcutUpgrade) return;
+    const reportKey = `${element.id}:${incomingSlateValueJson}`;
+    if (reportKey === reportedHeadingUpgradeRef.current) return;
+    // 逻辑：已有节点如果仍保存着 `## title` 这类纯文本段落，首次加载时自动升级为标题块。
+    reportedHeadingUpgradeRef.current = reportKey;
+    lastValueJsonRef.current = slateValueJson;
+    onUpdate({ value: slateValue, autoFocus: false });
+  }, [
+    element.id,
+    incomingSlateValueJson,
+    isEditing,
+    isGhost,
+    needsHeadingShortcutUpgrade,
+    onUpdate,
+    slateValue,
+    slateValueJson,
+  ]);
 
   // ---- Edit mode lifecycle ----
 
@@ -1034,7 +1215,7 @@ export function TextNodeView({
   const containerStyle = backgroundColor ? { backgroundColor } : undefined;
   const defaultBg = backgroundColor ? "" : "bg-[#f5f5f5] dark:bg-neutral-800/60";
   const containerClasses = [
-    "relative h-full w-full rounded-xl box-border p-2.5 flex flex-col justify-center",
+    "relative h-full w-full rounded-xl box-border p-2.5 flex flex-col justify-start",
     isEditing && !backgroundColor
       ? "bg-white dark:bg-neutral-900/90"
       : defaultBg,
@@ -1076,7 +1257,7 @@ export function TextNodeView({
           className={cn(
             "w-full bg-transparent outline-none p-0",
             "text-neutral-800 dark:text-neutral-100",
-            "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5",
+            "[&>[data-slate-node=element]+[data-slate-node=element]]:mt-1",
             // 逻辑：view 模式下整体禁止指针交互，但 checkbox 保留可点击。
             !isEditing && "pointer-events-none [&_[data-slot=checkbox]]:!pointer-events-auto",
           )}
@@ -1088,13 +1269,38 @@ export function TextNodeView({
       {isEmpty ? (
         <div
           className="pointer-events-none absolute inset-0 flex items-center px-4 text-neutral-400 dark:text-neutral-500"
-          style={{ textAlign, fontSize: textStyle.fontSize, lineHeight: textStyle.lineHeight }}
+          style={{
+            textAlign,
+            fontSize: textStyle.fontSize,
+            lineHeight: textStyle.lineHeight,
+            fontWeight: TEXT_NODE_DEFAULT_FONT_WEIGHT,
+            letterSpacing: TEXT_NODE_DEFAULT_LETTER_SPACING,
+          }}
         >
           {getTextNodePlaceholder()}
         </div>
       ) : null}
     </div>
   );
+}
+
+/** Render a text node, switching to markdown projection mode when needed. */
+export function TextNodeView(props: CanvasNodeViewProps<TextNodeProps>) {
+  if (props.element.props.readOnlyProjection === true) {
+    const resolvedFontSize = resolveHeadingFontSize(props.element.props.fontSize);
+    const resolvedColor = props.element.props.color ?? getAutoTextColor(props.element.props.backgroundColor);
+    return (
+      <ReadOnlyMarkdownProjection
+        elementId={props.element.id}
+        markdownText={props.element.props.markdownText ?? ""}
+        fontSize={resolvedFontSize}
+        color={resolvedColor}
+        backgroundColor={props.element.props.backgroundColor}
+      />
+    );
+  }
+
+  return <EditableTextNodeView {...props} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -1115,6 +1321,8 @@ export const TextNodeDefinition: CanvasNodeDefinition<TextNodeProps> = {
     textAlign: z.enum(["left", "center", "right"]).optional(),
     color: z.string().optional(),
     backgroundColor: z.string().optional(),
+    readOnlyProjection: z.boolean().optional(),
+    markdownText: z.string().optional(),
   }) as z.ZodType<TextNodeProps>,
   defaultProps: {
     value: DEFAULT_TEXT_VALUE,
@@ -1127,6 +1335,8 @@ export const TextNodeDefinition: CanvasNodeDefinition<TextNodeProps> = {
     textAlign: TEXT_NODE_DEFAULT_TEXT_ALIGN,
     color: undefined,
     backgroundColor: undefined,
+    readOnlyProjection: false,
+    markdownText: "",
   },
   view: TextNodeView,
   getMinSize: (element) => ({
@@ -1137,7 +1347,13 @@ export const TextNodeDefinition: CanvasNodeDefinition<TextNodeProps> = {
     ),
   }),
   connectorTemplates: () => getTextNodeConnectorTemplates(),
-  toolbar: ctx => createTextToolbarItems(ctx),
+  toolbar: (ctx) => {
+    if (ctx.element.props.readOnlyProjection) {
+      const messageMeta = getBoardChatMessageMeta(ctx.element);
+      return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
+    }
+    return createTextToolbarItems(ctx);
+  },
   capabilities: {
     resizable: true,
     rotatable: false,

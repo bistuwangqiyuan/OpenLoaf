@@ -3,8 +3,6 @@ name: packaging-apps
 description: Use when asked how to package or bundle this repo's Electron Forge/Builder app, Next.js static export, or server esbuild builds with native dependencies, including where artifacts live or how deps are shipped.
 ---
 
-# Packaging Apps
-
 ## Overview
 Provide repo-specific packaging guidance for Electron + web + server, including build commands, artifact locations, and native-dependency shipping.
 
@@ -71,8 +69,6 @@ Provide repo-specific packaging guidance for Electron + web + server, including 
 ## CI/CD vs Local Build (The Golden Rule)
 - **Do not use macOS Wine for production Windows builds.** Due to dependency complexities and Wine instability, all production artifacts should be built via GitHub Actions (`.github/workflows/release.yml`) running on native `macos-latest`, `windows-latest`, and `ubuntu-latest` runners.
 - Local macOS cross-compilation is only for quick structural checks (e.g., verifying `Resources/` contents), but resulting binaries (especially for Windows and Linux) may fail at runtime due to missing or mismatched native bindings.
-
-## Artifact Map
 
 ## Incremental Update Rules (Runtime)
 - Current version source (per component):

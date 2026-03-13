@@ -12,7 +12,13 @@ const path = require("node:path");
 const nextConfig = {
   typedRoutes: true,
   reactCompiler: true,
-  transpilePackages: ["@openloaf/ui", "@openloaf-saas/sdk"],
+  transpilePackages: [
+    "@openloaf/ui",
+    "@openloaf-saas/sdk",
+    "@syncfusion/ej2-react-pdfviewer",
+    "@syncfusion/ej2-react-documenteditor",
+    "@syncfusion/ej2-react-spreadsheet",
+  ],
   experimental: {
     externalDir: true,
     optimizePackageImports: ["@phosphor-icons/react"],

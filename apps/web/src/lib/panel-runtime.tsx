@@ -14,9 +14,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { useTheme } from "next-themes";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/utils/trpc";
+import { AppBootstrap } from "@/components/layout/AppBootstrap";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TabActiveProvider } from "@/components/layout/TabActiveContext";
-import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
 import { useBasicConfig } from "@/hooks/use-basic-config";
 import { clearThemeOverride, readThemeOverride } from "@/lib/theme-override";
 import { createStore, useStore } from "zustand";
@@ -178,11 +178,10 @@ function PanelProviders({
     >
       <QueryClientProvider client={queryClient}>
         <ThemeSettingsBootstrap />
-        <WorkspaceProvider>
-          <PanelErrorBoundary>
+        <AppBootstrap />
+        <PanelErrorBoundary>
             <TabActiveProvider active={active}>{children}</TabActiveProvider>
           </PanelErrorBoundary>
-        </WorkspaceProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

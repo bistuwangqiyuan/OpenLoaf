@@ -65,7 +65,7 @@ export const widgetListToolDef = {
   id: 'widget-list',
   name: '列出所有 Widget',
   description:
-    '列出当前 workspace/project 下所有动态 Widget 的基本信息（widgetId、名称、描述、函数列表等）。',
+    '列出当前可见范围内所有动态 Widget 的基本信息（widgetId、名称、描述、函数列表等）。',
   needsApproval: false,
   parameters: z.object({
     actionName: z

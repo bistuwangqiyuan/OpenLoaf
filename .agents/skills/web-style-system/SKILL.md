@@ -6,7 +6,7 @@ version: 0.1.0
 
 # Web Style System
 
-> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「工作区」。
+> **术语映射**：代码 `workspace` = 产品「工作空间」，代码 `project` = 产品「项目」。
 
 ## Purpose
 
@@ -40,8 +40,6 @@ version: 0.1.0
 2. `style-dna-layout-tabs.md`
 3. `component-guidelines.md`
 4. `review-checklist.md`
-
-## Mode Selection
 
 ### Build Mode
 
@@ -86,8 +84,6 @@ version: 0.1.0
 - 按严重度排序：`P0 > P1 > P2 > P3`。
 - 结尾给最小可执行整改批次（建议 1~3 批）。
 
-## Core Style Principles
-
 ### 1. Capsule-First Geometry
 
 优先使用胶囊和圆角块建立 UI 节奏。交互主按钮、tab、dock item 使用连续圆角语法，避免同一区域混入生硬方角。
@@ -128,8 +124,6 @@ version: 0.1.0
 - 关键交互动效时长优先落在 `0.16s ~ 0.24s` 区间。
 - tabs/dock 微动效优先使用 spring，并保持模块内 stiffness/damping 统一。
 - 主交互区域对比度满足可读性要求，焦点态必须可见。
-
-## Output Templates
 
 ### Build Template
 

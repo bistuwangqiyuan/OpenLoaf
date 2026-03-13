@@ -12,11 +12,6 @@
 // @ts-ignore
 import { appRouter as internalAppRouter } from "../generated/routers";
 import { t } from "../generated/routers/helpers/createRouter";
-import {
-  workspaceRouter,
-  BaseWorkspaceRouter,
-  workspaceSchemas,
-} from "./routers/absWorkspace";
 import { tabRouter, BaseTabRouter, tabSchemas } from "./routers/absTab";
 import { chatRouter } from "./routers/chat";
 import { BaseChatRouter, chatSchemas } from "./routers/absChat";
@@ -57,6 +52,7 @@ import {
   scheduledTaskSchemas,
 } from "./routers/absScheduledTask";
 import { boardRouter } from "./routers/board";
+import { visitRouter } from "./routers/visit";
 
 export const appRouterDefine = {
   ...internalAppRouter._def.procedures,
@@ -64,7 +60,6 @@ export const appRouterDefine = {
   chat: chatRouter,
   project: projectRouter,
   fs: fsRouter,
-  workspace: workspaceRouter,
   tab: tabRouter,
   settings: settingRouter,
   ai: aiRouter,
@@ -76,6 +71,7 @@ export const appRouterDefine = {
   dynamicWidget: dynamicWidgetRouter,
   scheduledTask: scheduledTaskRouter,
   board: boardRouter,
+  visit: visitRouter,
 };
 
 export const appRouter = t.router({
@@ -93,7 +89,7 @@ export * from "../generated/routers/helpers/createRouter";
 // export * as zodSchemas from "../generated/zod/schemas/index";
 
 // Export custom types
-export * from "./types/workspace";
+export * from "./types/appConfig";
 export * from "./types/basic";
 export * from "./types/event";
 export * from "./types/message";
@@ -103,19 +99,18 @@ export * from "./types/toolResult";
 export * from "./types/setting";
 export * from "./types/storage";
 export * from "./types/boardCollab";
+export * from "./types/entityVisit";
 export * from "./common";
 export * from "./markdown/block-markdown";
 export * from "./services/vfsService";
 
-// Export workspace router components
-export { BaseWorkspaceRouter, workspaceSchemas };
 
 // Export tab router components
 export { BaseTabRouter, tabSchemas };
 
 // Export chat router components
 export { BaseChatRouter, chatSchemas };
-export type { ChatUIMessage, ChatSessionSummary } from "./routers/chat";
+export type { ChatUIMessage, ChatSessionSummary, CopySessionToBoardResult } from "./routers/chat";
 
 // Export setting router components
 export { BaseSettingRouter, settingSchemas };

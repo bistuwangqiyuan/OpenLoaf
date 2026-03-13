@@ -10,10 +10,9 @@
 import { promises as fs } from 'node:fs'
 import fsSync from 'node:fs'
 import path from 'node:path'
-import { resolveOpenLoafPath } from '@openloaf/config'
+import { resolveOpenLoafPath, resolveScopedOpenLoafPath } from '@openloaf/config'
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
 } from '@openloaf/api/services/vfsService'
 import { prisma } from '@openloaf/db'
 import { logger } from '@/common/logger'
@@ -45,7 +44,6 @@ type SessionJson = {
   isPin: boolean
   errorMessage: string | null
   sessionPreface: string | null
-  workspaceId: string | null
   projectId: string | null
   boardId: string | null
   cliId: string | null
@@ -129,7 +127,7 @@ function invalidateCache(sessionId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Path helpers — 根据 session 的 workspaceId/projectId 解析到对应根目录
+// Path helpers — 根据 session 的 projectId 解析到对应根目录
 // ---------------------------------------------------------------------------
 
 // 逻辑：缓存 sessionId → 目录路径，避免每次都查数据库
@@ -139,11 +137,9 @@ const sessionDirCache = new Map<string, string>()
  * 解析 session 的 chat-history 根目录：
  * - 有 boardId → <scopeRoot>/.openloaf/boards/<boardId>/chat-history/
  * - 有 projectId → <projectRoot>/.openloaf/chat-history/
- * - 无 projectId → <workspaceRoot>/.openloaf/chat-history/
  * - 都没有 → ~/.openloaf/chat-history/ (fallback)
  */
 function resolveChatHistoryRoot(
-  workspaceId?: string | null,
   projectId?: string | null,
   boardId?: string | null,
 ): string {
@@ -152,24 +148,16 @@ function resolveChatHistoryRoot(
   // 最终路径：<scopeRoot>/.openloaf/boards/<boardId>/
   if (boardId) {
     const scopeRoot = projectId
-      ? getProjectRootPath(projectId, workspaceId ?? undefined)
-      : workspaceId
-        ? getWorkspaceRootPathById(workspaceId)
-        : null
+      ? getProjectRootPath(projectId)
+      : null
     if (scopeRoot) {
-      return path.join(scopeRoot, '.openloaf', 'boards')
+      return resolveScopedOpenLoafPath(scopeRoot, 'boards')
     }
   }
   if (projectId) {
-    const projectRoot = getProjectRootPath(projectId, workspaceId ?? undefined)
+    const projectRoot = getProjectRootPath(projectId)
     if (projectRoot) {
-      return path.join(projectRoot, '.openloaf', CHAT_HISTORY_DIR)
-    }
-  }
-  if (workspaceId) {
-    const workspaceRoot = getWorkspaceRootPathById(workspaceId)
-    if (workspaceRoot) {
-      return path.join(workspaceRoot, '.openloaf', CHAT_HISTORY_DIR)
+      return resolveScopedOpenLoafPath(projectRoot, CHAT_HISTORY_DIR)
     }
   }
   return resolveOpenLoafPath(CHAT_HISTORY_DIR)
@@ -179,25 +167,24 @@ async function resolveSessionDir(sessionId: string): Promise<string> {
   const cached = sessionDirCache.get(sessionId)
   if (cached) return cached
 
-  // 从数据库查 session 的 workspaceId/projectId/boardId
+  // 从数据库查 session 的 projectId/boardId
   const session = await prisma.chatSession.findUnique({
     where: { id: sessionId },
-    select: { workspaceId: true, projectId: true, boardId: true },
+    select: { projectId: true, boardId: true },
   })
-  const root = resolveChatHistoryRoot(session?.workspaceId, session?.projectId, session?.boardId)
+  const root = resolveChatHistoryRoot(session?.projectId, session?.boardId)
   const dir = path.join(root, sessionId)
   sessionDirCache.set(sessionId, dir)
   return dir
 }
 
-/** 注册 session 目录（写入时已知 workspaceId/projectId/boardId，避免 DB 查询） */
+/** 注册 session 目录（写入时已知 projectId/boardId，避免 DB 查询） */
 export function registerSessionDir(
   sessionId: string,
-  workspaceId?: string | null,
   projectId?: string | null,
   boardId?: string | null,
 ): void {
-  const root = resolveChatHistoryRoot(workspaceId, projectId, boardId)
+  const root = resolveChatHistoryRoot(projectId, boardId)
   sessionDirCache.set(sessionId, path.join(root, sessionId))
 }
 
@@ -948,10 +935,10 @@ export async function listAgentIds(sessionId: string): Promise<string[]> {
 export async function deleteAllChatFiles(): Promise<void> {
   // 逻辑：查询所有 session，逐个删除对应目录
   const sessions = await prisma.chatSession.findMany({
-    select: { id: true, workspaceId: true, projectId: true, boardId: true },
+    select: { id: true, projectId: true, boardId: true },
   })
   for (const session of sessions) {
-    registerSessionDir(session.id, session.workspaceId, session.projectId, session.boardId)
+    registerSessionDir(session.id, session.projectId, session.boardId)
     try {
       const dir = await resolveSessionDir(session.id)
       await fs.rm(dir, { recursive: true, force: true })

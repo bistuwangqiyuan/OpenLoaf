@@ -12,7 +12,7 @@ import { t, shieldedProcedure } from "../../generated/routers/helpers/createRout
 
 const passwordAccountInputSchema = z.object({
   authType: z.literal("password"),
-  workspaceId: z.string().min(1),
+
   emailAddress: z.string().min(1),
   label: z.string().optional(),
   imap: z.object({
@@ -30,7 +30,7 @@ const passwordAccountInputSchema = z.object({
 
 const oauthAccountInputSchema = z.object({
   authType: z.enum(["oauth2-graph", "oauth2-gmail"]),
-  workspaceId: z.string().min(1),
+
   emailAddress: z.string().min(1),
   label: z.string().optional(),
 });
@@ -40,9 +40,7 @@ const emailAccountInputSchema = z.discriminatedUnion("authType", [
   oauthAccountInputSchema,
 ]);
 
-const listAccountsInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const listAccountsInputSchema = z.object({});
 
 const emailAccountViewSchema = z.object({
   emailAddress: z.string(),
@@ -54,12 +52,12 @@ const emailAccountViewSchema = z.object({
 });
 
 const removeAccountInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   emailAddress: z.string().min(1),
 });
 
 const listMessagesInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
   mailbox: z.string().min(1),
   cursor: z.string().nullable().optional(),
@@ -67,35 +65,31 @@ const listMessagesInputSchema = z.object({
 });
 
 const listMailboxesInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
 });
 
 const markMessageReadInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const setMessageFlaggedInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
   flagged: z.boolean(),
 });
 
 const listMailboxStatsInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
 });
 
 /** List unread count input. */
-const listUnreadCountInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const listUnreadCountInputSchema = z.object({});
 
 /** List mailbox unread stats input. */
-const listMailboxUnreadStatsInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const listMailboxUnreadStatsInputSchema = z.object({});
 
 /** Unified mailbox scope. */
 const unifiedMailboxScopeSchema = z.enum([
@@ -109,7 +103,7 @@ const unifiedMailboxScopeSchema = z.enum([
 
 /** Unified messages input. */
 const listUnifiedMessagesInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   scope: unifiedMailboxScopeSchema,
   accountEmail: z.string().min(1).optional(),
   mailbox: z.string().min(1).optional(),
@@ -118,13 +112,11 @@ const listUnifiedMessagesInputSchema = z.object({
 });
 
 /** Unified unread stats input. */
-const listUnifiedUnreadStatsInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const listUnifiedUnreadStatsInputSchema = z.object({});
 
 /** Update mailbox sorts input. */
 const updateMailboxSortsInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
   parentPath: z.string().nullable().optional(),
   sorts: z.array(
@@ -136,14 +128,14 @@ const updateMailboxSortsInputSchema = z.object({
 });
 
 const syncMailboxInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
   mailbox: z.string().min(1),
   limit: z.number().int().min(1).max(200).optional(),
 });
 
 const syncMailboxesInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
 });
 
@@ -152,22 +144,22 @@ const syncMailboxOutputSchema = z.object({
 });
 
 const getMessageInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const setPrivateSenderInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   senderEmail: z.string().min(1),
 });
 
 const removePrivateSenderInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   senderEmail: z.string().min(1),
 });
 
 const sendMessageInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
   to: z.array(z.string().min(1)).min(1),
   cc: z.array(z.string()).optional(),
@@ -194,7 +186,7 @@ const sendMessageOutputSchema = z.object({
 });
 
 const testConnectionInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
 });
 
@@ -219,23 +211,23 @@ const testConnectionOutputSchema = z.object({
 });
 
 const deleteMessageInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const restoreMessageInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const moveMessageInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
   toMailbox: z.string().min(1),
 });
 
 const saveDraftInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().optional(),
   accountEmail: z.string().min(1),
   mode: z.enum(["compose", "reply", "replyAll", "forward"]),
@@ -262,50 +254,45 @@ const draftViewSchema = z.object({
   updatedAt: z.string(),
 });
 
-const listDraftsInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const listDraftsInputSchema = z.object({});
 
 const getDraftInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const deleteDraftInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   id: z.string().min(1),
 });
 
 const batchMarkReadInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   ids: z.array(z.string().min(1)).min(1),
 });
 
 const batchDeleteInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   ids: z.array(z.string().min(1)).min(1),
 });
 
 const batchMoveInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   ids: z.array(z.string().min(1)).min(1),
   toMailbox: z.string().min(1),
 });
 
 const searchMessagesInputSchema = z.object({
-  workspaceId: z.string().min(1),
+
   accountEmail: z.string().min(1),
   query: z.string().min(1),
   cursor: z.string().nullable().optional(),
   pageSize: z.number().int().min(1).max(200).optional(),
 });
 
-const onNewMailInputSchema = z.object({
-  workspaceId: z.string().min(1),
-});
+const onNewMailInputSchema = z.object({});
 
 const newMailEventSchema = z.object({
-  workspaceId: z.string(),
   accountEmail: z.string(),
   mailboxPath: z.string(),
 });
@@ -723,7 +710,6 @@ export abstract class BaseEmailRouter {
       onNewMail: shieldedProcedure
         .input(emailSchemas.onNewMail.input)
         .subscription(async function* (_opts): AsyncGenerator<{
-          workspaceId: string
           accountEmail: string
           mailboxPath: string
         }> {

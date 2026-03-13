@@ -42,7 +42,7 @@ import { ObjectStorageService } from "./menus/ObjectStorageService";
 import { AgentManagement } from "./menus/agent/AgentManagement";
 import { AuxiliaryModelSettings } from "./menus/AuxiliaryModelSettings";
 import { KeyboardShortcuts } from "./menus/KeyboardShortcuts";
-import { WorkspaceSettings } from "./menus/Workspace";
+import { GlobalSettings } from "./menus/GlobalSettings";
 import TestSetting from "./menus/TestSetting";
 import { SkillSettings } from "./menus/SkillSettings";
 import { ThirdPartyTools } from "./menus/ThirdPartyTools";
@@ -59,7 +59,7 @@ type SettingsMenuKey =
   | "storage"
   | "agents"
   | "auxiliaryModel"
-  | "workspace"
+  | "global"
   | "skills"
   | "thirdPartyTools"
   | "shortcuts"
@@ -67,7 +67,7 @@ type SettingsMenuKey =
 
 const SETTINGS_MENU_ICON_COLOR = {
   basic: "text-[#1a73e8] dark:text-sky-300",
-  workspace: "text-[#5f6368] dark:text-slate-300",
+  global: "text-[#5f6368] dark:text-slate-300",
   skills: "text-[#9334e6] dark:text-violet-300",
   thirdPartyTools: "text-[#188038] dark:text-emerald-300",
   keys: "text-[#e91e63] dark:text-pink-300",
@@ -113,10 +113,10 @@ function buildMenu(t: (key: string) => string): Array<{
       Component: BasicSettings,
     },
     {
-      key: "workspace",
-      label: t('settings:menu.workspace'),
-      Icon: createMenuIcon(Building2, SETTINGS_MENU_ICON_COLOR.workspace),
-      Component: WorkspaceSettings,
+      key: "global",
+      label: t('settings:menu.global'),
+      Icon: createMenuIcon(Building2, SETTINGS_MENU_ICON_COLOR.global),
+      Component: GlobalSettings,
     },
     {
       key: "skills",
@@ -165,7 +165,7 @@ function buildMenu(t: (key: string) => string): Array<{
 }
 
 const ALL_MENU_KEYS: SettingsMenuKey[] = [
-  'basic', 'workspace', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'auxiliaryModel', 'shortcuts', 'projectTest',
+  'basic', 'global', 'skills', 'thirdPartyTools', 'keys', 'storage', 'agents', 'auxiliaryModel', 'shortcuts', 'projectTest',
 ];
 const MENU_KEY_SET = new Set<SettingsMenuKey>(ALL_MENU_KEYS);
 const HIDDEN_MENU_KEYS = new Set<SettingsMenuKey>([]);
@@ -182,6 +182,11 @@ function isVisibleSettingsMenuKey(value: unknown): value is SettingsMenuKey {
   return !HIDDEN_MENU_KEYS.has(value);
 }
 
+/** Normalize persisted menu keys to current values. */
+function normalizeSettingsMenuKey(value: unknown): SettingsMenuKey | null {
+  return isVisibleSettingsMenuKey(value) ? value : null;
+}
+
 type SettingsPageProps = {
   panelKey?: string;
   tabId?: string;
@@ -196,7 +201,7 @@ export default function SettingsPage({
   const { t } = useTranslation(['settings', 'nav']);
   const MENU = useMemo(() => buildMenu((key) => t(key)), [t]);
   const [activeKey, setActiveKey] = useState<SettingsMenuKey>(() =>
-    isVisibleSettingsMenuKey(settingsMenu) ? settingsMenu : "basic",
+    normalizeSettingsMenuKey(settingsMenu) ?? "basic",
   );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openTooltipKey, setOpenTooltipKey] = useState<SettingsMenuKey | null>(
@@ -240,10 +245,11 @@ export default function SettingsPage({
   }, [isActiveTab]);
 
   useEffect(() => {
-    if (!isVisibleSettingsMenuKey(settingsMenu)) return;
-    if (settingsMenu === activeKey) return;
+    const normalizedMenu = normalizeSettingsMenuKey(settingsMenu);
+    if (!normalizedMenu) return;
+    if (normalizedMenu === activeKey) return;
     // 从持久化参数恢复上次选中的菜单，刷新后保持位置。
-    setActiveKey(settingsMenu);
+    setActiveKey(normalizedMenu);
   }, [settingsMenu, activeKey]);
 
   useEffect(() => {
@@ -294,7 +300,7 @@ export default function SettingsPage({
       Boolean(item && !HIDDEN_MENU_KEYS.has(item.key as SettingsMenuKey));
     const group1 = [
       byKey.get("basic"),
-      byKey.get("workspace"),
+      byKey.get("global"),
       byKey.get("shortcuts"),
       byKey.get("projectTest"),
       byKey.get("thirdPartyTools"),

@@ -10,7 +10,6 @@
 import { EventEmitter } from 'events'
 
 export type EmailNewMailEvent = {
-  workspaceId: string
   accountEmail: string
   mailboxPath: string
 }

@@ -74,7 +74,6 @@ interface StreamingCodeViewerProps {
   toolCallId?: string
   toolCallIds?: string[]
   tabId?: string
-  workspaceId?: string
   projectId?: string
 }
 
@@ -82,7 +81,6 @@ export default function StreamingCodeViewer({
   toolCallId,
   toolCallIds,
   tabId,
-  workspaceId,
   projectId,
 }: StreamingCodeViewerProps) {
   const { t } = useTranslation('common')
@@ -153,15 +151,15 @@ export default function StreamingCodeViewer({
   const fetchedPathRef = useRef('')
 
   useEffect(() => {
-    if (!firstPath || !workspaceId || fetchedPathRef.current === firstPath) return
+    if (!firstPath || fetchedPathRef.current === firstPath) return
     fetchedPathRef.current = firstPath
     setLoadingOriginal(true)
     trpcClient.fs.readFile
-      .query({ workspaceId, projectId, uri: firstPath })
+      .query({ projectId, uri: firstPath })
       .then((res) => setOriginalContent(res.content))
       .catch(() => setOriginalContent(''))
       .finally(() => setLoadingOriginal(false))
-  }, [firstPath, workspaceId, projectId])
+  }, [firstPath, projectId])
 
   const { resolvedTheme } = useTheme()
   const monacoThemeName = resolvedTheme === 'dark' ? MONACO_THEME_DARK : MONACO_THEME_LIGHT

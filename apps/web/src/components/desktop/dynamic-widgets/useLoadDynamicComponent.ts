@@ -26,11 +26,10 @@ const pendingLoads = new Map<string, Promise<DynamicWidgetComponent>>()
  * Blob URL and use dynamic import() to load it as a module.
  */
 async function loadWidgetModule(
-  workspaceId: string,
   projectId: string | undefined,
   widgetId: string,
 ): Promise<DynamicWidgetComponent> {
-  const cacheKey = `${workspaceId}:${projectId ?? ''}:${widgetId}`
+  const cacheKey = `${projectId ?? ''}:${widgetId}`
   const cached = moduleCache.get(cacheKey)
   if (cached) return cached
 
@@ -39,7 +38,7 @@ async function loadWidgetModule(
   if (pending) return pending
 
   const loadPromise = (async () => {
-    const result = await trpcClient.dynamicWidget.compile.query({ workspaceId, projectId, widgetId })
+    const result = await trpcClient.dynamicWidget.compile.query({ projectId, widgetId })
     if (!result.ok || !result.code) {
       throw new Error(result.error || 'Compilation failed')
     }
@@ -88,7 +87,6 @@ interface UseLoadDynamicComponentResult {
  * React hook to load a dynamic widget component by its ID.
  */
 export function useLoadDynamicComponent(
-  workspaceId: string | undefined,
   projectId: string | undefined,
   widgetId: string | undefined,
 ): UseLoadDynamicComponentResult {
@@ -97,9 +95,9 @@ export function useLoadDynamicComponent(
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    if (!workspaceId || !widgetId) {
+    if (!widgetId) {
       setLoading(false)
-      setError('No widget ID or workspace ID provided')
+      setError('No widget ID provided')
       return
     }
 
@@ -107,7 +105,7 @@ export function useLoadDynamicComponent(
     setLoading(true)
     setError(null)
 
-    loadWidgetModule(workspaceId, projectId, widgetId)
+    loadWidgetModule(projectId, widgetId)
       .then((mod) => {
         if (!cancelled) {
           setComponent(() => mod)
@@ -124,7 +122,7 @@ export function useLoadDynamicComponent(
     return () => {
       cancelled = true
     }
-  }, [workspaceId, projectId, widgetId])
+  }, [projectId, widgetId])
 
   return { Component, loading, error }
 }

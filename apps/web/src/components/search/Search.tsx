@@ -20,13 +20,13 @@ import {
   CommandShortcut,
 } from "@openloaf/ui/command";
 import { Kbd, KbdGroup } from "@openloaf/ui/kbd";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
 import { useProjects } from "@/hooks/use-projects";
 import { useDebounce } from "@/hooks/use-debounce";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
 import { WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
 import { trpc } from "@/utils/trpc";
 import { useQueries, skipToken, useQuery } from "@tanstack/react-query";
@@ -73,12 +73,16 @@ export function Search({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { workspace: activeWorkspace } = useWorkspace();
   const addTab = useTabs((s) => s.addTab);
   const setActiveTab = useTabs((s) => s.setActiveTab);
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeTab = useTabView(activeTabId ?? undefined);
+  const activeProjectShell = React.useMemo(
+    () => resolveProjectModeProjectShell(activeTab?.projectShell),
+    [activeTab?.projectShell],
+  );
+  const projectMode = Boolean(activeProjectShell);
   const { data: projects = [] } = useProjects();
   /** 当前搜索框输入值。 */
   const [searchValue, setSearchValue] = React.useState("");
@@ -88,8 +92,8 @@ export function Search({
   const [committedSearchValue, setCommittedSearchValue] = React.useState("");
   /** 当前项目最近打开列表。 */
   const [recentProjectItems, setRecentProjectItems] = React.useState<RecentOpenItem[]>([]);
-  /** 工作区最近打开列表。 */
-  const [recentWorkspaceItems, setRecentWorkspaceItems] = React.useState<RecentOpenItem[]>([]);
+  /** 全局最近打开列表。 */
+  const [recentGlobalItems, setRecentGlobalItems] = React.useState<RecentOpenItem[]>([]);
   /** 防抖搜索关键字。 */
   const debouncedSearchValue = useDebounce(committedSearchValue.trim(), 200);
   /** 当前搜索范围的项目 id。 */
@@ -104,41 +108,40 @@ export function Search({
     () => buildProjectHierarchyIndex(projects),
     [projects],
   );
-  /** Refresh recent open lists for workspace and project scopes. */
+  /** Refresh recent open lists for global and project scopes. */
   const refreshRecentItems = React.useCallback(() => {
-    if (!activeWorkspace?.id) {
-      setRecentProjectItems([]);
-      setRecentWorkspaceItems([]);
-      return;
-    }
     // 逻辑：只在弹层打开时刷新最近打开数据，避免无意义读写。
     const recent = getRecentOpens({
-      workspaceId: activeWorkspace.id,
       projectId: scopedProjectId,
       limit: 5,
     });
     setRecentProjectItems(recent.project);
-    setRecentWorkspaceItems(recent.workspace);
-  }, [activeWorkspace?.id, scopedProjectId]);
+    setRecentGlobalItems(recent.global);
+  }, [scopedProjectId]);
   /** 当前激活 Tab 的面板参数。 */
   const activeBaseParams = activeTab?.base?.params as Record<string, unknown> | undefined;
   /** 当前激活 Tab 的聊天参数。 */
   const activeChatParams = activeTab?.chatParams as Record<string, unknown> | undefined;
   const activeProjectId = React.useMemo(() => {
+    const shellProjectId =
+      typeof activeProjectShell?.projectId === "string" ? activeProjectShell.projectId : null;
     const baseProjectId =
       typeof activeBaseParams?.projectId === "string" ? activeBaseParams.projectId : null;
     const chatProjectId =
       typeof activeChatParams?.projectId === "string" ? activeChatParams.projectId : null;
-    return baseProjectId ?? chatProjectId ?? null;
-  }, [activeBaseParams, activeChatParams]);
+    return shellProjectId ?? baseProjectId ?? chatProjectId ?? null;
+  }, [activeBaseParams, activeChatParams, activeProjectShell?.projectId]);
   const scopedProjectTitle = React.useMemo(() => {
     if (!scopedProjectId) return null;
     return projectHierarchy.projectById.get(scopedProjectId)?.title;
   }, [projectHierarchy, scopedProjectId]);
   const scopedProjectRootUri = React.useMemo(() => {
     if (!scopedProjectId) return null;
-    return projectHierarchy.rootUriById.get(scopedProjectId) ?? null;
-  }, [projectHierarchy, scopedProjectId]);
+    return (
+      projectHierarchy.rootUriById.get(scopedProjectId) ??
+      (activeProjectShell?.projectId === scopedProjectId ? activeProjectShell.rootUri : null)
+    );
+  }, [activeProjectShell?.projectId, activeProjectShell?.rootUri, projectHierarchy, scopedProjectId]);
   /** 是否触发搜索查询。 */
   const searchEnabled = Boolean(debouncedSearchValue);
   /** 缓存搜索结果，避免请求中列表闪烁。 */
@@ -146,9 +149,8 @@ export function Search({
   /** 项目范围内的搜索结果。 */
   const projectSearchQuery = useQuery({
     ...trpc.fs.search.queryOptions(
-      searchEnabled && scopedProjectId && scopedProjectRootUri && activeWorkspace?.id
+      searchEnabled && scopedProjectId && scopedProjectRootUri
         ? {
-            workspaceId: activeWorkspace.id,
             projectId: scopedProjectId,
             rootUri: scopedProjectRootUri,
             query: debouncedSearchValue,
@@ -159,12 +161,11 @@ export function Search({
         : skipToken,
     ),
   });
-  /** 工作区范围内的搜索结果。 */
-  const workspaceSearchQuery = useQuery({
-    ...trpc.fs.searchWorkspace.queryOptions(
-      searchEnabled && !scopedProjectId && activeWorkspace?.id
+  /** 全部项目范围内的搜索结果。 */
+  const allProjectsSearchQuery = useQuery({
+    ...trpc.fs.searchAllProjects.queryOptions(
+      searchEnabled && !scopedProjectId && !projectMode
         ? {
-            workspaceId: activeWorkspace.id,
             query: debouncedSearchValue,
             includeHidden: false,
             limit: 20,
@@ -185,18 +186,18 @@ export function Search({
         relativePath: entry.uri,
       }));
     }
-    return workspaceSearchQuery.data?.results ?? [];
+    return allProjectsSearchQuery.data?.results ?? [];
   }, [
     projectSearchQuery.data?.results,
     scopedProjectId,
     scopedProjectTitle,
     searchEnabled,
-    workspaceSearchQuery.data?.results,
+    allProjectsSearchQuery.data?.results,
   ]);
   /** 当前搜索是否在请求中。 */
   const isSearchFetching = Boolean(
     searchEnabled &&
-      (scopedProjectId ? projectSearchQuery.isFetching : workspaceSearchQuery.isFetching),
+      (scopedProjectId ? projectSearchQuery.isFetching : allProjectsSearchQuery.isFetching),
   );
   /** 实际渲染用的结果集合。 */
   const visibleFileResults = isSearchFetching ? cachedFileResults : latestFileResults;
@@ -234,13 +235,11 @@ export function Search({
   const keepAllFilter = React.useCallback(() => 1, []);
   const openSingletonTab = React.useCallback(
     (input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string }) => {
-      if (!activeWorkspace) return;
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '');
 
       const state = useTabs.getState();
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
       const existing = state.tabs.find((tab) => {
-        if (tab.workspaceId !== activeWorkspace.id) return false;
         if (runtimeByTabId[tab.id]?.base?.id === input.baseId) return true;
         // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
         if (input.component === "ai-chat" && !runtimeByTabId[tab.id]?.base && tab.title === tabTitle) return true;
@@ -255,7 +254,6 @@ export function Search({
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -267,7 +265,7 @@ export function Search({
       });
       handleOpenChange(false);
     },
-    [activeWorkspace, addTab, handleOpenChange, setActiveTab],
+    [addTab, handleOpenChange, setActiveTab],
   );
   /** Trigger AI chat with current search query. */
   const handleAiFallback = React.useCallback(() => {
@@ -284,14 +282,12 @@ export function Search({
   /** 打开项目的文件系统定位到指定目录。 */
   const handleOpenProjectFileSystem = React.useCallback(
     (projectId: string, projectTitle: string, rootUri: string, targetUri: string) => {
-      if (!activeWorkspace?.id) return;
       const baseId = `project:${projectId}`;
       const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
       const existing = useTabs
         .getState()
         .tabs.find(
           (tab) =>
-            tab.workspaceId === activeWorkspace.id &&
             runtimeByTabId[tab.id]?.base?.id === baseId,
         );
       if (existing) {
@@ -306,7 +302,6 @@ export function Search({
         return;
       }
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: projectTitle || t('untitledProject'),
         icon: projectHierarchy.projectById.get(projectId)?.icon ?? undefined,
@@ -321,7 +316,6 @@ export function Search({
       handleOpenChange(false);
     },
     [
-      activeWorkspace?.id,
       addTab,
       handleOpenChange,
       projectHierarchy.projectById,
@@ -342,16 +336,14 @@ export function Search({
   }, [open, refreshRecentItems]);
   React.useEffect(() => {
     if (!open) return;
-    const handleRecentEvent = (event: Event) => {
-      const detail = (event as CustomEvent<{ workspaceId?: string }>).detail;
-      if (detail?.workspaceId && detail.workspaceId !== activeWorkspace?.id) return;
+    const handleRecentEvent = () => {
       refreshRecentItems();
     };
     window.addEventListener(RECENT_OPEN_EVENT, handleRecentEvent);
     return () => {
       window.removeEventListener(RECENT_OPEN_EVENT, handleRecentEvent);
     };
-  }, [activeWorkspace?.id, open, refreshRecentItems]);
+  }, [open, refreshRecentItems]);
   React.useEffect(() => {
     const wasOpen = prevOpenRef.current;
     prevOpenRef.current = open;
@@ -380,10 +372,10 @@ export function Search({
       closeResetTimerRef.current = null;
     }
     setIsClosing(false);
-    if (projectCleared) return;
-    // 逻辑：搜索开启时同步当前项目范围。
+    if (projectCleared && !projectMode) return;
+    // 逻辑：项目模式下全局搜索必须收敛到当前项目，不允许回退到项目空间范围。
     setScopedProjectId(activeProjectId);
-  }, [activeProjectId, open, projectCleared]);
+  }, [activeProjectId, open, projectCleared, projectMode]);
   React.useEffect(() => {
     return () => {
       if (closeResetTimerRef.current) {
@@ -442,26 +434,25 @@ export function Search({
     () => buildRecentResults(recentProjectItems),
     [buildRecentResults, recentProjectItems],
   );
-  /** 工作区最近打开结果。 */
-  const recentWorkspaceResults = React.useMemo(
-    () => buildRecentResults(recentWorkspaceItems),
-    [buildRecentResults, recentWorkspaceItems],
+  /** 全局最近打开结果。 */
+  const recentGlobalResults = React.useMemo(
+    () => buildRecentResults(recentGlobalItems),
+    [buildRecentResults, recentGlobalItems],
   );
   /** 需要请求缩略图的结果集合。 */
   const thumbnailTargets = React.useMemo(() => {
     if (searchEnabled) return visibleFileResults;
     if (scopedProjectId) return recentProjectResults;
-    return recentWorkspaceResults;
+    return recentGlobalResults;
   }, [
+    recentGlobalResults,
     recentProjectResults,
-    recentWorkspaceResults,
     scopedProjectId,
     searchEnabled,
     visibleFileResults,
   ]);
   /** 按项目分组构建缩略图请求列表。 */
   const thumbnailGroups = React.useMemo(() => {
-    if (!activeWorkspace?.id) return [];
     const grouped = new Map<string, string[]>();
     for (const result of thumbnailTargets) {
       if (result.entry.kind !== "file") continue;
@@ -473,20 +464,20 @@ export function Search({
       projectId,
       uris: Array.from(new Set(uris)).slice(0, 50),
     }));
-  }, [activeWorkspace?.id, thumbnailTargets]);
+  }, [thumbnailTargets]);
   /** 请求可见文件的缩略图数据。 */
   const thumbnailQueries = useQueries({
     queries: thumbnailGroups.map((group) => {
       const queryOptions = trpc.fs.thumbnails.queryOptions(
-        group.uris.length && activeWorkspace?.id
-          ? { workspaceId: activeWorkspace.id, projectId: group.projectId, uris: group.uris }
+        group.uris.length
+          ? { projectId: group.projectId, uris: group.uris }
           : skipToken,
       );
       return {
         ...(queryOptions as unknown as Record<string, unknown>),
         queryKey: queryOptions.queryKey,
         queryFn: queryOptions.queryFn,
-        enabled: Boolean(group.uris.length) && Boolean(activeWorkspace?.id),
+        enabled: Boolean(group.uris.length),
         refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000,
       };
@@ -631,7 +622,7 @@ export function Search({
         onValueChange={handleSearchValueChange}
         placeholder={t('searchPlaceholder')}
         projectTitle={scopedProjectTitle}
-        onClearProject={handleClearProject}
+        onClearProject={projectMode ? undefined : handleClearProject}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
       />
@@ -657,81 +648,83 @@ export function Search({
         ) : null}
         {showQuickOpen ? (
           <>
-            <CommandGroup heading={t('quickOpen')}>
-              <CommandItem
-                value="calendar"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:calendar",
-                    component: "calendar-page",
-                    title: t('calendar'),
-                    icon: "🗓️",
-                  })
-                }
-              >
-                <CalendarDays className="h-5 w-5" />
-                <span>{t('calendar')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>L</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="inbox"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:inbox",
-                    component: "inbox-page",
-                    title: t('inbox'),
-                    icon: "📥",
-                  })
-                }
-              >
-                <Inbox className="h-5 w-5" />
-                <span>{t('inbox')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>I</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="workbench"
-                onSelect={() => openSingletonTab(WORKBENCH_TAB_INPUT)}
-              >
-                <Sparkles className="h-5 w-5" />
-                <span>{t('workbench')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>T</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="template"
-                onSelect={() =>
-                  openSingletonTab({
-                    baseId: "base:template",
-                    component: "template-page",
-                    title: t('template'),
-                    icon: "📄",
-                  })
-                }
-              >
-                <LayoutTemplate className="h-5 w-5" />
-                <span>{t('template')}</span>
-                <CommandShortcut>
-                  <KbdGroup className="gap-1">
-                    <Kbd>⌘</Kbd>
-                    <Kbd>J</Kbd>
-                  </KbdGroup>
-                </CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
+            {!projectMode ? (
+              <CommandGroup heading={t('quickOpen')}>
+                <CommandItem
+                  value="calendar"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:calendar",
+                      component: "calendar-page",
+                      title: t('calendar'),
+                      icon: "🗓️",
+                    })
+                  }
+                >
+                  <CalendarDays className="h-5 w-5" />
+                  <span>{t('calendar')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>L</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="inbox"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:inbox",
+                      component: "inbox-page",
+                      title: t('inbox'),
+                      icon: "📥",
+                    })
+                  }
+                >
+                  <Inbox className="h-5 w-5" />
+                  <span>{t('inbox')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>I</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="workbench"
+                  onSelect={() => openSingletonTab(WORKBENCH_TAB_INPUT)}
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>{t('workbench')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>T</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  value="template"
+                  onSelect={() =>
+                    openSingletonTab({
+                      baseId: "base:template",
+                      component: "template-page",
+                      title: t('template'),
+                      icon: "📄",
+                    })
+                  }
+                >
+                  <LayoutTemplate className="h-5 w-5" />
+                  <span>{t('template')}</span>
+                  <CommandShortcut>
+                    <KbdGroup className="gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>J</Kbd>
+                    </KbdGroup>
+                  </CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
+            ) : null}
             {recentProjectResults.length > 0 ? (
               <CommandGroup heading={t('recentOpenProject', { title: recentProjectHeading })}>
                 {recentProjectResults.map((result) =>
@@ -739,9 +732,9 @@ export function Search({
                 )}
               </CommandGroup>
             ) : null}
-            {!scopedProjectId && recentWorkspaceResults.length > 0 ? (
-              <CommandGroup heading={t('recentOpenWorkspace')}>
-                {recentWorkspaceResults.map((result) => renderFileResult(result))}
+            {!projectMode && !scopedProjectId && recentGlobalResults.length > 0 ? (
+              <CommandGroup heading={t('recentOpenProjectSpace')}>
+                {recentGlobalResults.map((result) => renderFileResult(result))}
               </CommandGroup>
             ) : null}
           </>

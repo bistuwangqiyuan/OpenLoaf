@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { FolderOpen, LayoutGrid, CheckCircle2, XCircle } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useTabs } from '@/hooks/use-tabs'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useProject } from '@/hooks/use-project'
 import {
   DESKTOP_WIDGET_SELECTED_EVENT,
   type DesktopWidgetSelectedDetail,
@@ -32,6 +32,8 @@ import {
   parseOutputJson,
   widgetModuleCache,
   latestCheckByWidgetId,
+  resolveWidgetFolderUri,
+  resolveWidgetMainFileUri,
 } from './shared/widget-shared'
 
 export default function WidgetCheckTool({
@@ -41,8 +43,8 @@ export default function WidgetCheckTool({
   part: AnyToolPart
   className?: string
 }) {
-  const { tabId, workspaceId, projectId } = useChatSession()
-  const { workspace } = useWorkspace()
+  const { tabId, projectId } = useChatSession()
+  const projectQuery = useProject(projectId)
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   const input = asPlainObject(normalizeToolInput(part.input))
 
@@ -65,11 +67,10 @@ export default function WidgetCheckTool({
 
   // 逻辑：清除缓存确保显示最新编译结果
   React.useEffect(() => {
-    if (ok && workspaceId && widgetId) {
-      const cacheKey = `${workspaceId}:${projectId ?? ''}:${widgetId}`
-      widgetModuleCache.delete(cacheKey)
+    if (ok && widgetId) {
+      widgetModuleCache.delete(`${projectId ?? ''}:${widgetId}`)
     }
-  }, [ok, workspaceId, projectId, widgetId])
+  }, [ok, projectId, widgetId])
 
   const isStreaming = isToolStreaming(part)
   const hasError =
@@ -84,16 +85,17 @@ export default function WidgetCheckTool({
         : ('idle' as const)
 
   const canRender =
-    part.state === 'output-available' && ok && Boolean(workspaceId) && isLatest
+    part.state === 'output-available' && ok && isLatest
 
   const handleOpenWidget = () => {
-    if (!tabId || !workspaceId || !widgetId) return
-    const baseRootUri = projectId
-      ? workspace?.projects?.[projectId]
-      : workspace?.rootUri
-    if (!baseRootUri) return
-    const widgetFolderUri = `${baseRootUri.replace(/\/$/, '')}/.openloaf/dynamic-widgets/${widgetId}`
-    const mainFileUri = `${widgetFolderUri}/widget.tsx`
+    if (!tabId || !widgetId) return
+    const widgetFolderUri = resolveWidgetFolderUri({
+      outputJson,
+      widgetId,
+      projectRootUri: projectQuery.data?.project?.rootUri,
+    })
+    if (!widgetFolderUri) return
+    const mainFileUri = resolveWidgetMainFileUri(widgetFolderUri)
     pushStackItem(tabId, {
       id: `widget:${widgetId}`,
       sourceKey: `widget:${widgetId}`,
@@ -105,7 +107,7 @@ export default function WidgetCheckTool({
         currentEntryKind: 'file',
         projectId,
         projectTitle: widgetId,
-        viewerRootUri: baseRootUri,
+        viewerRootUri: projectQuery.data?.project?.rootUri,
       },
     })
   }
@@ -114,7 +116,7 @@ export default function WidgetCheckTool({
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId
     let desktopTabId: string | null = null
     for (const [tid, runtime] of Object.entries(runtimeByTabId)) {
-      if (runtime?.base?.component === 'workspace-desktop') {
+      if (runtime?.base?.component === 'global-desktop') {
         desktopTabId = tid
         break
       }
@@ -196,10 +198,9 @@ export default function WidgetCheckTool({
         ) : null}
 
         {/* Widget 预览 */}
-        {canRender && workspaceId ? (
+        {canRender ? (
           <WidgetPreview
             widgetId={widgetId}
-            workspaceId={workspaceId}
             projectId={projectId}
           />
         ) : null}

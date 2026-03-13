@@ -22,11 +22,11 @@ export function registerHlsRoutes(app: Hono) {
   app.get("/media/hls/manifest", async (c) => {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
-    const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+
     const boardId = c.req.query("boardId")?.trim() ?? "";
     const qualityRaw = c.req.query("quality")?.trim();
     const quality = qualityRaw ? qualityRaw.toLowerCase() : undefined;
-    if (!path || (!projectId && !workspaceId)) {
+    if (!path || (!projectId)) {
       return c.json({ error: "Invalid manifest query" }, 400);
     }
     if (quality && !isHlsQuality(quality)) {
@@ -36,7 +36,6 @@ export function registerHlsRoutes(app: Hono) {
     const manifest = await getHlsManifest({
       path,
       projectId: projectId || undefined,
-      workspaceId: workspaceId || undefined,
       boardId: boardId || undefined,
       quality: qualityValue,
     });
@@ -76,11 +75,11 @@ export function registerHlsRoutes(app: Hono) {
   app.get("/media/hls/progress", async (c) => {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
-    const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+
     const boardId = c.req.query("boardId")?.trim() ?? "";
     const qualityRaw = c.req.query("quality")?.trim();
     const quality = qualityRaw ? qualityRaw.toLowerCase() : undefined;
-    if (!path || !quality || (!projectId && !workspaceId)) {
+    if (!path || !quality || (!projectId)) {
       return c.json({ error: "Invalid progress query" }, 400);
     }
     if (!isHlsQuality(quality)) {
@@ -89,7 +88,6 @@ export function registerHlsRoutes(app: Hono) {
     const progress = await getHlsProgress({
       path,
       projectId: projectId || undefined,
-      workspaceId: workspaceId || undefined,
       boardId: boardId || undefined,
       quality,
     });
@@ -104,15 +102,14 @@ export function registerHlsRoutes(app: Hono) {
   app.get("/media/hls/thumbnails", async (c) => {
     const path = c.req.query("path")?.trim() ?? "";
     const projectId = c.req.query("projectId")?.trim() ?? "";
-    const workspaceId = c.req.query("workspaceId")?.trim() ?? "";
+
     const boardId = c.req.query("boardId")?.trim() ?? "";
-    if (!path || (!projectId && !workspaceId)) {
+    if (!path || (!projectId)) {
       return c.json({ error: "Invalid thumbnails query" }, 400);
     }
     const thumbnails = await getHlsThumbnails({
       path,
       projectId: projectId || undefined,
-      workspaceId: workspaceId || undefined,
       boardId: boardId || undefined,
     });
     if (!thumbnails) {

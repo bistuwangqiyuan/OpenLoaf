@@ -7,11 +7,11 @@
  * Project: OpenLoaf
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getProjectRootPath } from "@openloaf/api/services/vfsService";
 import { readProjectConfig } from "@openloaf/api/services/projectTreeService";
 import { readSummaryMarkdown, writeSummaryMarkdown } from "@openloaf/api/services/summaryStorage";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import { generateText } from "ai";
 import { resolveChatModel } from "@/ai/models/resolveChatModel";
 import { readBasicConf } from "@/modules/settings/openloafConfStore";
@@ -50,7 +50,7 @@ export class UpdateProjectSummaryUseCase {
       throw new Error("项目不存在");
     }
     const projectConfig = await readProjectConfig(rootPath, input.projectId);
-    const summaryPath = path.join(rootPath, ".openloaf", "summary", "project.md");
+    const summaryPath = resolveScopedOpenLoafPath(rootPath, "summary", "project.md");
     const existing = await readSummaryMarkdown(summaryPath);
     // 逻辑：保留已有概览作为提示输入，避免每次重写丢失长期信息。
     const previousSummary = existing.content?.trim();

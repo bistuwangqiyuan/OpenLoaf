@@ -59,6 +59,7 @@ const DEFAULT_BASIC_CONF: BasicConf = {
   uiAnimationLevel: "high",
   uiTheme: "system",
   uiThemeManual: "light",
+  projectOpenMode: "sidebar",
   boardDebugEnabled: false,
   // Show chat preface viewer button.
   chatPrefaceEnabled: false,
@@ -252,6 +253,12 @@ function normalizeBasicConf(raw?: Partial<BasicConf>, fallback?: Partial<BasicCo
       : fallbackSource.uiThemeManual === "light" || fallbackSource.uiThemeManual === "dark"
         ? fallbackSource.uiThemeManual
         : DEFAULT_BASIC_CONF.uiThemeManual;
+  const projectOpenMode =
+    source.projectOpenMode === "sidebar" || source.projectOpenMode === "window"
+      ? source.projectOpenMode
+      : fallbackSource.projectOpenMode === "sidebar" || fallbackSource.projectOpenMode === "window"
+        ? fallbackSource.projectOpenMode
+        : DEFAULT_BASIC_CONF.projectOpenMode;
   const boardDebugEnabled =
     typeof source.boardDebugEnabled === "boolean"
       ? source.boardDebugEnabled
@@ -371,6 +378,7 @@ function normalizeBasicConf(raw?: Partial<BasicConf>, fallback?: Partial<BasicCo
     uiAnimationLevel,
     uiTheme,
     uiThemeManual,
+    projectOpenMode,
     boardDebugEnabled,
     chatPrefaceEnabled,
     appLocalStorageDir,

@@ -58,7 +58,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@openloaf/ui/tooltip";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 import "@univerjs/design/lib/index.css";
 import "@univerjs/ui/lib/index.css";
@@ -426,8 +425,6 @@ export default function SheetViewer({
   const canMinimize = Boolean(tabId);
   const canClose = Boolean(tabId && panelKey);
   const isReadOnly = Boolean(readOnly);
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   /** Tracks the current loading status. */
   const [status, setStatus] = useState<SheetViewerStatus>("idle");
   /** Track whether the workbook has unsaved changes. */
@@ -461,11 +458,10 @@ export default function SheetViewer({
   /** Holds the binary payload fetched from the fs API. */
   const fileQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),
-    enabled: shouldUseFs && Boolean(uri) && Boolean(workspaceId),
+    enabled: shouldUseFs && Boolean(uri),
   });
   /** Mutation handler for persisting binary payloads. */
   const writeBinaryMutation = useMutation(trpc.fs.writeBinary.mutationOptions());
@@ -605,7 +601,6 @@ export default function SheetViewer({
       const contentBase64 = encodeArrayBufferToBase64(buffer);
       const saveUri = resolveSaveUri(uri, ext);
       await writeBinaryMutation.mutateAsync({
-        workspaceId,
         projectId,
         uri: saveUri,
         contentBase64,

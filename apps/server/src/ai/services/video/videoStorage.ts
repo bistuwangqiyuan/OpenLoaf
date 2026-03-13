@@ -14,7 +14,6 @@ import { pipeline } from "node:stream/promises";
 import { sanitizeFileName } from "@/ai/services/image/imageStorage";
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
   resolveFilePathFromUri,
 } from "@openloaf/api/services/vfsService";
 
@@ -47,23 +46,18 @@ async function normalizeVideoSaveDirectory(targetPath: string): Promise<string> 
 function resolveRelativeSaveDirectory(input: {
   /** Relative path input. */
   path: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string | null;
   /** Optional project id fallback. */
   projectId?: string | null;
 }): string | null {
   const normalized = input.path.replace(/\\/g, "/").replace(/^(\.\/)+/, "").replace(/^\/+/, "");
   if (!normalized) return null;
   if (normalized.split("/").some((segment) => segment === "..")) return null;
-  const projectRootPath = input.projectId ? getProjectRootPath(input.projectId) : null;
-  const workspaceRootPath =
-    projectRootPath || !input.workspaceId ? null : getWorkspaceRootPathById(input.workspaceId);
-  const rootPath = projectRootPath ?? workspaceRootPath;
+  const rootPath = input.projectId ? getProjectRootPath(input.projectId) : null;
   if (!rootPath) return null;
 
   const targetPath = path.resolve(rootPath, normalized);
   const rootPathResolved = path.resolve(rootPath);
-  // 限制在 workspace/project 根目录内，避免路径穿越。
+  // 限制在 project 根目录内，避免路径穿越。
   if (targetPath !== rootPathResolved && !targetPath.startsWith(rootPathResolved + path.sep)) {
     return null;
   }
@@ -74,8 +68,6 @@ function resolveRelativeSaveDirectory(input: {
 export async function resolveVideoSaveDirectory(input: {
   /** Raw save directory uri. */
   saveDir: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string | null;
   /** Optional project id fallback. */
   projectId?: string | null;
 }): Promise<string | null> {
@@ -98,7 +90,6 @@ export async function resolveVideoSaveDirectory(input: {
     if (!scopedProjectId) return null;
     const dirPath = resolveRelativeSaveDirectory({
       path: scopedRelativePath,
-      workspaceId: input.workspaceId,
       projectId: scopedProjectId,
     });
     if (!dirPath) return null;
@@ -108,7 +99,6 @@ export async function resolveVideoSaveDirectory(input: {
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) {
     const dirPath = resolveRelativeSaveDirectory({
       path: raw,
-      workspaceId: input.workspaceId,
       projectId: input.projectId,
     });
     if (!dirPath) return null;

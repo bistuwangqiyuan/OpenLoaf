@@ -44,7 +44,7 @@ import {
 } from '@/modules/auth/tokenStore'
 import { refreshAccessToken } from '@/modules/saas/modules/auth'
 import { readBasicConf, writeBasicConf } from '@/modules/settings/openloafConfStore'
-import { getActiveWorkspaceConfig } from '@openloaf/api/services/workspaceConfig'
+
 import {
   resolveTestModel,
   setMinimalRequestContext,
@@ -55,7 +55,7 @@ import {
 
 installHttpProxy()
 
-// 初始化 E2E 测试环境（临时目录 + workspace 数据 + root override）
+// 初始化 E2E 测试环境（临时目录 + 项目空间数据 + root override）
 setupE2eTestEnv()
 
 let globalRestoreChatSource: (() => void) | undefined
@@ -107,8 +107,6 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
   private saasAccessToken: string | undefined
   private tokenResolved = false
   private restoreChatSource: (() => void) | undefined
-  private workspaceId: string | undefined
-  private workspaceResolved = false
   private modelId: string | undefined
   private providerLabel: string | undefined
 
@@ -140,16 +138,6 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     return this.saasAccessToken
   }
 
-  private ensureWorkspace(): string | undefined {
-    if (!this.workspaceResolved) {
-      this.workspaceResolved = true
-      try {
-        const ws = getActiveWorkspaceConfig()
-        this.workspaceId = ws.id
-      } catch {}
-    }
-    return this.workspaceId
-  }
 
   /**
    * 临时设置模型 ID（用于子 Agent 路径的模型对比测试）。
@@ -220,7 +208,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
     const response = await service.execute({
       request: {
         sessionId,
-        workspaceId: this.ensureWorkspace(),
+
         messages: [
           {
             id: messageId,
@@ -353,7 +341,7 @@ export default class OpenLoafUniversalProvider implements ApiProvider {
       const response = await service.execute({
         request: {
           sessionId,
-          workspaceId: this.ensureWorkspace(),
+  
           messages: [
             {
               id: msgId,

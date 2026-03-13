@@ -15,7 +15,6 @@ import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useProjectLayout } from "@/hooks/use-project-layout";
 import { useNavigation } from "@/hooks/use-navigation";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -78,6 +77,7 @@ import {
   getDisplayFileName,
   isBoardFolderName,
 } from "@/lib/file-name";
+import { buildBoardChatTabState } from "@/components/board/utils/board-chat-tab";
 import { Switch } from "@openloaf/ui/switch";
 import {
   getDisplayPathFromUri,
@@ -347,8 +347,6 @@ function FileTreeNode({
   enableHoverPanel,
 }: FileTreeNodeProps) {
   const trpc = trpcContext;
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const nodeKey = getNodeKey(node);
   const isExpanded = expandedNodes[nodeKey] ?? false;
   const isActive =
@@ -357,8 +355,8 @@ function FileTreeNode({
     (node.kind === "project" && activeProjectRootUri === node.uri);
   const listQuery = useQuery(
     trpc.fs.list.queryOptions(
-      node.kind === "folder" && isExpanded && workspaceId
-        ? { workspaceId, projectId: node.projectId, uri: node.uri }
+      node.kind === "folder" && isExpanded
+        ? { projectId: node.projectId, uri: node.uri }
         : skipToken
     )
   );
@@ -540,7 +538,6 @@ function FileTreeNode({
     return (
       <SidebarHoverPanel
         type="project-chats"
-        workspaceId={workspaceId}
         projectId={node.projectId}
       >
         {collapsibleContent}
@@ -566,8 +563,6 @@ export const PageTreeMenu = ({
   const activeTabId = useTabs((s) => s.activeTabId);
   const tabs = useTabs((s) => s.tabs);
   const setActiveProject = useNavigation((s) => s.setActiveProject);
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const isElectron = isElectronEnv();
   const queryClient = useQueryClient();
   const renameProject = useMutation(trpc.project.update.mutationOptions());
@@ -748,7 +743,6 @@ export const PageTreeMenu = ({
 
   const setActiveTabSession = useTabs((s) => s.setActiveTabSession);
   const openProjectTab = (project: ProjectInfo) => {
-    if (!workspace?.id) return;
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const targetProjectId = project.projectId;
 
@@ -757,7 +751,7 @@ export const PageTreeMenu = ({
 
     // 1. 当前 Tab：遍历 chatSessionProjectIds 查找匹配的 sessionId
     const currentTab = activeTabId ? tabs.find((t) => t.id === activeTabId) : undefined;
-    if (currentTab && currentTab.workspaceId === workspace.id && !runtimeByTabId[currentTab.id]?.base) {
+    if (currentTab && !runtimeByTabId[currentTab.id]?.base) {
       const projectMap = currentTab.chatSessionProjectIds ?? {};
       const matchedSessionId = Object.entries(projectMap).find(
         ([, pid]) => pid === targetProjectId,
@@ -777,7 +771,6 @@ export const PageTreeMenu = ({
     // 2. 其他 Tab：遍历所有 Tab 的 chatSessionProjectIds 查找匹配
     for (const tab of tabs) {
       if (tab.id === activeTabId) continue;
-      if (tab.workspaceId !== workspace.id) continue;
       if (runtimeByTabId[tab.id]?.base) continue;
       const projectMap = tab.chatSessionProjectIds ?? {};
       const matchedSessionId = Object.entries(projectMap).find(
@@ -802,7 +795,6 @@ export const PageTreeMenu = ({
     // 3. 创建新 Tab（直接打开文件面板 + 聊天窗口，恢复该项目保存的布局偏好）
     const savedLayout = useProjectLayout.getState().getProjectLayout(targetProjectId);
     addTab({
-      workspaceId: workspace.id,
       createNew: true,
       title: project.title || "Untitled Project",
       icon: project.icon ?? undefined,
@@ -818,7 +810,6 @@ export const PageTreeMenu = ({
   };
 
   const openFileTab = (node: FileNode) => {
-    if (!workspace?.id) return;
     const baseId = `file:${node.uri}`;
     const displayName = isBoardFolderName(node.name)
       ? getBoardDisplayName(node.name)
@@ -826,7 +817,7 @@ export const PageTreeMenu = ({
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId;
     const existing = tabs.find(
       (tab) =>
-        tab.workspaceId === workspace.id && runtimeByTabId[tab.id]?.base?.id === baseId,
+        runtimeByTabId[tab.id]?.base?.id === baseId,
     );
     if (existing) {
       startTransition(() => {
@@ -837,11 +828,12 @@ export const PageTreeMenu = ({
 
     const resolvedRootUri = projectRootById.get(node.projectId ?? "") ?? undefined;
     if (isBoardFolderName(node.name)) {
+      const boardId = node.uri.split("/").filter(Boolean).pop() ?? node.uri;
       addTab({
-        workspaceId: workspace.id,
         createNew: true,
         title: displayName,
         icon: "📄",
+        ...buildBoardChatTabState(boardId, node.projectId),
         leftWidthPercent: 70,
         base: {
           id: baseId,
@@ -872,7 +864,6 @@ export const PageTreeMenu = ({
     });
     if (!stackItem) return;
     addTab({
-      workspaceId: workspace.id,
       createNew: true,
       title: displayName,
       icon: "📄",
@@ -1056,7 +1047,6 @@ export const PageTreeMenu = ({
           throw new Error("缺少项目 ID");
         }
         await renameFile.mutateAsync({
-          workspaceId,
           projectId: renameTarget.node.projectId,
           from: renameTarget.node.uri,
           to: nextUri,
@@ -1071,7 +1061,6 @@ export const PageTreeMenu = ({
         const parentUri = getParentUri(renameTarget.node.uri);
         await queryClient.invalidateQueries({
           queryKey: trpc.fs.list.queryOptions({
-            workspaceId,
             projectId: renameTarget.node.projectId,
             uri: parentUri,
           }).queryKey,
@@ -1092,7 +1081,6 @@ export const PageTreeMenu = ({
         throw new Error("缺少项目 ID");
       }
       await deleteFile.mutateAsync({
-        workspaceId,
         projectId: deleteTarget.projectId,
         uri: deleteTarget.uri,
         recursive: true,
@@ -1101,7 +1089,6 @@ export const PageTreeMenu = ({
       const parentUri = getParentUri(deleteTarget.uri);
       await queryClient.invalidateQueries({
         queryKey: trpc.fs.list.queryOptions({
-          workspaceId,
           projectId: deleteTarget.projectId,
           uri: parentUri,
         }).queryKey,
@@ -1167,7 +1154,7 @@ export const PageTreeMenu = ({
     }
   };
 
-  /** Permanently delete project files and remove it from workspace. */
+  /** Permanently delete project files and remove it from the project space. */
   const handleDestroyProject = async () => {
     if (!removeTarget?.projectId) {
       toast.error(t("common:operationFailed"));

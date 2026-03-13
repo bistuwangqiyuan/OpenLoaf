@@ -14,11 +14,11 @@ import type { DesktopBreakpoint } from "./desktop-breakpoints";
 
 export type DesktopItemKind = "icon" | "widget";
 
-export type DesktopScope = "workspace" | "project";
+export type DesktopScope = "global" | "project";
 
 export interface DesktopScopeSupport {
-  /** Whether the item is available in workspace scope. */
-  workspace: boolean;
+  /** Whether the item is available in global scope. */
+  global: boolean;
   /** Whether the item is available in project scope. */
   project: boolean;
 }

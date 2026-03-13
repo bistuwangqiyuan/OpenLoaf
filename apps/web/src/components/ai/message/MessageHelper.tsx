@@ -36,8 +36,7 @@ const COLORS = ["text-amber-500", "text-sky-500", "text-emerald-500", "text-viol
 export default function MessageHelper({
   compact,
   projectId,
-  workspaceId,
-}: { compact?: boolean; projectId?: string; workspaceId?: string } = {}) {
+}: { compact?: boolean; projectId?: string } = {}) {
   const { setInput } = useChatOptions();
   const { t } = useTranslation('ai');
 
@@ -63,12 +62,12 @@ export default function MessageHelper({
 
   const lastRequestedKeyRef = React.useRef<string>("");
   React.useEffect(() => {
-    const key = `${projectId || ""}:${workspaceId || ""}`;
+    const key = projectId || "__global__";
     if (lastRequestedKeyRef.current === key) return;
     lastRequestedKeyRef.current = key;
-    dynamicMutation.mutate({ projectId: projectId || undefined, workspaceId: workspaceId || undefined });
+    dynamicMutation.mutate({ projectId: projectId || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, workspaceId]);
+  }, [projectId]);
 
   // 缓存上一次的有效建议，加载期间保持不变避免布局弹跳
   const prevSuggestionsRef = React.useRef<SuggestionItem[]>(staticSuggestions);

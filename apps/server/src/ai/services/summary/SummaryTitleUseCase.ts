@@ -16,9 +16,8 @@ import { readAgentJson, resolveAgentDir } from "@/ai/shared/defaultAgentResolver
 import { readBasicConf } from "@/modules/settings/openloafConfStore";
 import {
   getProjectRootPath,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
 } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { resolveRequiredInputTags, resolvePreviousChatModelId } from "@/ai/services/chat/modelResolution";
 import { initRequestContext } from "@/ai/services/chat/chatStreamHelpers";
 import { replaceRelativeFileParts } from "@/ai/services/image/attachmentResolver";
@@ -83,7 +82,6 @@ export class SummaryTitleUseCase {
       clientId: input.request.clientId,
       timezone: input.request.timezone,
       tabId: input.request.tabId,
-      workspaceId: input.request.workspaceId,
       projectId: input.request.projectId,
       boardId: input.request.boardId,
       selectedSkills: [],
@@ -130,12 +128,8 @@ export class SummaryTitleUseCase {
         const pr = getProjectRootPath(input.request.projectId)
         if (pr) roots.push(pr)
       }
-      if (input.request.workspaceId) {
-        const wr = getWorkspaceRootPathById(input.request.workspaceId)
-        if (wr) roots.push(wr)
-      }
-      const fallbackWs = getWorkspaceRootPath()
-      if (fallbackWs && !roots.includes(fallbackWs)) roots.push(fallbackWs)
+      const globalRoot = getOpenLoafRootDir()
+      if (!roots.includes(globalRoot)) roots.push(globalRoot)
       for (const rootPath of roots) {
         const descriptor = readAgentJson(resolveAgentDir(rootPath, 'master'))
         if (!descriptor) continue

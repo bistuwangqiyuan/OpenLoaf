@@ -28,7 +28,6 @@ interface VideoViewerProps {
   openUri?: string;
   name?: string;
   projectId?: string;
-  workspaceId?: string;
   rootUri?: string;
   /** Board id for resolving board-relative assets on the server. */
   boardId?: string;
@@ -41,11 +40,10 @@ interface VideoViewerProps {
   tabId?: string;
 }
 
-type HlsUrlInput = { path: string; projectId?: string; workspaceId?: string; boardId?: string };
+type HlsUrlInput = { path: string; projectId?: string; boardId?: string };
 
 function applyIdParams(query: URLSearchParams, input: HlsUrlInput) {
   if (input.projectId) query.set("projectId", input.projectId);
-  if (input.workspaceId) query.set("workspaceId", input.workspaceId);
   if (input.boardId) query.set("boardId", input.boardId);
 }
 
@@ -91,7 +89,6 @@ export default function VideoViewer({
   openUri,
   name,
   projectId: projectIdProp,
-  workspaceId: workspaceIdProp,
   rootUri,
   boardId: boardIdProp,
   thumbnailSrc,
@@ -142,7 +139,6 @@ export default function VideoViewer({
     // 逻辑：boardId 传给 HLS 端点，让服务端通过 .openloaf/boards/<boardId>/ 解析画布内相对资源。
     const ids = {
       projectId: resolvedProjectId,
-      workspaceId: workspaceIdProp,
       boardId: boardIdProp || undefined,
     };
     const masterUrl = buildManifestUrl({
@@ -183,7 +179,7 @@ export default function VideoViewer({
       projectId: resolvedProjectId,
       relativePath,
     };
-  }, [boardIdProp, projectIdProp, workspaceIdProp, rootUri, uri]);
+  }, [boardIdProp, projectIdProp, rootUri, uri]);
 
   useEffect(() => {
     if (thumbnailSrc) {

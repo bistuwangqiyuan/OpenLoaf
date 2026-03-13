@@ -33,7 +33,7 @@ export const fileInfoToolDef = {
     filePath: z
       .string()
       .min(1)
-      .describe('文件路径（相对于项目/工作空间根目录或绝对路径）'),
+      .describe('文件路径（相对于项目根目录、全局根目录或绝对路径）'),
   }),
   needsApproval: false,
   component: null,

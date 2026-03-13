@@ -25,17 +25,15 @@ const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
 }
 
 export function useCalendarTasks({
-  workspaceId,
   selectedProjectIds,
   showTasks,
 }: {
-  workspaceId: string | undefined
   selectedProjectIds: Set<string>
   showTasks: boolean
 }) {
   const { data: tasks = [] } = useQuery(
     trpc.scheduledTask.list.queryOptions(
-      workspaceId && showTasks ? { workspaceId } : skipToken,
+      showTasks ? {} : skipToken,
       { staleTime: 60_000 },
     ),
   )
@@ -45,7 +43,7 @@ export function useCalendarTasks({
 
     const results: UiCalendarEvent[] = []
     for (const task of tasks) {
-      // Filter by selected projects (workspace-scope tasks always shown)
+      // Filter by selected projects (global-scope tasks always shown)
       if (task.scope === 'project' && task.projectId && !selectedProjectIds.has(task.projectId)) {
         continue
       }

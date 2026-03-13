@@ -148,8 +148,11 @@
     "detail": "Details"
   },
   "textNode": {
-    "placeholder": "Type text here",
+    "placeholder": "Enter Markdown",
     "toolbar": {
+      "heading": "Headings",
+      "inline": "Inline",
+      "blocks": "Blocks",
       "fontSize": "Font Size",
       "fontWeight": "Font Weight",
       "style": "Style",
@@ -159,10 +162,20 @@
       "backgroundColor": "Background"
     },
     "format": {
+      "paragraph": "Paragraph",
       "bold": "Bold",
       "italic": "Italic",
+      "code": "Inline Code",
+      "link": "Link",
+      "quote": "Quote",
+      "codeBlock": "Code Block",
       "underline": "Underline",
       "strikethrough": "Strikethrough",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "heading5": "Heading 5",
       "unorderedList": "Bullet List",
       "orderedList": "Numbered List",
       "todoList": "To-do List",
@@ -429,7 +442,11 @@
     "enterFullscreen": "Enter Fullscreen",
     "showAIPanel": "Show AI Panel",
     "hideAIPanel": "Hide AI Panel",
-    "screenshot": "Screenshot Canvas"
+    "screenshot": "Screenshot Canvas",
+    "openInFileSystem": "Open in File System",
+    "openBoardFolder": "Open Board Folder",
+    "openBoardFolderMissing": "Board folder not found",
+    "openBoardFolderFailed": "Unable to open board folder"
   },
   "aiToolbar": {
     "aiAssistant": "AI Assistant",

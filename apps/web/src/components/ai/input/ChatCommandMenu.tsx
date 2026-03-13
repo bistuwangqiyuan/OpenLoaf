@@ -27,7 +27,7 @@ import {
 type SkillSummary = {
   name: string;
   description: string;
-  scope: "workspace" | "project";
+  scope: "global" | "project";
   isEnabled: boolean;
 };
 
@@ -80,7 +80,7 @@ const SKILL_GROUP_ITEM: MenuItem = {
 
 /** Display labels for skill scopes. */
 const SCOPE_LABELS: Record<SkillSummary["scope"], string> = {
-  workspace: "工作空间",
+  global: "项目空间",
   project: "项目",
 };
 

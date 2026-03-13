@@ -42,7 +42,7 @@ export function SearchInput({
   onCompositionEnd,
 }: SearchInputProps) {
   const hasProject = Boolean(projectTitle);
-  const shouldHandleClear = hasProject && !value;
+  const shouldHandleClear = hasProject && !value && typeof onClearProject === "function";
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {

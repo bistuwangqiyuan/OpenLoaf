@@ -10,9 +10,8 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, CalendarDays, Clock, LayoutDashboard, Mail, Palette, Settings, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabView } from "@/hooks/use-tab-view";
@@ -42,46 +41,38 @@ export const PageTitle = () => {
     closeSettingsTab();
   }, []);
 
-  const { title, icon } = useMemo<{ title: string; icon: ReactNode | null }>(() => {
+  const title = useMemo(() => {
+    const projectShellTitle = activeTab?.projectShell?.title?.trim() ?? '';
     if (isSettingsPage) {
-      return {
-        title: t('settings'),
-        icon: <Settings className="h-4 w-4 text-orange-700/70 dark:text-orange-300/70" />,
-      };
+      return t('settings');
     }
     if (isBoardViewer) {
-      return {
-        title: activeTab?.title ?? t('canvas'),
-        icon: null,
-      };
+      return activeTab?.title ?? t('canvas');
     }
     if (viewType === 'project') {
-      const raw = activeTab?.icon;
-      const isEmoji = raw && /\p{Emoji_Presentation}/u.test(raw);
-      const projectIcon = isEmoji
-        ? <span className="text-xs leading-none">{raw}</span>
-        : <img src="/head_s.png" alt="" className="h-4 w-4 rounded-sm" />;
-      return { title: activeTab?.title ?? t('project'), icon: projectIcon };
+      return projectShellTitle || activeTab?.title || t('project');
     }
-    if (viewType === 'workspace-chat') {
-      return { title: activeTab?.title ?? t('aiAssistant'), icon: null };
+    if (viewType === 'global-chat') {
+      return activeTab?.title ?? t('aiAssistant');
     }
-    if (viewType === 'workbench') return { title: t('workbench'), icon: <LayoutDashboard className="h-4 w-4 text-amber-700/70 dark:text-amber-300/70" /> };
-    if (viewType === 'calendar') return { title: t('calendar'), icon: <CalendarDays className="h-4 w-4 text-rose-700/70 dark:text-rose-300/70" /> };
-    if (viewType === 'email') return { title: t('email'), icon: <Mail className="h-4 w-4 text-emerald-700/70 dark:text-emerald-300/70" /> };
-    if (viewType === 'scheduled-tasks') return { title: t('panelTitle.scheduled-tasks-page'), icon: <Clock className="h-4 w-4 text-blue-700/70 dark:text-blue-300/70" /> };
-    if (viewType === 'canvas-list') return { title: t('canvas'), icon: <Palette className="h-4 w-4 text-teal-700/70 dark:text-teal-300/70" /> };
-    if (viewType === 'ai-assistant') return { title: t('aiAssistant'), icon: <Sparkles className="h-4 w-4 text-violet-700/70 dark:text-violet-300/70" /> };
+    if (viewType === 'workbench') return t('workbench');
+    if (viewType === 'calendar') return t('calendar');
+    if (viewType === 'email') return t('email');
+    if (viewType === 'scheduled-tasks') return t('panelTitle.scheduled-tasks-page');
+    if (viewType === 'canvas-list') return t('canvas');
+    if (viewType === 'ai-assistant') return t('aiAssistant');
 
-    // 兜底：当 viewType 未及时更新时，从 base component 推断标题
+    // 逻辑：header 左侧标题保持纯文本，避免与可点击图标的交互语义混淆。
+    // 兜底：当 viewType 未及时更新时，从 base component 推断标题。
     const baseComponent = activeTab?.base?.component;
-    if (baseComponent === 'canvas-list-page') return { title: t('canvas'), icon: <Palette className="h-4 w-4 text-teal-700/70 dark:text-teal-300/70" /> };
-    if (baseComponent === 'workspace-desktop') return { title: t('workbench'), icon: <LayoutDashboard className="h-4 w-4 text-amber-700/70 dark:text-amber-300/70" /> };
-    if (baseComponent === 'calendar-page') return { title: t('calendar'), icon: <CalendarDays className="h-4 w-4 text-rose-700/70 dark:text-rose-300/70" /> };
-    if (baseComponent === 'email-page') return { title: t('email'), icon: <Mail className="h-4 w-4 text-emerald-700/70 dark:text-emerald-300/70" /> };
-    if (baseComponent === 'scheduled-tasks-page') return { title: t('panelTitle.scheduled-tasks-page'), icon: <Clock className="h-4 w-4 text-blue-700/70 dark:text-blue-300/70" /> };
+    if (baseComponent === 'canvas-list-page') return t('canvas');
+    if (baseComponent === 'project-list-page') return t('sidebarProjectSpace');
+    if (baseComponent === 'global-desktop') return t('workbench');
+    if (baseComponent === 'calendar-page') return t('calendar');
+    if (baseComponent === 'email-page') return t('email');
+    if (baseComponent === 'scheduled-tasks-page') return t('panelTitle.scheduled-tasks-page');
 
-    return { title: '', icon: null };
+    return projectShellTitle || '';
   }, [viewType, activeTab, isBoardViewer, isSettingsPage, t]);
 
   if (!title) return null;
@@ -102,13 +93,12 @@ export const PageTitle = () => {
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center gap-1 h-6 rounded-full px-2 text-xs font-medium bg-teal-500/10 text-teal-700 hover:bg-teal-500/20 dark:bg-teal-400/15 dark:text-teal-300 dark:hover:bg-teal-400/25 transition-colors duration-150"
+          className="flex items-center gap-1 h-6 rounded-full px-2 text-xs font-medium bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:bg-violet-400/15 dark:text-violet-300 dark:hover:bg-violet-400/25 transition-colors duration-150"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('canvasList.back')}
         </button>
       )}
-      {icon}
       <h1 className="text-sm font-medium text-foreground/80 truncate">
         {title}
       </h1>

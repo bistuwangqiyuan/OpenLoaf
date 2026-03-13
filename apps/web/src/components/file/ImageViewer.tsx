@@ -35,7 +35,6 @@ import type { MaskedAttachmentInput } from "@/components/ai/input/chat-attachmen
 import { fetchBlobFromUri, loadImageFromUri } from "@/lib/image/uri";
 import { resolveMaskFileName } from "@/lib/image/mask";
 import { supportsImageInput } from "@/lib/model-capabilities";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 
 interface ImageViewerProps {
@@ -43,8 +42,6 @@ interface ImageViewerProps {
   name?: string;
   ext?: string;
   projectId?: string;
-  /** Workspace id for file queries (overrides useWorkspace). */
-  workspaceId?: string;
   /** Optional thumbnail placeholder to show before full image loads. */
   thumbnailSrc?: string;
   /** Optional header title for modal usage. */
@@ -200,7 +197,6 @@ export default function ImageViewer({
   name,
   ext,
   projectId: projectIdProp,
-  workspaceId: workspaceIdProp,
   thumbnailSrc,
   title,
   saveName,
@@ -249,10 +245,8 @@ export default function ImageViewer({
   const [canUndo, setCanUndo] = React.useState(false);
   const [canRedo, setCanRedo] = React.useState(false);
   const appliedRef = React.useRef<string>("");
-  const { workspace } = useWorkspace();
-  const workspaceId = workspaceIdProp || workspace?.id || "";
   const shouldUseBinary =
-    Boolean(uri) && Boolean(workspaceId) && (shouldUseFs || isRelative);
+    Boolean(uri) && (shouldUseFs || isRelative);
   const chat = useOptionalChatOptions();
   const chatSession = useOptionalChatSession();
   const projectId = projectIdProp ?? chatSession?.projectId;
@@ -274,7 +268,6 @@ export default function ImageViewer({
 
   const imageQuery = useQuery({
     ...trpc.fs.readBinary.queryOptions({
-      workspaceId,
       projectId,
       uri: uri ?? "",
     }),

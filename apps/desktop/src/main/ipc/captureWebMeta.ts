@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BrowserWindow } from "electron";
 import { parseWebMetadataFromHtml } from "@openloaf/api";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 
 const META_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -21,7 +22,7 @@ const META_USER_AGENT =
 export type WebMetaCaptureInput = {
   /** Target url. */
   url: string;
-  /** Workspace/project root uri. */
+  /** Project storage or project root uri. */
   rootUri: string;
 };
 
@@ -54,7 +55,7 @@ function resolveRootPath(rootUri: string): string {
 /** Build web meta storage directory for a url. */
 function buildWebMetaDir(rootPath: string, url: string): string {
   const hash = createHash("sha256").update(url).digest("hex").slice(0, 16);
-  return path.join(rootPath, ".openloaf", "desktop", hash);
+  return resolveScopedOpenLoafPath(rootPath, "desktop", hash);
 }
 
 type IconFetcher = (url: string) => Promise<Response>;

@@ -16,7 +16,6 @@
 /** Persist full llm context log — no-op after JSONL migration. */
 export async function persistChatBranchContextLog(_input: {
   sessionId: string
-  workspaceId?: string
   leafMessageId: string
   modelMessages: unknown[]
 }): Promise<void> {
@@ -26,7 +25,6 @@ export async function persistChatBranchContextLog(_input: {
 /** Resolve current branch jsonl path — no-op after JSONL migration. */
 export async function resolveBranchJsonlPathFromLeafMessage(_input: {
   sessionId: string
-  workspaceId?: string | null
   leafMessageId: string
   prismaReader?: unknown
 }): Promise<string | null> {

@@ -11,8 +11,10 @@ import { z } from "zod";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import sharp from "sharp";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 import { t, shieldedProcedure } from "../../generated/routers/helpers/createRouter";
 import { createBoardId } from "../common/boardId";
+import { recordEntityVisit } from "../services/entityVisitRecordService";
 import { resolveScopedRootPath } from "../services/vfsService";
 
 const BOARD_THUMBNAIL_FILE_NAME = "index.png";
@@ -21,6 +23,16 @@ const BOARD_THUMBNAIL_QUALITY = 60;
 
 const BOARD_FOLDER_PREFIX = "board_";
 const BOARD_FOLDER_PREFIX_LEGACY = "tnboard_";
+
+/** Extract the canonical board entity id from folderUri. */
+function resolveBoardEntityId(folderUri: string): string {
+  return folderUri.replace(/\/+$/u, "").split("/").filter(Boolean).pop() ?? "";
+}
+
+/** Extract the physical folder name from a board folderUri. */
+function resolveBoardFolderName(folderUri: string): string {
+  return folderUri.replace(/\/+$/u, "").split("/").filter(Boolean).pop() ?? "";
+}
 
 /** Extract a display title from a board folder name. */
 function extractBoardTitle(folderName: string): string {
@@ -38,7 +50,7 @@ function extractBoardTitle(folderName: string): string {
  */
 async function syncBoardsFromDisk(
   prisma: any,
-  input: { workspaceId: string; projectId?: string },
+  input: { projectId?: string },
 ): Promise<void> {
   let rootPath: string;
   try {
@@ -48,7 +60,7 @@ async function syncBoardsFromDisk(
     return;
   }
 
-  const boardsDir = path.join(rootPath, ".openloaf", "boards");
+  const boardsDir = resolveScopedOpenLoafPath(rootPath, "boards");
   let entries: string[];
   try {
     entries = await fs.readdir(boardsDir);
@@ -87,7 +99,6 @@ async function syncBoardsFromDisk(
   const folderUris = toSync.map((b) => `.openloaf/boards/${b.folderName}/`);
   const existing = await prisma.board.findMany({
     where: {
-      workspaceId: input.workspaceId,
       folderUri: { in: folderUris },
     },
     select: { folderUri: true },
@@ -100,7 +111,6 @@ async function syncBoardsFromDisk(
     .map((b) => ({
       id: createBoardId(),
       title: extractBoardTitle(b.folderName),
-      workspaceId: input.workspaceId,
       projectId: input.projectId ?? null,
       folderUri: `.openloaf/boards/${b.folderName}/`,
       createdAt: b.mtime,
@@ -119,12 +129,44 @@ async function syncBoardsFromDisk(
   }
 }
 
+/** Hard-delete a board record, related sessions, and folder. */
+async function hardDeleteBoardResources(
+  prisma: any,
+  board: { id: string; folderUri: string; projectId: string | null },
+): Promise<{ deletedSessions: number }> {
+  const deletedSessions = await prisma.$transaction(async (tx: any) => {
+    const deletedChatResult = await tx.chatSession.deleteMany({
+      where: { boardId: board.id },
+    });
+    await tx.board.delete({
+      where: { id: board.id },
+    });
+    return deletedChatResult.count as number;
+  });
+
+  try {
+    const rootPath = resolveScopedRootPath({
+      projectId: board.projectId ?? undefined,
+    });
+    // 逻辑：硬删除必须按 folderUri 反解目录名，兼容历史 tnboard_* 目录。
+    const boardDir = resolveScopedOpenLoafPath(
+      rootPath,
+      "boards",
+      resolveBoardFolderName(board.folderUri),
+    );
+    await fs.rm(boardDir, { recursive: true, force: true });
+  } catch (error) {
+    console.warn("[board.hardDelete] failed to delete folder", error);
+  }
+
+  return { deletedSessions };
+}
+
 export const boardRouter = t.router({
   /** Create a new board with DB record and file structure. */
   create: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
         title: z.string().optional(),
       }),
@@ -140,34 +182,43 @@ export const boardRouter = t.router({
         data: {
           id: boardId,
           title: input.title ?? defaultTitle,
-          workspaceId: input.workspaceId,
           projectId: input.projectId ?? null,
           folderUri,
         },
       });
 
+      try {
+        await recordEntityVisit(ctx.prisma, {
+          entityType: "board",
+          entityId: resolveBoardEntityId(board.folderUri),
+          projectId: board.projectId ?? undefined,
+          trigger: "board-create",
+          visitedAt: now,
+        });
+      } catch (error) {
+        // 逻辑：进入记录失败不应阻断画布创建主流程。
+        console.warn("[board.create] failed to record entity visit", error);
+      }
+
       return board;
     }),
 
-  /** List boards for a workspace, optionally filtered by project. */
+  /** List boards, optionally filtered by project. */
   list: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const where = {
         deletedAt: null,
-        workspaceId: input.workspaceId,
         ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
       };
       const selectFields = {
         id: true,
         title: true,
         isPin: true,
-        workspaceId: true,
         projectId: true,
         folderUri: true,
         createdAt: true,
@@ -184,7 +235,6 @@ export const boardRouter = t.router({
       if (boards.length === 0) {
         try {
           await syncBoardsFromDisk(ctx.prisma, {
-            workspaceId: input.workspaceId,
             projectId: input.projectId,
           });
           boards = await ctx.prisma.board.findMany({
@@ -219,7 +269,6 @@ export const boardRouter = t.router({
   thumbnails: shieldedProcedure
     .input(
       z.object({
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
         boardIds: z.array(z.string()),
       }),
@@ -248,8 +297,11 @@ export const boardRouter = t.router({
             const folderName = folderUri
               ? folderUri.replace(/\/$/, "").split("/").pop()!
               : boardId;
-            const thumbPath = path.join(
-              rootPath, ".openloaf", "boards", folderName, BOARD_THUMBNAIL_FILE_NAME,
+            const thumbPath = resolveScopedOpenLoafPath(
+              rootPath,
+              "boards",
+              folderName,
+              BOARD_THUMBNAIL_FILE_NAME,
             );
             const buffer = await sharp(thumbPath)
               .resize(BOARD_THUMBNAIL_WIDTH, undefined, { fit: "inside" })
@@ -298,7 +350,6 @@ export const boardRouter = t.router({
     .input(
       z.object({
         boardId: z.string().min(1),
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
@@ -314,10 +365,9 @@ export const boardRouter = t.router({
       // Copy board folder on disk
       try {
         const rootPath = resolveScopedRootPath({
-          workspaceId: input.workspaceId,
           projectId: input.projectId,
         });
-        const boardsDir = path.join(rootPath, ".openloaf", "boards");
+        const boardsDir = resolveScopedOpenLoafPath(rootPath, "boards");
         const originalFolderName = original.folderUri.replace(/\/$/, "").split("/").pop()!;
         const srcDir = path.join(boardsDir, originalFolderName);
         const destDir = path.join(boardsDir, newBoardId);
@@ -348,11 +398,22 @@ export const boardRouter = t.router({
         data: {
           id: newBoardId,
           title: `${original.title} (copy)`,
-          workspaceId: input.workspaceId,
           projectId: input.projectId ?? original.projectId,
           folderUri: newFolderUri,
         },
       });
+
+      try {
+        await recordEntityVisit(ctx.prisma, {
+          entityType: "board",
+          entityId: resolveBoardEntityId(board.folderUri),
+          projectId: board.projectId ?? undefined,
+          trigger: "board-create",
+        });
+      } catch (error) {
+        // 逻辑：进入记录失败不应阻断画布复制主流程。
+        console.warn("[board.duplicate] failed to record entity visit", error);
+      }
 
       return board;
     }),
@@ -382,43 +443,49 @@ export const boardRouter = t.router({
     .input(
       z.object({
         boardId: z.string().min(1),
-        workspaceId: z.string().trim().min(1),
         projectId: z.string().trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const board = await ctx.prisma.board.findUnique({
         where: { id: input.boardId },
+        select: { id: true, folderUri: true, projectId: true },
       });
       if (!board) return { success: false };
 
-      // Delete DB record
-      await ctx.prisma.board.delete({
-        where: { id: input.boardId },
+      const { deletedSessions } = await hardDeleteBoardResources(ctx.prisma, board);
+      return {
+        success: true,
+        deletedSessions,
+      };
+    }),
+
+  /** Hard-delete all boards that are not attached to any project. */
+  clearUnboundBoards: shieldedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const boards = await ctx.prisma.board.findMany({
+        where: { projectId: null },
+        select: { id: true, folderUri: true, projectId: true },
       });
 
-      // Delete associated ChatSession (boardId = sessionId for board chat)
-      try {
-        await ctx.prisma.chatSession.deleteMany({
-          where: { boardId: input.boardId },
-        });
-      } catch (error) {
-        console.warn("[board.hardDelete] failed to delete chat session", error);
+      let deletedBoards = 0;
+      let deletedSessions = 0;
+
+      for (const board of boards) {
+        try {
+          const result = await hardDeleteBoardResources(ctx.prisma, board);
+          deletedBoards += 1;
+          deletedSessions += result.deletedSessions;
+        } catch (error) {
+          console.warn("[board.clearUnboundBoards] failed to delete board", error);
+        }
       }
 
-      // Delete file folder
-      try {
-        const rootPath = resolveScopedRootPath({
-          workspaceId: input.workspaceId,
-          projectId: input.projectId,
-        });
-        const boardDir = path.join(rootPath, ".openloaf", "boards", input.boardId);
-        await fs.rm(boardDir, { recursive: true, force: true });
-      } catch (error) {
-        console.warn("[board.hardDelete] failed to delete folder", error);
-      }
-
-      return { success: true };
+      return {
+        deletedBoards,
+        deletedSessions,
+      };
     }),
 });
 

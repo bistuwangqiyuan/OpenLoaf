@@ -5,7 +5,8 @@
   "save": "Save",
   "cancel": "Cancel",
   "workbench": "Global Board",
-  "workspaceList": "Workspaces",
+  "projectSpaceList": "Project Spaces",
+  "sidebarProjectSpace": "Project Space",
   "calendar": "Calendar",
   "email": "Mail",
   "tasks": "Tasks",
@@ -17,7 +18,7 @@
     "addNew": "New",
     "addDialog": "Add Project",
     "newEmptyProject": "Create New Project",
-    "newEmptyProjectDescription": "Create a new folder in the workspace",
+    "newEmptyProjectDescription": "Create a new folder in the project space",
     "selectExistingFolder": "Open Existing Folder",
     "selectExistingFolderDescription": "Add a folder from your computer as a project",
     "cloneFromGit": "Clone from Git",
@@ -25,15 +26,15 @@
     "projectName": "Project Name",
     "projectNamePlaceholder": "My Project",
     "projectCreated": "Project created",
-    "copyWorkspacePath": "Copy Workspace Path",
+    "copyProjectSpacePath": "Copy Project Space Path",
     "pathCopied": "Path copied",
-    "workspacePathNotFound": "Workspace path not found",
+    "projectSpacePathNotFound": "Project space path not found",
     "gitRepositoryAddress": "Please enter Git repository address",
     "cloneError": "Clone failed",
     "cloneAborted": "Clone aborted",
     "repositoryAddress": "Repository Address",
     "targetDirectory": "Target Directory",
-    "workspaceRootDefault": "Workspace Root (Default)",
+    "projectSpaceRootDefault": "Project Space Root (Default)",
     "cloneComplete": "Clone completed",
     "connecting": "Connecting...",
     "back": "Back",
@@ -43,7 +44,7 @@
     "cloning": "Cloning...",
     "startClone": "Start Clone",
     "done": "Done",
-    "addToWorkspace": "Added to workspace",
+    "addToProjectSpace": "Added to project space",
     "addError": "Add failed",
     "feedback": {
       "title": "Feedback",
@@ -126,14 +127,14 @@
     "rootProject": "Root",
     "projectSettings": "Project Settings"
   },
-  "workspace": {
-    "title": "Workspace",
-    "selectWorkspace": "Select Workspace",
-    "createWorkspace": "Create Workspace",
-    "workspaceSettings": "Workspace Settings",
-    "exitWorkspace": "Exit Workspace"
+  "projectSpace": {
+    "title": "Project Space",
+    "selectProjectSpace": "Select Project Space",
+    "createProjectSpace": "Create Project Space",
+    "projectSpaceSettings": "Project Space Settings",
+    "exitProjectSpace": "Exit Project Space"
   },
-  "workspaceChatList": {
+  "chatHistoryList": {
     "title": "Chat History",
     "viewMore": "View More",
     "empty": "No conversations yet",
@@ -200,7 +201,7 @@
     "board-viewer": "Canvas",
     "terminal-viewer": "Terminal",
     "desktop-widget-library": "Widget Library",
-    "workspace-desktop": "Global Board",
+    "global-desktop": "Global Board",
     "folder-tree-preview": "Folder",
     "scheduler-task-history": "Task History",
     "scheduled-tasks-page": "Task Board",
@@ -213,7 +214,8 @@
     "sub-agent-chat": "Sub-agent",
     "task-detail": "Task Detail",
     "canvas-list-page": "Canvas List",
-    "workspace-list-page": "Workspace Management",
+    "project-list-page": "Projects",
+    "project-settings-page": "Project Settings",
     "openInSettings": "Open in Settings"
   },
   "project": "Project",
@@ -228,6 +230,23 @@
     "noChats": "No chats yet",
     "noHistory": "No history yet",
     "newChat": "New Chat"
+  },
+  "historySection": "History",
+  "historyEmpty": "No history yet",
+  "historySortByFirstVisit": "Sort by first visit",
+  "historySortByLastVisit": "Sort by recent visit",
+  "historyToday": "Today",
+  "historyYesterday": "Yesterday",
+  "historyLast7Days": "Last 7 Days",
+  "historyEarlier": "Earlier",
+  "projectSidebar": {
+    "backToProjectSpace": "Back to Project Space",
+    "assistant": "AI Manager",
+    "canvas": "Canvas",
+    "board": "Board",
+    "files": "Files",
+    "settings": "Settings",
+    "history": "History"
   },
   "projectsSection": "Projects",
   "canvasList": {
@@ -254,17 +273,21 @@
     "allProjects": "All Projects",
     "noProject": "No Project"
   },
-  "workspaceListPage": {
+  "projectListPage": {
     "helpTitle": "Projects",
-    "helpDesc": "Browse and manage all projects in the current workspace. Click a card to open it.",
+    "helpDesc": "Browse and manage all projects in the current project space. Click a card to open it.",
     "addProject": "New Project",
     "addProjectTitle": "New Project Title",
     "addProjectPlaceholder": "Enter project name",
+    "allProjectTypes": "All Types",
+    "groupByProjectType": "Group by Project Type",
     "empty": "No projects yet",
+    "emptyFiltered": "No projects match the current filters",
     "untitled": "Untitled Project",
     "renameTitle": "Rename Project",
     "renameDesc": "Enter a new name for the project.",
     "confirmRemove": "Remove this project? Only removes from the list, disk files are not deleted.",
+    "openInNewWindow": "Open in New Window",
     "totalCount": "{{count}} total",
     "childCount": "{{count}} sub-projects"
   }

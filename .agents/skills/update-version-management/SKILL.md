@@ -55,7 +55,7 @@ packages/ 下各子包的消费者不同，**禁止将所有 packages/ 变更笼
 
 | 子目录/文件 | 主要消费者 | 判断方法 |
 |------------|-----------|----------|
-| `src/services/` | **Server** | 业务逻辑服务层（VFS、项目、工作区、git） |
+| `src/services/` | **Server** | 业务逻辑服务层（VFS、项目、工作空间、git） |
 | `src/routers/` | **Server** | tRPC 路由定义和辅助函数 |
 | `src/common/tabs.ts` | **Web** | Tab 常量定义（Sidebar/Header 消费） |
 | `src/common/model*.ts` | **Server** | AI 模型定义（Server AI 路由消费） |
@@ -66,50 +66,15 @@ packages/ 下各子包的消费者不同，**禁止将所有 packages/ 变更笼
 
 ### 精确的变更检测命令
 
-```bash
-# 获取基准点
-BASELINE=$(git tag --list "server-v*" "web-v*" "desktop@*" --sort=-creatordate | head -1)
-
-# ===== Server 变更 =====
-# Server 独有路径
-git log $BASELINE..HEAD --oneline --no-merges -- apps/server/ packages/db/ packages/config/src/
-git diff --stat HEAD -- apps/server/ packages/db/ packages/config/src/
-
-# ===== Web 变更 =====
-# Web 独有路径
-git log $BASELINE..HEAD --oneline --no-merges -- apps/web/ packages/ui/ packages/widget-sdk/
-git diff --stat HEAD -- apps/web/ packages/ui/ packages/widget-sdk/
-
-# ===== 共享路径（需人工判断归属）=====
-git log $BASELINE..HEAD --oneline --no-merges -- packages/api/
-git diff --stat HEAD -- packages/api/
-
-# ===== Desktop 变更 =====
-git log $BASELINE..HEAD --oneline --no-merges -- apps/desktop/ packages/config/src/
-git diff --stat HEAD -- apps/desktop/ packages/config/src/
-```
-
 对于 `packages/api/` 的变更，读取具体 diff 内容后再判断归属。
 
 ---
-
-## 发布决策流程
 
 ### Step 1: 分析变更范围（必须第一步，禁止跳过）
 
 无论用户输入什么参数，**第一步永远是用上述精确路径命令分析变更范围**，确定每个 app 是否有实质性变更。
 
 ### Step 2: 选择发布类型
-
-```
-有 apps/desktop/ 变更？ ──── 是 → 必须发布 Desktop
-        │
-        否
-        │
-有 server/web 实质性变更？ ── 是 → 询问用户：Desktop beta 还是 Server/Web 增量更新？
-        │
-        否 → 无需发布
-```
 
 **Desktop 优先原则：** Desktop 打包包含最新 server + web 代码，是用户获取更新的主要渠道。当有实质性变更时，默认建议发布 Desktop beta。仅在以下情况选择 Server/Web 增量更新：
 - 极小的热修复（文案修正、配置调整），不值得触发 Desktop 全量构建
@@ -127,8 +92,6 @@ git diff --stat HEAD -- apps/desktop/ packages/config/src/
 | `全部commit` | 先提交所有未暂存变更，再分析 |
 
 ---
-
-## Server/Web 增量发布流程
 
 ### Step 1: 基准点与变更分析
 
@@ -149,24 +112,11 @@ git diff --stat HEAD -- apps/desktop/ packages/config/src/
 
 ### Step 4: 类型检查（必须在 commit 之前）
 
-```bash
-pnpm check-types
-```
-
 失败则先修复再继续。
 
 ### Step 5: Bump 版本号并提交
 
 **只 bump 有变更的 app。** 例如只有 Web 变更就只 bump Web，不碰 Server。
-
-```bash
-# 仅在有变更时 bump 对应 app
-npm version {newVersion} --no-git-tag-version --prefix apps/server  # 仅 server 有变更时
-npm version {newVersion} --no-git-tag-version --prefix apps/web     # 仅 web 有变更时
-
-git add -A
-git commit -m "feat(web): <summary>"  # scope 只写实际发布的 app
-```
 
 - commit message **禁止包含 `[skip ci]`**
 - scope 只包含实际发布的 app（如只发 web 就写 `feat(web): ...`，两个都发写 `feat(server,web): ...`）
@@ -175,25 +125,10 @@ git commit -m "feat(web): <summary>"  # scope 只写实际发布的 app
 
 **只为有变更的 app 打 tag。**
 
-```bash
-# 只打需要的 tag
-git tag -a web-v{version} -m "$(cat <<'EOF'
-changelog here
-EOF
-)"
-
-git push origin main
-git push origin web-v{version}
-```
-
 > **Workflow 文件：** `.github/workflows/publish-server.yml`、`.github/workflows/publish-web.yml`
 > **触发条件：** `push.tags: server-v*` / `web-v*`
 
 ### Step 7: 监控 CI
-
-```bash
-gh run list --limit 5
-```
 
 CI 成功即完成。失败则见下方「故障恢复」。
 
@@ -214,41 +149,7 @@ Desktop 采用 **Beta-only 构建策略**：新构建只能打 beta tag，stable
 
 ### Beta 发布流程
 
-```
-1. 确认变更已提交到 main
-
-2. 创建 changelog 文件
-   apps/desktop/changelogs/{x.y.z-beta.n}/zh.md
-   apps/desktop/changelogs/{x.y.z-beta.n}/en.md
-
-3. Bump 版本号并提交（commit message 禁止含 [skip ci]）
-   npm version {x.y.z-beta.n} --no-git-tag-version --prefix apps/desktop
-   git add apps/desktop/package.json
-   git commit -m "chore(desktop): bump version to {x.y.z-beta.n}"
-
-4. 打 tag 并推送
-   git tag desktop@{x.y.z-beta.n}
-   git push origin main --tags
-
-   CI 自动：build-prerequisites → 多平台构建 → 上传 R2 → GitHub Release (prerelease)
-```
-
 **发布 Desktop 时不需要单独 bump/tag server 和 web。** Desktop 打包已包含最新 server + web 代码。
-
-### Stable 发布流程
-
-```
-1. Bump 版本号（去掉 -beta.n）
-   npm version {x.y.z} --no-git-tag-version --prefix apps/desktop
-   git add apps/desktop/package.json
-   git commit -m "chore(desktop): bump version to {x.y.z}"
-
-2. 打 stable tag
-   git tag desktop@{x.y.z}
-   git push origin main --tags
-
-   CI 自动：完整重新构建 → 上传 R2 → GitHub Release → version-bump (desktop patch +1)
-```
 
 ### CI 模式
 
@@ -280,54 +181,13 @@ Desktop 采用 **Beta-only 构建策略**：新构建只能打 beta tag，stable
 
 ---
 
-## 故障恢复
-
-### Tag 推送后 CI 失败
-
-```bash
-# 1. 删除远端和本地 tag
-git push origin :refs/tags/{tag-name}
-git tag -d {tag-name}
-
-# 2. 修复并提交
-git add ... && git commit -m "fix: ..." && git push origin main
-
-# 3. 重新打 tag 并推送
-git tag -a {tag-name} -m "changelog"
-git push origin {tag-name}
-```
-
 ### 撤回已发布的 Server/Web 版本
-
-```bash
-# 1. 清理 R2（先 dry-run）
-node scripts/cleanup-r2-version.mjs --server={ver} --web={ver} --dry-run
-node scripts/cleanup-r2-version.mjs --server={ver} --web={ver}
-
-# 2. 删除 tag
-git push origin :refs/tags/server-v{ver} :refs/tags/web-v{ver}
-git tag -d server-v{ver} web-v{ver}
-
-# 3. 回退版本号
-npm version {prev-ver} --no-git-tag-version --prefix apps/server
-npm version {prev-ver} --no-git-tag-version --prefix apps/web
-git add apps/server/package.json apps/web/package.json
-git commit -m "chore(server,web): revert version bump ({ver} withdrawn)"
-git push origin main
-```
 
 ---
 
 ## 数据库迁移与更新
 
 Server 增量更新可能含 schema 变更。迁移系统流程：
-
-```
-增量更新 → backupDatabase() → 替换 server.mjs → 重启
-         → runPendingMigrations() → initDatabase() → startServer()
-
-启动失败 → recordServerCrash() → 回退 server → restoreDatabase() → 黑名单崩溃版本
-```
 
 - Schema 变更必须 `pnpm run db:migrate` 生成迁移文件，禁止 `db:push`
 - 迁移文件提交到 Git，CI 构建时内嵌到 server.mjs
@@ -336,20 +196,6 @@ Server 增量更新可能含 schema 变更。迁移系统流程：
 > 详见 skill：[database-migration](../database-migration/SKILL.md)
 
 ---
-
-## npm 包发布
-
-### Widget SDK
-
-```bash
-cd packages/widget-sdk
-pnpm version patch
-pnpm publish --no-git-checks
-cd ../..
-git add packages/widget-sdk/package.json
-git commit -m "chore: release @openloaf/widget-sdk v$(node -p "require('./packages/widget-sdk/package.json').version")"
-git push
-```
 
 ### @openloaf-saas/sdk
 

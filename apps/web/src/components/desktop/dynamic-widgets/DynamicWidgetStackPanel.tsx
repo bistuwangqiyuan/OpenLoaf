@@ -15,17 +15,15 @@ import DynamicWidgetRenderer from './DynamicWidgetRenderer'
 
 interface DynamicWidgetStackPanelProps {
   widgetId?: string
-  workspaceId?: string
   projectId?: string
 }
 
 export default function DynamicWidgetStackPanel({
   widgetId,
-  workspaceId,
   projectId,
 }: DynamicWidgetStackPanelProps) {
   const { t } = useTranslation('desktop')
-  if (!widgetId || !workspaceId) {
+  if (!widgetId) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
         {t('dynamicWidget.missingParams')}
@@ -37,7 +35,6 @@ export default function DynamicWidgetStackPanel({
     <div className="h-full w-full overflow-auto">
       <DynamicWidgetRenderer
         widgetId={widgetId}
-        workspaceId={workspaceId}
         projectId={projectId}
       />
     </div>

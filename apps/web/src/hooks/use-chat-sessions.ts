@@ -75,18 +75,28 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   const activeTabId = useTabs((s) => s.activeTabId);
   const resolvedTabId = input?.tabId ?? activeTabId ?? undefined;
   const tab = useTabView(resolvedTabId);
-  const workspaceId = normalizeOptionalId(tab?.workspaceId);
+  const boardBaseParams =
+    tab?.base?.component === "board-viewer"
+      ? (tab.base.params as Record<string, unknown> | undefined)
+      : undefined;
+  const scopedBoardId = normalizeOptionalId(boardBaseParams?.boardId)
+    ?? normalizeOptionalId((tab?.chatParams as Record<string, unknown> | undefined)?.boardId);
   // 有 chatParams.projectId 的 tab（项目聊天、plant-page 等）按项目范围过滤会话。
   const scopedProjectId = normalizeOptionalId(
-    (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,
+    boardBaseParams?.projectId
+      ?? (tab?.chatParams as Record<string, unknown> | undefined)?.projectId,
   );
   const listInput = useMemo(() => {
-    if (!workspaceId) return undefined;
-    // 逻辑：聊天面板仅展示未绑定 board 的会话。
+    if (scopedBoardId) {
+      return scopedProjectId
+        ? { projectId: scopedProjectId, boardId: scopedBoardId }
+        : { boardId: scopedBoardId };
+    }
+    // 逻辑：普通聊天面板仅展示未绑定 board 的会话；board tab 则改为只读自己的 board session。
     return scopedProjectId
-      ? { workspaceId, projectId: scopedProjectId, boardId: null }
-      : { workspaceId, boardId: null };
-  }, [scopedProjectId, workspaceId]);
+      ? { projectId: scopedProjectId, boardId: null }
+      : { boardId: null };
+  }, [scopedBoardId, scopedProjectId]);
 
   const query = useQuery({
     ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),
@@ -105,30 +115,8 @@ export function useChatSessions(input?: UseChatSessionsInput) {
   };
 }
 
-/** Fetch all chat sessions for a workspace (no project filter). */
-export function useWorkspaceChatSessions(input?: { workspaceId?: string }) {
-  const workspaceId = input?.workspaceId;
-  const listInput = useMemo(() => {
-    if (!workspaceId) return undefined;
-    return { workspaceId, boardId: null } as const;
-  }, [workspaceId]);
-
-  const query = useQuery({
-    ...trpc.chat.listSessions.queryOptions(listInput ?? skipToken),
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-  const sessions = (query.data ?? []) as ChatSessionListItem[];
-
-  return {
-    sessions,
-    isLoading: query.isLoading,
-    refetch: query.refetch,
-  };
-}
-
 /** Invalidate session list cache. */
 export function invalidateChatSessions(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: trpc.chat.listSessions.pathKey() });
-  queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.pathKey() });
+  queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.pathKey() });
 }

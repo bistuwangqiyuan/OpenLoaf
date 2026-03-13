@@ -77,12 +77,12 @@ function normalizeUrl(raw: string): string {
 function resolveFileEntryFromUrl(input: {
   url: string;
   tabId?: string;
-}): { entry: FileSystemEntry; workspaceId: string; projectId: string } | null {
+}): { entry: FileSystemEntry; projectId: string } | null {
   if (!input.tabId) return null;
   if (!input.url.startsWith("file://")) return null;
 
   const tab = useTabs.getState().getTabById(input.tabId);
-  if (!tab?.workspaceId) return null;
+  if (!tab) return null;
   const projectId =
     typeof tab.chatParams?.projectId === "string" ? tab.chatParams.projectId : null;
   if (!projectId) return null;
@@ -104,7 +104,6 @@ function resolveFileEntryFromUrl(input: {
 
   return {
     entry,
-    workspaceId: tab.workspaceId,
     projectId,
   };
 }
@@ -281,7 +280,6 @@ type OpenUrlInput = {
 //   payload?: {
 //     filePath?: string;
 //   };
-//   workspaceId?: string;
 //   projectId?: string;
 // };
 
@@ -334,7 +332,6 @@ export function registerDefaultFrontendToolHandlers(executor: FrontendToolExecut
     const recent = resolveFileEntryFromUrl({ url: normalizedUrl, tabId });
     if (recent) {
       recordRecentOpen({
-        workspaceId: recent.workspaceId,
         projectId: recent.projectId,
         entry: recent.entry,
       });

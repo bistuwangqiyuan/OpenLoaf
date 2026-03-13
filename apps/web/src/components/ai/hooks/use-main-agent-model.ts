@@ -33,11 +33,11 @@ type AgentDetail = {
   systemPrompt: string;
   path: string;
   folderName: string;
-  scope: "workspace" | "project" | "global";
+  scope: "project" | "global";
 };
 
 /**
- * Resolve and update the master agent model (workspace/project scoped).
+ * Resolve and update the master agent model (global/project scoped).
  * @param projectId Optional project id for resolving project-scoped master agent.
  */
 export function useMainAgentModel(projectId?: string) {
@@ -50,7 +50,7 @@ export function useMainAgentModel(projectId?: string) {
   const masterAgent = useMemo(() => {
     const list = (agentsQuery.data ?? []) as Array<{
       folderName: string;
-      scope: "workspace" | "project" | "global";
+      scope: "project" | "global";
       path: string;
       isEnabled: boolean;
       isInherited: boolean;
@@ -66,11 +66,11 @@ export function useMainAgentModel(projectId?: string) {
       );
       if (projectMaster) return projectMaster;
     }
-    // 中文注释：项目未命中时回退工作空间 master。
+    // 中文注释：项目未命中时回退全局 master。
     return list.find(
       (agent) =>
         agent.folderName === "master" &&
-        agent.scope === "workspace" &&
+        agent.scope === "global" &&
         agent.isEnabled,
     );
   }, [agentsQuery.data, projectId]);
@@ -79,7 +79,7 @@ export function useMainAgentModel(projectId?: string) {
     ...trpc.settings.getAgentDetail.queryOptions(
       masterAgent
         ? { agentPath: masterAgent.path, scope: masterAgent.scope }
-        : { agentPath: "", scope: "workspace" },
+        : { agentPath: "", scope: "global" },
     ),
     staleTime: 5 * 60 * 1000,
     enabled: Boolean(masterAgent?.path),

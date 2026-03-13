@@ -78,7 +78,7 @@ function createMinimalTask(overrides?: Partial<CreateTaskInput>): TaskConfig {
       ...overrides,
     },
     tempDir,
-    'workspace',
+    'global',
   )
 }
 
@@ -109,7 +109,7 @@ async function main() {
       assert.equal(task.enabled, true)
       assert.equal(task.runCount, 0)
       assert.equal(task.consecutiveErrors, 0)
-      assert.equal(task.scope, 'workspace')
+      assert.equal(task.scope, 'global')
       assert.equal(task.createdBy, 'user')
       assert.ok(task.createdAt)
       assert.ok(task.updatedAt)
@@ -172,7 +172,7 @@ async function main() {
       assert.ok(retrieved)
       assert.equal(retrieved!.id, task.id)
       assert.equal(retrieved!.name, 'get-test')
-      assert.equal(retrieved!.scope, 'workspace')
+      assert.equal(retrieved!.scope, 'global')
     })
 
     await test('A6: getTask returns null for non-existent task', () => {
@@ -187,9 +187,9 @@ async function main() {
     const listTestDir = path.join(tempDir, 'list_tests')
     await fs.mkdir(listTestDir, { recursive: true })
 
-    const taskA = createTask({ name: 'A', triggerMode: 'manual' }, listTestDir, 'workspace')
-    const taskB = createTask({ name: 'B', triggerMode: 'scheduled' }, listTestDir, 'workspace')
-    const taskC = createTask({ name: 'C', triggerMode: 'condition' }, listTestDir, 'workspace')
+    const taskA = createTask({ name: 'A', triggerMode: 'manual' }, listTestDir, 'global')
+    const taskB = createTask({ name: 'B', triggerMode: 'scheduled' }, listTestDir, 'global')
+    const taskC = createTask({ name: 'C', triggerMode: 'condition' }, listTestDir, 'global')
 
     // Manually update B to running
     updateTask(taskB.id, { status: 'running' }, listTestDir)
@@ -401,7 +401,7 @@ async function main() {
       const archiveTestDir = path.join(tempDir, 'archive_test')
       await fs.mkdir(archiveTestDir, { recursive: true })
 
-      const task = createTask({ name: 'archive-test' }, archiveTestDir, 'workspace')
+      const task = createTask({ name: 'archive-test' }, archiveTestDir, 'global')
       const completedAt = '2026-02-27T10:00:00.000Z'
       updateTask(task.id, {
         status: 'done',
@@ -457,10 +457,10 @@ async function main() {
       await fs.mkdir(wsDir, { recursive: true })
       await fs.mkdir(projDir, { recursive: true })
 
-      const wsTask = createTask({ name: 'ws-task' }, wsDir, 'workspace')
+      const wsTask = createTask({ name: 'ws-task' }, wsDir, 'global')
       const projTask = createTask({ name: 'proj-task' }, projDir, 'project')
 
-      assert.equal(wsTask.scope, 'workspace')
+      assert.equal(wsTask.scope, 'global')
       assert.equal(projTask.scope, 'project')
 
       // listTasks with both roots

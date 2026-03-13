@@ -36,8 +36,6 @@ const BOARD_STORE_INTERVAL_MS = 60 * 1000;
 const BOARD_SYNC_SIGNAL = "flush";
 
 type BoardCollabContext = {
-  /** Workspace id used for file resolution. */
-  workspaceId: string;
   /** Project id used for file resolution. */
   projectId?: string;
   /** Board file path on disk. */
@@ -124,7 +122,6 @@ function resolveBoardPaths(query: BoardCollabQuery): BoardCollabContext {
   let boardFolderPath = resolveLocalPath(rawBoardFolder);
   if (!boardFolderPath && rawBoardFolder) {
     boardFolderPath = resolveScopedPath({
-      workspaceId: query.workspaceId,
       projectId: query.projectId,
       target: rawBoardFolder,
     });
@@ -135,7 +132,6 @@ function resolveBoardPaths(query: BoardCollabQuery): BoardCollabContext {
   }
   if (!boardFilePath && rawBoardFile) {
     boardFilePath = resolveScopedPath({
-      workspaceId: query.workspaceId,
       projectId: query.projectId,
       target: rawBoardFile,
     });
@@ -149,7 +145,6 @@ function resolveBoardPaths(query: BoardCollabQuery): BoardCollabContext {
   if (!boardFilePath) throw new Error("Board file path is required.");
   const boardJsonPath = path.join(boardFolderPath, BOARD_JSON_FILE_NAME);
   return {
-    workspaceId: query.workspaceId,
     projectId: query.projectId,
     boardFilePath,
     boardFolderPath,
@@ -267,7 +262,6 @@ async function ensureBoardDbRecord(ctx: BoardCollabContext): Promise<void> {
       data: {
         id: folderName,
         title: "画布",
-        workspaceId: ctx.workspaceId,
         projectId: ctx.projectId ?? null,
         folderUri,
       },

@@ -15,17 +15,16 @@ import i18next from 'i18next'
 import { AI_ASSISTANT_TAB_INPUT, WORKBENCH_TAB_INPUT } from '@openloaf/api/common'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
 import { useGlobalOverlay } from '@/lib/globalShortcuts'
 
 // 四个主页面的 baseId / component 集合（与 Sidebar 保持一致）。
-const WORKSPACE_PAGE_BASE_IDS = new Set([
+const PRIMARY_PAGE_BASE_IDS = new Set([
   WORKBENCH_TAB_INPUT.baseId,
   'base:calendar',
   'base:scheduled-tasks',
   'base:mailbox',
 ])
-const WORKSPACE_PAGE_COMPONENTS = new Set([
+const PRIMARY_PAGE_COMPONENTS = new Set([
   WORKBENCH_TAB_INPUT.component,
   'calendar-page',
   'scheduled-tasks-page',
@@ -55,7 +54,6 @@ const NAV_MAP: Record<Exclude<NavTarget, 'search'>, TabInput> = {
  * 返回 null，无可见 UI。
  */
 export default function TrayNavigationListener() {
-  const { workspace: activeWorkspace } = useWorkspace()
   const addTab = useTabs((s) => s.addTab)
   const setActiveTab = useTabs((s) => s.setActiveTab)
   const setTabTitle = useTabs((s) => s.setTabTitle)
@@ -66,13 +64,11 @@ export default function TrayNavigationListener() {
 
   const openSingletonTab = useCallback(
     (input: TabInput) => {
-      if (!activeWorkspace) return
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '')
 
       const state = useTabs.getState()
       const runtime = useTabRuntime.getState().runtimeByTabId
       const existing = state.tabs.find((tab) => {
-        if (tab.workspaceId !== activeWorkspace.id) return false
         if (runtime[tab.id]?.base?.id === input.baseId) return true
         if (input.component === 'ai-chat' && !runtime[tab.id]?.base && tab.title === tabTitle) return true
         return false
@@ -82,7 +78,6 @@ export default function TrayNavigationListener() {
         return
       }
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -90,25 +85,24 @@ export default function TrayNavigationListener() {
         base: input.component === 'ai-chat' ? undefined : { id: input.baseId, component: input.component },
       })
     },
-    [activeWorkspace, addTab, setActiveTab],
+    [addTab, setActiveTab],
   )
 
-  const openWorkspacePageTab = useCallback(
+  const openPrimaryPageTab = useCallback(
     (input: TabInput) => {
-      if (!activeWorkspace) return
       const tabTitle = input.titleKey ? i18next.t(input.titleKey) : (input.title ?? '')
 
       const state = useTabs.getState()
       const runtime = useTabRuntime.getState().runtimeByTabId
 
       const currentTab =
-        activeTabId && state.tabs.find((tab) => tab.id === activeTabId && tab.workspaceId === activeWorkspace.id)
+        activeTabId && state.tabs.find((tab) => tab.id === activeTabId)
       const currentBase = currentTab ? runtime[currentTab.id]?.base : undefined
       const shouldReuse =
         Boolean(currentTab) &&
         Boolean(currentBase) &&
-        WORKSPACE_PAGE_BASE_IDS.has(currentBase!.id) &&
-        WORKSPACE_PAGE_COMPONENTS.has(currentBase!.component)
+        PRIMARY_PAGE_BASE_IDS.has(currentBase!.id) &&
+        PRIMARY_PAGE_COMPONENTS.has(currentBase!.component)
 
       if (currentTab && shouldReuse) {
         setTabBase(currentTab.id, { id: input.baseId, component: input.component })
@@ -120,11 +114,10 @@ export default function TrayNavigationListener() {
       }
 
       const existingPage = state.tabs
-        .filter((tab) => tab.workspaceId === activeWorkspace.id)
         .filter((tab) => {
           const base = runtime[tab.id]?.base
           if (!base) return false
-          return WORKSPACE_PAGE_BASE_IDS.has(base.id) && WORKSPACE_PAGE_COMPONENTS.has(base.component)
+          return PRIMARY_PAGE_BASE_IDS.has(base.id) && PRIMARY_PAGE_COMPONENTS.has(base.component)
         })
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0]
 
@@ -138,7 +131,6 @@ export default function TrayNavigationListener() {
       }
 
       addTab({
-        workspaceId: activeWorkspace.id,
         createNew: true,
         title: tabTitle,
         icon: input.icon,
@@ -146,7 +138,7 @@ export default function TrayNavigationListener() {
         base: { id: input.baseId, component: input.component },
       })
     },
-    [activeWorkspace, activeTabId, addTab, clearStack, setActiveTab, setTabBase, setTabIcon, setTabTitle],
+    [activeTabId, addTab, clearStack, setActiveTab, setTabBase, setTabIcon, setTabTitle],
   )
 
   useEffect(() => {
@@ -167,7 +159,7 @@ export default function TrayNavigationListener() {
       if (target === 'ai-assistant') {
         openSingletonTab(input)
       } else {
-        openWorkspacePageTab(input)
+        openPrimaryPageTab(input)
       }
     }
 
@@ -182,7 +174,7 @@ export default function TrayNavigationListener() {
       window.removeEventListener('openloaf:tray:navigate', handleNavigate)
       window.removeEventListener('openloaf:tray:new-conversation', handleNewConversation)
     }
-  }, [openSingletonTab, openWorkspacePageTab])
+  }, [openSingletonTab, openPrimaryPageTab])
 
   return null
 }

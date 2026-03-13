@@ -9,12 +9,11 @@
  */
 import { randomUUID } from "node:crypto";
 import {
-  readWorkspaceProjectTrees,
+  readProjectTrees,
   readProjectConfig,
   type ProjectNode,
 } from "@openloaf/api/services/projectTreeService";
 import { resolveFilePathFromUri, getProjectRootPath } from "@openloaf/api/services/vfsService";
-import { getWorkspaces } from "@openloaf/api/services/workspaceConfig";
 import { readBasicConf } from "@/modules/settings/openloafConfStore";
 import { SummaryDayUseCase } from "@/ai/services/summary/SummaryDayUseCase";
 import { SummaryProjectUseCase } from "@/ai/services/summary/SummaryProjectUseCase";
@@ -100,53 +99,49 @@ export class SummaryScheduler {
       );
 
       const basic = readBasicConf();
-      const workspaces = getWorkspaces();
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       let triggeredCount = 0;
 
-      for (const workspace of workspaces) {
-        const trees = await readWorkspaceProjectTrees(workspace.id);
-        const nodes = collectProjectNodes(trees);
-        for (const node of nodes) {
-          const rootPath = resolveProjectRootPath(node);
-          if (!rootPath) continue;
-          let projectConfig;
-          try {
-            projectConfig = await readProjectConfig(rootPath, node.projectId);
-          } catch {
-            // 逻辑：读取项目配置失败时跳过该项目，避免影响其他调度。
-            continue;
-          }
-          const overrides = projectConfig.aiSettings;
-          const overrideEnabled = overrides?.overrideEnabled ?? false;
-          const autoSummaryEnabled = overrideEnabled
-            ? typeof overrides?.autoSummaryEnabled === "boolean"
-              ? overrides.autoSummaryEnabled
-              : basic.autoSummaryEnabled
-            : basic.autoSummaryEnabled;
-          const autoSummaryHours = overrideEnabled
-            ? normalizeHours(overrides?.autoSummaryHours ?? basic.autoSummaryHours)
-            : normalizeHours(basic.autoSummaryHours);
-
-          if (!autoSummaryEnabled || autoSummaryHours.length === 0) {
-            continue;
-          }
-
-          if (!autoSummaryHours.includes(currentHour)) {
-            continue;
-          }
-
-          triggeredCount += 1;
-          void this.runner.run({
-            taskId: randomUUID(),
-            projectId: node.projectId,
-            workspaceId: workspace.id,
-            rootPath,
-            now,
-            triggeredBy: "scheduler",
-            timezone,
-          });
+      const trees = await readProjectTrees();
+      const nodes = collectProjectNodes(trees);
+      for (const node of nodes) {
+        const rootPath = resolveProjectRootPath(node);
+        if (!rootPath) continue;
+        let projectConfig;
+        try {
+          projectConfig = await readProjectConfig(rootPath, node.projectId);
+        } catch {
+          // 逻辑：读取项目配置失败时跳过该项目，避免影响其他调度。
+          continue;
         }
+        const overrides = projectConfig.aiSettings;
+        const overrideEnabled = overrides?.overrideEnabled ?? false;
+        const autoSummaryEnabled = overrideEnabled
+          ? typeof overrides?.autoSummaryEnabled === "boolean"
+            ? overrides.autoSummaryEnabled
+            : basic.autoSummaryEnabled
+          : basic.autoSummaryEnabled;
+        const autoSummaryHours = overrideEnabled
+          ? normalizeHours(overrides?.autoSummaryHours ?? basic.autoSummaryHours)
+          : normalizeHours(basic.autoSummaryHours);
+
+        if (!autoSummaryEnabled || autoSummaryHours.length === 0) {
+          continue;
+        }
+
+        if (!autoSummaryHours.includes(currentHour)) {
+          continue;
+        }
+
+        triggeredCount += 1;
+        void this.runner.run({
+          taskId: randomUUID(),
+          projectId: node.projectId,
+          rootPath,
+          now,
+          triggeredBy: "scheduler",
+          timezone,
+        });
       }
       logger.info(
         { hour: currentHour, isStartup, triggeredCount },
@@ -158,7 +153,7 @@ export class SummaryScheduler {
   }
 }
 
-/** Collect project nodes from workspace trees. */
+/** Collect project nodes from the top-level project trees. */
 function collectProjectNodes(trees: ProjectNode[]): ProjectNode[] {
   const nodes: ProjectNode[] = [];
   const queue = [...trees];

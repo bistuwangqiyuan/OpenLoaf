@@ -14,7 +14,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { execa } from "execa";
-import { getWorkspaceRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { logger } from "@/common/logger";
 
 const PYTHON_RELEASES_URL =
@@ -44,8 +44,8 @@ type PythonReleaseFile = {
 
 /** Resolve Python cache root directory. */
 function resolvePythonCacheRoot(): string {
-  const workspaceRoot = getWorkspaceRootPath();
-  return path.join(workspaceRoot, ".openloaf-cache", "python");
+  const globalRoot = getOpenLoafRootDir();
+  return path.join(globalRoot, ".openloaf-cache", "python");
 }
 
 /** Resolve release id from resource uri. */

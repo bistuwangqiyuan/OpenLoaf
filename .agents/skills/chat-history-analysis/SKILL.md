@@ -3,8 +3,6 @@ name: chat-history-analysis
 description: Analyze AI chat history stored as .jsonl under paths containing "chat_history". Use when the user provides a filesystem path that includes "chat_history" and ends with ".jsonl", or when the user asks to analyze OpenLoaf/Codex chat logs, tool calls, and outcomes based on the request and results.
 ---
 
-# Chat History Analysis
-
 ## Overview
 
 Reconstruct a chat session from a JSONL log and diagnose mismatches between the user's request, tool execution, and the final response. Always respond in Chinese.
@@ -39,10 +37,6 @@ Reconstruct a chat session from a JSONL log and diagnose mismatches between the 
 ## Use the bundled script (recommended)
 
 Run the summarizer to get a structured, compact view of the log:
-
-```bash
-python3 scripts/summarize_chat_history.py "/path/to/chat_history/.../01_02_01.jsonl" --max-chars 2000
-```
 
 If the input is a directory, the script will return candidate JSONL files for you to ask the user to pick.
 

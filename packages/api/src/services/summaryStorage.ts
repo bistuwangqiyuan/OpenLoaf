@@ -9,6 +9,7 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { resolveScopedOpenLoafPath } from "@openloaf/config";
 
 export type SummaryIndexRecord = {
   /** Project id for summary lookup. */
@@ -47,13 +48,13 @@ export type SummaryMarkdown = {
   content: string;
 };
 
-const SUMMARY_DIR_NAME = ".openloaf/summary";
+const SUMMARY_DIR_NAME = "summary";
 const SUMMARY_INDEX_FILE = "summary.jsonl";
 const FRONTMATTER_BOUNDARY = "---";
 
 /** Resolve summary directory from root path. */
 export function getSummaryDir(rootPath: string): string {
-  return path.join(rootPath, SUMMARY_DIR_NAME);
+  return resolveScopedOpenLoafPath(rootPath, SUMMARY_DIR_NAME);
 }
 
 /** Resolve summary index path from root path. */

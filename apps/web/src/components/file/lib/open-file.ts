@@ -45,7 +45,7 @@ export type FileOpenInput = {
   tabId?: string | null;
   /** Project id for file previews. */
   projectId?: string;
-  /** Workspace root uri for system open. */
+  /** Project storage or project root uri for system open. */
   rootUri?: string;
   /** Optional thumbnail for image preview. */
   thumbnailSrc?: string;

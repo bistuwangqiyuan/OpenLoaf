@@ -17,7 +17,6 @@ import type { ProjectNode } from "@openloaf/api/services/projectTreeService";
 
 type CalendarSource = {
   id: string;
-  workspaceId: string;
   provider: string;
   kind: "calendar" | "reminder";
   externalId?: string | null;

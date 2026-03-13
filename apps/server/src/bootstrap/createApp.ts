@@ -30,7 +30,6 @@ import { registerEmailAttachmentRoutes } from "@/modules/email/emailAttachmentRo
 import { registerLocalAuthRoutes } from "@/modules/local-auth/localAuthRoutes";
 import { registerOfficeAddinRoutes } from "@/modules/office/officeAddinRoutes";
 import { localAuthGuard } from "@/modules/local-auth/localAuthGuard";
-import { workspaceRouterImplementation } from "@/routers/workspace";
 import { tabRouterImplementation } from "@/routers/tab";
 import { chatRouterImplementation } from "@/routers/chat";
 import { settingsRouterImplementation } from "@/routers/settings";

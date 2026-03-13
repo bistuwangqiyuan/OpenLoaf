@@ -13,6 +13,9 @@ import { getAccessToken } from "@/lib/saas-auth";
 import { getWebClientId } from "@/lib/chat/streamClientId";
 import { getClientTimeZone } from "@/utils/time-zone";
 import { isElectronEnv } from "@/utils/is-electron-env";
+import { trpcClient } from "@/utils/trpc";
+import type { CanvasEngine } from "../engine/CanvasEngine";
+import { projectBoardChatMessageParts } from "../utils/board-chat-projection";
 import { useBoardChatStore } from "./boardChatStore";
 
 export type SendBoardChatMessageInput = {
@@ -20,8 +23,6 @@ export type SendBoardChatMessageInput = {
   sessionId: string;
   /** Board ID. */
   boardId: string;
-  /** Workspace ID. */
-  workspaceId?: string;
   /** Project ID. */
   projectId?: string;
   /** The user message to send. */
@@ -32,8 +33,10 @@ export type SendBoardChatMessageInput = {
   messageIdChain: string[];
   /** Selected chat model ID. */
   chatModelId?: string;
-  /** ChatMessageNode element ID for store keying. */
-  messageNodeElementId: string;
+  /** Message group element id for projection + store keying. */
+  messageGroupElementId: string;
+  /** Canvas engine used for node projection. */
+  engine: CanvasEngine;
   /** Image save directory URI. */
   imageSaveDir?: string;
   /** Callback when Yjs status should be updated. */
@@ -51,12 +54,54 @@ function parseDataStreamLine(line: string): { type: string; value: string } | nu
   return { type, value };
 }
 
+/** Load the finalized assistant message parts from chat history. */
+async function loadFinalMessageParts(input: {
+  sessionId: string;
+  messageId: string;
+}): Promise<unknown[] | null> {
+  const view = await trpcClient.chat.getChatView.query({
+    sessionId: input.sessionId,
+    anchor: { messageId: input.messageId, strategy: "self" },
+    window: { limit: 2 },
+    include: { messages: true, siblingNav: false },
+    includeToolOutput: true,
+  });
+  const message = view?.messages?.find((item: any) => item?.id === input.messageId);
+  return Array.isArray(message?.parts) ? (message.parts as unknown[]) : null;
+}
+
 /** Send a board chat message and handle SSE streaming. */
 export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Promise<void> {
   const store = useBoardChatStore.getState();
   const abortController = new AbortController();
-  store.startStream(input.messageNodeElementId, abortController);
+  store.startStream(input.messageGroupElementId, abortController);
   input.onStatusChange("streaming");
+
+  let projectionChain = Promise.resolve();
+  const queueProjection = (
+    rawParts: unknown[],
+    options?: { collapseSinglePart?: boolean },
+  ) => {
+    const snapshot = Array.isArray(rawParts) ? [...rawParts] : [];
+    projectionChain = projectionChain
+      .catch(() => undefined)
+      .then(() =>
+        projectBoardChatMessageParts({
+          engine: input.engine,
+          groupId: input.messageGroupElementId,
+          rawParts: snapshot,
+          projectId: input.projectId,
+          collapseSinglePart: options?.collapseSinglePart,
+        }),
+      )
+      .catch(() => undefined);
+    return projectionChain;
+  };
+
+  const queueCurrentProjection = () => {
+    const currentStream = useBoardChatStore.getState().getStream(input.messageGroupElementId);
+    return queueProjection(currentStream?.parts ?? []);
+  };
 
   try {
     const accessToken = await getAccessToken();
@@ -70,7 +115,6 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
     const body = {
       sessionId: input.sessionId,
       boardId: input.boardId,
-      workspaceId: input.workspaceId,
       projectId: input.projectId,
       messages: [input.userMessage],
       messageId: input.assistantMessageId,
@@ -94,14 +138,18 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Request failed");
-      store.errorStream(input.messageNodeElementId, errorText);
+      store.errorStream(input.messageGroupElementId, errorText);
       input.onStatusChange("error", errorText);
+      await queueProjection([{ type: "text", text: errorText }], { collapseSinglePart: true });
+      store.removeStream(input.messageGroupElementId);
       return;
     }
 
     if (!response.body) {
-      store.errorStream(input.messageNodeElementId, "No response body");
+      store.errorStream(input.messageGroupElementId, "No response body");
       input.onStatusChange("error", "No response body");
+      await queueProjection([{ type: "text", text: "No response body" }], { collapseSinglePart: true });
+      store.removeStream(input.messageGroupElementId);
       return;
     }
 
@@ -129,7 +177,8 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
             // text-delta
             try {
               const text = JSON.parse(parsed.value) as string;
-              store.appendText(input.messageNodeElementId, text);
+              store.appendText(input.messageGroupElementId, text);
+              void queueCurrentProjection();
             } catch {
               // Ignore parse errors
             }
@@ -141,8 +190,9 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
               const data = JSON.parse(parsed.value);
               if (Array.isArray(data)) {
                 for (const item of data) {
-                  store.appendPart(input.messageNodeElementId, item);
+                  store.appendPart(input.messageGroupElementId, item);
                 }
+                void queueCurrentProjection();
               }
             } catch {
               // Ignore parse errors
@@ -156,19 +206,39 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
               const errorText = typeof errorData === "string"
                 ? errorData
                 : errorData?.message ?? "Unknown error";
-              store.errorStream(input.messageNodeElementId, errorText);
+              store.errorStream(input.messageGroupElementId, errorText);
+              const currentStream = useBoardChatStore.getState().getStream(input.messageGroupElementId);
               input.onStatusChange("error", errorText);
+              await queueProjection(
+                (currentStream?.parts?.length ?? 0) > 0
+                  ? currentStream?.parts ?? []
+                  : [{ type: "text", text: errorText }],
+                { collapseSinglePart: true },
+              );
+              store.removeStream(input.messageGroupElementId);
               return;
             } catch {
-              store.errorStream(input.messageNodeElementId, "Stream error");
+              store.errorStream(input.messageGroupElementId, "Stream error");
               input.onStatusChange("error", "Stream error");
+              await queueProjection([{ type: "text", text: "Stream error" }], { collapseSinglePart: true });
+              store.removeStream(input.messageGroupElementId);
               return;
             }
           }
           case "d": {
             // finish
-            store.completeStream(input.messageNodeElementId);
+            store.completeStream(input.messageGroupElementId);
             input.onStatusChange("complete");
+            await projectionChain;
+            const finalParts = await loadFinalMessageParts({
+              sessionId: input.sessionId,
+              messageId: input.assistantMessageId,
+            }).catch(() => null);
+            await queueProjection(
+              finalParts ?? (store.getStream(input.messageGroupElementId)?.parts ?? []),
+              { collapseSinglePart: true },
+            );
+            store.removeStream(input.messageGroupElementId);
             return;
           }
           case "e": {
@@ -180,19 +250,30 @@ export async function sendBoardChatMessage(input: SendBoardChatMessageInput): Pr
     }
 
     // Stream ended without explicit finish signal
-    const currentStream = store.getStream(input.messageNodeElementId);
+    const currentStream = store.getStream(input.messageGroupElementId);
     if (currentStream && currentStream.status === "streaming") {
-      store.completeStream(input.messageNodeElementId);
+      store.completeStream(input.messageGroupElementId);
       input.onStatusChange("complete");
+      await projectionChain;
+      const finalParts = await loadFinalMessageParts({
+        sessionId: input.sessionId,
+        messageId: input.assistantMessageId,
+      }).catch(() => null);
+      await queueProjection(finalParts ?? currentStream.parts, { collapseSinglePart: true });
+      store.removeStream(input.messageGroupElementId);
     }
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      store.errorStream(input.messageNodeElementId, "Cancelled");
+      store.errorStream(input.messageGroupElementId, "Cancelled");
       input.onStatusChange("error", "Cancelled");
+      await queueProjection([{ type: "text", text: "Cancelled" }], { collapseSinglePart: true });
+      store.removeStream(input.messageGroupElementId);
       return;
     }
     const errorText = err instanceof Error ? err.message : "Unknown error";
-    store.errorStream(input.messageNodeElementId, errorText);
+    store.errorStream(input.messageGroupElementId, errorText);
     input.onStatusChange("error", errorText);
+    await queueProjection([{ type: "text", text: errorText }], { collapseSinglePart: true });
+    store.removeStream(input.messageGroupElementId);
   }
 }

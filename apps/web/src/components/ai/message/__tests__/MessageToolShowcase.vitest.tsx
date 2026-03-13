@@ -42,7 +42,7 @@ vi.mock('@/utils/trpc', () => {
 })
 
 vi.mock('@/hooks/use-project', () => ({
-  useProject: () => ({ data: { project: { rootUri: '/mock/workspace' } } }),
+  useProject: () => ({ data: { project: { rootUri: '/mock/project-space' } } }),
 }))
 
 // useTabs is a Zustand store — must support selector call pattern: useTabs((s) => s.field)
@@ -83,10 +83,6 @@ vi.mock('@/components/file/lib/open-file', () => ({
   createFileEntryFromUri: vi.fn(),
   openFile: vi.fn(),
   openFilePreview: vi.fn(),
-}))
-
-vi.mock('@/components/workspace/workspaceContext', () => ({
-  useWorkspace: () => ({ workspaceId: 'ws-1' }),
 }))
 
 vi.mock('@/components/desktop/DesktopWidgetLibraryPanel', () => ({

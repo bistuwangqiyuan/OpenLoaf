@@ -12,8 +12,8 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolveFilePathFromUri, toFileUriWithoutEncoding } from "./fileUri";
-import { getActiveWorkspace, getWorkspaceById } from "./vfsService";
-import { getWorkspaceProjectEntries } from "./workspaceProjectConfig";
+import { getProjectStorageRootUri } from "./vfsService";
+import { getProjectRegistryEntries } from "./projectRegistryConfig";
 
 /** Directory name for project metadata. */
 export const PROJECT_META_DIR = ".openloaf";
@@ -78,6 +78,44 @@ export type ProjectNode = {
   children: ProjectNode[];
 };
 
+/** Flat project list item used by paginated project queries. */
+export type ProjectListItem = {
+  /** Project id. */
+  projectId: string;
+  /** Project display title. */
+  title: string;
+  /** Project icon. */
+  icon?: string;
+  /** Project root URI. */
+  rootUri: string;
+  /** Whether the project root belongs to a git repository. */
+  isGitProject: boolean;
+  /** Whether the project is favorited (pinned to top). */
+  isFavorite?: boolean;
+  /** AI-inferred or user-set project type. */
+  projectType?: string;
+  /** Nesting depth in the project tree. */
+  depth: number;
+  /** Child project count. */
+  childCount: number;
+};
+
+/** Paginated project list response. */
+export type ProjectListPage = {
+  /** Current page items. */
+  items: ProjectListItem[];
+  /** Total items after current filters are applied. */
+  total: number;
+  /** Request cursor used for this page. */
+  cursor: string | null;
+  /** Cursor for the next page. */
+  nextCursor: string | null;
+  /** Effective page size. */
+  pageSize: number;
+  /** Whether there are more items after the current page. */
+  hasMore: boolean;
+};
+
 /** Project tree node with parent info. */
 export type ProjectNodeWithParent = {
   /** Project node. */
@@ -88,6 +126,8 @@ export type ProjectNodeWithParent = {
 
 /** Project id prefix. */
 const PROJECT_ID_PREFIX = "proj_";
+const DEFAULT_PROJECT_LIST_PAGE_SIZE = 48;
+const MAX_PROJECT_LIST_PAGE_SIZE = 120;
 
 /** Create a new project id. */
 function buildProjectId(): string {
@@ -123,23 +163,69 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/** Normalize project list page size into a safe bounded integer. */
+function normalizeProjectListPageSize(pageSize?: number | null): number {
+  if (!pageSize || Number.isNaN(pageSize)) return DEFAULT_PROJECT_LIST_PAGE_SIZE;
+  const normalized = Math.floor(pageSize);
+  if (normalized < 1) return DEFAULT_PROJECT_LIST_PAGE_SIZE;
+  return Math.min(normalized, MAX_PROJECT_LIST_PAGE_SIZE);
+}
+
+/** Decode offset cursor for paginated project list queries. */
+function decodeProjectListCursor(cursor?: string | null): number {
+  if (!cursor) return 0;
+  const offset = Number.parseInt(cursor, 10);
+  if (Number.isNaN(offset) || offset < 0) return 0;
+  return offset;
+}
+
+/** Normalize project type for list filtering. */
+function normalizeProjectListType(projectType?: string | null): string {
+  return projectType?.trim() || "general";
+}
+
+/** Flatten project trees into a list that preserves visual tree depth. */
+function flattenProjectNodes(
+  nodes: ProjectNode[],
+  depth = 0,
+): ProjectListItem[] {
+  const items: ProjectListItem[] = [];
+  for (const node of nodes) {
+    items.push({
+      projectId: node.projectId,
+      title: node.title,
+      icon: node.icon,
+      rootUri: node.rootUri,
+      isGitProject: node.isGitProject,
+      isFavorite: node.isFavorite,
+      projectType: node.projectType,
+      depth,
+      childCount: node.children?.length ?? 0,
+    });
+    if (node.children?.length) {
+      items.push(...flattenProjectNodes(node.children, depth + 1));
+    }
+  }
+  return items;
+}
+
 /** Resolve whether a project path is inside a git repository. */
 async function resolveGitProjectStatus(
   projectRootPath: string,
-  workspaceRootPath?: string,
+  storageRootPath?: string,
 ): Promise<boolean> {
   const resolvedProjectRoot = path.resolve(projectRootPath);
-  const resolvedWorkspaceRoot = workspaceRootPath
-    ? path.resolve(workspaceRootPath)
+  const resolvedStorageRoot = storageRootPath
+    ? path.resolve(storageRootPath)
     : "";
-  const shouldBoundWorkspace =
-    Boolean(resolvedWorkspaceRoot) &&
-    (resolvedProjectRoot === resolvedWorkspaceRoot ||
-      resolvedProjectRoot.startsWith(resolvedWorkspaceRoot + path.sep));
-  const limitRoot = shouldBoundWorkspace ? resolvedWorkspaceRoot : "";
+  const shouldBoundStorageRoot =
+    Boolean(resolvedStorageRoot) &&
+    (resolvedProjectRoot === resolvedStorageRoot ||
+      resolvedProjectRoot.startsWith(resolvedStorageRoot + path.sep));
+  const limitRoot = shouldBoundStorageRoot ? resolvedStorageRoot : "";
   const filesystemRoot = path.parse(resolvedProjectRoot).root;
   let cursor = resolvedProjectRoot;
-  // 逻辑：在工作区内则限制向上扫描到工作区根，否则只扫描到文件系统根。
+  // 逻辑：项目位于存储根内时，向上扫描会限制到该存储根；否则只扫描到文件系统根。
   // 逻辑：从项目根目录向上查找 .git，命中即视为 Git 项目。
   while (true) {
     const gitPath = path.join(cursor, ".git");
@@ -208,7 +294,7 @@ function resolveChildProjectPath(rootPath: string, childName: string): string | 
 async function readProjectTree(
   projectRootPath: string,
   projectIdOverride?: string,
-  workspaceRootPath?: string,
+  storageRootPath?: string,
   rootUriOverride?: string,
 ): Promise<ProjectNode | null> {
   try {
@@ -231,7 +317,7 @@ async function readProjectTree(
         const childNode = await readProjectTree(
           childPath,
           childProjectId,
-          workspaceRootPath,
+          storageRootPath,
           childRootUri,
         );
         if (childNode) childNodes.push(childNode);
@@ -245,7 +331,7 @@ async function readProjectTree(
         const childNode = await readProjectTree(
           childPath,
           undefined,
-          workspaceRootPath,
+          storageRootPath,
         );
         if (childNode) childNodes.push(childNode);
       }
@@ -257,7 +343,7 @@ async function readProjectTree(
     }
     const isGitProject = await resolveGitProjectStatus(
       projectRootPath,
-      workspaceRootPath,
+      storageRootPath,
     );
     return {
       projectId,
@@ -275,18 +361,16 @@ async function readProjectTree(
   }
 }
 
-/** Read the project trees from a workspace. */
-export async function readWorkspaceProjectTrees(workspaceId?: string): Promise<ProjectNode[]> {
-  const trimmedId = typeof workspaceId === "string" ? workspaceId.trim() : "";
-  const workspace = trimmedId ? getWorkspaceById(trimmedId) : getActiveWorkspace();
-  if (!workspace) return [];
-  let workspaceRootPath: string | undefined;
+/** Read the project trees from the top-level project registry. */
+export async function readProjectTrees(): Promise<ProjectNode[]> {
+  const projectStorageRootUri = getProjectStorageRootUri();
+  let projectStorageRootPath: string | undefined;
   try {
-    workspaceRootPath = resolveFilePathFromUri(workspace.rootUri);
+    projectStorageRootPath = resolveFilePathFromUri(projectStorageRootUri);
   } catch {
-    workspaceRootPath = undefined;
+    projectStorageRootPath = undefined;
   }
-  const projectEntries = getWorkspaceProjectEntries(workspace.id);
+  const projectEntries = getProjectRegistryEntries();
   const projects: ProjectNode[] = [];
   for (const [projectId, rootUri] of projectEntries) {
     let rootPath: string;
@@ -298,12 +382,62 @@ export async function readWorkspaceProjectTrees(workspaceId?: string): Promise<P
     const node = await readProjectTree(
       rootPath,
       projectId,
-      workspaceRootPath,
+      projectStorageRootPath,
       rootUri
     );
     if (node) projects.push(node);
   }
   return projects;
+}
+
+/** List top-level project trees as a flattened paginated collection. */
+export async function listProjectListPage(input?: {
+  cursor?: string | null;
+  pageSize?: number | null;
+  search?: string | null;
+  projectType?: string | null;
+}): Promise<ProjectListPage> {
+  const trees = await readProjectTrees();
+  let items = flattenProjectNodes(trees);
+
+  const search = input?.search?.trim().toLowerCase();
+  if (search) {
+    items = items.filter(
+      (item) => {
+        if (item.title.toLowerCase().includes(search)) return true;
+        if (item.rootUri.toLowerCase().includes(search)) return true;
+        try {
+          return resolveFilePathFromUri(item.rootUri).toLowerCase().includes(search);
+        } catch {
+          return false;
+        }
+      },
+    );
+  }
+
+  const projectType = input?.projectType?.trim();
+  if (projectType) {
+    items = items.filter(
+      (item) => normalizeProjectListType(item.projectType) === projectType,
+    );
+  }
+
+  const total = items.length;
+  const cursor = input?.cursor?.trim() || null;
+  const pageSize = normalizeProjectListPageSize(input?.pageSize);
+  const offset = Math.min(decodeProjectListCursor(cursor), total);
+  const pageItems = items.slice(offset, offset + pageSize);
+  const nextOffset = offset + pageItems.length;
+  const hasMore = nextOffset < total;
+
+  return {
+    items: pageItems,
+    total,
+    cursor,
+    nextCursor: hasMore ? String(nextOffset) : null,
+    pageSize,
+    hasMore,
+  };
 }
 
 /** Find a project node and its parent id from tree. */

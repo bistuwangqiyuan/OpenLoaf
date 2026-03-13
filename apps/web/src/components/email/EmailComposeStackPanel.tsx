@@ -13,7 +13,6 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { EmailForwardEditor } from "./EmailForwardEditor";
 import { EMAIL_GLASS_PANEL_CLASS } from "./email-style-system";
 import { useEmailPageState } from "./use-email-page-state";
@@ -21,16 +20,12 @@ import { useEmailPageState } from "./use-email-page-state";
 type EmailComposeStackPanelProps = {
   panelKey: string;
   tabId: string;
-  workspaceId?: string;
 };
 
 export default function EmailComposeStackPanel({
-  workspaceId,
 }: EmailComposeStackPanelProps) {
   const { t } = useTranslation('common');
-  const { workspace } = useWorkspace();
-  const resolvedWorkspaceId = workspaceId ?? workspace?.id;
-  const { detail } = useEmailPageState({ workspaceId: resolvedWorkspaceId });
+  const { detail } = useEmailPageState();
 
   useEffect(() => {
     if (detail.composeDraft || detail.forwardDraft) return;

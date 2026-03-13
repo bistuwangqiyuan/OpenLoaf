@@ -52,7 +52,7 @@ export default function FolderTreePreview({
   projectId,
   projectTitle,
 }: FolderTreePreviewProps) {
-  const { t } = useTranslation(['workspace']);
+  const { t } = useTranslation(['project']);
   const [selectedUris, setSelectedUris] = useState<Set<string>>(() => {
     const initial = currentUri?.trim();
     return initial ? new Set([initial]) : new Set();
@@ -89,7 +89,7 @@ export default function FolderTreePreview({
 
   const viewer = useMemo(() => {
     if (!selectedEntry) {
-      return <div className="h-full w-full p-4 text-muted-foreground">{t('workspace:filesystem.noFileSelected')}</div>;
+      return <div className="h-full w-full p-4 text-muted-foreground">{t('project:filesystem.noFileSelected')}</div>;
     }
     const effectiveViewerRootUri = viewerRootUri ?? rootUri;
     // 逻辑：文件树单击使用统一预览入口的嵌入模式。
@@ -101,13 +101,13 @@ export default function FolderTreePreview({
       mode: "embed",
     });
     if (!content || typeof content === "boolean") {
-      return <div className="h-full w-full p-4 text-muted-foreground">{t('workspace:filesystem.cannotPreview')}</div>;
+      return <div className="h-full w-full p-4 text-muted-foreground">{t('project:filesystem.cannotPreview')}</div>;
     }
     return <>{content}</>;
   }, [projectId, rootUri, selectedEntry, t, viewerRootUri]);
 
   if (!rootUri) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t('workspace:filesystem.directoryNotFound')}</div>;
+    return <div className="h-full w-full p-4 text-muted-foreground">{t('project:filesystem.directoryNotFound')}</div>;
   }
 
   return (

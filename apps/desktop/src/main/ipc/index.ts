@@ -41,9 +41,12 @@ import { createSpeechRecognitionManager } from '../speechRecognition';
 import { captureWebMeta } from './captureWebMeta';
 import { createCalendarService } from '../calendar/calendarService';
 import { createCalendarSync } from '../calendar/calendarSync';
+import { convertDocxToSfdt } from '../docxSfdt';
+import { resolveLocalPath } from '../resolveLocalPath';
 import { resolveWindowIconInfo } from '../resolveWindowIcon';
 import { updateTrayBadge, refreshTrayMenu } from '../tray';
 import { setLanguage, getMinimizeToTray, setMinimizeToTray } from '../updateConfig';
+import { createProjectWindow } from '../windows/projectWindow';
 
 let ipcHandlersRegistered = false;
 
@@ -64,46 +67,6 @@ const TRANSFER_PROGRESS_THROTTLE_MS = 120;
 // 中文注释：兜底拖拽图标，保证 macOS 上 icon 非空。
 const FALLBACK_DRAG_ICON_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7n2U8VQAAAABJRU5ErkJggg==';
-
-/** Normalize file:// URI for cross-platform parsing. */
-function normalizeFileUri(raw: string): string {
-  let normalized = raw.trim();
-  if (normalized.startsWith('file:/') && !normalized.startsWith('file://')) {
-    normalized = `file:///${normalized.slice('file:/'.length)}`;
-  } else if (normalized.startsWith('file://') && !normalized.startsWith('file:///')) {
-    normalized = `file:///${normalized.slice('file://'.length)}`;
-  }
-  return normalized.replace(/\\/g, '/');
-}
-
-/** Resolve a local filesystem path from a file:// URI or raw path. */
-function resolveLocalPath(input: string): string | null {
-  const raw = String(input ?? '').trim();
-  if (!raw) return null;
-  if (raw.startsWith('file:')) {
-    const normalized = normalizeFileUri(raw);
-    try {
-      return fileURLToPath(normalized);
-    } catch {
-      // 中文注释：处理非标准 file:// 路径，避免主进程崩溃。
-      const stripped = normalized.replace(/^file:\/\//, '');
-      const decoded = decodeURIComponent(stripped);
-      const withoutHost = decoded.startsWith('localhost/')
-        ? decoded.slice('localhost/'.length)
-        : decoded;
-      let candidate = withoutHost;
-      if (candidate.startsWith('/') && /^[a-zA-Z]:/.test(candidate.slice(1))) {
-        candidate = candidate.slice(1);
-      }
-      candidate = candidate.replace(/\//g, path.sep);
-      if (path.isAbsolute(candidate) || /^[a-zA-Z]:[\\/]/.test(candidate)) {
-        return candidate;
-      }
-      return null;
-    }
-  }
-  return raw;
-}
 
 /** Compute directory size recursively. */
 async function getDirectorySizeBytes(dirPath: string): Promise<number> {
@@ -365,6 +328,37 @@ export function registerIpcHandlers(args: { log: Logger }) {
     return { id: win.id };
   });
 
+  // 在独立应用窗口中打开项目上下文。
+  ipcMain.handle(
+    'openloaf:open-project-window',
+    async (
+      _event,
+      payload: {
+        projectId?: string;
+        rootUri?: string;
+        title?: string;
+        icon?: string | null;
+      },
+    ) => {
+      const projectId = String(payload?.projectId ?? '').trim();
+      const rootUri = String(payload?.rootUri ?? '').trim();
+      const title = String(payload?.title ?? '').trim();
+      if (!projectId || !rootUri || !title) {
+        throw new Error('Invalid project window payload');
+      }
+      const webUrl = process.env.OPENLOAF_WEB_URL || (app.isPackaged ? 'app://localhost' : 'http://127.0.0.1:3000');
+      const win = createProjectWindow({
+        log: args.log,
+        webUrl,
+        projectId,
+        rootUri,
+        title,
+        icon: payload?.icon ?? undefined,
+      });
+      return { id: win.id };
+    },
+  );
+
   // 使用系统默认浏览器打开外部 URL。
   ipcMain.handle('openloaf:open-external', async (_event, payload: { url: string }) => {
     const url = String(payload?.url ?? '').trim();
@@ -387,6 +381,17 @@ export function registerIpcHandlers(args: { log: Logger }) {
         rootUri: String(payload?.rootUri ?? '').trim(),
       });
     }
+  );
+
+  // 本地 DOCX 转 SFDT，供桌面端 Syncfusion 文档编辑器离线导入。
+  ipcMain.handle(
+    'openloaf:office:convert-docx-to-sfdt',
+    async (_event, payload: { uri?: string }) => {
+      return await convertDocxToSfdt({
+        uri: String(payload?.uri ?? '').trim(),
+        log: args.log,
+      });
+    },
   );
 
   // 调用系统语音识别（macOS helper）。渲染端通过事件接收识别文本。
@@ -419,26 +424,20 @@ export function registerIpcHandlers(args: { log: Logger }) {
 
   // 设置系统日历同步范围（页面进入/切换后更新）。
   ipcMain.handle('openloaf:calendar:set-sync-range', async (_event, payload: {
-    workspaceId: string;
     range?: { start: string; end: string };
   }) => {
-    const workspaceId = String(payload?.workspaceId ?? '').trim();
-    if (!workspaceId) return { ok: false as const, reason: 'workspaceId required' };
-    calendarSync.setSyncContext({ workspaceId, viewRange: payload?.range });
+    calendarSync.setSyncContext({ viewRange: payload?.range });
     calendarSync.startTimer();
     return { ok: true as const };
   });
 
   // 立即触发系统日历同步。
   ipcMain.handle('openloaf:calendar:sync', async (_event, payload: {
-    workspaceId: string;
     range?: { start: string; end: string };
   }) => {
-    const workspaceId = String(payload?.workspaceId ?? '').trim();
-    if (!workspaceId) return { ok: false as const, reason: 'workspaceId required' };
-    calendarSync.setSyncContext({ workspaceId, viewRange: payload?.range });
+    calendarSync.setSyncContext({ viewRange: payload?.range });
     calendarSync.startTimer();
-    await calendarSync.syncNow({ workspaceId, viewRange: payload?.range });
+    await calendarSync.syncNow({ viewRange: payload?.range });
     return { ok: true as const };
   });
 
@@ -819,7 +818,7 @@ export function registerIpcHandlers(args: { log: Logger }) {
     }
   );
 
-  // Copy a local file/folder into the workspace and report progress to renderer.
+  // Copy a local file/folder into the project storage root and report progress to renderer.
   ipcMain.handle('openloaf:fs:transfer-start', async (event, payload: TransferStartPayload) => {
     const id = String(payload?.id ?? '').trim();
     const sourcePath = resolveLocalPath(payload?.sourcePath ?? '');

@@ -212,10 +212,30 @@
     "exportFailed": "會話匯出失敗，請稍後重試",
     "exportFailedWithMessage": "會話匯出失敗：{{message}}"
   },
+  "copyToCanvas": {
+    "button": "複製到畫布",
+    "title": "複製對話到畫布",
+    "description": "會將目前對話複製一份到畫布中，原始對話會保留不變。",
+    "targetMode": "匯入位置",
+    "createNew": "新建畫布",
+    "useExisting": "既有畫布",
+    "targetBoard": "目標畫布",
+    "targetPlaceholder": "請選擇畫布",
+    "emptyBoards": "目前範圍內還沒有可匯入的畫布",
+    "sessionMissing": "找不到目前會話",
+    "targetRequired": "請選擇目標畫布",
+    "rootMissing": "找不到畫布資料夾",
+    "confirm": "複製",
+    "cancel": "取消",
+    "submitting": "複製中…",
+    "successNew": "已複製到新畫布",
+    "successExisting": "已複製到畫布",
+    "failed": "複製到畫布失敗"
+  },
   "image": {
     "noEditingSupport": "目前模型不支援影像編輯",
     "noInputSupport": "目前模型不支援影像輸入",
-    "workspaceRequired": "目前標籤頁未繫結工作區，無法上傳影像",
+    "projectSpaceRequired": "目前標籤頁未繫結專案空間，無法上傳影像",
     "uploadFailed": "影像上傳失敗，請重試",
     "noServerUrl": "影像上傳失敗：伺服器未回傳地址",
     "networkError": "影像上傳失敗，請檢查網路連線",
@@ -418,7 +438,7 @@
     "confirm": "啟用"
   },
   "projectSelector": {
-    "workspace": "工作空間",
+    "projectSpace": "專案空間",
     "searchProject": "搜尋專案...",
     "noProjectFound": "未找到專案",
     "projects": "專案",

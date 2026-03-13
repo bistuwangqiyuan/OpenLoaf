@@ -202,7 +202,7 @@ function FeatureIntroDialog({
 /** Quick launch bar shown at bottom of full-page empty state. */
 function QuickLaunchBar({ projectId }: { projectId?: string }) {
   const { t } = useTranslation('ai')
-  const { t: tWorkspace } = useTranslation('workspace')
+  const { t: tProject } = useTranslation('project')
   const { tabId } = useChatSession()
   const { data: projectData, invalidateProject } = useProject(projectId || undefined)
   const [introFeature, setIntroFeature] = React.useState<"index" | "tasks" | null>(null)
@@ -223,7 +223,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
     return [...active, ...inactive]
   }, [projectId, initFeatures, isAllActive])
 
-  const handleWorkspaceQuickLaunch = React.useCallback(
+  const handleGlobalQuickLaunch = React.useCallback(
     (item: (typeof QUICK_LAUNCH_ITEMS)[number]) => {
       if (!tabId) return
       const tabState = useTabs.getState()
@@ -303,7 +303,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
         {items.map((item, index) => {
           const Icon = item.icon
           const label = projectId
-            ? tWorkspace((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
+            ? tProject((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
             : t((item as (typeof QUICK_LAUNCH_ITEMS)[number]).labelKey)
           const isInactive = projectId && !isAllActive
             && (item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).featureGated
@@ -316,7 +316,7 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
               onClick={() =>
                 projectId
                   ? handleProjectItemClick(item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number])
-                  : handleWorkspaceQuickLaunch(item as (typeof QUICK_LAUNCH_ITEMS)[number])
+                  : handleGlobalQuickLaunch(item as (typeof QUICK_LAUNCH_ITEMS)[number])
               }
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: isInactive ? 0.5 : 1, y: 0 }}
@@ -355,7 +355,6 @@ function ChatFullPageLayout({
   onNewSession,
   onCloseSession,
   projectId,
-  workspaceId,
   attachments,
   onAddAttachments,
   onRemoveAttachment,
@@ -378,7 +377,6 @@ function ChatFullPageLayout({
   onNewSession?: () => void
   onCloseSession?: () => void
   projectId?: string
-  workspaceId?: string
   attachments: ChatAttachment[]
   onAddAttachments: (files: FileList | ChatAttachmentInput[]) => void
   onRemoveAttachment: (id: string) => void
@@ -457,7 +455,7 @@ function ChatFullPageLayout({
                 blockedCompact
               />
               <div className="mt-4">
-                <MessageHelper compact projectId={projectId} workspaceId={workspaceId || undefined} />
+                <MessageHelper compact projectId={projectId} />
               </div>
             </div>
           </div>
@@ -465,7 +463,7 @@ function ChatFullPageLayout({
         </div>
       ) : (
         <div className="flex flex-1 flex-col min-h-0">
-          <MessageList className="flex-1 min-h-0" projectId={projectId} workspaceId={workspaceId || undefined} />
+          <MessageList className="flex-1 min-h-0" projectId={projectId} />
           <RecentSessionsBar />
           <ChatInput
             className="mx-2 mb-2"
@@ -562,20 +560,14 @@ export function Chat({
   const sessionIdRef = React.useRef<string>(sessionId ?? createChatSessionId());
   const effectiveSessionId = sessionId ?? sessionIdRef.current;
   const effectiveLoadHistory = loadHistory ?? Boolean(sessionId);
-  const workspaceId =
-    tab?.workspaceId ??
-    (typeof rawParams.workspaceId === "string" ? rawParams.workspaceId.trim() : "");
   const projectId =
     typeof rawParams.projectId === "string" ? rawParams.projectId.trim() : "";
   const requestParams = React.useMemo(() => {
     const nextParams: Record<string, unknown> = { ...rawParams };
-    // workspaceId/projectId 放入 SSE 请求体，避免后端缺失绑定信息。
-    if (workspaceId) nextParams.workspaceId = workspaceId;
-    else delete (nextParams as any).workspaceId;
     if (projectId) nextParams.projectId = projectId;
     else delete (nextParams as any).projectId;
     return nextParams;
-  }, [rawParams, workspaceId, projectId]);
+  }, [rawParams, projectId]);
   const {
     chatModelSource,
     selectedModelId,
@@ -667,9 +659,6 @@ export function Chat({
   /** Upload a file and return the remote url payload. */
   const uploadFile = React.useCallback(
     async (input: ChatAttachmentSource) => {
-      if (!workspaceId) {
-        return { ok: false as const, errorMessage: t('image.workspaceRequired') };
-      }
       // 上传后端生成相对路径，后续仅存该引用。
       const formData = new FormData();
       const sourceUrl = input.sourceUrl?.trim();
@@ -679,8 +668,6 @@ export function Chat({
       } else {
         formData.append("file", input.file);
       }
-      formData.append("workspaceId", workspaceId);
-      // 无项目时退回到 workspace 根目录。
       if (projectId) formData.append("projectId", projectId);
       formData.append("sessionId", effectiveSessionId);
 
@@ -717,7 +704,7 @@ export function Chat({
         return { ok: false as const, errorMessage: t('image.networkError') };
       }
     },
-    [effectiveSessionId, projectId, workspaceId]
+    [effectiveSessionId, projectId, t]
   );
 
   /** Upload the main attachment file. */
@@ -1191,7 +1178,6 @@ export function Chat({
           onNewSession={onNewSession}
           onCloseSession={onCloseSession}
           projectId={projectId}
-          workspaceId={workspaceId || undefined}
           {...sharedInputProps}
           handleDragEnter={handleDragEnter}
           handleDragOver={handleDragOver}
@@ -1213,7 +1199,7 @@ export function Chat({
             iconPalette="email"
             enableMultiSession={enableMultiSession}
           />
-          <MessageList className="flex-1 min-h-0" projectId={projectId} workspaceId={workspaceId || undefined} />
+          <MessageList className="flex-1 min-h-0" projectId={projectId} />
           <RecentSessionsBar />
           <ChatInput
             className="mx-2 mb-2"

@@ -13,16 +13,14 @@ import { homedir } from "node:os";
 import {
   BaseSettingRouter,
   getProjectRootPath,
-  getWorkspaceRootPath,
   settingSchemas,
   shieldedProcedure,
   t,
 } from "@openloaf/api";
 import {
-  getActiveWorkspace,
   resolveFilePathFromUri,
 } from "@openloaf/api/services/vfsService";
-import { getWorkspaces, setWorkspaces } from "@openloaf/api/services/workspaceConfig";
+import { getOpenLoafRootDir, resolveScopedOpenLoafPath } from "@openloaf/config";
 import {
   getProjectMetaPath,
   projectConfigSchema,
@@ -57,6 +55,7 @@ import { resolveSystemCliInfo } from "@/modules/settings/resolveSystemCliInfo";
 import { resolveOfficeInfo } from "@/modules/settings/resolveOfficeInfo";
 import { isSystemAgentId } from "@/ai/shared/systemAgentDefinitions";
 import { getErrorMessage } from "@/shared/errorMessages";
+import { getDefaultProjectStorageRootUri } from "@openloaf/api/services/appConfigService";
 
 /** Normalize ignoreSkills list for persistence. */
 function normalizeIgnoreSkills(values?: unknown): string[] {
@@ -67,29 +66,19 @@ function normalizeIgnoreSkills(values?: unknown): string[] {
   return Array.from(new Set(trimmed));
 }
 
-/** Normalize workspace ignore keys to workspace: or global: prefix. */
-function normalizeWorkspaceIgnoreKeys(values?: unknown): string[] {
+/** Normalize global ignore keys. */
+function normalizeGlobalIgnoreKeys(values?: unknown): string[] {
   const keys = normalizeIgnoreSkills(values);
-  return keys
-    .map((key) => {
-      if (key.startsWith("workspace:") || key.startsWith("global:")) return key;
-      return `workspace:${key}`;
-    })
-    .filter((key) => key.startsWith("workspace:") || key.startsWith("global:"));
+  return Array.from(new Set(keys.map(normalizeGlobalIgnoreKey).filter(Boolean)));
 }
 
-/** Normalize a workspace-level ignore key (workspace: or global: prefix). */
-function normalizeWorkspaceIgnoreKey(ignoreKey: string): string {
+/** Normalize a global ignore key. */
+function normalizeGlobalIgnoreKey(ignoreKey: string): string {
   const trimmed = ignoreKey.trim();
   if (!trimmed) return "";
-  if (trimmed.startsWith("workspace:") || trimmed.startsWith("global:")) return trimmed;
-  return `workspace:${trimmed}`;
-}
-
-/** Build workspace ignore key from folder name. */
-function buildWorkspaceIgnoreKey(folderName: string): string {
-  const trimmed = folderName.trim();
-  return trimmed ? `workspace:${trimmed}` : "";
+  if (trimmed.startsWith("global:")) return trimmed;
+  if (trimmed.includes(":")) return "";
+  return `global:${trimmed}`;
 }
 
 /** Build global ignore key from folder name. */
@@ -174,35 +163,28 @@ async function updateProjectIgnoreSkills(input: {
   await writeJsonAtomic(metaPath, { ...parsed, ignoreSkills: nextIgnoreSkills });
 }
 
-/** Read ignoreSkills from active workspace config. */
-function readWorkspaceIgnoreSkills(): string[] {
+/** Read ignoreSkills from global app config. */
+function readGlobalIgnoreSkills(): string[] {
   try {
-    const workspace = getActiveWorkspace();
-    return normalizeWorkspaceIgnoreKeys(workspace.ignoreSkills);
+    const { getAppConfig } = require("@openloaf/api/services/appConfigService") as typeof import("@openloaf/api/services/appConfigService");
+    const config = getAppConfig();
+    return normalizeGlobalIgnoreKeys(config.ignoreSkills);
   } catch {
     return [];
   }
 }
 
-/** Update ignoreSkills in active workspace config. */
-function updateWorkspaceIgnoreSkills(input: { ignoreKey: string; enabled: boolean }, lang: string = 'en-US'): void {
-  const workspaces = getWorkspaces();
-  const activeIndex = workspaces.findIndex((workspace) => workspace.isActive);
-  const targetIndex = activeIndex >= 0 ? activeIndex : 0;
-  const target = workspaces[targetIndex];
-  if (!target) {
-    throw new Error(getErrorMessage('ACTIVE_WORKSPACE_NOT_FOUND', lang));
-  }
-  const normalizedKey = normalizeWorkspaceIgnoreKey(input.ignoreKey);
+/** Update ignoreSkills in global app config. */
+function updateGlobalIgnoreSkills(input: { ignoreKey: string; enabled: boolean }): void {
+  const { getAppConfig, setAppConfig } = require("@openloaf/api/services/appConfigService") as typeof import("@openloaf/api/services/appConfigService");
+  const config = getAppConfig();
+  const normalizedKey = normalizeGlobalIgnoreKey(input.ignoreKey);
   if (!normalizedKey) return;
-  const current = normalizeWorkspaceIgnoreKeys(target.ignoreSkills);
+  const current = normalizeGlobalIgnoreKeys(config.ignoreSkills);
   const nextIgnoreSkills = input.enabled
     ? current.filter((name) => name !== normalizedKey)
     : Array.from(new Set([...current, normalizedKey]));
-  const nextWorkspaces = workspaces.map((workspace, index) =>
-    index === targetIndex ? { ...workspace, ignoreSkills: nextIgnoreSkills } : workspace
-  );
-  setWorkspaces(nextWorkspaces);
+  setAppConfig({ ...config, ignoreSkills: nextIgnoreSkills });
 }
 
 /** Normalize an absolute path for comparison. */
@@ -222,13 +204,13 @@ function normalizeSkillPath(rawPath: string): string {
 
 /** Resolve skill directory and scope root for deletion. */
 function resolveSkillDeleteTarget(input: {
-  scope: "workspace" | "project";
+  scope: "global" | "project";
   projectId?: string;
   skillPath: string;
 }): { skillDir: string; skillsRoot: string } {
   const baseRootPath =
-    input.scope === "workspace"
-      ? getWorkspaceRootPath()
+    input.scope === "global"
+      ? getOpenLoafRootDir()
       : input.projectId
         ? getProjectRootPath(input.projectId) ?? ""
         : "";
@@ -251,13 +233,13 @@ function resolveSkillDeleteTarget(input: {
 
 /** Resolve agent directory and scope root for deletion. */
 function resolveAgentDeleteTarget(input: {
-  scope: "workspace" | "project";
+  scope: "global" | "project";
   projectId?: string;
   agentPath: string;
 }): { agentDir: string; agentsRoot: string } {
   const baseRootPath =
-    input.scope === "workspace"
-      ? getWorkspaceRootPath()
+    input.scope === "global"
+      ? getOpenLoafRootDir()
       : input.projectId
         ? getProjectRootPath(input.projectId) ?? ""
         : "";
@@ -277,7 +259,7 @@ function resolveAgentDeleteTarget(input: {
   }
   const agentDir = normalizeFsPath(path.dirname(normalizedAgentPath));
   const agentsRoot = isOpenLoafAgent
-    ? normalizeFsPath(path.join(baseRootPath, ".openloaf", "agents"))
+    ? normalizeFsPath(resolveScopedOpenLoafPath(baseRootPath, "agents"))
     : normalizeFsPath(path.join(baseRootPath, ".agents", "agents"));
   if (agentDir === agentsRoot || !agentDir.startsWith(`${agentsRoot}${path.sep}`)) {
     throw new Error("Agent path is outside scope.");
@@ -330,6 +312,13 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .query(async () => {
           return await getBasicConfigForWeb();
         }),
+      getProjectStorageRoot: shieldedProcedure
+        .output(settingSchemas.getProjectStorageRoot.output)
+        .query(async () => {
+          return {
+            rootUri: getDefaultProjectStorageRootUri(),
+          };
+        }),
       getCliToolsStatus: shieldedProcedure
         .output(settingSchemas.getCliToolsStatus.output)
         .query(async () => {
@@ -363,7 +352,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.getSkills.input)
         .output(settingSchemas.getSkills.output)
         .query(async ({ input }) => {
-          const workspaceRootPath = getWorkspaceRootPath();
           const projectRootPath = input?.projectId
             ? getProjectRootPath(input.projectId) ?? undefined
             : undefined;
@@ -384,10 +372,9 @@ export class SettingRouterImpl extends BaseSettingRouter {
                 Boolean(entry),
             );
           const parentProjectRootPaths = parentRootEntries.map((entry) => entry.rootPath);
-          const workspaceIgnoreSkills = readWorkspaceIgnoreSkills();
+          const globalIgnoreSkills = readGlobalIgnoreSkills();
           const projectIgnoreSkills = await readProjectIgnoreSkills(projectRootPath);
           const summaries = loadSkillSummaries({
-            workspaceRootPath,
             projectRootPath,
             parentProjectRootPaths,
             globalSkillsPath: resolveGlobalSkillsPath(),
@@ -431,9 +418,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
             const ignoreKey =
               summary.scope === "global"
                 ? buildGlobalIgnoreKey(summary.folderName)
-                : summary.scope === "workspace"
-                  ? buildWorkspaceIgnoreKey(summary.folderName)
-                  : buildProjectIgnoreKey({
+                : buildProjectIgnoreKey({
                       folderName: summary.folderName,
                       ownerProjectId,
                       currentProjectId: input?.projectId ?? null,
@@ -442,26 +427,22 @@ export class SettingRouterImpl extends BaseSettingRouter {
               summary.scope === "global"
                 ? input?.projectId
                   ? !projectIgnoreSkills.includes(ignoreKey)
-                  : !workspaceIgnoreSkills.includes(ignoreKey)
-                : summary.scope === "workspace"
-                  ? input?.projectId
-                    ? !projectIgnoreSkills.includes(ignoreKey)
-                    : !workspaceIgnoreSkills.includes(ignoreKey)
-                  : !projectIgnoreSkills.includes(ignoreKey);
+                  : !globalIgnoreSkills.includes(ignoreKey)
+                : !projectIgnoreSkills.includes(ignoreKey);
             // 全局技能不可删除（位于用户主目录）。
             const isDeletable = summary.scope === "global"
               ? false
               : input?.projectId
                 ? summary.scope === "project" && ownerProjectId === input.projectId
-                : summary.scope === "workspace";
+                : false;
             return { ...summary, ignoreKey, isEnabled, isDeletable };
           });
-          // 工作空间级别或全局级别关闭后不在项目列表展示。
+          // 全局级别关闭后不在项目列表展示。
           if (input?.projectId) {
             return items.filter(
               (item) =>
-                (item.scope !== "workspace" && item.scope !== "global") ||
-                !workspaceIgnoreSkills.includes(item.ignoreKey)
+                item.scope !== "global" ||
+                !globalIgnoreSkills.includes(item.ignoreKey)
             );
           }
           return items;
@@ -474,12 +455,12 @@ export class SettingRouterImpl extends BaseSettingRouter {
           if (!ignoreKey) {
             throw new Error(getErrorMessage('IGNORE_KEY_REQUIRED', ctx.lang));
           }
-          // 全局技能与工作空间技能共用 workspace 级别的 ignoreSkills 列表。
-          if (input.scope === "workspace" || input.scope === "global") {
-            updateWorkspaceIgnoreSkills({
+          // 全局技能共用 global 级别的 ignoreSkills 列表。
+          if (input.scope === "global") {
+            updateGlobalIgnoreSkills({
               ignoreKey,
               enabled: input.enabled,
-            }, ctx.lang);
+            });
             return { ok: true };
           }
           const projectId = input.projectId?.trim();
@@ -510,10 +491,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
             throw new Error("Global skills cannot be deleted from settings.");
           }
           if (input.scope === "project") {
-            // 项目页只允许删除当前项目技能，禁止 workspace/父项目。
-            if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Workspace skills cannot be deleted here.");
-            }
+            // 项目页只允许删除当前项目技能，禁止父项目。
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();
               if (prefix && prefix !== input.projectId) {
@@ -527,10 +505,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
             skillPath: input.skillPath,
           });
           await fs.rm(target.skillDir, { recursive: true, force: true });
-          if (input.scope === "workspace") {
-            updateWorkspaceIgnoreSkills({ ignoreKey, enabled: true });
-            return { ok: true };
-          }
           const projectId = input.projectId?.trim();
           if (!projectId) {
             throw new Error("Project id is required.");
@@ -551,7 +525,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.getAgents.input)
         .output(settingSchemas.getAgents.output)
         .query(async ({ input }) => {
-          const workspaceRootPath = getWorkspaceRootPath();
           const projectRootPath = input?.projectId
             ? getProjectRootPath(input.projectId) ?? undefined
             : undefined;
@@ -572,10 +545,9 @@ export class SettingRouterImpl extends BaseSettingRouter {
                 Boolean(entry),
             );
           const parentProjectRootPaths = parentRootEntries.map((e) => e.rootPath);
-          const workspaceIgnoreSkills = readWorkspaceIgnoreSkills();
+          const globalIgnoreSkills = readGlobalIgnoreSkills();
           const projectIgnoreSkills = await readProjectIgnoreSkills(projectRootPath);
           const summaries = loadAgentSummaries({
-            workspaceRootPath,
             projectRootPath,
             parentProjectRootPaths,
             globalAgentsPath: resolveGlobalAgentsPath(),
@@ -610,10 +582,9 @@ export class SettingRouterImpl extends BaseSettingRouter {
           // 逻辑：加载额外项目的 agent（全部项目 / 子项目）
           const childProjectPaths = new Set<string>()
           if (!input?.projectId && input?.includeAllProjects) {
-            const workspace = getActiveWorkspace()
-            if (workspace) {
+            {
               const allProjects = await prisma.project.findMany({
-                where: { workspaceId: workspace.id, isDeleted: false },
+                where: { isDeleted: false },
                 select: { id: true, rootUri: true },
               })
               for (const proj of allProjects) {
@@ -660,9 +631,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
             const ignoreKey =
               summary.scope === "global"
                 ? buildGlobalIgnoreKey(summary.folderName)
-                : summary.scope === "workspace"
-                  ? buildWorkspaceIgnoreKey(summary.folderName)
-                  : buildProjectIgnoreKey({
+                : buildProjectIgnoreKey({
                       folderName: summary.folderName,
                       ownerProjectId,
                       currentProjectId: input?.projectId ?? null,
@@ -671,12 +640,8 @@ export class SettingRouterImpl extends BaseSettingRouter {
               summary.scope === "global"
                 ? input?.projectId
                   ? !projectIgnoreSkills.includes(`agent:${ignoreKey}`)
-                  : !workspaceIgnoreSkills.includes(`agent:${ignoreKey}`)
-                : summary.scope === "workspace"
-                  ? input?.projectId
-                    ? !projectIgnoreSkills.includes(`agent:${ignoreKey}`)
-                    : !workspaceIgnoreSkills.includes(`agent:${ignoreKey}`)
-                  : !projectIgnoreSkills.includes(`agent:${ignoreKey}`);
+                  : !globalIgnoreSkills.includes(`agent:${ignoreKey}`)
+                : !projectIgnoreSkills.includes(`agent:${ignoreKey}`);
             const isOpenLoafAgent = summary.path.includes('.openloaf/agents/') || summary.path.includes('.openloaf\\agents\\');
             const isSysAgent = isOpenLoafAgent && isSystemAgentId(summary.folderName);
             const isDeletable = isSysAgent
@@ -685,7 +650,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
                 ? false
                 : input?.projectId
                   ? summary.scope === "project" && ownerProjectId === input.projectId
-                  : summary.scope === "workspace";
+                  : false;
             const isInherited = summary.scope === "project" && Boolean(input?.projectId) && ownerProjectId !== input?.projectId;
             const isChildProject = childProjectPaths.has(summary.path)
             return { ...summary, ignoreKey, isEnabled, isDeletable, isInherited, isChildProject, isSystem: isSysAgent };
@@ -700,8 +665,8 @@ export class SettingRouterImpl extends BaseSettingRouter {
           if (input?.projectId) {
             return userOnly.filter(
               (item) =>
-                (item.scope !== "workspace" && item.scope !== "global") ||
-                !workspaceIgnoreSkills.includes(`agent:${item.ignoreKey}`),
+                item.scope !== "global" ||
+                !globalIgnoreSkills.includes(`agent:${item.ignoreKey}`),
             );
           }
           return userOnly;
@@ -715,8 +680,8 @@ export class SettingRouterImpl extends BaseSettingRouter {
           if (!ignoreKey) {
             throw new Error("Ignore key is required.");
           }
-          if (input.scope === "workspace" || input.scope === "global") {
-            updateWorkspaceIgnoreSkills({
+          if (input.scope === "global") {
+            updateGlobalIgnoreSkills({
               ignoreKey,
               enabled: input.enabled,
             });
@@ -755,9 +720,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
             throw new Error("Global agents cannot be deleted from settings.");
           }
           if (input.scope === "project") {
-            if (ignoreKey.startsWith("workspace:")) {
-              throw new Error("Workspace agents cannot be deleted here.");
-            }
             if (ignoreKey.includes(":")) {
               const prefix = ignoreKey.split(":")[0]?.trim();
               if (prefix && prefix !== input.projectId) {
@@ -771,10 +733,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
             agentPath: input.agentPath,
           });
           await fs.rm(target.agentDir, { recursive: true, force: true });
-          if (input.scope === "workspace") {
-            updateWorkspaceIgnoreSkills({ ignoreKey: `agent:${ignoreKey}`, enabled: true });
-            return { ok: true };
-          }
           const projectId = input.projectId?.trim();
           if (!projectId) {
             throw new Error("Project id is required.");
@@ -1008,7 +966,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
             writeFsSync(filePath, content, "utf8");
             return { ok: true, agentPath: filePath };
           } else {
-            rootPath = getWorkspaceRootPath();
+            rootPath = getOpenLoafRootDir();
           }
 
           const sanitizedName = input.name.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
@@ -1039,7 +997,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
           }
           return { ok: true, agentPath: jsonPath };
         }),
-      /** Copy a workspace agent to a project. */
+      /** Copy a global agent to a project. */
       copyAgentToProject: shieldedProcedure
         .input(settingSchemas.copyAgentToProject.input)
         .output(settingSchemas.copyAgentToProject.output)
@@ -1077,7 +1035,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
           }
 
           // 逻辑：旧 .agents/agents/ 结构 — 复制 AGENT.md。
-          const config = readAgentConfigFromPath(sourceNormalized, "workspace");
+          const config = readAgentConfigFromPath(sourceNormalized, "global");
           if (!config) throw new Error("Source agent not found.");
           const descriptor = {
             name: config.name,
@@ -1142,7 +1100,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.getMemory.input)
         .output(settingSchemas.getMemory.output)
         .query(async ({ input }) => {
-          const workspaceRootPath = getWorkspaceRootPath();
           const projectRootPath = input?.projectId
             ? getProjectRootPath(input.projectId) ?? undefined
             : undefined;
@@ -1159,7 +1116,6 @@ export class SettingRouterImpl extends BaseSettingRouter {
             })
             .filter((p): p is string => Boolean(p));
           const content = resolveMemoryContent({
-            workspaceRootPath,
             projectRootPath,
             parentProjectRootPaths,
           });
@@ -1172,7 +1128,7 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .mutation(async ({ input }) => {
           const rootPath = input.projectId
             ? getProjectRootPath(input.projectId)
-            : getWorkspaceRootPath();
+            : getOpenLoafRootDir();
           if (!rootPath) return { ok: false };
           writeMemoryFile(rootPath, input.content);
           return { ok: true };
@@ -1182,8 +1138,8 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.getAgentSkillsByName.input)
         .output(settingSchemas.getAgentSkillsByName.output)
         .query(async ({ input }) => {
-          const workspaceRootPath = getWorkspaceRootPath();
-          const roots = [workspaceRootPath].filter(Boolean) as string[];
+          const globalRootPath = getOpenLoafRootDir();
+          const roots = [globalRootPath].filter(Boolean) as string[];
           for (const rootPath of roots) {
             const descriptor = readAgentJson(resolveAgentDir(rootPath, input.agentName));
             if (descriptor) {
@@ -1197,9 +1153,9 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.saveAgentSkillsByName.input)
         .output(settingSchemas.saveAgentSkillsByName.output)
         .mutation(async ({ input }) => {
-          const workspaceRootPath = getWorkspaceRootPath();
-          if (!workspaceRootPath) throw new Error("No workspace root");
-          const agentDir = resolveAgentDir(workspaceRootPath, input.agentName);
+          const globalRootPath = getOpenLoafRootDir();
+          if (!globalRootPath) throw new Error("No global root");
+          const agentDir = resolveAgentDir(globalRootPath, input.agentName);
           const descriptor = readAgentJson(agentDir);
           if (!descriptor) throw new Error(`Agent '${input.agentName}' not found`);
           const jsonPath = path.join(agentDir, "agent.json");
@@ -1570,16 +1526,12 @@ export class SettingRouterImpl extends BaseSettingRouter {
           // Determine scope
           const scope = input.projectId
             ? `project:${input.projectId}`
-            : input.workspaceId
-              ? `workspace:${input.workspaceId}`
-              : "global";
+            : "global";
 
           // Count current sessions for this scope
           const sessionCount = input.projectId
             ? await prisma.chatSession.count({ where: { projectId: input.projectId } })
-            : input.workspaceId
-              ? await prisma.chatSession.count({ where: { workspaceId: input.workspaceId } })
-              : await prisma.chatSession.count();
+            : await prisma.chatSession.count();
 
           // Check JSONL cache
           const cached = readLatestEntry(scope);
@@ -1664,10 +1616,10 @@ export class SettingRouterImpl extends BaseSettingRouter {
         .input(settingSchemas.inferBoardName.input)
         .output(settingSchemas.inferBoardName.output)
         .mutation(async ({ input }) => {
-          const { getWorkspaceRootPathById } = await import(
+          const { getProjectRootPath } = await import(
             "@openloaf/api/services/vfsService"
           );
-          const rootPath = getWorkspaceRootPathById(input.workspaceId);
+          const rootPath = input.projectId ? getProjectRootPath(input.projectId) : null;
           if (!rootPath) return { title: "" };
 
           // boardFolderUri may be a full file:// URI or a relative path like .openloaf/boards/tnboard_xxx

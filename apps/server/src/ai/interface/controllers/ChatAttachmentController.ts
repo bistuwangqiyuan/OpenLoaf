@@ -9,13 +9,14 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { getWorkspaceByIdConfig } from "@openloaf/api/services/workspaceConfig";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   getFilePreview,
   saveChatImageAttachment,
   saveChatImageAttachmentFromPath,
 } from "@/ai/services/image/attachmentResolver";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { resolveSessionFilesDir } from "@/ai/services/chat/repositories/chatFileStore";
 
 /** Max upload size for chat images. */
@@ -24,8 +25,6 @@ const MAX_CHAT_IMAGE_BYTES = 10 * 1024 * 1024;
 const MULTIPART_BOUNDARY_PREFIX = "openloaf-preview";
 
 export type ChatAttachmentBody = {
-  /** Workspace id. */
-  workspaceId?: unknown;
   /** Project id. */
   projectId?: unknown;
   /** Session id. */
@@ -35,8 +34,6 @@ export type ChatAttachmentBody = {
 };
 
 type ParsedChatAttachmentBody = {
-  /** Workspace id. */
-  workspaceId: string;
   /** Project id. */
   projectId?: string;
   /** Session id. */
@@ -70,8 +67,6 @@ type PreviewQueryInput = {
   path?: string;
   /** Project id query string. */
   projectId?: string;
-  /** Workspace id query string. */
-  workspaceId?: string;
   /** Include metadata query flag. */
   includeMetadata?: string;
   /** Max bytes query string. */
@@ -83,8 +78,6 @@ type PreviewQueryResult = {
   path?: string;
   /** Normalized project id. */
   projectId?: string;
-  /** Normalized workspace id. */
-  workspaceId?: string;
   /** Include metadata flag. */
   includeMetadata?: boolean;
   /** Max bytes limit. */
@@ -96,8 +89,6 @@ type PreviewRequestInput = {
   path?: string;
   /** Project id. */
   projectId?: string;
-  /** Workspace id. */
-  workspaceId?: string;
   /** Include metadata flag. */
   includeMetadata?: boolean;
   /** Max bytes limit. */
@@ -154,18 +145,17 @@ function isFileLike(value: unknown): value is File {
 
 /** Parse and normalize chat attachment body. */
 function parseChatAttachmentBody(body: ChatAttachmentBody): ParsedChatAttachmentBody {
-  const workspaceId = toText(body.workspaceId);
   const projectId = toText(body.projectId) || undefined;
   const sessionId = toText(body.sessionId);
   const rawFile = body.file;
   const file = Array.isArray(rawFile) ? rawFile[0] : rawFile;
   if (isFileLike(file)) {
-    return { workspaceId, projectId, sessionId, file };
+    return { projectId, sessionId, file };
   }
   if (typeof file === "string" && file.trim()) {
-    return { workspaceId, projectId, sessionId, file: file.trim() };
+    return { projectId, sessionId, file: file.trim() };
   }
-  return { workspaceId, projectId, sessionId, file: null };
+  return { projectId, sessionId, file: null };
 }
 
 /** Normalize primitive values to text. */
@@ -176,15 +166,10 @@ function toText(value: unknown): string {
 export class ChatAttachmentController {
   /** Handle attachment upload requests. */
   async upload(body: ChatAttachmentBody): Promise<ChatAttachmentResponse> {
-    const { workspaceId, projectId, sessionId, file } = parseChatAttachmentBody(body);
+    const { projectId, sessionId, file } = parseChatAttachmentBody(body);
 
-    if (!workspaceId || !sessionId || !file) {
+    if (!sessionId || !file) {
       return { type: "json", status: 400, body: { error: "Missing required upload fields" } };
-    }
-
-    const workspaceExists = Boolean(getWorkspaceByIdConfig(workspaceId));
-    if (!workspaceExists) {
-      return { type: "json", status: 400, body: { error: "Workspace not found" } };
     }
 
     try {
@@ -197,7 +182,6 @@ export class ChatAttachmentController {
         const buffer = Buffer.from(await file.arrayBuffer());
         const mediaType = file.type || "application/octet-stream";
         const result = await saveChatImageAttachment({
-          workspaceId,
           projectId,
           sessionId,
           fileName: file.name || "upload",
@@ -212,7 +196,6 @@ export class ChatAttachmentController {
       }
       // 中文注释：相对路径仍需压缩转码后再落盘。
       const result = await saveChatImageAttachmentFromPath({
-        workspaceId,
         projectId,
         sessionId,
         path: file,
@@ -235,7 +218,6 @@ export class ChatAttachmentController {
   async preview(input: PreviewRequestInput): Promise<ChatAttachmentResponse> {
     const pathValue = input.path?.trim() ?? "";
     const projectId = input.projectId?.trim() || undefined;
-    const workspaceId = input.workspaceId?.trim() || undefined;
     const includeMetadata = Boolean(input.includeMetadata);
     const maxBytes = input.maxBytes;
     if (!pathValue) {
@@ -246,7 +228,6 @@ export class ChatAttachmentController {
       const preview = await getFilePreview({
         path: pathValue,
         projectId,
-        workspaceId,
         includeMetadata,
         maxBytes,
       });
@@ -299,9 +280,9 @@ export class ChatAttachmentController {
 
   /** Handle generic file upload — copies file as-is into session's files/ directory. */
   async uploadGenericFile(body: ChatAttachmentBody): Promise<ChatAttachmentResponse> {
-    const { workspaceId, sessionId, file } = parseChatAttachmentBody(body);
+    const { projectId, sessionId, file } = parseChatAttachmentBody(body);
 
-    if (!workspaceId || !sessionId || !file) {
+    if (!sessionId || !file) {
       return { type: "json", status: 400, body: { error: "Missing required upload fields" } };
     }
 
@@ -332,8 +313,12 @@ export class ChatAttachmentController {
       const destPath = path.join(filesDir, destName);
       const buffer = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(destPath, buffer);
+      const scopeRootPath = projectId ? getProjectRootPath(projectId) : null;
+      const rootPath = scopeRootPath || getOpenLoafRootDir();
+      const relativePath = path.relative(rootPath, destPath).split(path.sep).join("/");
 
-      return { type: "json", status: 200, body: { path: destPath } };
+      // 逻辑：统一返回相对路径，避免消息持久化后绑定绝对磁盘路径。
+      return { type: "json", status: 200, body: { path: relativePath } };
     } catch (error) {
       return {
         type: "json",
@@ -348,7 +333,6 @@ export class ChatAttachmentController {
     return {
       path: query.path,
       projectId: query.projectId,
-      workspaceId: query.workspaceId,
       includeMetadata: query.includeMetadata === "1",
       maxBytes: parsePositiveInt(query.maxBytes),
     };

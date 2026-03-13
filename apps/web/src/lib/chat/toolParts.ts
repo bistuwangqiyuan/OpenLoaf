@@ -12,7 +12,6 @@
 import type { UIMessage } from "@ai-sdk/react";
 import { useChatRuntime } from "@/hooks/use-chat-runtime";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { getTabViewById } from "@/hooks/use-tab-view";
 import { extractPatchFileInfo } from "@/lib/chat/patch-utils";
 import { isHiddenToolPart } from "@/lib/chat/message-parts";
 
@@ -61,8 +60,6 @@ export function syncToolPartsFromMessages({
         const input = part?.input;
         const patchText = typeof input?.patch === "string" ? input.patch : "";
         const { fileName, firstPath } = extractPatchFileInfo(patchText);
-        const tabView = tabId ? getTabViewById(tabId) : undefined;
-        const workspaceId = tabView?.workspaceId ?? "";
         const baseParams = useTabRuntime.getState().runtimeByTabId[tabId]?.base?.params as Record<string, unknown> | undefined;
         const projectId = typeof baseParams?.projectId === "string" ? baseParams.projectId : undefined;
 
@@ -87,7 +84,7 @@ export function syncToolPartsFromMessages({
             sourceKey: stackId,
             component: "streaming-code-viewer",
             title: firstPath ? fileName : "写入文件...",
-            params: { toolCallIds: [toolKey], tabId, workspaceId, projectId, __isStreaming: true },
+            params: { toolCallIds: [toolKey], tabId, projectId, __isStreaming: true },
           });
           toolCallIdToStackId.set(toolKey, stackId);
           if (firstPath) writeFileStackByPath.set(firstPath, stackId);
@@ -134,8 +131,6 @@ export function syncToolPartsFromMessages({
             const rt = useTabRuntime.getState().runtimeByTabId[tabId];
             const item = rt?.stack?.find((s: any) => s.id === myStackId);
             if (item && item.title !== fileName) {
-              const tabView2 = tabId ? getTabViewById(tabId) : undefined;
-              const wId = tabView2?.workspaceId ?? "";
               const bp2 = useTabRuntime.getState().runtimeByTabId[tabId]?.base?.params as Record<string, unknown> | undefined;
               const pId = typeof bp2?.projectId === "string" ? bp2.projectId : undefined;
               useTabRuntime.getState().pushStackItem(tabId, {
@@ -143,7 +138,7 @@ export function syncToolPartsFromMessages({
                 sourceKey: myStackId,
                 component: "streaming-code-viewer",
                 title: fileName,
-                params: { ...(item.params ?? {}), toolCallIds: (item.params?.toolCallIds as string[]) ?? [toolKey], workspaceId: wId, projectId: pId, __isStreaming: true },
+                params: { ...(item.params ?? {}), toolCallIds: (item.params?.toolCallIds as string[]) ?? [toolKey], projectId: pId, __isStreaming: true },
               });
             }
           }

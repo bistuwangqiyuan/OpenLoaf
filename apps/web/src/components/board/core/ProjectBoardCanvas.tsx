@@ -19,8 +19,6 @@ export interface ProjectBoardCanvasProps {
   isLoading: boolean;
   /** Active state for the project tab. */
   isActive: boolean;
-  /** Workspace id used for storage isolation. */
-  workspaceId?: string;
   /** Current project id. */
   projectId?: string;
   /** Project root URI for storage scoping. */
@@ -33,7 +31,6 @@ export interface ProjectBoardCanvasProps {
 const ProjectBoardCanvas = memo(function ProjectBoardCanvas({
   isLoading,
   isActive,
-  workspaceId,
   projectId,
   rootUri,
   pageTitle,
@@ -46,7 +43,6 @@ const ProjectBoardCanvas = memo(function ProjectBoardCanvas({
         key={rootUri ?? projectId ?? "board"}
         className="h-full w-full"
         nodes={BOARD_NODE_DEFINITIONS}
-        workspaceId={workspaceId}
         projectId={projectId}
         rootUri={rootUri}
         boardId={rootUri ?? projectId}

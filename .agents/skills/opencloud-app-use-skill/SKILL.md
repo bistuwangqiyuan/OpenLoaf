@@ -4,99 +4,74 @@ description: >
   Use when developing or using OpenLoaf app skill system — app 里面的技能系统
 ---
 
-# OpenLoaf Skill Development
-
 ## Overview
 
-OpenLoaf 技能系统由四层构成：**SKILL.md 文件规范**（前置元数据 + Markdown 正文）、**后端扫描加载器**（skillsLoader.ts 递归扫描多级目录）、**AI Agent 技能选择器**（SkillSelector.ts 按优先级解析技能）、**前端设置面板**（SkillsSettingsPanel.tsx 展示/启用/禁用/删除）。技能通过 tRPC API 在前后端之间传递，启用状态持久化在工作空间配置或项目配置中。
+OpenLoaf 技能系统由四层组成：
+
+- `SKILL.md` 文件规范
+- 服务端摘要扫描
+- 运行时 `SkillSelector` 正文解析
+- 前端 `SkillsSettingsPanel` 管理面板
+
+当前实现里，技能启用状态只会持久化到两类配置：
+
+- 全局应用配置
+- 当前项目配置
+
+历史 `workspace` 只保留兼容说明，不再是现行 scope。
 
 ## When to Use
 
-- 创建新的 SKILL.md 技能文件
-- 修改技能扫描/加载逻辑（新增扫描目录、调整优先级）
-- 修改技能前置元数据解析（新增字段、修改格式）
-- 修改设置面板中的技能列表 UI（scope 标签、启用/禁用、删除）
-- 修改 AI Agent 的技能解析和注入逻辑
-- 修改技能启用/禁用的持久化机制（ignoreKey、ignoreSkills）
-- 调试技能未加载、未显示、优先级覆盖等问题
+- 创建新的 `SKILL.md`
+- 修改技能扫描目录、优先级或覆盖逻辑
+- 修改 front matter 解析规则
+- 修改技能启用、禁用、删除或 ignoreKey 逻辑
+- 修改设置面板中的技能列表展示和交互
+- 调试技能未加载、未显示、优先级异常、继承来源错误
 
-## Architecture
+## Current Scope Model
 
-```
-技能文件存储
-├── ~/.agents/skills/<name>/SKILL.md          ← 全局技能 (scope: global)
-├── <workspace>/.agents/skills/<name>/SKILL.md ← 工作空间技能 (scope: workspace)
-└── <project>/.agents/skills/<name>/SKILL.md   ← 项目技能 (scope: project)
+- settings 对外 schema 只支持 `project | global`
+- 摘要扫描来源覆盖顺序是 `global -> parent-project -> project`
+- 运行时正文搜索优先级是 `project -> parent-project -> global`
+- 父项目技能属于“继承来源”，不是新的持久化 scope
+- 历史 `workspace:<folderName>` 输入只用于服务端兼容归一化，最终会转换成 `global:<folderName>`
 
-加载优先级（从低到高，同名高优先级覆盖低优先级）：
-  global → workspace → parent project → project
+## Code Links
 
-┌─────────────── 后端 (apps/server) ──────────────────┐
-│  skillsLoader.ts                                     │
-│    loadSkillSummaries() → 扫描多级目录 → SkillSummary[] │
-│    readSkillSummaryFromPath() → 解析 front matter     │
-│    readSkillContentFromPath() → 剥离 front matter     │
-│                                                       │
-│  SkillSelector.ts                                     │
-│    resolveSkillByName() → 按优先级搜索技能              │
-│    extractSkillNamesFromText() → 从文本提取 /skill/xxx │
-│                                                       │
-│  settings.ts (tRPC router)                            │
-│    getSkills → 列表 + ignoreKey + isEnabled            │
-│    setSkillEnabled → 切换启用状态                       │
-│    deleteSkill → 删除技能文件夹                         │
-├───────────────────────────────────────────────────────┤
-│  absSetting.ts (packages/api)                         │
-│    skillScopeSchema: "workspace" | "project" | "global"│
-│    skillSummarySchema: Zod 类型定义                     │
-├─────────────── 前端 (apps/web) ──────────────────────┤
-│  SkillsSettingsPanel.tsx                              │
-│    技能列表 UI → scope 标签 + 启用开关 + 查看/删除按钮   │
-│    tRPC 调用: getSkills / setSkillEnabled / deleteSkill │
-└───────────────────────────────────────────────────────┘
-```
+| 代码 | 作用 |
+|------|------|
+| [skillsLoader.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/services/skillsLoader.ts) | 扫描技能摘要、合并来源、生成基础列表 |
+| [SkillSelector.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/tools/SkillSelector.ts) | 运行时解析 `/skill/<name>` 并按优先级读取正文 |
+| [settings.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/routers/settings.ts) | 计算 `ignoreKey`、启用状态、删除权限 |
+| [absSetting.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/packages/api/src/routers/absSetting.ts) | settings 对外 skill schema |
+| [SkillsSettingsPanel.tsx](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/setting/skills/SkillsSettingsPanel.tsx) | 技能设置面板 UI |
 
 ## Detailed References
 
 | 文件 | 内容 | 查阅时机 |
 |------|------|----------|
-| [skill-format.md](skill-format.md) | SKILL.md 文件规范、前置元数据格式、目录结构约定、最佳实践 | 创建新技能或修改技能格式 |
-| [skill-backend.md](skill-backend.md) | 扫描加载器、SkillSelector、tRPC 路由、ignoreKey 机制、优先级覆盖 | 修改后端技能逻辑 |
-| [skill-frontend.md](skill-frontend.md) | 设置面板 UI、scope 标签、启用/禁用/删除交互、文件预览集成 | 修改前端技能管理 UI |
+| [skill-format.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/opencloud-app-use-skill/skill-format.md) | 技能目录结构、front matter、覆盖规则 | 创建新技能或调整技能格式 |
+| [skill-backend.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/opencloud-app-use-skill/skill-backend.md) | 扫描加载器、`SkillSelector`、settings 规则 | 修改后端技能逻辑 |
+| [skill-frontend.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/opencloud-app-use-skill/skill-frontend.md) | 设置面板 UI、scope 展示、启用/删除交互 | 修改前端技能管理 UI |
 
-## Key Files Map
+## Working Rules
 
-```
-apps/server/src/ai/agents/masterAgent/
-├── skillsLoader.ts             ← 核心扫描加载器 (loadSkillSummaries, parseFrontMatter)
-├── masterAgent.ts              ← Agent 创建（技能内容注入点）
-└── masterAgentPrompt.zh.md     ← Agent 系统 prompt
-
-apps/server/src/ai/tools/
-└── SkillSelector.ts            ← AI 技能选择器 (resolveSkillByName)
-
-apps/server/src/routers/
-└── settings.ts                 ← tRPC 路由 (getSkills, setSkillEnabled, deleteSkill)
-
-packages/api/src/routers/
-└── absSetting.ts               ← Zod schema (skillScopeSchema, skillSummarySchema)
-
-apps/web/src/components/setting/skills/
-└── SkillsSettingsPanel.tsx     ← 前端设置面板 (技能列表 UI)
-```
+- 只写规则和代码链接，不放示例代码。
+- 只要 scope、优先级、ignoreKey 或删除权限发生变化，必须同时更新 backend 与 frontend 两侧说明。
+- 只要扫描目录或 front matter 解析规则发生变化，必须同步更新 `skill-format.md`。
+- 只要 settings 面板展示语义变化，必须重新核对 `skill.scope`、`ownerProjectId`、`isEnabled`、`isDeletable` 的来源是否仍正确。
 
 ## Skill Sync Policy
 
-**当以下文件发生变更时，应检查并同步更新本 skill：**
-
 | 变更范围 | 需更新的文件 |
 |----------|-------------|
-| `skillsLoader.ts` 扫描逻辑/类型变更 | skill-backend.md |
-| `SkillSelector.ts` 搜索逻辑变更 | skill-backend.md |
-| `settings.ts` 技能相关 tRPC 路由变更 | skill-backend.md |
-| `absSetting.ts` skillScopeSchema/skillSummarySchema 变更 | skill-backend.md, skill-frontend.md |
-| `SkillsSettingsPanel.tsx` UI 变更 | skill-frontend.md |
-| SKILL.md 前置元数据格式变更 | skill-format.md |
-| 新增技能存储目录 | skill-format.md, skill-backend.md |
+| `skillsLoader.ts` 扫描逻辑或类型变更 | `skill-backend.md` |
+| `SkillSelector.ts` 搜索逻辑变更 | `skill-backend.md` |
+| `settings.ts` 技能相关 tRPC 路由变更 | `skill-backend.md` |
+| `absSetting.ts` 中 skill schema 变更 | `skill-backend.md`、`skill-frontend.md` |
+| `SkillsSettingsPanel.tsx` UI 变更 | `skill-frontend.md` |
+| `SKILL.md` front matter 规则变更 | `skill-format.md` |
+| 新增技能存储目录 | `skill-format.md`、`skill-backend.md` |
 
-**同步规则**: 修改上述文件后，在提交前检查对应 skill 文件是否需要更新。保持 skill 与代码一致。
+同步规则：修改上述文件后，在提交前检查对应 skill 文件是否需要更新，确保文档仍与现行实现一致。

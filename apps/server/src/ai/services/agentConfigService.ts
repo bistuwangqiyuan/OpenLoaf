@@ -15,7 +15,7 @@ import {
 } from '@/ai/shared/defaultAgentResolver'
 import { isSystemAgentId } from '@/ai/shared/systemAgentDefinitions'
 
-export type AgentScope = 'workspace' | 'project' | 'global'
+export type AgentScope = 'project' | 'global'
 
 export type AgentConfig = {
   /** Agent name from front matter or fallback. */
@@ -161,9 +161,8 @@ function loadOpenLoafAgentSummaries(
   return results
 }
 
-/** Load agent configs from workspace/project/global roots. */
+/** Load agent configs from project/global roots. */
 export function loadAgentSummaries(input: {
-  workspaceRootPath?: string
   projectRootPath?: string
   parentProjectRootPaths?: string[]
   globalAgentsPath?: string
@@ -202,7 +201,7 @@ export function loadAgentSummaries(input: {
       if (!summaryByName.has(config.name)) {
         orderedNames.push(config.name)
       }
-      // 逻辑：项目级覆盖工作空间级，工作空间级覆盖全局级。
+      // 逻辑：项目级覆盖全局级。
       if (source.scope === 'project' || !summaryByName.has(config.name)) {
         summaryByName.set(config.name, {
           name: config.name,
@@ -297,19 +296,16 @@ export function readAgentContentFromPath(filePath: string): string {
 }
 
 function resolveAgentSources(input: {
-  workspaceRootPath?: string
   projectRootPath?: string
   parentProjectRootPaths?: string[]
   globalAgentsPath?: string
 }): AgentSource[] {
   const sources: AgentSource[] = []
   const globalPath = normalizeRootPath(input.globalAgentsPath)
-  const workspaceRoot = normalizeRootPath(input.workspaceRootPath)
   const projectRoot = normalizeRootPath(input.projectRootPath)
   const parentRoots = normalizeRootPathList(input.parentProjectRootPaths)
 
   if (globalPath) sources.push({ scope: 'global', rootPath: globalPath })
-  if (workspaceRoot) sources.push({ scope: 'workspace', rootPath: workspaceRoot })
   for (const parentRoot of parentRoots) {
     sources.push({ scope: 'project', rootPath: parentRoot })
   }

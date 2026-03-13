@@ -357,6 +357,10 @@ export async function setBasicConfigFromWeb(update: BasicConfigUpdate): Promise<
     next.uiThemeManual === "light" || next.uiThemeManual === "dark"
       ? next.uiThemeManual
       : current.uiThemeManual;
+  const projectOpenMode =
+    next.projectOpenMode === "sidebar" || next.projectOpenMode === "window"
+      ? next.projectOpenMode
+      : current.projectOpenMode;
   const boardDebugEnabled =
     typeof next.boardDebugEnabled === "boolean"
       ? next.boardDebugEnabled
@@ -424,6 +428,7 @@ export async function setBasicConfigFromWeb(update: BasicConfigUpdate): Promise<
     uiAnimationLevel,
     uiTheme,
     uiThemeManual,
+    projectOpenMode,
     boardDebugEnabled,
     chatPrefaceEnabled,
     appLocalStorageDir,

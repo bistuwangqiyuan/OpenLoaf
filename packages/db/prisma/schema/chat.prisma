@@ -7,7 +7,6 @@ model ChatSession {
   sessionPreface String? /// Session preface text for chat history and model context.
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  workspaceId  String? /// Workspace id.
   projectId    String? /// Project id.
   boardId      String? /// Board id.
   cliId        String? /// CLI thread id formatted as {cliType}_{threadId}.
@@ -17,5 +16,6 @@ model ChatSession {
   @@index([deletedAt])
   @@index([deletedAt, createdAt])
   @@index([isPin, updatedAt])
+  @@index([projectId])
   @@unique([cliId])
 }

@@ -26,14 +26,6 @@ OpenLoaf 使用 [Conventional Commits](https://www.conventionalcommits.org/) 规
 
 **不适用：** 版本发布、打 tag、publish-update — 这些由 `update-version-management` skill 处理。
 
-## Commit Message 规范
-
-### 格式
-
-```
-<type>(<scope>): <subject>
-```
-
 ### Type 列表
 
 | Type | 说明 |
@@ -69,25 +61,9 @@ OpenLoaf 使用 [Conventional Commits](https://www.conventionalcommits.org/) 规
 | scope 建议填写 | warning | 缺少 scope 仅警告，不拦截 |
 | scope 必须在枚举内 | warning | 非标准 scope 仅警告 |
 
-### 示例
-
-```bash
-# 正确
-feat(ai): add streaming response for chat
-fix(web): resolve sidebar scroll issue on mobile
-refactor(server): extract email service into module
-chore(deps): upgrade prisma to v7.4
-
-# 错误（会被拦截）
-update stuff                    # 缺少 type 和 scope
-feat: Add New Feature.          # 大写开头 + 句号（conventional commit lint）
-```
-
 ### 特殊标记
 
 - `[skip ci]` — 仅用于版本 bump commit
-
-## 分支策略
 
 ### 工作模式
 
@@ -98,13 +74,6 @@ feat: Add New Feature.          # 大写开头 + 句号（conventional commit li
 ### 分支命名约定
 
 大功能或多人协作时，使用独立分支隔离：
-
-```
-feature/<scope>-<description>    # 新功能
-fix/<scope>-<description>        # Bug 修复
-refactor/<scope>-<description>   # 重构
-chore/<description>              # 杂项
-```
 
 示例：`feature/ai-streaming-response`、`fix/web-sidebar-scroll`
 

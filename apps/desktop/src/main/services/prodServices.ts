@@ -223,22 +223,23 @@ export async function startProductionServices(args: {
     const prebuildsTarget = path.join(process.resourcesPath, 'prebuilds');
     // Windows junction points don't require admin/developer-mode (unlike 'dir' symlinks).
     const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
-    if (!fs.existsSync(nmLink) && fs.existsSync(nmTarget)) {
+    // 使用 ensureLink 处理悬空 junction：existsSync 跟随链接检查目标，
+    // 当旧 junction 指向已移除的目录时返回 false，但 junction 文件本身仍存在，
+    // symlinkSync 会抛 EEXIST。改用 lstatSync 检测 junction 文件本身。
+    const ensureLink = (link: string, target: string, label: string) => {
+      if (fs.existsSync(link)) return; // 链接存在且目标可达
+      if (!fs.existsSync(target)) return; // 目标不存在，无需链接
+      // 清理悬空的 junction/symlink（文件本身存在但目标不可达）
+      try { fs.lstatSync(link); fs.rmSync(link); } catch { /* 不存在则忽略 */ }
       try {
-        fs.symlinkSync(nmTarget, nmLink, symlinkType);
-        log(`Linked ${nmLink} → ${nmTarget} (${symlinkType})`);
+        fs.symlinkSync(target, link, symlinkType);
+        log(`Linked ${link} → ${target} (${symlinkType})`);
       } catch (e) {
-        log(`Failed to link node_modules: ${e instanceof Error ? e.message : String(e)}`);
+        log(`Failed to link ${label}: ${e instanceof Error ? e.message : String(e)}`);
       }
-    }
-    if (!fs.existsSync(prebuildsLink) && fs.existsSync(prebuildsTarget)) {
-      try {
-        fs.symlinkSync(prebuildsTarget, prebuildsLink, symlinkType);
-        log(`Linked ${prebuildsLink} → ${prebuildsTarget} (${symlinkType})`);
-      } catch (e) {
-        log(`Failed to link prebuilds: ${e instanceof Error ? e.message : String(e)}`);
-      }
-    }
+    };
+    ensureLink(nmLink, nmTarget, 'node_modules');
+    ensureLink(prebuildsLink, prebuildsTarget, 'prebuilds');
   }
 
   const serverHost = resolveHost(args.serverUrl, '127.0.0.1');
@@ -266,6 +267,11 @@ export async function startProductionServices(args: {
           ...packagedEnv,
           // 中文注释：确保 .env 文件不会覆盖修复后的 PATH，保留 Electron 主进程修复的完整路径。
           PATH: process.env.PATH,
+          OPENLOAF_DOCX_SFDT_HELPER_ROOT:
+            process.env.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            userEnv.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            packagedEnv.OPENLOAF_DOCX_SFDT_HELPER_ROOT ??
+            path.join(resourcesPath, 'docx-sfdt'),
           // 中文注释：强制对齐 Electron 与 Server 的 CDP 端口，避免运行时不一致。
           OPENLOAF_REMOTE_DEBUGGING_PORT: String(args.cdpPort),
         },

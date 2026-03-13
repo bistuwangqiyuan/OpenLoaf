@@ -16,7 +16,6 @@ import { Chat } from "@/components/ai/Chat";
 import { cn } from "@/lib/utils";
 import { createChatSessionId } from "@/lib/chat-session-id";
 import { LeftDockNew } from "./LeftDockNew";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 
 const RIGHT_CHAT_MIN_PX = 360;
 const LEFT_DOCK_MIN_PX = 300;
@@ -28,11 +27,11 @@ const DIVIDER_WIDTH_PX = 4;
  * 核心改动：
  * - 移除 Tab 概念，直接管理视图（View）
  * - 每个视图有独立的运行时状态（ViewRuntime）
- * - Workspace Chat 直接显示，不需要 Tab 包装
+ * - 全局聊天直接显示，不需要 Tab 包装
  */
 export function PageLayout() {
   const activeView = useNavigation((s) => s.activeView);
-  const activeWorkspaceId = useNavigation((s) => s.activeWorkspaceId);
+  const activeProjectId = useNavigation((s) => s.activeProjectId);
   const getViewRuntime = useNavigation((s) => s.getViewRuntime);
   const setViewRuntime = useNavigation((s) => s.setViewRuntime);
 
@@ -103,7 +102,7 @@ export function PageLayout() {
     if (!activeView || !viewKey) return "";
 
     switch (activeView.type) {
-      case "workspace-chat":
+      case "global-chat":
         return activeView.chatSessionId;
       case "project": {
         // 项目视图：从 viewRuntime 获取或创建新的 session
@@ -131,8 +130,8 @@ export function PageLayout() {
     }
 
     switch (activeView.type) {
-      case "workspace-chat": {
-        // Workspace Chat 直接显示 Chat 组件（单会话模式）
+      case "global-chat": {
+        // 全局聊天直接显示 Chat 组件（单会话模式）
         return (
           <div className="flex h-full w-full">
             <Chat
@@ -178,7 +177,6 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeWorkspaceId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}
@@ -220,7 +218,7 @@ export function PageLayout() {
 
         // 映射视图类型到组件名称
         const componentMap: Record<string, string> = {
-          workbench: "workspace-desktop",
+          workbench: "global-desktop",
           calendar: "calendar-page",
           email: "email-page",
           "scheduled-tasks": "scheduled-tasks-page",
@@ -254,7 +252,6 @@ export function PageLayout() {
                 style={{ width: `${leftWidthPx}px` }}
               >
                 <LeftDockNew
-                  workspaceId={activeWorkspaceId || ""}
                   base={leftDock}
                   stack={(viewRuntime.stack || []) as DockItem[]}
                   stackHidden={viewRuntime.stackHidden ?? false}

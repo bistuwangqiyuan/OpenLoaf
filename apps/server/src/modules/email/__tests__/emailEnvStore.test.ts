@@ -34,16 +34,16 @@ const {
 assert.equal(getEmailEnvPath(), envPath);
 assert.equal(readEmailEnvFile(), "");
 
-setEmailEnvValue("EMAIL_PASSWORD__workspace__user_example_com", "secret");
+setEmailEnvValue("EMAIL_PASSWORD__default__user_example_com", "secret");
 const content = readFileSync(envPath, "utf-8");
-assert.ok(content.includes("EMAIL_PASSWORD__workspace__user_example_com=secret"));
-assert.equal(getEmailEnvValue("EMAIL_PASSWORD__workspace__user_example_com"), "secret");
+assert.ok(content.includes("EMAIL_PASSWORD__default__user_example_com=secret"));
+assert.equal(getEmailEnvValue("EMAIL_PASSWORD__default__user_example_com"), "secret");
 
-writeFileSync(envPath, "FOO=bar\nEMAIL_PASSWORD__workspace__user_example_com=old\n", "utf-8");
-setEmailEnvValue("EMAIL_PASSWORD__workspace__user_example_com", "new");
+writeFileSync(envPath, "FOO=bar\nEMAIL_PASSWORD__default__user_example_com=old\n", "utf-8");
+setEmailEnvValue("EMAIL_PASSWORD__default__user_example_com", "new");
 const updated = readFileSync(envPath, "utf-8");
 assert.ok(updated.includes("FOO=bar"));
-assert.ok(updated.includes("EMAIL_PASSWORD__workspace__user_example_com=new"));
-assert.equal(getEmailEnvValue("EMAIL_PASSWORD__workspace__user_example_com"), "new");
+assert.ok(updated.includes("EMAIL_PASSWORD__default__user_example_com=new"));
+assert.equal(getEmailEnvValue("EMAIL_PASSWORD__default__user_example_com"), "new");
 
 console.log("email env store tests passed.");

@@ -17,7 +17,7 @@ import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import sharp from 'sharp'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { imageProcessTool } from '@/ai/tools/imageProcessTools'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 
@@ -48,12 +48,12 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'image-process-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'image-process-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }
 
-let workspaceRoot = ''
+let projectRoot = ''
 const testSubDir = `_image_test_${Date.now()}`
 
 function rel(filename: string): string {
@@ -63,8 +63,8 @@ function rel(filename: string): string {
 const toolCtx = { toolCallId: 'test', messages: [], abortSignal: AbortSignal.abort() }
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 
   // Generate test images with sharp
   // 200x200 red PNG
@@ -72,18 +72,18 @@ async function setupTestDir() {
     create: { width: 200, height: 200, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } },
   })
     .png()
-    .toFile(path.join(workspaceRoot, rel('test.png')))
+    .toFile(path.join(projectRoot, rel('test.png')))
 
   // 300x200 blue JPEG
   await sharp({
     create: { width: 300, height: 200, channels: 3, background: { r: 0, g: 128, b: 255 } },
   })
     .jpeg()
-    .toFile(path.join(workspaceRoot, rel('test.jpg')))
+    .toFile(path.join(projectRoot, rel('test.jpg')))
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ async function main() {
   })
 
   await test('M0c: get-info does not modify the file', async () => {
-    const absPath = path.join(workspaceRoot, rel('test.png'))
+    const absPath = path.join(projectRoot, rel('test.png'))
     const sizeBefore = (await fs.stat(absPath)).size
     const mtimeBefore = (await fs.stat(absPath)).mtimeMs
 
@@ -174,7 +174,7 @@ async function main() {
     create: { width: 200, height: 200, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } },
   })
     .png()
-    .toFile(path.join(workspaceRoot, rel('test.png')))
+    .toFile(path.join(projectRoot, rel('test.png')))
 
   await test('M2: resize only width=50 (height proportional)', async () => {
     const result: any = await withCtx(() =>
@@ -302,7 +302,7 @@ async function main() {
     )
     assert.equal(result.ok, true)
     assert.ok(result.data.format?.includes('jpeg'), 'format should contain jpeg')
-    const exists = await fs.stat(path.join(workspaceRoot, rel('n1_out.jpg')))
+    const exists = await fs.stat(path.join(projectRoot, rel('n1_out.jpg')))
     assert.ok(exists.size > 0, 'output file should exist')
   })
 
@@ -389,10 +389,10 @@ async function main() {
     )
     assert.equal(result.ok, true)
     // Source file should still exist
-    const sourceStat = await fs.stat(path.join(workspaceRoot, sourcePath))
+    const sourceStat = await fs.stat(path.join(projectRoot, sourcePath))
     assert.ok(sourceStat.size > 0, 'source file should still exist')
     // Output file should also exist
-    const outStat = await fs.stat(path.join(workspaceRoot, outPath))
+    const outStat = await fs.stat(path.join(projectRoot, outPath))
     assert.ok(outStat.size > 0, 'output file should exist')
   })
 
@@ -416,7 +416,7 @@ async function main() {
 
   await test('O2: unsupported format (.txt) → Unsupported file format', async () => {
     const txtFile = rel('o2.txt')
-    await fs.writeFile(path.join(workspaceRoot, txtFile), 'dummy', 'utf-8')
+    await fs.writeFile(path.join(projectRoot, txtFile), 'dummy', 'utf-8')
     await assert.rejects(
       () =>
         withCtx(() =>
@@ -516,7 +516,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const stat = await fs.stat(path.join(workspaceRoot, nestedOut))
+    const stat = await fs.stat(path.join(projectRoot, nestedOut))
     assert.ok(stat.size > 0, 'output file in nested dir should exist')
   })
 
@@ -538,9 +538,9 @@ async function main() {
       create: { width: 100, height: 100, channels: 4, background: { r: 0, g: 255, b: 0, alpha: 1 } },
     })
       .png()
-      .toFile(path.join(workspaceRoot, blurSource))
+      .toFile(path.join(projectRoot, blurSource))
 
-    const sizeBefore = (await fs.stat(path.join(workspaceRoot, blurSource))).size
+    const sizeBefore = (await fs.stat(path.join(projectRoot, blurSource))).size
 
     const result: any = await withCtx(() =>
       imageProcessTool.execute(
@@ -551,7 +551,7 @@ async function main() {
     assert.equal(result.ok, true)
     assert.ok(result.data.outputPath.includes('o11_source_blur.png'), `outputPath should have _blur suffix, got: ${result.data.outputPath}`)
     // Source file should be preserved
-    const sizeAfter = (await fs.stat(path.join(workspaceRoot, blurSource))).size
+    const sizeAfter = (await fs.stat(path.join(projectRoot, blurSource))).size
     assert.equal(sizeBefore, sizeAfter, 'source file should not be modified')
     // Suffixed file should exist
     const suffixedStat = await fs.stat(result.data.outputPath)
@@ -564,7 +564,7 @@ async function main() {
       create: { width: 200, height: 200, channels: 4, background: { r: 128, g: 128, b: 128, alpha: 1 } },
     })
       .png()
-      .toFile(path.join(workspaceRoot, source))
+      .toFile(path.join(projectRoot, source))
 
     const result: any = await withCtx(() =>
       imageProcessTool.execute(
@@ -575,7 +575,7 @@ async function main() {
     assert.equal(result.ok, true)
     assert.ok(result.data.outputPath.includes('o11b_source_resize.png'), `should have _resize suffix, got: ${result.data.outputPath}`)
     // Source untouched
-    const sourceMeta = await sharp(path.join(workspaceRoot, source)).metadata()
+    const sourceMeta = await sharp(path.join(projectRoot, source)).metadata()
     assert.equal(sourceMeta.width, 200, 'source width should remain 200')
   })
 
@@ -585,7 +585,7 @@ async function main() {
       create: { width: 200, height: 200, channels: 4, background: { r: 0, g: 0, b: 255, alpha: 1 } },
     })
       .png()
-      .toFile(path.join(workspaceRoot, source))
+      .toFile(path.join(projectRoot, source))
 
     const result: any = await withCtx(() =>
       imageProcessTool.execute(

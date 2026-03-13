@@ -10,12 +10,12 @@
 "use client";
 
 import type { DockItem, Tab } from "@openloaf/api/common";
+import type { ProjectShellState } from "@/lib/project-shell";
 
 /** Tab metadata persisted in storage. */
 export type TabMeta = Pick<
   Tab,
   | "id"
-  | "workspaceId"
   | "title"
   | "icon"
   | "isPin"
@@ -33,6 +33,8 @@ export type TabMeta = Pick<
   chatSessionTitles?: Record<string, string>;
   /** Project id bound to each session (sessionId → projectId). */
   chatSessionProjectIds?: Record<string, string>;
+  /** Project-context metadata when this tab is used as a project shell. */
+  projectShell?: ProjectShellState;
 };
 
 /** Snapshot of LeftDock state for a specific session. */

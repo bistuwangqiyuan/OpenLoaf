@@ -212,10 +212,30 @@
     "exportFailed": "Failed to export session. Please try again.",
     "exportFailedWithMessage": "Failed to export session: {{message}}"
   },
+  "copyToCanvas": {
+    "button": "Copy to Canvas",
+    "title": "Copy Chat to Canvas",
+    "description": "This copies the current chat into a canvas while keeping the original conversation unchanged.",
+    "targetMode": "Destination",
+    "createNew": "New Canvas",
+    "useExisting": "Existing Canvas",
+    "targetBoard": "Target Canvas",
+    "targetPlaceholder": "Select a canvas",
+    "emptyBoards": "No canvas is available in the current scope",
+    "sessionMissing": "Current session not found",
+    "targetRequired": "Please select a target canvas",
+    "rootMissing": "Canvas folder not found",
+    "confirm": "Copy",
+    "cancel": "Cancel",
+    "submitting": "Copying…",
+    "successNew": "Copied to a new canvas",
+    "successExisting": "Copied to the canvas",
+    "failed": "Failed to copy chat to canvas"
+  },
   "image": {
     "noEditingSupport": "Current model does not support image editing",
     "noInputSupport": "Current model does not support image input",
-    "workspaceRequired": "Current tab is not bound to a workspace, cannot upload image",
+    "projectSpaceRequired": "Current tab is not bound to a project space, cannot upload image",
     "uploadFailed": "Image upload failed, please retry",
     "noServerUrl": "Image upload failed: server did not return address",
     "networkError": "Image upload failed, please check network connection",
@@ -418,7 +438,7 @@
     "confirm": "Enable"
   },
   "projectSelector": {
-    "workspace": "Workspace",
+    "projectSpace": "Project Space",
     "searchProject": "Search projects...",
     "noProjectFound": "No projects found",
     "projects": "Projects",

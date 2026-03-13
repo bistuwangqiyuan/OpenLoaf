@@ -22,7 +22,6 @@ export type ChatSiblingNav = {
 export type ChatSessionContextValue = {
   sessionId: string;
   tabId?: string;
-  workspaceId?: string;
   projectId?: string;
   leafMessageId: string | null;
   branchMessageIds: string[];

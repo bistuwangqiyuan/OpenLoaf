@@ -11,9 +11,7 @@
 
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Bug, History, Lightbulb, MessageSquarePlus, PanelLeft, X } from "lucide-react";
-import { QUICK_LAUNCH_ITEMS, PROJECT_QUICK_LAUNCH_ITEMS } from "./quick-launch-items";
-import { useProject } from "@/hooks/use-project";
+import { Bug, History, Lightbulb, MessageSquarePlus, Palette, PanelLeft, X } from "lucide-react";
 import SessionList from "@/components/ai/session/SessionList";
 import * as React from "react";
 import { useChatActions, useChatSession, useChatState } from "./context";
@@ -24,6 +22,7 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabView } from "@/hooks/use-tab-view";
 import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
 import { useBasicConfig } from "@/hooks/use-basic-config";
+import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
@@ -42,9 +41,10 @@ import { Button } from "@openloaf/ui/button";
 import { getAccessToken, resolveSaasBaseUrl } from "@/lib/saas-auth";
 import { resolveServerUrl } from "@/utils/server-url";
 import { isElectronEnv } from "@/utils/is-electron-env";
+import { CopyChatToCanvasDialog } from "./CopyChatToCanvasDialog";
+import { createPortal } from "react-dom";
 
 interface ChatHeaderProps {
-  className?: string;
   onNewSession?: () => void;
   onCloseSession?: () => void;
   /** Icon color palette for header action buttons. */
@@ -56,7 +56,8 @@ interface ChatHeaderProps {
 const CHAT_HEADER_EMAIL_ICON_CLASS = {
   debug: "text-[#9334e6] dark:text-violet-300",
   feedback: "text-[#7c3aed] dark:text-violet-300",
-  openDock: "text-[#188038] dark:text-emerald-300",
+  copyToCanvas:
+    "text-violet-700/70 dark:text-violet-300/70 hover:text-violet-700 dark:hover:text-violet-200",
   closeDock: "text-[#f9ab00] dark:text-amber-300",
   clear: "text-[#188038] dark:text-emerald-300",
   history: "text-[#1a73e8] dark:text-sky-300",
@@ -64,36 +65,36 @@ const CHAT_HEADER_EMAIL_ICON_CLASS = {
 } as const;
 
 export default function ChatHeader({
-  className,
   onNewSession,
   onCloseSession,
   iconPalette = "default",
   enableMultiSession,
 }: ChatHeaderProps) {
   const { t: tAi } = useTranslation('ai');
-  const { t: tWorkspace } = useTranslation('workspace');
   const { sessionId: activeSessionId, tabId, leafMessageId: activeLeafMessageId } = useChatSession();
   const { newSession, selectSession } = useChatActions();
   const { messages } = useChatState();
   const [historyOpen, setHistoryOpen] = React.useState(false);
-  const [quickLaunchOpen, setQuickLaunchOpen] = React.useState(false);
   /** Preface button loading state. */
   const [prefaceLoading, setPrefaceLoading] = React.useState(false);
   /** Chat feedback dialog open state. */
   const [chatFeedbackOpen, setChatFeedbackOpen] = React.useState(false);
+  /** Copy current chat into a board dialog state. */
+  const [copyToCanvasOpen, setCopyToCanvasOpen] = React.useState(false);
   /** Chat feedback input content. */
   const [chatFeedbackContent, setChatFeedbackContent] = React.useState("");
   /** Chat feedback submitting state. */
   const [chatFeedbackSubmitting, setChatFeedbackSubmitting] = React.useState(false);
   const menuLockRef = React.useRef(false);
   const { sessions, refetch: refetchSessions } = useChatSessions({ tabId });
+  const isActiveTab = useTabs((s) => s.activeTabId === tabId);
   const setTabTitle = useTabs((s) => s.setTabTitle);
   const setSessionProjectId = useTabs((s) => s.setSessionProjectId);
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const { basic } = useBasicConfig();
+  const headerActionsTarget = useHeaderSlot((s) => s.headerActionsTarget);
   const { loggedIn: saasLoggedIn } = useSaasAuth();
   const tabView = useTabView(tabId);
-  const workspaceId = typeof tabView?.workspaceId === "string" ? tabView.workspaceId : "";
 
   // Quick launch: derive project context from tab chatParams.
   const quickLaunchProjectId = React.useMemo(() => {
@@ -101,10 +102,9 @@ export default function ChatHeader({
     const pid = params?.projectId;
     return typeof pid === "string" ? pid.trim() : "";
   }, [tabView?.chatParams]);
-  const { data: quickLaunchProjectData } = useProject(quickLaunchProjectId || undefined);
   const hasBase = Boolean(tabView?.base);
-  // 只要有左侧面板或有消息就显示 dock 按钮；仅 full 空聊天状态（无 base + 无消息）隐藏。
-  const showDockButton = hasBase || messages.length > 0;
+  // 逻辑：临时隐藏“打开面板”入口，仅在已有左侧面板时保留关闭能力。
+  const shouldShowCloseDockButton = hasBase;
   /** Resolve icon tone classes for header actions. */
   const resolveActionIconClass = React.useCallback(
     (action: keyof typeof CHAT_HEADER_EMAIL_ICON_CLASS) =>
@@ -112,23 +112,6 @@ export default function ChatHeader({
     [iconPalette]
   );
 
-  const activeSession = React.useMemo(
-    () => sessions.find((session) => session.id === activeSessionId),
-    [sessions, activeSessionId]
-  );
-  const sessionTitle = String(activeSession?.title ?? "").trim();
-  const sessionIndex = React.useMemo(() => {
-    const ids =
-      Array.isArray(tabView?.chatSessionIds) && tabView.chatSessionIds.length > 0
-        ? tabView.chatSessionIds
-        : tabView?.chatSessionId
-          ? [tabView.chatSessionId]
-          : [];
-    if (!activeSessionId) return null;
-    const idx = ids.indexOf(activeSessionId);
-    return idx >= 0 ? idx + 1 : null;
-  }, [activeSessionId, tabView?.chatSessionId, tabView?.chatSessionIds]);
-  const showSessionIndex = (tabView?.chatSessionIds?.length ?? 0) > 1;
   /** Resolve request leaf id from active branch leaf first, then fallback to latest user message. */
   const requestLeafMessageId = React.useMemo(() => {
     const activeLeafId =
@@ -173,43 +156,6 @@ export default function ChatHeader({
     if (!tabId) return;
     useTabRuntime.getState().setTabBase(tabId, undefined);
   }, [tabId]);
-
-  /** Handle quick launch item click: set left dock base for the current tab. */
-  const handleQuickLaunch = React.useCallback(
-    (item: (typeof QUICK_LAUNCH_ITEMS)[number] | (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]) => {
-      if (!tabId) return;
-      setQuickLaunchOpen(false);
-      const tabState = useTabs.getState();
-      const runtime = useTabRuntime.getState();
-
-      if (quickLaunchProjectId && "value" in item) {
-        const projItem = item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number];
-        runtime.setTabBase(tabId, {
-          id: `project:${quickLaunchProjectId}`,
-          component: "plant-page",
-          params: {
-            projectId: quickLaunchProjectId,
-            rootUri: quickLaunchProjectData?.project?.rootUri,
-            projectTab: projItem.value,
-          },
-        });
-        runtime.setTabLeftWidthPercent(tabId, 90);
-        if (quickLaunchProjectData?.project?.title) {
-          tabState.setTabTitle(tabId, quickLaunchProjectData.project.title);
-        }
-        if (quickLaunchProjectData?.project?.icon) {
-          tabState.setTabIcon(tabId, quickLaunchProjectData.project.icon);
-        }
-      } else if ("baseId" in item) {
-        const wsItem = item as (typeof QUICK_LAUNCH_ITEMS)[number];
-        runtime.setTabBase(tabId, { id: wsItem.baseId, component: wsItem.component });
-        runtime.setTabLeftWidthPercent(tabId, 100);
-        tabState.setTabTitle(tabId, tAi(wsItem.titleKey));
-        tabState.setTabIcon(tabId, wsItem.tabIcon);
-      }
-    },
-    [tabId, quickLaunchProjectId, quickLaunchProjectData, tAi],
-  );
 
   /**
    * Open the current session preface in a markdown stack panel.
@@ -279,7 +225,6 @@ export default function ChatHeader({
       env: isElectronEnv() ? "electron" : "web",
       page: typeof window !== "undefined" ? window.location.pathname : undefined,
       appVersion: typeof appVersion === "string" ? appVersion : undefined,
-      workspaceId: workspaceId || undefined,
       tabId: tabId || undefined,
       sessionId: activeSessionId || undefined,
       leafMessageId: requestLeafMessageId,
@@ -300,7 +245,6 @@ export default function ChatHeader({
     quickLaunchProjectId,
     requestLeafMessageId,
     tabId,
-    workspaceId,
   ]);
 
   /** Submit feedback payload to SaaS. */
@@ -411,184 +355,162 @@ export default function ChatHeader({
     tAi,
   ]);
 
-  return (
-    <div
-      className={cn(
-        "grid w-full min-w-0 shrink-0 items-center p-1 pl-2",
-        showDockButton
-          ? "grid-cols-[auto_minmax(0,1fr)_auto]"
-          : "grid-cols-[minmax(0,1fr)_auto]",
-        className
-      )}
-    >
-      {showDockButton && (
-        <Popover
-          open={!hasBase && quickLaunchOpen}
-          onOpenChange={(open) => { if (!hasBase) setQuickLaunchOpen(open); }}
+  const headerActions = (
+    <MessageActions className="min-w-0 shrink-0 justify-end gap-0">
+      {shouldShowCloseDockButton ? (
+        <MessageAction
+          aria-label="关闭面板"
+          className={resolveActionIconClass("closeDock")}
+          tooltip="关闭面板"
+          label="关闭面板"
+          onClick={handleCloseDock}
         >
+          <PanelLeft size={20} className="rotate-180 transition-transform duration-200" />
+        </MessageAction>
+      ) : null}
+      {showPrefaceButton ? (
+        <MessageAction
+          aria-label="View Debug Context"
+          onClick={handleViewPreface}
+          disabled={prefaceLoading}
+          className={cn("ml-0.5 shrink-0", resolveActionIconClass("debug"))}
+          tooltip="查看上下文调试信息"
+          label="查看上下文调试信息"
+        >
+          <Bug size={16} />
+        </MessageAction>
+      ) : null}
+      {saasLoggedIn && messages.length > 0 ? (
+        <MessageAction
+          aria-label={tAi("chatFeedback.button")}
+          onClick={() => setChatFeedbackOpen(true)}
+          className={cn("shrink-0", resolveActionIconClass("feedback"))}
+          disabled={chatFeedbackSubmitting || !activeSessionId}
+          tooltip={tAi("chatFeedback.button")}
+          label={tAi("chatFeedback.button")}
+        >
+          <Lightbulb size={16} />
+        </MessageAction>
+      ) : null}
+      {messages.length > 0 && activeSessionId ? (
+        <MessageAction
+          aria-label={tAi("copyToCanvas.button")}
+          onClick={() => setCopyToCanvasOpen(true)}
+          className={cn("shrink-0", resolveActionIconClass("copyToCanvas"))}
+          tooltip={tAi("copyToCanvas.button")}
+          label={tAi("copyToCanvas.button")}
+        >
+          <Palette size={16} />
+        </MessageAction>
+      ) : null}
+      {shouldShowNewSessionButton ? (
+        <MessageAction
+          aria-label="重新开始会话"
+          className={resolveActionIconClass("clear")}
+          onClick={() => {
+            setHistoryOpen(false);
+            menuLockRef.current = false;
+            if (onNewSession) {
+              onNewSession();
+              return;
+            }
+            newSession();
+          }}
+          tooltip="重新开始会话"
+          label="重新开始会话"
+        >
+          <MessageSquarePlus size={20} />
+        </MessageAction>
+      ) : null}
+      {shouldShowHistoryButton ? (
+        <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
           <PopoverTrigger asChild>
             <MessageAction
-              aria-label={hasBase ? "关闭面板" : "打开面板"}
-              className={cn("mr-0.5", resolveActionIconClass(hasBase ? "closeDock" : "openDock"))}
-              tooltip={hasBase ? "关闭面板" : "打开面板"}
-              label={hasBase ? "关闭面板" : "打开面板"}
-              onClick={hasBase ? handleCloseDock : undefined}
+              aria-label="History"
+              className={resolveActionIconClass("history")}
+              onClick={() => {
+                // 中文注释：点击历史按钮立即刷新会话列表，确保拿到最新数据。
+                void refetchSessions();
+              }}
+              tooltip="历史会话"
+              label="历史会话"
             >
-              <PanelLeft size={20} className={cn("transition-transform duration-200", hasBase && "rotate-180")} />
+              <History size={20} />
             </MessageAction>
           </PopoverTrigger>
           <PopoverContent
             side="bottom"
-            align="start"
-            className="w-40 p-1"
+            align="end"
+            className="flex w-80 max-h-[min(80svh,var(--radix-popover-content-available-height))] flex-col overflow-hidden p-2"
+            onInteractOutside={(e) => {
+              if (menuLockRef.current) e.preventDefault();
+            }}
           >
-            {(quickLaunchProjectId
-              ? PROJECT_QUICK_LAUNCH_ITEMS
-              : QUICK_LAUNCH_ITEMS
-            ).map((item) => {
-              const Icon = item.icon;
-              const label = quickLaunchProjectId
-                ? tWorkspace((item as (typeof PROJECT_QUICK_LAUNCH_ITEMS)[number]).labelKey)
-                : tAi((item as (typeof QUICK_LAUNCH_ITEMS)[number]).labelKey);
-              return (
-                <button
-                  key={"value" in item ? item.value : (item as (typeof QUICK_LAUNCH_ITEMS)[number]).baseId}
-                  type="button"
-                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/60"
-                  onClick={() => handleQuickLaunch(item)}
-                >
-                  <Icon className={cn("size-4 shrink-0", item.iconColor)} />
-                  <span className="truncate">{label}</span>
-                </button>
-              );
-            })}
+            <SessionList
+              tabId={tabId}
+              activeSessionId={activeSessionId}
+              onMenuOpenChange={handleMenuOpenChange}
+              onSelect={(session) => {
+                // 选中历史会话后：关闭弹层 + 切换会话并加载历史
+                setHistoryOpen(false);
+                menuLockRef.current = false;
+                const hasTabBase = Boolean(tabView?.base);
+                const tabTitle = String(tabView?.title ?? "").trim();
+                const selectedSessionMeta = sessions.find((item) => item.id === session.id);
+                const isSelectedUserRename = Boolean(selectedSessionMeta?.isUserRename);
+                // 无左侧 base 的 tab：如果历史会话还没被用户重命名/仍是默认标题，则用当前 tab title 覆盖它
+                if (
+                  !hasTabBase &&
+                  tabTitle.length > 0 &&
+                  !isSelectedUserRename &&
+                  (session.name.trim().length === 0 || session.name.trim() === "新对话")
+                ) {
+                  syncHistoryTitleToTabTitle.mutate({
+                    where: { id: session.id, isUserRename: false },
+                    data: { title: tabTitle },
+                  } as any);
+                }
+                if (tabId && !hasTabBase) {
+                  const nextTitle = session.name.trim();
+                  if (nextTitle) setTabTitle(tabId, nextTitle);
+                }
+                // 历史会话可能属于不同项目，写入 chatSessionProjectIds 映射
+                if (tabId && selectedSessionMeta?.projectId) {
+                  setSessionProjectId(tabId, session.id, selectedSessionMeta.projectId);
+                }
+                selectSession(session.id);
+              }}
+            />
           </PopoverContent>
         </Popover>
-      )}
-      <div className="flex min-w-0 w-full items-center pr-2">
-        <span className="min-w-0 truncate text-left text-sm font-medium">
-          {showSessionIndex && sessionIndex ? (
-            <span className="mr-1 text-[11px] text-muted-foreground/70 tabular-nums">
-              #{sessionIndex}
-            </span>
-          ) : null}
-          {sessionTitle.length > 0 ? sessionTitle : null}
-        </span>
-        {showPrefaceButton ? (
-          <MessageAction
-            aria-label="View Debug Context"
-            onClick={handleViewPreface}
-            disabled={prefaceLoading}
-            className={cn("ml-0.5 shrink-0", resolveActionIconClass("debug"))}
-            tooltip="查看上下文调试信息"
-            label="查看上下文调试信息"
-          >
-            <Bug size={16} />
-          </MessageAction>
-        ) : null}
-        {saasLoggedIn && messages.length > 0 ? (
-          <MessageAction
-            aria-label={tAi("chatFeedback.button")}
-            onClick={() => setChatFeedbackOpen(true)}
-            className={cn("shrink-0", resolveActionIconClass("feedback"))}
-            disabled={chatFeedbackSubmitting || !activeSessionId}
-            tooltip={tAi("chatFeedback.button")}
-            label={tAi("chatFeedback.button")}
-          >
-            <Lightbulb size={16} />
-          </MessageAction>
-        ) : null}
-      </div>
-      <MessageActions className="min-w-0 justify-end gap-0">
-        {shouldShowNewSessionButton && (
-          <MessageAction
-            aria-label="重新开始会话"
-            className={resolveActionIconClass("clear")}
-            onClick={() => {
-              setHistoryOpen(false);
-              menuLockRef.current = false;
-              newSession();
-            }}
-            tooltip="重新开始会话"
-            label="重新开始会话"
-          >
-            <MessageSquarePlus size={20} />
-          </MessageAction>
-        )}
-        {shouldShowHistoryButton && (
-          <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
-            <PopoverTrigger asChild>
-              <MessageAction
-                aria-label="History"
-                className={resolveActionIconClass("history")}
-                onClick={() => {
-                  // 中文注释：点击历史按钮立即刷新会话列表，确保拿到最新数据。
-                  void refetchSessions();
-                }}
-                tooltip="历史会话"
-                label="历史会话"
-              >
-                <History size={20} />
-              </MessageAction>
-            </PopoverTrigger>
-            <PopoverContent
-              side="bottom"
-              align="end"
-              className="flex w-80 max-h-[min(80svh,var(--radix-popover-content-available-height))] flex-col overflow-hidden p-2"
-              onInteractOutside={(e) => {
-                if (menuLockRef.current) e.preventDefault();
-              }}
+      ) : null}
+      {onCloseSession ? (
+        <MessageAction
+          aria-label="关闭会话"
+          className={resolveActionIconClass("close")}
+          onClick={onCloseSession}
+          tooltip="关闭会话"
+          label="关闭会话"
+        >
+          <X size={20} />
+        </MessageAction>
+      ) : null}
+    </MessageActions>
+  );
+
+  return (
+    <>
+      {isActiveTab && headerActionsTarget
+        ? createPortal(
+            <div
+              className="flex min-w-0 items-center justify-end"
+              data-no-drag="true"
             >
-              <SessionList
-                tabId={tabId}
-                activeSessionId={activeSessionId}
-                onMenuOpenChange={handleMenuOpenChange}
-                onSelect={(session) => {
-                  // 选中历史会话后：关闭弹层 + 切换会话并加载历史
-                  setHistoryOpen(false);
-                  menuLockRef.current = false;
-                  const hasTabBase = Boolean(tabView?.base);
-                  const tabTitle = String(tabView?.title ?? "").trim();
-                  const selectedSessionMeta = sessions.find((item) => item.id === session.id);
-                  const isSelectedUserRename = Boolean(selectedSessionMeta?.isUserRename);
-                  // 无左侧 base 的 tab：如果历史会话还没被用户重命名/仍是默认标题，则用当前 tab title 覆盖它
-                  if (
-                    !hasTabBase &&
-                    tabTitle.length > 0 &&
-                    !isSelectedUserRename &&
-                    (session.name.trim().length === 0 || session.name.trim() === "新对话")
-                  ) {
-                    syncHistoryTitleToTabTitle.mutate({
-                      where: { id: session.id, isUserRename: false },
-                      data: { title: tabTitle },
-                    } as any);
-                  }
-                  if (tabId && !hasTabBase) {
-                    const nextTitle = session.name.trim();
-                    if (nextTitle) setTabTitle(tabId, nextTitle);
-                  }
-                  // 历史会话可能属于不同项目，写入 chatSessionProjectIds 映射
-                  if (tabId && selectedSessionMeta?.projectId) {
-                    setSessionProjectId(tabId, session.id, selectedSessionMeta.projectId);
-                  }
-                  selectSession(session.id);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-        )}
-        {onCloseSession && (
-          <MessageAction
-            aria-label="关闭会话"
-            className={resolveActionIconClass("close")}
-            onClick={onCloseSession}
-            tooltip="关闭会话"
-            label="关闭会话"
-          >
-            <X size={20} />
-          </MessageAction>
-        )}
-      </MessageActions>
+              {headerActions}
+            </div>,
+            headerActionsTarget,
+          )
+        : null}
       <Dialog
         open={effectiveChatFeedbackOpen}
         onOpenChange={(open) => {
@@ -636,6 +558,11 @@ export default function ChatHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      <CopyChatToCanvasDialog
+        open={copyToCanvasOpen}
+        onOpenChange={setCopyToCanvasOpen}
+        sourceSessionId={activeSessionId ?? ""}
+      />
+    </>
   );
 }

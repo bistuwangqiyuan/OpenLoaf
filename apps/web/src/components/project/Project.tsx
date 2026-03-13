@@ -23,10 +23,10 @@ import { trpc } from "@/utils/trpc";
 import { useTabActive } from "@/components/layout/TabActiveContext";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { useTabView } from "@/hooks/use-tab-view";
 import { useProject } from "@/hooks/use-project";
 import { useProjects } from "@/hooks/use-projects";
 import { createPortal } from "react-dom";
-import { FolderOpen, LayoutDashboard } from "lucide-react";
 import { useHeaderSlot } from "@/hooks/use-header-slot";
 import ProjectIndex from "./index/ProjectIndex";
 import ProjectHistory from "./history/ProjectHistoryPage";
@@ -164,6 +164,7 @@ export default function ProjectPage({
   const setTabBaseParams = useTabRuntime((s) => s.setTabBaseParams);
   const setTabTitle = useTabs((s) => s.setTabTitle);
   const setTabIcon = useTabs((s) => s.setTabIcon);
+  const tabView = useTabView(tabId);
   const appliedWidthRef = useRef(false);
   const mountedScopeRef = useRef<{ rootUri?: string; tabId?: string }>({
     rootUri,
@@ -211,9 +212,14 @@ export default function ProjectPage({
   const headerTitleExtraTarget = useHeaderSlot((s) => s.headerTitleExtraTarget);
   const [fileUri, setFileUri] = useState<string | null>(rootUri ?? null);
 
-  const pageTitle = localTitle ?? projectData?.project?.title ?? "Untitled Project";
+  const pageTitle =
+    localTitle ??
+    projectData?.project?.title ??
+    tabView?.projectShell?.title ??
+    "Untitled Project";
   const titleIcon: string | undefined =
-    localIcon ?? projectData?.project?.icon ?? undefined;
+    localIcon ?? projectData?.project?.icon ?? tabView?.projectShell?.icon ?? undefined;
+  const isProjectShellMode = Boolean(tabView?.projectShell);
   // 逻辑：项目数据未加载前不覆盖持久化标题/图标，避免切换时闪动。
   const shouldSyncTabMeta = localTitle !== null || localIcon !== null || Boolean(projectData?.project);
   const shouldRenderIndex = activeTab === "index" || mountedTabs.has("index");
@@ -443,7 +449,6 @@ export default function ProjectPage({
         ? createPortal(
             <div className="flex items-center gap-1.5 text-sm text-foreground/50">
               <div className="mx-1 h-5 w-px bg-foreground/20" />
-              <LayoutDashboard className="h-3.5 w-3.5 text-amber-700/70 dark:text-amber-300/70" />
               <span className="font-medium text-foreground/80">首页</span>
             </div>,
             headerTitleExtraTarget,
@@ -453,7 +458,6 @@ export default function ProjectPage({
         ? createPortal(
             <div className="flex items-center gap-1.5 text-sm text-foreground/50">
               <div className="mx-1 h-5 w-px bg-foreground/20" />
-              <FolderOpen className="h-3.5 w-3.5 text-blue-700/70 dark:text-blue-300/70" />
               <span className="font-medium text-foreground/80">文件</span>
             </div>,
             headerTitleExtraTarget,
@@ -461,14 +465,16 @@ export default function ProjectPage({
         : null}
 
       <div className="relative flex-1 min-h-0 w-full">
-        <ProjectTabs
-          value={activeTab}
-          onValueChange={handleProjectTabChange}
-          isActive={tabActive}
-          revealDelayMs={200}
-          size="md"
-          tabId={tabId}
-        />
+        {!isProjectShellMode ? (
+          <ProjectTabs
+            value={activeTab}
+            onValueChange={handleProjectTabChange}
+            isActive={tabActive}
+            revealDelayMs={200}
+            size="md"
+            tabId={tabId}
+          />
+        ) : null}
         <div
           className={`h-full w-full overflow-auto show-scrollbar ${
             activeTab === "index" ? "pb-2" : "pb-16"

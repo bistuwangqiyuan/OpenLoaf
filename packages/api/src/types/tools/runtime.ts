@@ -173,7 +173,7 @@ export const editDocumentToolDef = {
       .string()
       .min(1)
       .describe("由调用的 LLM 传入，用于说明本次工具调用目的，例如：修改文稿标题。"),
-    path: z.string().min(1).describe("文稿文件夹路径或 index.mdx 路径（相对当前项目/工作空间）。"),
+    path: z.string().min(1).describe("文稿文件夹路径或 index.mdx 路径（相对当前项目或全局根目录）。"),
     content: z.string().describe("修改后的完整 MDX 内容。"),
   }),
   component: null,

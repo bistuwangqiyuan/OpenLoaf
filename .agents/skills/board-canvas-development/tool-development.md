@@ -1,116 +1,100 @@
 # Tool Development
 
-## CanvasTool 接口
+## 核心入口
 
-```typescript
-// tools/ToolTypes.ts
-type ToolContext = {
-  engine: CanvasEngine       // 引擎实例
-  event: PointerEvent        // 原始事件
-  screenPoint: CanvasPoint   // 屏幕坐标
-  worldPoint: CanvasPoint    // 世界坐标（已转换）
-}
+| 代码 | 职责 |
+|------|------|
+| [ToolTypes.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/board/tools/ToolTypes.ts) | `CanvasTool` 与 `ToolContext` 协议 |
+| [ToolManager.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/board/tools/ToolManager.ts) | 工具注册、事件分发、快捷键、中键拖拽、公共快捷键 |
+| [CanvasEngine.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/board/engine/CanvasEngine.ts) | 在构造函数里注册默认工具并设置当前激活工具 |
+| [BoardToolbar.tsx](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/board/toolbar/BoardToolbar.tsx) | 工具按钮、图标与 tooltip 快捷键文案 |
 
-type CanvasTool = {
-  id: string
-  onPointerDown?: (ctx: ToolContext) => void
-  onPointerMove?: (ctx: ToolContext) => void
-  onPointerUp?: (ctx: ToolContext) => void
-  onKeyDown?: (event: KeyboardEvent, engine: CanvasEngine) => void
-}
-```
+## 开发流程
 
-## 添加新工具：3 步
+### 1. 先决定它是不是“工具”
 
-### Step 1: 实现 CanvasTool
+- 需要持续接管指针事件的行为，才适合做成 `CanvasTool`
+- 一次性插入节点通常更接近 `pendingInsert` 流程，不一定需要新增工具
+- 只影响单个节点局部交互的逻辑，优先放回节点自身，而不是滥增全局工具
 
-```typescript
-// tools/MyTool.ts
-import type { CanvasTool, ToolContext } from './ToolTypes'
+### 2. 实现 `CanvasTool`
 
-export class MyTool implements CanvasTool {
-  id = 'my-tool'
+`ToolContext` 已经提供：
 
-  onPointerDown(ctx: ToolContext) {
-    const { engine, worldPoint, event } = ctx
-    // worldPoint 已经过坐标转换，直接用于画布计算
-  }
+- `engine`
+- 原始 `PointerEvent`
+- `screenPoint`
+- `worldPoint`
 
-  onPointerMove(ctx: ToolContext) { /* 拖拽逻辑 */ }
-  onPointerUp(ctx: ToolContext) { /* 完成交互 */ }
-  onKeyDown(event: KeyboardEvent, engine: CanvasEngine) { /* 快捷键 */ }
-}
-```
+实现要求：
 
-### Step 2: 注册到 CanvasEngine
+- 位置计算优先使用 `worldPoint`，不要自己重复做坐标变换
+- 需要键盘交互时，实现 `onKeyDown(event, engine)`
+- 涉及改动文档内容、选区、连线或视口时，优先复用 engine 现有方法
 
-在 `CanvasEngine` 构造函数中：
+### 3. 注册到 `CanvasEngine`
 
-```typescript
-this.tools.register(new MyTool())
-```
+- 新工具需要在 `CanvasEngine` 构造函数里显式 `register()`
+- `ToolManager` 会对重复 `id` 直接抛错，因此工具 id 必须唯一
+- 若希望它成为默认工具或可被切换到，需要同步考虑初始激活策略
 
-### Step 3: 添加快捷键（可选）
+### 4. 补齐可见入口
 
-在 `ToolManager.ts` 的 `TOOL_SHORTCUTS` 中：
+如果工具需要暴露给用户，还要同步检查：
 
-```typescript
-const TOOL_SHORTCUTS: Record<string, string> = {
-  a: 'select', w: 'hand', p: 'pen', k: 'highlighter', e: 'eraser',
-  m: 'my-tool',  // 新增
-}
-```
+- `ToolManager.ts` 的 `TOOL_SHORTCUTS` 是否要加入快捷键
+- `BoardToolbar.tsx` 的工具按钮、tooltip 与快捷键文案是否要更新
+- 锁定态下是否允许使用该工具
+- 是否需要和 `Escape`、中键拖拽、自动布局、复制粘贴等全局快捷键互斥
 
 ## ToolManager 事件流
 
-```
-PointerEvent (浏览器)
-  ↓
-ToolManager.handlePointerDown(event)
-  ├─ isBoardUiTarget(event.target) → 跳过（UI 元素）
-  ├─ 坐标转换: clientX/Y → screenPoint → worldPoint
-  ├─ pendingInsert 检查 → 放置节点并返回
-  ├─ 中键(button=1) → 临时 HandTool
-  └─ getActiveTool().onPointerDown(ctx)
-```
+当前 `ToolManager` 的关键行为：
 
-**关键行为**:
-- **中键特例**: 按下自动切入 HandTool，松开恢复原工具
-- **Pointer Capture**: 拖拽时捕获指针，防止丢失
-- **UI 过滤**: `data-board-node` 元素内的事件不跳过
-- **锁定检查**: 画布锁定时阻止画笔/橡皮擦工具
+- 中键按下时会临时切到 `hand` 逻辑，松开后恢复，不会永久切换当前工具
+- 指针按下时会尝试设置 pointer capture，保证拖拽过程中不会丢事件
+- 交互起点如果位于 board 内部可编辑 UI，会跳过工具分发，避免干扰输入与文本选择
+- 画布锁定时会阻止画笔、高亮笔、橡皮擦等编辑工具继续工作
+- `Escape` 会优先取消待插入节点、连线草稿和当前选区，再交给具体工具
 
-## 全局快捷键
+## 当前快捷键
 
-| 快捷键 | 功能 | 处理位置 |
-|--------|------|----------|
-| A | 选择工具 | ToolManager.TOOL_SHORTCUTS |
-| W | 拖拽工具 | ToolManager.TOOL_SHORTCUTS |
-| P | 钢笔 | ToolManager.TOOL_SHORTCUTS |
-| K | 荧光笔 | ToolManager.TOOL_SHORTCUTS |
-| E | 橡皮擦 | ToolManager.TOOL_SHORTCUTS |
-| F | 适应全部元素 | ToolManager.handleViewShortcut |
-| L | 锁定/解锁画布 | ToolManager.handleLockShortcut |
-| Ctrl/Cmd+Shift+L | 自动布局 | ToolManager.handleAutoLayoutShortcut |
-| Escape | 取消插入/连线/选区 | ToolManager.handleKeyDown |
+| 快捷键 | 行为 |
+|--------|------|
+| `A` | 选择工具 |
+| `W` | 拖拽工具 |
+| `P` | 钢笔 |
+| `K` | 荧光笔 |
+| `E` | 橡皮擦 |
+| `F` | 适应全部元素 |
+| `L` | 锁定或解锁画布 |
+| `Ctrl/Cmd + Shift + L` | 自动布局 |
+| `Escape` | 取消插入、连线或选区 |
 
-**注意**: 输入控件 (`input`/`textarea`/`contenteditable`) 和组合键 (`meta`/`ctrl`/`alt`) 场景下不响应工具快捷键。
+输入控件与可编辑区域内，工具快捷键应尽量让位给原生输入行为。
 
 ## 现有工具参考
 
-| 工具 | 快捷键 | 复杂度 | 用途 |
-|------|--------|--------|------|
-| `SelectTool` | A | ~830行 | 选择/移动/缩放/旋转/连线（最复杂） |
-| `HandTool` | W | 简单 | 拖拽平移视口 |
-| `PenTool` | P | 中等 | 钢笔画笔（pressure-sensitive） |
-| `HighlighterTool` | K | 中等 | 荧光笔 |
-| `EraserTool` | E | 简单 | 橡皮擦（清除笔画） |
+| 工具 | 用途 | 备注 |
+|------|------|------|
+| `SelectTool` | 选择、移动、缩放、旋转、连线 | 最复杂，适合先读它理解基础事件流 |
+| `HandTool` | 平移视口 | 与中键临时拖拽共享 |
+| `PenTool` | 钢笔绘制 | 依赖笔画数据写入 |
+| `HighlighterTool` | 荧光笔绘制 | 与 `PenTool` 相似，但渲染语义不同 |
+| `EraserTool` | 擦除笔画 | 锁定态下应禁用 |
+
+## Working Rules
+
+- 只写规则和代码链接，不放示例代码
+- 新工具先对齐 `ToolTypes.ts` 和 `ToolManager.ts` 的事件契约，再补 UI 入口
+- 若工具对快捷键、锁定态或编辑态有要求，必须在文档里写清楚边界
 
 ## Common Mistakes
 
 | 错误 | 正确做法 |
 |------|----------|
-| 使用 `event.clientX/Y` 计算位置 | 使用 `ctx.worldPoint`（已坐标转换） |
-| 不检查 `engine.isLocked()` | 锁定状态下应阻止编辑操作 |
-| 忘记 pointer capture | 拖拽操作需要 `setPointerCapture` 防止丢失 |
-| 在输入框中响应快捷键 | ToolManager 已处理，但自定义 onKeyDown 需自行检查 |
+| 直接用 `event.clientX/Y` 计算命中 | 使用 `ctx.worldPoint` 或 `ctx.screenPoint` |
+| 新工具只实现类，却没在 `CanvasEngine` 注册 | 注册缺失时工具永远不会参与事件分发 |
+| 只改 `ToolManager`，没改 `BoardToolbar` 文案 | 用户可见工具需要同步更新按钮和 tooltip |
+| 忽略锁定态与输入态 | 新工具必须明确在锁定画布和可编辑控件场景下的行为 |
+| 在工具里复制一套通用快捷键处理 | 先复用 `ToolManager` 现有公共快捷键，再补工具特有逻辑 |

@@ -10,10 +10,8 @@
 "use client";
 
 import { memo } from "react";
-import { useTranslation } from "react-i18next";
 import { BoardCanvas } from "./core/BoardCanvas";
 import { BOARD_NODE_DEFINITIONS } from "./core/board-nodes";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 
 export interface BoardFileViewerProps {
@@ -42,8 +40,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
   panelKey,
   tabId,
 }: BoardFileViewerProps) {
-  const { t } = useTranslation("common");
-  const { workspace } = useWorkspace();
   const runtimeStack = useTabRuntime((state) =>
     tabId ? state.runtimeByTabId[tabId]?.stack : undefined,
   );
@@ -61,10 +57,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
       : stack.at(-1)?.id || "";
   const uiHidden = stackHidden && isStackItem && activeStackId === panelKey;
 
-  if (!workspace?.id) {
-    return <div className="h-full w-full p-4 text-muted-foreground">{t("file.workspaceLoading")}</div>;
-  }
-
   if (!boardFolderUri || !boardFileUri) {
     return <div className="h-full w-full p-4 text-muted-foreground">未选择画布</div>;
   }
@@ -73,7 +65,6 @@ const BoardFileViewer = memo(function BoardFileViewer({
     <div className="h-full w-full bg-background">
       <BoardCanvas
         className="h-full w-full"
-        workspaceId={workspace.id}
         boardId={boardFolderUri}
         boardFolderUri={boardFolderUri}
         boardFileUri={boardFileUri}

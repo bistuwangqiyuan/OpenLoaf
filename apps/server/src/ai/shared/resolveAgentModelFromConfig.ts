@@ -23,8 +23,6 @@ import { resolveAgentByName } from '@/ai/tools/AgentSelector'
 import { readBasicConf } from '@/modules/settings/openloafConfStore'
 import {
   getProjectRootPath,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
 } from '@openloaf/api/services/vfsService'
 
 export type AgentModelIds = {
@@ -39,13 +37,12 @@ export type AgentModelIds = {
 /**
  * 从指定 agent 的配置读取模型 ID。
  *
- * 查找顺序：project root → workspace root → fallback workspace。
+ * 查找顺序：project root。
  * 支持系统 agent（.openloaf/agents/<id>/agent.json）和
  * 动态 agent（.agents/agents/<name>/AGENT.md）。
  */
 export function resolveAgentModelIdsFromConfig(input: {
   agentName: string
-  workspaceId?: string
   projectId?: string
   /** 额外搜索路径（如 parentProjectRootPaths）。 */
   parentRoots?: string[]
@@ -62,12 +59,6 @@ export function resolveAgentModelIdsFromConfig(input: {
     const projectRoot = getProjectRootPath(input.projectId)
     if (projectRoot) roots.push(projectRoot)
   }
-  if (input.workspaceId) {
-    const wsRoot = getWorkspaceRootPathById(input.workspaceId)
-    if (wsRoot) roots.push(wsRoot)
-  }
-  const fallbackWs = getWorkspaceRootPath()
-  if (fallbackWs && !roots.includes(fallbackWs)) roots.push(fallbackWs)
 
   // 逻辑：系统 Agent — 从 .openloaf/agents/<id>/agent.json 读取。
   if (isSystemAgentId(effectiveName)) {
@@ -105,13 +96,9 @@ export function resolveAgentModelIdsFromConfig(input: {
   const projectRoot = input.projectId
     ? getProjectRootPath(input.projectId) ?? undefined
     : undefined
-  const workspaceRoot = input.workspaceId
-    ? getWorkspaceRootPathById(input.workspaceId) ?? undefined
-    : fallbackWs ?? undefined
   const match = resolveAgentByName(input.agentName, {
     projectRoot,
     parentRoots: input.parentRoots,
-    workspaceRoot,
   })
   if (match?.config) {
     const modelIds =

@@ -14,7 +14,11 @@ import { create } from "zustand";
 import i18next from "i18next";
 import { useTabs } from "@/hooks/use-tabs";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
+import { getTabViewById } from "@/hooks/use-tab-view";
+import { shouldDisableRightChat } from "@/hooks/tab-utils";
 import { AI_ASSISTANT_TAB_INPUT, CANVAS_LIST_TAB_INPUT, WORKBENCH_TAB_INPUT } from "@openloaf/api/common";
+import { resolveProjectModeProjectShell } from "@/lib/project-mode";
+import { applyProjectShellToTab } from "@/lib/project-shell";
 
 export type GlobalShortcutDefinition = {
   id: string;
@@ -98,9 +102,8 @@ function isEditableTarget(target: EventTarget | null) {
   );
 }
 
-/** 打开一个“单例 Tab”：若已存在则激活，否则创建并可选关闭搜索浮层。 */
+/** 打开一个"单例 Tab"：若已存在则激活，否则创建并可选关闭搜索浮层。 */
 function openSingletonTab(
-  workspaceId: string,
   input: { baseId: string; component: string; title?: string; titleKey?: string; icon: string },
   options?: { leftWidthPercent?: number; closeSearch?: boolean },
 ) {
@@ -111,7 +114,6 @@ function openSingletonTab(
   const title = input.titleKey ? i18next.t(input.titleKey) : input.title || 'Tab';
 
   const existing = tabs.find((tab) => {
-    if (tab.workspaceId !== workspaceId) return false;
     const runtime = runtimeByTabId[tab.id];
     if (runtime?.base?.id === input.baseId) return true;
     // ai-chat 的 base 会在 store 层被归一化为 undefined，因此需要用 title 做单例去重。
@@ -127,7 +129,6 @@ function openSingletonTab(
   }
 
   addTab({
-    workspaceId,
     createNew: true,
     title,
     icon: input.icon,
@@ -142,9 +143,22 @@ function openSingletonTab(
 }
 
 /** Open settings in the active tab's left dock base panel. */
-export function openSettingsTab(_workspaceId: string, settingsMenu?: string) {
+export function openSettingsTab(settingsMenu?: string) {
   const { activeTabId } = useTabs.getState();
   if (!activeTabId) return;
+
+  const activeTab = useTabs.getState().getTabById(activeTabId);
+  const projectShell = resolveProjectModeProjectShell(activeTab?.projectShell, "settings");
+  if (projectShell) {
+    applyProjectShellToTab(activeTabId, {
+      ...projectShell,
+      section: "settings",
+    });
+    if (settingsMenu) {
+      useTabRuntime.getState().setTabBaseParams(activeTabId, { settingsMenu });
+    }
+    return;
+  }
 
   const { runtimeByTabId, setTabBase, setTabBaseParams } = useTabRuntime.getState();
   const runtime = runtimeByTabId[activeTabId];
@@ -186,7 +200,6 @@ export function closeSettingsTab() {
 }
 
 export type GlobalShortcutContext = {
-  workspaceId?: string;
   isElectron: boolean;
   isMac: boolean;
 };
@@ -201,13 +214,12 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
   if (!event.key) return
   const keyLower = event.key.toLowerCase();
 
-  // Cmd/Ctrl + T 也应视为”全局快捷键”，即使当前焦点在输入框里也要生效（打开工作台）。
+  // Cmd/Ctrl + T 也应视为"全局快捷键"，即使当前焦点在输入框里也要生效（打开工作台）。
   // 注意：浏览器环境可能会被系统/浏览器占用；这里仍然尽量拦截并执行应用内行为。
-  if (ctx.workspaceId && keyLower === "t" && withMod && !event.shiftKey && !event.altKey) {
+  if (keyLower === "t" && withMod && !event.shiftKey && !event.altKey) {
     const quickOpenLeftWidthPercent = overlay.searchOpen ? 70 : 100;
     event.preventDefault();
     openSingletonTab(
-      ctx.workspaceId,
       WORKBENCH_TAB_INPUT,
       { leftWidthPercent: quickOpenLeftWidthPercent, closeSearch: true },
     );
@@ -215,10 +227,9 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
   }
 
   // Cmd/Ctrl + I：打开 AI 助手（全局快捷键，在输入框中也生效）。
-  if (ctx.workspaceId && keyLower === "i" && withMod && !event.shiftKey && !event.altKey) {
+  if (keyLower === "i" && withMod && !event.shiftKey && !event.altKey) {
     event.preventDefault();
     openSingletonTab(
-      ctx.workspaceId,
       AI_ASSISTANT_TAB_INPUT,
       { closeSearch: true },
     );
@@ -226,12 +237,11 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
   }
 
   // Cmd/Ctrl + K：打开画布列表（在输入框中不生效）。
-  if (ctx.workspaceId && keyLower === "k" && withMod && !event.shiftKey && !event.altKey) {
+  if (keyLower === "k" && withMod && !event.shiftKey && !event.altKey) {
     if (!isEditableTarget(event.target)) {
       const quickOpenLeftWidthPercent = overlay.searchOpen ? 70 : 100;
       event.preventDefault();
       openSingletonTab(
-        ctx.workspaceId,
         CANVAS_LIST_TAB_INPUT,
         { leftWidthPercent: quickOpenLeftWidthPercent, closeSearch: true },
       );
@@ -259,10 +269,8 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
       !event.shiftKey &&
       event.key === ","
     ) {
-      if (ctx.workspaceId) {
-        event.preventDefault();
-        openSettingsTab(ctx.workspaceId);
-      }
+      event.preventDefault();
+      openSettingsTab();
       return;
     }
   }
@@ -286,6 +294,10 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
     if (!tabId) return;
     const runtime = useTabRuntime.getState().runtimeByTabId[tabId];
     if (!runtime?.base) return;
+    if (shouldDisableRightChat(getTabViewById(tabId))) {
+      event.preventDefault();
+      return;
+    }
 
     event.preventDefault();
     useTabRuntime.getState().setTabRightChatCollapsed(tabId, !runtime.rightChatCollapsed);
@@ -300,13 +312,12 @@ export function handleGlobalKeyDown(event: KeyboardEvent, ctx: GlobalShortcutCon
 
   if (!overlay.searchOpen && isEditableTarget(event.target)) return;
 
-  if (ctx.workspaceId) {
+  {
     const quickOpenLeftWidthPercent = overlay.searchOpen ? 70 : 100;
 
     if (keyLower === "l" && withMod && !event.shiftKey && !event.altKey) {
       event.preventDefault();
       openSingletonTab(
-        ctx.workspaceId,
         { baseId: "base:calendar", component: "calendar-page", title: "日历", icon: "🗓️" },
         { leftWidthPercent: quickOpenLeftWidthPercent, closeSearch: true },
       );

@@ -18,11 +18,10 @@ import { logger } from "@/common/logger";
 /** Register email attachment download HTTP endpoint. */
 export function registerEmailAttachmentRoutes(app: Hono) {
   app.get("/api/email/attachment", async (c) => {
-    const workspaceId = c.req.query("workspaceId");
     const messageId = c.req.query("messageId");
     const indexStr = c.req.query("index");
 
-    if (!workspaceId || !messageId || indexStr === undefined) {
+    if (!messageId || indexStr === undefined) {
       return c.text("缺少参数。", 400);
     }
 
@@ -46,7 +45,6 @@ export function registerEmailAttachmentRoutes(app: Hono) {
       const attachMeta = attachments[attachmentIndex] as { filename?: string; contentType?: string } | undefined;
       if (attachMeta?.filename) {
         const cached = await readCachedAttachment({
-          workspaceId,
           accountEmail: row.accountEmail,
           mailboxPath: row.mailboxPath,
           externalId: row.externalId,
@@ -63,7 +61,7 @@ export function registerEmailAttachmentRoutes(app: Hono) {
         }
       }
 
-      const config = readEmailConfigFile(workspaceId);
+      const config = readEmailConfigFile();
       const account = config.emailAccounts.find(
         (a) =>
           a.emailAddress.trim().toLowerCase() ===
@@ -81,7 +79,6 @@ export function registerEmailAttachmentRoutes(app: Hono) {
           smtp: account.smtp,
         },
         {
-          workspaceId,
           password:
             account.auth.type === "password"
               ? getEmailEnvValue(account.auth.envKey)
@@ -101,7 +98,6 @@ export function registerEmailAttachmentRoutes(app: Hono) {
 
         // 逻辑：下载后缓存到本地文件系统。
         void cacheAttachment({
-          workspaceId,
           accountEmail: row.accountEmail,
           mailboxPath: row.mailboxPath,
           externalId: row.externalId,

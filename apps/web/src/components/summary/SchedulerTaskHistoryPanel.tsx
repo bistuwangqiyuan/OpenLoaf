@@ -24,8 +24,6 @@ export type SchedulerTaskRecord = {
   id: string;
   /** Project id. */
   projectId: string;
-  /** Workspace id. */
-  workspaceId?: string | null;
   /** Task type. */
   type: string;
   /** Target dates. */

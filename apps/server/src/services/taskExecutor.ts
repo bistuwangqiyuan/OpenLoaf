@@ -75,14 +75,14 @@ class TaskExecutor {
    */
   async execute(
     taskId: string,
-    workspaceRoot: string,
+    globalRoot: string,
     projectRoot?: string | null,
   ): Promise<void> {
     const startedAt = new Date().toISOString()
     const abortController = new AbortController()
 
     try {
-      const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+      const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
       if (!task) {
         logger.warn({ taskId }, '[task-executor] Task not found')
         return
@@ -103,7 +103,7 @@ class TaskExecutor {
       this.running.set(taskId, { taskId, sessionId, abortController, startedAt })
 
       // Transition: → running
-      this.transitionStatus(taskId, task.status, 'running', workspaceRoot, projectRoot, {
+      this.transitionStatus(taskId, task.status, 'running', globalRoot, projectRoot, {
         sessionId,
         lastRunAt: startedAt,
         lastError: null,
@@ -118,18 +118,18 @@ class TaskExecutor {
       try {
         // ─── Phase 1: Generate Plan ─────────────────────────────
         const planInstruction = this.buildPlanInstruction(task)
-        await this.runAgentPhase(sessionId, planInstruction, abortController.signal, taskId, workspaceRoot, projectRoot)
+        await this.runAgentPhase(sessionId, planInstruction, abortController.signal, taskId, globalRoot, projectRoot)
 
         // ─── Plan Confirmation ──────────────────────────────────
         if (!task.skipPlanConfirm) {
-          this.transitionStatus(taskId, 'running', 'review', workspaceRoot, projectRoot, {
+          this.transitionStatus(taskId, 'running', 'review', globalRoot, projectRoot, {
             reviewType: 'plan',
           })
 
           const confirmResult = await this.waitForConfirmation(taskId, task.planConfirmTimeoutMs)
 
           if (confirmResult === 'cancelled') {
-            this.transitionStatus(taskId, 'review', 'cancelled', workspaceRoot, projectRoot, undefined, {
+            this.transitionStatus(taskId, 'review', 'cancelled', globalRoot, projectRoot, undefined, {
               reason: '用户拒绝计划',
               actor: 'user',
             })
@@ -145,12 +145,12 @@ class TaskExecutor {
             reviewType: 'plan',
             reason,
             actor,
-          }, workspaceRoot, projectRoot ?? undefined)
+          }, globalRoot, projectRoot ?? undefined)
 
           updateTask(taskId, {
             status: 'running',
             reviewType: undefined,
-          }, workspaceRoot, projectRoot ?? undefined)
+          }, globalRoot, projectRoot ?? undefined)
 
           taskEventBus.emitStatusChange({
             taskId,
@@ -163,13 +163,13 @@ class TaskExecutor {
 
         // ─── Phase 2: Execute Plan ──────────────────────────────
         const execInstruction = '请按照已生成的计划开始执行。逐步完成每个步骤，完成后汇报结果。'
-        await this.runAgentPhase(sessionId, execInstruction, abortController.signal, taskId, workspaceRoot, projectRoot)
+        await this.runAgentPhase(sessionId, execInstruction, abortController.signal, taskId, globalRoot, projectRoot)
 
         // ─── Completion ─────────────────────────────────────────
         const nextStatus: TaskStatus = task.requiresReview ? 'review' : 'done'
         const now = new Date().toISOString()
 
-        this.transitionStatus(taskId, 'running', nextStatus, workspaceRoot, projectRoot, {
+        this.transitionStatus(taskId, 'running', nextStatus, globalRoot, projectRoot, {
           reviewType: task.requiresReview ? 'completion' : undefined,
           completedAt: now,
           lastStatus: 'ok',
@@ -184,7 +184,7 @@ class TaskExecutor {
           startedAt,
           finishedAt: now,
           durationMs: Date.now() - new Date(startedAt).getTime(),
-        }, projectRoot ?? workspaceRoot)
+        }, projectRoot ?? globalRoot)
 
       } finally {
         clearTimeout(timeoutId)
@@ -193,21 +193,21 @@ class TaskExecutor {
       logger.error({ taskId, err }, '[task-executor] Task execution failed')
 
       const errorMessage = err instanceof Error ? err.message : String(err)
-      const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+      const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
 
       updateTask(taskId, {
         status: 'cancelled',
         lastStatus: 'error',
         lastError: errorMessage,
         consecutiveErrors: (task?.consecutiveErrors ?? 0) + 1,
-      }, workspaceRoot, projectRoot ?? undefined)
+      }, globalRoot, projectRoot ?? undefined)
 
       appendActivityLog(taskId, {
         from: task?.status ?? 'running',
         to: 'cancelled',
         actor: 'system',
         reason: errorMessage,
-      }, workspaceRoot, projectRoot ?? undefined)
+      }, globalRoot, projectRoot ?? undefined)
 
       taskEventBus.emitStatusChange({
         taskId,
@@ -225,7 +225,7 @@ class TaskExecutor {
         startedAt,
         finishedAt: new Date().toISOString(),
         durationMs: Date.now() - new Date(startedAt).getTime(),
-      }, projectRoot ?? workspaceRoot)
+      }, projectRoot ?? globalRoot)
     } finally {
       this.running.delete(taskId)
       this.confirmationResolvers.delete(taskId)
@@ -240,7 +240,7 @@ class TaskExecutor {
     instruction: string,
     signal: AbortSignal,
     taskId: string,
-    workspaceRoot: string,
+    globalRoot: string,
     projectRoot?: string | null,
   ): Promise<void> {
     const messageId = randomUUID()
@@ -255,7 +255,6 @@ class TaskExecutor {
           parentMessageId: null,
         } as any],
         trigger: 'submit-message',
-        workspaceId: undefined,
         projectId: undefined,
       },
       cookies: {},
@@ -281,7 +280,7 @@ class TaskExecutor {
             if (lastMessage) {
               updateExecutionSummary(taskId, {
                 lastAgentMessage: lastMessage.slice(0, 100),
-              }, workspaceRoot, projectRoot ?? undefined)
+              }, globalRoot, projectRoot ?? undefined)
 
               taskEventBus.emitSummaryUpdate({
                 taskId,
@@ -296,7 +295,7 @@ class TaskExecutor {
     }
 
     // Save plan.md if generated during plan phase
-    this.savePlanIfPresent(taskId, workspaceRoot, projectRoot)
+    this.savePlanIfPresent(taskId, globalRoot, projectRoot)
   }
 
   /** Extract the last meaningful text from an SSE chunk. */
@@ -359,18 +358,18 @@ class TaskExecutor {
     taskId: string,
     from: TaskStatus,
     to: TaskStatus,
-    workspaceRoot: string,
+    globalRoot: string,
     projectRoot?: string | null,
     patch?: Partial<Record<string, unknown>>,
     logOverride?: { reason?: string; actor?: 'system' | 'user' | 'agent' | 'timeout' },
   ) {
-    const task = getTask(taskId, workspaceRoot, projectRoot ?? undefined)
+    const task = getTask(taskId, globalRoot, projectRoot ?? undefined)
     if (!task) return
 
     updateTask(taskId, {
       status: to,
       ...patch,
-    } as any, workspaceRoot, projectRoot ?? undefined)
+    } as any, globalRoot, projectRoot ?? undefined)
 
     appendActivityLog(taskId, {
       from,
@@ -378,7 +377,7 @@ class TaskExecutor {
       reviewType: (patch as any)?.reviewType,
       reason: logOverride?.reason,
       actor: logOverride?.actor ?? 'system',
-    }, workspaceRoot, projectRoot ?? undefined)
+    }, globalRoot, projectRoot ?? undefined)
 
     taskEventBus.emitStatusChange({
       taskId,
@@ -393,12 +392,12 @@ class TaskExecutor {
   /** Save plan.md from the task session if update-plan was used. */
   private savePlanIfPresent(
     taskId: string,
-    workspaceRoot: string,
+    globalRoot: string,
     projectRoot?: string | null,
   ) {
     // Plan content is stored by update-plan tool in the session.
     // We create a plan.md file in the task directory for display.
-    const taskDir = getTaskDir(taskId, workspaceRoot, projectRoot ?? undefined)
+    const taskDir = getTaskDir(taskId, globalRoot, projectRoot ?? undefined)
     if (!taskDir) return
 
     try {

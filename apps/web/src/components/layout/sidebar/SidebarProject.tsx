@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/utils/trpc";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import {
   SidebarGroup,
   SidebarMenu,
@@ -100,7 +100,7 @@ export const SidebarProject = () => {
   const projectListQuery = useProjects();
   const projects = projectListQuery.data ?? [];
   const createProject = useMutation(trpc.project.create.mutationOptions());
-  const { workspace } = useWorkspace();
+  const projectStorageRootUri = useProjectStorageRootUri();
 
   // 将状态提升到顶层组件，确保整个页面树只有一个状态管理
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>(
@@ -194,11 +194,11 @@ export const SidebarProject = () => {
     }
   };
 
-  /** Copy workspace path to clipboard. */
-  const handleCopyWorkspacePath = async () => {
-    const rootUri = workspace?.rootUri;
+  /** Copy project-space root path to clipboard. */
+  const handleCopyProjectSpacePath = async () => {
+    const rootUri = projectStorageRootUri;
     if (!rootUri) {
-      toast.error(t('sidebar.workspacePathNotFound'));
+      toast.error(t('sidebar.projectSpacePathNotFound'));
       return;
     }
     const displayPath = getDisplayPathFromUri(rootUri);
@@ -318,9 +318,9 @@ export const SidebarProject = () => {
           </ContextMenuItem>
           <ContextMenuItem
             icon={ClipboardCopy}
-            onClick={() => void handleCopyWorkspacePath()}
+            onClick={() => void handleCopyProjectSpacePath()}
           >
-            {t('sidebar.copyWorkspacePath')}
+            {t('sidebar.copyProjectSpacePath')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem icon={FolderPlus} onClick={() => openAddDialog()}>
@@ -377,7 +377,7 @@ export const SidebarProject = () => {
                       enableVersionControl: shouldEnableVc,
                       icon: autoIcon,
                     });
-                    toast.success(t('sidebar.addToWorkspace'));
+                    toast.success(t('sidebar.addToProjectSpace'));
                     setIsAddOpen(false);
                     await projectListQuery.refetch();
                     // Fire-and-forget: infer project type via auxiliary model.
@@ -476,7 +476,7 @@ export const SidebarProject = () => {
                         if (dir) setGitTargetDir(dir);
                       }}
                     >
-                      {gitTargetDir || t('sidebar.workspaceRootDefault')}
+                      {gitTargetDir || t('sidebar.projectSpaceRootDefault')}
                     </button>
                   </div>
                 </>

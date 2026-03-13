@@ -51,14 +51,18 @@ import {
 import { resolveServerUrl } from "@/utils/server-url";
 import { trpc } from "@/utils/trpc";
 import { BOARD_COLLAB_WS_PATH } from "@openloaf/api/types/boardCollab";
+import { computeElementsBounds } from "../engine/geometry";
+import {
+  consumePendingBoardElements,
+  onPendingBoardElements,
+  type PendingBoardElementBatch,
+} from "../engine/pending-elements-store";
 
 type BoardCanvasCollabProps = {
   /** Canvas engine instance. */
   engine: CanvasEngine;
   /** Initial elements injected when the board is empty. */
   initialElements?: CanvasElement[];
-  /** Workspace id for storage isolation. */
-  workspaceId: string;
   /** Project id used for file resolution. */
   projectId?: string;
   /** Project root uri for attachment resolution. */
@@ -76,6 +80,7 @@ const BOARD_META_DOC_ID_KEY = "docId";
 const BOARD_SYNC_SIGNAL = "flush";
 /** Scheme matcher for absolute URIs. */
 const SCHEME_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const PENDING_IMPORT_GAP = 240;
 
 /** Resolve a project-scoped reference from an input value. */
 function resolveProjectScopedRef(input: {
@@ -144,6 +149,57 @@ function splitElements(elements: CanvasElement[]) {
   return { nodes, connectors };
 }
 
+/** Offset imported elements so appended batches appear beside the current board content. */
+function translatePendingElements(
+  elements: CanvasElement[],
+  existingElements: CanvasElement[],
+): CanvasElement[] {
+  if (elements.length === 0 || existingElements.length === 0) return elements;
+
+  const existingBounds = computeElementsBounds(existingElements);
+  const importedBounds = computeElementsBounds(elements);
+  const deltaX = existingBounds.x + existingBounds.w + PENDING_IMPORT_GAP - importedBounds.x;
+  const deltaY = existingBounds.y - importedBounds.y;
+
+  return elements.map((element) => ({
+    ...element,
+    xywh: [
+      element.xywh[0] + deltaX,
+      element.xywh[1] + deltaY,
+      element.xywh[2],
+      element.xywh[3],
+    ],
+  }));
+}
+
+/** Apply one queued import batch into the active board document. */
+function applyPendingBoardElementBatch(
+  engine: CanvasEngine,
+  batch: PendingBoardElementBatch,
+): void {
+  if (batch.elements.length === 0) return;
+
+  const currentElements = engine.doc.getElements();
+  const shouldKeepOriginalPlacement =
+    batch.mode === "replace-if-empty" && currentElements.length === 0;
+  const nextElements = shouldKeepOriginalPlacement
+    ? batch.elements
+    : translatePendingElements(batch.elements, currentElements);
+
+  engine.batch(() => {
+    engine.doc.transact(() => {
+      nextElements.forEach((element) => {
+        engine.doc.addElement(element);
+      });
+    });
+  });
+  engine.commitHistory();
+
+  if (batch.fitView !== false) {
+    engine.fitToElements();
+  }
+}
+
 /** Create a time-prefixed random doc id. */
 function createBoardDocId(): string {
   const prefix = Date.now().toString();
@@ -157,7 +213,6 @@ function createBoardDocId(): string {
 
 /** Build the collaboration websocket URL for the board. */
 function resolveBoardCollabUrl(input: {
-  workspaceId: string;
   projectId?: string;
   boardFileUri?: string;
   boardFolderUri?: string;
@@ -168,7 +223,6 @@ function resolveBoardCollabUrl(input: {
     (typeof window !== "undefined" ? window.location.origin : "http://localhost");
   const wsBase = baseUrl.replace(/^http/, "ws");
   const params = new URLSearchParams();
-  params.set("workspaceId", input.workspaceId);
   if (input.projectId) params.set("projectId", input.projectId);
   if (input.boardFileUri) params.set("boardFileUri", input.boardFileUri);
   if (input.boardFolderUri) params.set("boardFolderUri", input.boardFolderUri);
@@ -236,7 +290,6 @@ function buildBoardDocPayload(
 export function BoardCanvasCollab({
   engine,
   initialElements,
-  workspaceId,
   projectId,
   rootUri,
   boardFolderUri,
@@ -328,7 +381,6 @@ export function BoardCanvasCollab({
     metaPersistedRef.current = true;
     try {
       await writeMetaRef.current({
-        workspaceId,
         projectId,
         uri: metaFileUri,
         content: JSON.stringify({ [BOARD_META_DOC_ID_KEY]: docId }, null, 2),
@@ -336,7 +388,7 @@ export function BoardCanvasCollab({
     } catch {
       // 逻辑：写入失败时仍使用内存 docId，避免阻断协作。
     }
-  }, [metaFileUri, projectId, workspaceId]);
+  }, [metaFileUri, projectId]);
 
   /** Load or create the board doc id persisted in meta file. */
   const readOrCreateDocId = useCallback(async (): Promise<string> => {
@@ -344,7 +396,6 @@ export function BoardCanvasCollab({
     try {
       const result = await queryClient.fetchQuery(
         trpc.fs.readFile.queryOptions({
-          workspaceId,
           projectId,
           uri: metaFileUri,
         })
@@ -358,7 +409,7 @@ export function BoardCanvasCollab({
       // 逻辑：缺少 meta 文件时生成内存 docId，延迟到首次修改时写入。
     }
     return createBoardDocId();
-  }, [metaFileUri, projectId, queryClient, workspaceId]);
+  }, [metaFileUri, projectId, queryClient]);
 
   /** Resolve a unique asset file name inside the board folder. */
   const resolveUniqueAssetName = useCallback(async (fileName: string) => {
@@ -369,7 +420,6 @@ export function BoardCanvasCollab({
     try {
       const result = await queryClient.fetchQuery(
         trpc.fs.list.queryOptions({
-          workspaceId,
           projectId,
           uri: assetsFolderUri,
         })
@@ -379,13 +429,12 @@ export function BoardCanvasCollab({
     } catch {
       return safeName;
     }
-  }, [assetsFolderUri, projectId, queryClient, workspaceId]);
+  }, [assetsFolderUri, projectId, queryClient]);
 
   /** Persist an image file into the board assets folder. */
   const saveBoardAssetFile = useCallback(async (file: File) => {
     if (!assetsFolderUri) return "";
     await mkdirRef.current({
-      workspaceId,
       projectId,
       uri: assetsFolderUri,
       recursive: true,
@@ -394,13 +443,12 @@ export function BoardCanvasCollab({
     const targetUri = buildChildUri(assetsFolderUri, uniqueName);
     const contentBase64 = await fileToBase64(file);
     await writeAssetRef.current({
-      workspaceId,
       projectId,
       uri: targetUri,
       contentBase64,
     });
     return `${BOARD_ASSETS_DIR_NAME}/${uniqueName}`;
-  }, [assetsFolderUri, projectId, resolveUniqueAssetName, workspaceId]);
+  }, [assetsFolderUri, projectId, resolveUniqueAssetName]);
 
   /** Register a new transcoding task and return its id. */
   const registerTranscodeTask = useCallback(
@@ -529,7 +577,7 @@ export function BoardCanvasCollab({
   }, [engine, boardFolderUri]);
 
   useEffect(() => {
-    if (!workspaceId || !boardFolderUri) {
+    if (!boardFolderUri) {
       engine.setImagePayloadBuilder(null);
       return;
     }
@@ -570,7 +618,7 @@ export function BoardCanvasCollab({
     return () => {
       engine.setImagePayloadBuilder(null);
     };
-  }, [boardFolderUri, engine, saveBoardAssetFile, workspaceId]);
+  }, [boardFolderUri, engine, saveBoardAssetFile]);
 
   useEffect(() => {
     if (!rootUri) {
@@ -604,13 +652,31 @@ export function BoardCanvasCollab({
   }, [engine, rootUri]);
 
   useEffect(() => {
-    if (!workspaceId) return;
     if (!boardFolderUri && !boardFileUri) return;
     let disposed = false;
     let doc: Y.Doc | null = null;
     let provider: HocuspocusProvider | null = null;
     let webrtc: null = null;
     let awareness: Awareness | null = null;
+    const removePendingImportListener = onPendingBoardElements(({ boardFolderUri: targetBoardFolderUri }) => {
+      if (!boardFolderUri || targetBoardFolderUri !== boardFolderUri) return;
+      if (!hydratedRef.current) return;
+      const batches = consumePendingBoardElements(boardFolderUri);
+      if (batches.length === 0) return;
+      batches.forEach((batch) => {
+        applyPendingBoardElementBatch(engine, batch);
+      });
+    });
+
+    /** Pull and apply queued import batches for the current board. */
+    const flushPendingImports = () => {
+      if (!boardFolderUri || !hydratedRef.current) return;
+      const batches = consumePendingBoardElements(boardFolderUri);
+      if (batches.length === 0) return;
+      batches.forEach((batch) => {
+        applyPendingBoardElementBatch(engine, batch);
+      });
+    };
 
     /** Apply Yjs document payload into the canvas engine. */
     const applyDocToEngine = (docToApply: Y.Doc) => {
@@ -632,6 +698,7 @@ export function BoardCanvasCollab({
         writeBoardDocPayload(docToApply, nextPayload, BOARD_DOC_ORIGIN);
         hydratedRef.current = true;
         engine.fitToElements();
+        flushPendingImports();
         return;
       }
       applyingRemoteRef.current = true;
@@ -644,6 +711,7 @@ export function BoardCanvasCollab({
         engine.fitToElements();
       }
       applyingRemoteRef.current = false;
+      flushPendingImports();
     };
 
     let resolvedDocId = "";
@@ -681,7 +749,6 @@ export function BoardCanvasCollab({
       doc = new Y.Doc();
       awareness = new Awareness(doc);
       const wsUrl = resolveBoardCollabUrl({
-        workspaceId,
         projectId,
         boardFileUri: boardFileRef || undefined,
         boardFolderUri: boardFolderRef || undefined,
@@ -750,6 +817,7 @@ export function BoardCanvasCollab({
 
     return () => {
       disposed = true;
+      removePendingImportListener();
       cleanup?.();
       onSyncLogChange?.({ canSyncLog: false });
       if (syncRafRef.current !== null) {
@@ -777,7 +845,6 @@ export function BoardCanvasCollab({
     onSyncLogChange,
     projectId,
     readOrCreateDocId,
-    workspaceId,
   ]);
 
   return null;

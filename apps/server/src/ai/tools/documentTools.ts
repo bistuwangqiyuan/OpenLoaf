@@ -13,8 +13,9 @@ import { tool, zodSchema } from "ai"
 import { editDocumentToolDef } from "@openloaf/api/types/tools/runtime"
 import { resolveToolPath } from "@/ai/tools/toolScope"
 import { readBasicConf } from "@/modules/settings/openloafConfStore"
-import { getProjectId, getWorkspaceId } from "@/ai/shared/context/requestContext"
-import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService"
+import { getProjectId } from "@/ai/shared/context/requestContext"
+import { getProjectRootPath } from "@openloaf/api/services/vfsService"
+import { getOpenLoafRootDir } from "@openloaf/config"
 
 const DOC_FOLDER_PREFIX = "tndoc_"
 const DOC_INDEX_FILE_NAME = "index.mdx"
@@ -35,14 +36,12 @@ function resolveDocIndexPath(targetPath: string): string {
 
 /** Resolve write target path within project scope. */
 function resolveWriteTargetPath(targetPath: string): { absPath: string; rootPath: string } {
-  const workspaceId = getWorkspaceId()
-  if (!workspaceId) throw new Error("workspaceId is required.")
   const projectId = getProjectId()
   const rootPath = projectId
-    ? getProjectRootPath(projectId, workspaceId)
-    : getWorkspaceRootPathById(workspaceId)
+    ? getProjectRootPath(projectId)
+    : getOpenLoafRootDir()
   if (!rootPath) {
-    throw new Error(projectId ? "Project not found." : "Workspace not found.")
+    throw new Error("Project not found.")
   }
 
   const trimmed = targetPath.trim()

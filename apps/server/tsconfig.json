@@ -11,5 +11,5 @@
 		"jsxImportSource": "hono/jsx"
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx"],
-	"exclude": ["dist/**", "node_modules/**", "src/ai/__tests__/agent-behavior/**/workspace/**"]
+	"exclude": ["dist/**", "node_modules/**", "src/ai/__tests__/agent-behavior/**/project-root/**"]
 }

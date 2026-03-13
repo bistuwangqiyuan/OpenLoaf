@@ -1,241 +1,123 @@
-# Assertion Patterns — 回归测试断言模板
+# Assertion Patterns
 
-本文档为各故障类型提供即用的 YAML 断言代码模板，供回归测试用例直接复制使用。
+本文档只说明“不同故障类型该断言什么”，不再提供可复制的示例代码。
 
----
+## Code Links
 
-## 1. WRONG_TOOL — 调了错误的工具
+| 代码 | 作用 |
+|------|------|
+| [tools.yaml](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/__tests__/agent-behavior/tests/tools/tools.yaml) | 工具类行为测试样式参考 |
+| [commands.yaml](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/__tests__/agent-behavior/tests/commands/commands.yaml) | 命令类行为测试入口 |
+| [master.yaml](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/__tests__/agent-behavior/tests/master/master.yaml) | 路由与主 Agent 行为测试入口 |
+| [calendar.yaml](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/__tests__/agent-behavior/tests/calendar/calendar.yaml) | 域内回归测试入口之一 |
+| [email.yaml](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/__tests__/agent-behavior/tests/email/email.yaml) | 域内回归测试入口之一 |
 
-**场景**：用户输入应触发工具 A，但 Agent 调了工具 B。
+## 断言组合原则
 
-```yaml
-assert:
-  # 验证正确工具被调用
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<期望工具>')
-        ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-        : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-  # 验证错误工具未被调用（可选，当需要排除特定工具时添加）
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return !tools.includes('<错误工具>')
-        ? { pass: true, score: 1, reason: '未错误调用 <错误工具>' }
-        : { pass: false, score: 0, reason: `不应调用 <错误工具>，但实际调用了` };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应<期望行为描述>（<容错情况>也可接受）"
-```
+- 优先用确定性断言验证工具、命令、事件是否发生
+- 再用 `llm-rubric` 评估最终回复质量，避免把语义判断全压给模型评分
+- 一个回归用例只覆盖一个主故障；次要问题作为补充断言，不要把多个独立失败揉进同一条 case
 
----
+## 故障类型与断言重点
 
-## 2. NO_TOOL — 应调工具但未调
+| 故障类型 | 首要断言 | 次要断言 |
+|----------|----------|----------|
+| `WRONG_TOOL` | 期望工具被调用，错误工具未被调用 | 最终回复没有基于错误工具结果继续编造 |
+| `NO_TOOL` | 至少调用了应使用的工具集合之一 | 最终回复不是空想推断 |
+| `TOOL_ERROR` | 正确工具已被调用 | 回复显式承认失败、给出下一步，而不是假装成功 |
+| `OUTPUT_QUALITY` | 工具路径正确 | 回复完整、清晰、覆盖用户请求重点 |
+| `COMMAND_FAIL` | 命令事件被触发到正确链路 | 回复与命令行为一致，不要退回普通聊天 |
+| `SYSTEM_ERROR` | 流程没有超时或崩溃 | 回复具备可恢复性提示或失败说明 |
 
-**场景**：用户请求明确需要工具辅助，但 Agent 直接文本回复。
+## 1. WRONG_TOOL
 
-```yaml
-assert:
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.length > 0
-        ? { pass: true, score: 1, reason: `调用了工具: [${tools}]` }
-        : { pass: false, score: 0, reason: '未调用任何工具，但此请求需要工具辅助' };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应基于实际数据（通过工具查询获得），而非凭猜测或通用知识回答"
-```
+适用场景：应当调用工具 A，却调用了工具 B。
 
-**变体 — 验证特定工具被调用**：
+断言策略：
 
-```yaml
-assert:
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<期望工具>')
-        ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-        : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools.length ? tools : '无工具调用'}]` };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应<基于工具结果的期望行为>"
-```
+- 明确允许的工具集合，避免把工具别名误判成错误
+- 同时检查“应调用的工具出现”和“明显错误的工具未出现”
+- 如果错误工具会让输出产生伪造风险，再加一条输出质量断言，要求回复明确承认未获取到真实数据
 
----
+## 2. NO_TOOL
 
-## 3. TOOL_ERROR — 工具调用返回错误
+适用场景：问题本身明确需要读文件、查数据、执行命令或调用外部能力，但 Agent 直接口答。
 
-**场景**：正确的工具被调用，但返回了错误结果。
+断言策略：
 
-```yaml
-assert:
-  # 验证正确工具被调用（工具选择本身是对的）
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<期望工具>')
-        ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-        : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-  # 验证工具未返回错误
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const calls = context.providerResponse?.metadata?.toolCalls || [];
-      const targetCall = calls.find(c => c.toolName === '<期望工具>');
-      if (!targetCall) return { pass: false, score: 0, reason: '未找到工具调用记录' };
-      const hasError = targetCall.result?.state === 'output-error';
-      return hasError
-        ? { pass: false, score: 0, reason: `工具返回错误: ${JSON.stringify(targetCall.result).slice(0, 200)}` }
-        : { pass: true, score: 1, reason: '工具执行成功' };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应<期望的成功输出描述>"
-```
+- 断言至少调用了一个可接受工具，不必把断言写死到唯一工具，除非路由确实只允许一种
+- 如果该问题允许多个等价工具，文案里写“允许集合”，不要过度收紧
+- 输出质量断言重点检查“是否仍在猜测”
 
----
+## 3. TOOL_ERROR
 
-## 4. OUTPUT_QUALITY — 工具选对但输出质量差
+适用场景：工具选对了，但工具返回失败、空结果或异常数据。
 
-**场景**：工具选择正确，但 Agent 的最终回复不够好。
+断言策略：
 
-```yaml
-assert:
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<期望工具>')
-        ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-        : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应<详细的质量期望>。具体应包含<关键信息点 1>和<关键信息点 2>（<替代表述>也可接受）"
-```
+- 先确认正确工具确实被调用
+- 再验证回复是否承认失败、解释原因或给出补救动作
+- 不要要求精确匹配错误字符串；重点是失败语义是否被正确暴露
 
----
+## 4. OUTPUT_QUALITY
 
-## 5. COMMAND_FAIL — 命令未触发
+适用场景：工具链路正确，但最终回复不完整、不清晰或遗漏关键结论。
 
-**场景**：用户使用斜杠命令，但对应事件未触发。
+断言策略：
 
-```yaml
-assert:
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const cmds = context.providerResponse?.metadata?.commandEvents || [];
-      return cmds.some(c => c.type === '<期望事件类型>')
-        ? { pass: true, score: 1, reason: '正确触发了 <期望事件类型>' }
-        : { pass: false, score: 0, reason: `未触发 <期望事件类型>，实际事件: ${JSON.stringify(cmds)}` };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应<命令执行后的期望行为>"
-```
+- 先保留一条确定性断言，确认工具路径没偏
+- 再用 `llm-rubric` 约束结果质量，例如是否回答了所有子问题、是否避免编造、是否给出下一步
+- 不要把格式要求写得过细，除非用户明确要求固定输出格式
 
----
+## 5. COMMAND_FAIL
 
-## 6. SYSTEM_ERROR — 超时或崩溃
+适用场景：用户使用斜杠命令，但没有进入命令处理链路。
 
-**场景**：Agent 处理超时或系统异常。
+断言策略：
 
-```yaml
-assert:
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const error = context.providerResponse?.error;
-      return !error
-        ? { pass: true, score: 1, reason: '无系统错误' }
-        : { pass: false, score: 0, reason: `系统错误: ${error}` };
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应正常完成，不应出现超时或系统错误提示"
-```
+- 断言命令事件或命令目标行为确实发生
+- 如果命令应触发 UI、文件或 Agent 子流程，再补一条结果侧断言
+- 不要只看最终文案；命令类问题必须覆盖“命令有没有真正触发”
 
----
+## 6. SYSTEM_ERROR
+
+适用场景：超时、崩溃、流中断、严重异常。
+
+断言策略：
+
+- 重点验证流程没有卡死、超时或直接崩溃
+- 如果当前系统设计允许失败回退，则要求回复包含失败说明或恢复建议
+- 不要把系统错误误记成单纯的 `OUTPUT_QUALITY`
 
 ## 7. 多轮对话故障
 
-**场景**：多轮交互中某个轮次出现问题。
+适用场景：只有在上下文累积后才出现的错误。
 
-```yaml
-- description: "regression-NNN: <多轮故障简述>"
-  vars:
-    prompt: "dummy"
-    turns: '[{"text": "<Turn 1>"}, {"text": "<Turn 2（故障轮次）>"}]'
-  assert:
-    - type: javascript
-      value: |
-        const tools = context.providerResponse?.metadata?.toolNames || [];
-        // 验证最终轮次的工具选择
-        return tools.includes('<期望工具>')
-          ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-          : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-    - type: llm-rubric
-      value: "回复应在前一轮上下文基础上<期望行为>，保持对话连贯性"
-```
+断言策略：
 
----
+- 仅把必要的前序轮次作为上下文准备
+- 明确指出哪一轮是失败轮次，断言集中在那一轮的工具与输出
+- 前序轮次只验证“上下文建立成功”，不要在同一用例里额外塞入新的主故障
 
-## 8. 复合断言（同时验证多个条件）
+## 8. 复合断言
 
-**场景**：一个测试需要验证多个工具协同工作。
+适用场景：一个问题同时需要验证工具选择、命令触发和最终输出。
 
-```yaml
-assert:
-  # 验证工具 A 被调用
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<工具A>')
-        ? { pass: true, score: 1, reason: '调用了 <工具A>' }
-        : { pass: false, score: 0, reason: `未调用 <工具A>，实际: [${tools}]` };
-  # 验证工具 B 也被调用
-  - type: javascript
-    weight: 2
-    metric: tool_selection
-    value: |
-      const tools = context.providerResponse?.metadata?.toolNames || [];
-      return tools.includes('<工具B>')
-        ? { pass: true, score: 1, reason: '调用了 <工具B>' }
-        : { pass: false, score: 0, reason: `未调用 <工具B>，实际: [${tools}]` };
-  # 语义质量
-  - type: llm-rubric
-    weight: 1
-    metric: output_quality
-    value: "回复应综合<工具A>和<工具B>的结果，<期望的综合行为>"
-```
+断言策略：
 
----
+- 先放确定性最强的断言，再放语义质量断言
+- 权重上优先保证“关键行为发生”高于“回答写得好不好”
+- 如果一个 case 需要验证多个工具协同，先区分哪些是必需工具，哪些只是可接受替代
 
-## llm-rubric 写作提醒
+## Working Rules
 
-1. **并列同义词**：`"指出文件未找到/不存在"`
-2. **容错括号**：`"（提示检查路径也可接受）"`
-3. **描述范围**：避免要求精确数值匹配
-4. **避免格式要求**：不要求 Markdown 表格等特定格式
+- 只写规则和代码链接，不放示例代码
+- 新增断言模式时，优先回看现有测试文件，再抽象出新的规则描述
+- 断言描述要强调可观察行为，不要绑死到脆弱的字面文本
+
+## `llm-rubric` 写作提醒
+
+- 使用并列同义词表达容错范围，例如“未找到 / 不存在 / 找不到”
+- 可接受的补充行为放在括号说明，例如“提示用户检查路径也可接受”
+- 描述语义范围，不要求精确数字、固定句式或固定 Markdown 格式
+- 重点写“必须包含什么”和“不能编造什么”，少写表面措辞

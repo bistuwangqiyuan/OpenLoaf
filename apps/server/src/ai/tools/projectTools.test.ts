@@ -11,10 +11,10 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
-import { setDefaultWorkspaceRootOverride, setOpenLoafRootOverride } from "@openloaf/config";
+import { setDefaultProjectStorageRootOverride, setOpenLoafRootOverride } from "@openloaf/config";
 import {
   readProjectConfig,
-  readWorkspaceProjectTrees,
+  readProjectTrees,
 } from "@openloaf/api/services/projectTreeService";
 import { resolveFilePathFromUri } from "@openloaf/api/services/vfsService";
 import { setRequestContext } from "@/ai/shared/context/requestContext";
@@ -23,13 +23,13 @@ import {
   executeProjectQuery,
 } from "./projectTools";
 
-/** Build an isolated workspace root for tests. */
-async function setupWorkspace(): Promise<{ root: string }> {
+/** Build an isolated root directory for tests. */
+async function setupTestRoot(): Promise<{ root: string }> {
   const root = await mkdtemp(path.join(os.tmpdir(), "openloaf-project-tools-"));
   const configRoot = path.join(root, "config");
-  const workspaceRoot = path.join(root, "workspace");
+  const defaultRoot = path.join(root, "project-storage");
   setOpenLoafRootOverride(configRoot);
-  setDefaultWorkspaceRootOverride(workspaceRoot);
+  setDefaultProjectStorageRootOverride(defaultRoot);
   return { root };
 }
 
@@ -42,7 +42,7 @@ function setToolContext(input: { projectId?: string }) {
   });
 }
 
-const { root } = await setupWorkspace();
+const { root } = await setupTestRoot();
 
 const parentResult = await executeProjectMutate({
   actionName: "create root project",
@@ -108,7 +108,7 @@ await executeProjectMutate({
   targetParentProjectId: null,
 });
 
-const treesAfterMove = await readWorkspaceProjectTrees();
+const treesAfterMove = await readProjectTrees();
 const rootTitles = treesAfterMove.map((node) => node.title);
 assert.ok(rootTitles.includes("Alpha"));
 assert.ok(rootTitles.includes("Beta-Renamed"));
@@ -123,7 +123,7 @@ await executeProjectMutate({
   projectId: childProjectId,
 });
 
-const treesAfterRemove = await readWorkspaceProjectTrees();
+const treesAfterRemove = await readProjectTrees();
 const removedTitles = treesAfterRemove.map((node) => node.title);
 assert.ok(removedTitles.includes("Alpha"));
 assert.ok(!removedTitles.includes("Beta-Renamed"));
@@ -134,5 +134,5 @@ try {
   // 清理失败时忽略（可能被 SQLite 打开锁定）。
 }
 setOpenLoafRootOverride(null);
-setDefaultWorkspaceRootOverride(null);
+setDefaultProjectStorageRootOverride(null);
 console.log("project tools tests passed.");

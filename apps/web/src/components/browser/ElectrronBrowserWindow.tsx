@@ -167,9 +167,8 @@ export default function ElectrronBrowserWindow({
   const buildViewKey = (browserTabId: string) => {
     if (!safeTabId) return `${BROWSER_WINDOW_PANEL_ID}:${browserTabId}`;
     const tab = useTabs.getState().getTabById(safeTabId);
-    const workspaceId = tab?.workspaceId ?? "unknown";
     const chatSessionId = tab?.chatSessionId ?? "unknown";
-    return `browser:${workspaceId}:${safeTabId}:${chatSessionId}:${browserTabId}`;
+    return `browser:${safeTabId}:${chatSessionId}:${browserTabId}`;
   };
 
   // Sync tab title from WebContents status events.

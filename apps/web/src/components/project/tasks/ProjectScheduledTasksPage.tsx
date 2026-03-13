@@ -15,7 +15,7 @@ type ProjectScheduledTasksPageProps = {
   projectId?: string
 }
 
-/** Project-level scheduled tasks page — renders the same kanban board as workspace. */
+/** Project-level scheduled tasks page — renders the same kanban board as the global page. */
 export default function ProjectScheduledTasksPage({
   projectId,
 }: ProjectScheduledTasksPageProps) {

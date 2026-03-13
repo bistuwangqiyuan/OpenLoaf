@@ -11,12 +11,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import path from "node:path";
 import { z } from "zod";
 
-import type { Workspace } from "@openloaf/api";
-import {
-  getActiveWorkspaceConfig,
-  getWorkspaceByIdConfig,
-  resolveWorkspaceRootPath,
-} from "@openloaf/api/services/workspaceConfig";
+import { getOpenLoafRootDir } from "@openloaf/config";
 
 /** Schema for email account sync state. */
 const EmailMailboxSyncSchema = z.object({
@@ -115,19 +110,8 @@ const EmailConfigFileSchema = z.object({
 
 export type EmailConfigFile = z.infer<typeof EmailConfigFileSchema>;
 
-/** Cache for last valid email config per workspace path. */
+/** Cache for last valid email config. */
 const cachedEmailConfigByPath = new Map<string, EmailConfigFile>();
-
-/** Resolve workspace config by id or active workspace. */
-function resolveWorkspaceConfig(workspaceId?: string): Workspace {
-  const workspace = workspaceId
-    ? getWorkspaceByIdConfig(workspaceId)
-    : getActiveWorkspaceConfig();
-  if (!workspace) {
-    throw new Error("Workspace not found.");
-  }
-  return workspace;
-}
 
 /** Normalize private sender email. */
 function normalizePrivateSender(email: string): string {
@@ -135,25 +119,24 @@ function normalizePrivateSender(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** Resolve email.json path for the workspace. */
-export function getEmailConfigPath(workspaceId?: string): string {
-  const workspace = resolveWorkspaceConfig(workspaceId);
-  const rootPath = resolveWorkspaceRootPath(workspace.rootUri);
+/** Resolve email.json path (global). */
+export function getEmailConfigPath(): string {
+  const rootPath = getOpenLoafRootDir();
   return path.join(rootPath, "email.json");
 }
 
 /** Ensure email.json exists with default payload. */
-function ensureDefaultEmailConfigFile(workspaceId?: string): EmailConfigFile {
+function ensureDefaultEmailConfigFile(): EmailConfigFile {
   const payload: EmailConfigFile = { emailAccounts: [], privateSenders: [] };
-  writeEmailConfigFile(payload, workspaceId);
+  writeEmailConfigFile(payload);
   return payload;
 }
 
 /** Read email.json payload safely. */
-export function readEmailConfigFile(workspaceId?: string): EmailConfigFile {
-  const filePath = getEmailConfigPath(workspaceId);
+export function readEmailConfigFile(): EmailConfigFile {
+  const filePath = getEmailConfigPath();
   if (!existsSync(filePath)) {
-    return ensureDefaultEmailConfigFile(workspaceId);
+    return ensureDefaultEmailConfigFile();
   }
   try {
     const raw = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
@@ -164,17 +147,17 @@ export function readEmailConfigFile(workspaceId?: string): EmailConfigFile {
     const cached = cachedEmailConfigByPath.get(filePath);
     if (cached) {
       // 逻辑：解析失败时回退缓存，并修复文件内容。
-      writeEmailConfigFile(cached, workspaceId);
+      writeEmailConfigFile(cached);
       return cached;
     }
     // 逻辑：解析失败时回退为默认配置，避免运行中断。
-    return ensureDefaultEmailConfigFile(workspaceId);
+    return ensureDefaultEmailConfigFile();
   }
 }
 
 /** Write email.json payload atomically. */
-export function writeEmailConfigFile(payload: EmailConfigFile, workspaceId?: string): void {
-  const filePath = getEmailConfigPath(workspaceId);
+export function writeEmailConfigFile(payload: EmailConfigFile): void {
+  const filePath = getEmailConfigPath();
   const dirPath = path.dirname(filePath);
   // 逻辑：确保目录存在，避免写入失败。
   mkdirSync(dirPath, { recursive: true });
@@ -187,21 +170,20 @@ export function writeEmailConfigFile(payload: EmailConfigFile, workspaceId?: str
 }
 
 /** List private senders stored in email.json. */
-export function listPrivateSenders(workspaceId?: string): string[] {
-  const config = readEmailConfigFile(workspaceId);
+export function listPrivateSenders(): string[] {
+  const config = readEmailConfigFile();
   return config.privateSenders?.map((sender) => normalizePrivateSender(sender)) ?? [];
 }
 
 /** Add a private sender to email.json. */
 export function addPrivateSender(input: {
-  workspaceId?: string;
   senderEmail: string;
 }): EmailConfigFile {
   const normalized = normalizePrivateSender(input.senderEmail);
   if (!normalized) {
     throw new Error("发件人地址不能为空。");
   }
-  const config = readEmailConfigFile(input.workspaceId);
+  const config = readEmailConfigFile();
   const existing = new Set(
     (config.privateSenders ?? []).map((sender) => normalizePrivateSender(sender)),
   );
@@ -211,7 +193,7 @@ export function addPrivateSender(input: {
       ...config,
       privateSenders: Array.from(existing),
     };
-    writeEmailConfigFile(next, input.workspaceId);
+    writeEmailConfigFile(next);
     return next;
   }
   return config;
@@ -219,14 +201,13 @@ export function addPrivateSender(input: {
 
 /** Remove a private sender from email.json. */
 export function removePrivateSender(input: {
-  workspaceId?: string;
   senderEmail: string;
 }): EmailConfigFile {
   const normalized = normalizePrivateSender(input.senderEmail);
   if (!normalized) {
     throw new Error("发件人地址不能为空。");
   }
-  const config = readEmailConfigFile(input.workspaceId);
+  const config = readEmailConfigFile();
   const nextSenders = (config.privateSenders ?? []).filter(
     (sender) => normalizePrivateSender(sender) !== normalized,
   );
@@ -237,6 +218,6 @@ export function removePrivateSender(input: {
     ...config,
     privateSenders: nextSenders,
   };
-  writeEmailConfigFile(next, input.workspaceId);
+  writeEmailConfigFile(next);
   return next;
 }

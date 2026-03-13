@@ -21,10 +21,10 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@udecode/cn";
 
 import { useBoardContext } from "../../core/BoardProvider";
-import { getWorkspaceIdFromCookie } from "../../core/boardSession";
 import { NodeFrame } from "../NodeFrame";
 import { useAutoResizeNode } from "../lib/use-auto-resize-node";
 import { resolveRightStackPlacement } from "../../utils/output-placement";
+import { GROUP_NODE_TYPE } from "../../engine/grouping";
 import {
   resolveBoardFolderScope,
   resolveProjectPathFromBoardUri,
@@ -35,6 +35,10 @@ import {
 } from "@/components/project/filesystem/utils/file-system-utils";
 import { sendBoardChatMessage } from "../../hooks/sendBoardChatMessage";
 import { CHAT_MESSAGE_NODE_TYPE } from "../chatMessage/types";
+import {
+  getBoardChatMessageMeta,
+  updateBoardChatMessageMeta,
+} from "../../utils/board-chat-message";
 import {
   CHAT_INPUT_NODE_TYPE,
   ChatInputNodeSchema,
@@ -61,6 +65,28 @@ const OUTPUT_STACK_GAP = 16;
 /** Fixed Y-offset for left/right anchors (center of header bar). */
 const CHAT_ANCHOR_Y_OFFSET = 18;
 
+/** Resolve the stored message id from a canvas node in the chat chain. */
+function resolveCanvasMessageId(
+  element: { type: string; props?: Record<string, unknown>; meta?: Record<string, unknown> },
+): string | null {
+  const groupMeta = getBoardChatMessageMeta({
+    id: "",
+    kind: "node",
+    type: element.type,
+    xywh: [0, 0, 0, 0],
+    props: element.props ?? {},
+    meta: element.meta,
+  });
+  if (groupMeta?.messageId) return groupMeta.messageId;
+
+  if (element.type === CHAT_MESSAGE_NODE_TYPE || element.type === CHAT_INPUT_NODE_TYPE) {
+    const messageId = element.props?.messageId;
+    return typeof messageId === "string" && messageId.trim().length > 0 ? messageId : null;
+  }
+
+  return null;
+}
+
 /** Collect messageIdChain by walking upstream connectors. */
 function collectMessageIdChain(
   engine: ReturnType<typeof useBoardContext>["engine"],
@@ -86,14 +112,8 @@ function collectMessageIdChain(
     const sourceNode = engine.doc.getElementById(foundSource);
     if (!sourceNode || sourceNode.kind !== "node") break;
 
-    if (sourceNode.type === CHAT_MESSAGE_NODE_TYPE) {
-      const msgId = (sourceNode.props as any)?.messageId;
-      if (msgId) chain.unshift(msgId);
-    }
-    if (sourceNode.type === CHAT_INPUT_NODE_TYPE) {
-      const msgId = (sourceNode.props as any)?.messageId;
-      if (msgId) chain.unshift(msgId);
-    }
+    const msgId = resolveCanvasMessageId(sourceNode as any);
+    if (msgId) chain.unshift(msgId);
     nodeId = foundSource;
   }
 
@@ -115,10 +135,14 @@ function collectUpstreamAttachments(
     if (!source || source.kind !== "node") continue;
 
     if (source.type === "image") {
-      const src = (source.props as any)?.src;
+      const src =
+        (source.props as any)?.src ??
+        (source.props as any)?.originalSrc;
       if (src) annotations.push(`@${src}`);
-    } else if (source.type === "file_attachment") {
-      const filePath = (source.props as any)?.filePath;
+    } else if (source.type === "file_attachment" || source.type === "file-attachment") {
+      const filePath =
+        (source.props as any)?.filePath ??
+        (source.props as any)?.sourcePath;
       if (filePath) annotations.push(`@${filePath}`);
     } else if (source.type === "text") {
       const value = (source.props as any)?.value;
@@ -160,7 +184,6 @@ export function ChatInputNodeView({
   });
 
   const boardId = fileContext?.boardId;
-  const workspaceId = fileContext?.workspaceId ?? getWorkspaceIdFromCookie() ?? undefined;
   const projectId = fileContext?.projectId;
 
   const boardFolderScope = useMemo(
@@ -222,41 +245,44 @@ export function ChatInputNodeView({
       errorText: undefined,
     });
 
-    // Create ChatMessageNode
+    // 逻辑：assistant 回复先创建消息 group，后续流式 part 再增量投影为组内子节点。
     const placement = resolveOutputPlacement();
-    let messageNodeId: string | null = null;
+    let messageGroupId: string | null = null;
     if (placement) {
       const selectionSnapshot = engine.selection.getSelectedIds();
-      messageNodeId = engine.addNodeElement(
-        CHAT_MESSAGE_NODE_TYPE,
-        {
-          messageId: assistantMsgId,
-          userMessageId: userMsgId,
-          sourceInputNodeId: nodeId,
-          status: "streaming",
-          chatModelId: element.props.chatModelId,
-        },
+      messageGroupId = engine.addNodeElement(
+        GROUP_NODE_TYPE,
+        { childIds: [] },
         [
           placement.baseX,
           placement.startY,
           CHAT_MESSAGE_DEFAULT_WIDTH,
           CHAT_MESSAGE_DEFAULT_HEIGHT,
         ],
+        { skipHistory: true },
       );
-      if (messageNodeId) {
+      if (messageGroupId) {
+        updateBoardChatMessageMeta(engine, messageGroupId, {
+          messageId: assistantMsgId,
+          userMessageId: userMsgId,
+          sourceInputNodeId: nodeId,
+          status: "streaming",
+          chatModelId: element.props.chatModelId,
+        });
         engine.addConnectorElement({
           source: { elementId: nodeId },
-          target: { elementId: messageNodeId },
+          target: { elementId: messageGroupId },
           style: engine.getConnectorStyle(),
-        });
+        }, { skipHistory: true });
+        engine.commitHistory();
       }
       if (selectionSnapshot.length > 0) {
         engine.selection.setSelection(selectionSnapshot);
       }
     }
 
-    if (!messageNodeId) {
-      onUpdate({ status: "error", errorText: "Failed to create message node" });
+    if (!messageGroupId) {
+      onUpdate({ status: "error", errorText: "Failed to create message group" });
       return;
     }
 
@@ -273,22 +299,19 @@ export function ChatInputNodeView({
     await sendBoardChatMessage({
       sessionId,
       boardId,
-      workspaceId,
       projectId,
       userMessage,
       assistantMessageId: assistantMsgId,
       messageIdChain: [...messageIdChain, userMsgId],
       chatModelId: element.props.chatModelId,
-      messageNodeElementId: messageNodeId,
+      messageGroupElementId: messageGroupId,
+      engine,
       imageSaveDir: imageSaveDir || undefined,
       onStatusChange: (newStatus, errorText) => {
-        const msgNode = engine.doc.getElementById(messageNodeId!);
-        if (msgNode && msgNode.kind === "node") {
-          engine.doc.updateNodeProps(messageNodeId!, {
-            status: newStatus,
-            errorText,
-          });
-        }
+        updateBoardChatMessageMeta(engine, messageGroupId!, {
+          status: newStatus,
+          errorText: newStatus === "error" ? errorText : undefined,
+        });
         if (newStatus === "complete" || newStatus === "error") {
           onUpdate({
             status: newStatus === "complete" ? "sent" : "error",
@@ -308,7 +331,6 @@ export function ChatInputNodeView({
     resolveOutputPlacement,
     element.props.chatModelId,
     imageSaveDir,
-    workspaceId,
     projectId,
   ]);
 
@@ -349,7 +371,7 @@ export function ChatInputNodeView({
           </span>
         </div>
 
-        {/* Model ID display (uses workspace default) */}
+        {/* Model ID display (uses global default) */}
         {element.props.chatModelId && (
           <div className="px-3 py-1 border-b border-border/20">
             <span className="text-[10px] text-muted-foreground">

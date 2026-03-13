@@ -31,7 +31,6 @@ function getMailboxOrderKey(accountEmail: string, parentPath: string | null) {
 
 export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   const {
-    workspaceId,
     queryClient,
     accounts,
     accountsQuery,
@@ -64,10 +63,9 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   const syncMailboxMutation = useMutation(
     trpc.email.syncMailbox.mutationOptions({
       onSuccess: () => {
-        if (workspaceId && activeAccount?.emailAddress && activeMailbox) {
+        if (activeAccount?.emailAddress && activeMailbox) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listUnifiedMessages.infiniteQueryOptions({
-              workspaceId,
               scope: 'mailbox',
               accountEmail: activeAccount.emailAddress,
               mailbox: activeMailbox,
@@ -75,25 +73,22 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
             }).queryKey,
           })
         }
-        if (workspaceId && activeAccount?.emailAddress) {
+        if (activeAccount?.emailAddress) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listMailboxes.queryOptions({
-              workspaceId,
               accountEmail: activeAccount.emailAddress,
             }).queryKey,
           })
         }
-        if (workspaceId) {
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
+        })
       },
     }),
   )
@@ -101,22 +96,19 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   const syncMailboxesMutation = useMutation(
     trpc.email.syncMailboxes.mutationOptions({
       onSuccess: () => {
-        if (workspaceId && activeAccount?.emailAddress) {
+        if (activeAccount?.emailAddress) {
           queryClient.invalidateQueries({
             queryKey: trpc.email.listMailboxes.queryOptions({
-              workspaceId,
               accountEmail: activeAccount.emailAddress,
             }).queryKey,
           })
         }
-        if (workspaceId) {
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
+        })
       },
     }),
   )
@@ -124,21 +116,19 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   const removeAccountMutation = useMutation(
     trpc.email.removeAccount.mutationOptions({
       onSuccess: () => {
-        if (workspaceId) {
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnreadCount.queryOptions({ workspaceId }).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({ queryKey: trpc.email.listUnifiedMessages.pathKey() })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listUnreadCount.queryOptions({}).queryKey,
+        })
         setActiveAccountEmail(null)
         setActiveMailbox(null)
       },
@@ -148,10 +138,8 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   const updateMailboxSortsMutation = useMutation(
     trpc.email.updateMailboxSorts.mutationOptions({
       onSuccess: (_data, variables) => {
-        if (!workspaceId) return
         queryClient.invalidateQueries({
           queryKey: trpc.email.listMailboxes.queryOptions({
-            workspaceId,
             accountEmail: variables.accountEmail,
           }).queryKey,
         })
@@ -195,11 +183,10 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   }
 
   function handleSyncMailbox() {
-    if (!workspaceId || !activeAccount?.emailAddress) return
-    syncMailboxesMutation.mutate({ workspaceId, accountEmail: activeAccount.emailAddress })
+    if (!activeAccount?.emailAddress) return
+    syncMailboxesMutation.mutate({ accountEmail: activeAccount.emailAddress })
     if (activeMailbox) {
       syncMailboxMutation.mutate({
-        workspaceId,
         accountEmail: activeAccount.emailAddress,
         mailbox: activeMailbox,
       })
@@ -207,8 +194,7 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
   }
 
   function handleRemoveAccount(emailAddress: string) {
-    if (!workspaceId) return
-    removeAccountMutation.mutate({ workspaceId, emailAddress })
+    removeAccountMutation.mutate({ emailAddress })
   }
 
   function resolveOrderedMailboxNodes(
@@ -262,13 +248,11 @@ export function useEmailSidebarState(core: EmailCoreState): SidebarState {
     parentPath: string | null
     orderedNodes: MailboxNode[]
   }) {
-    if (!workspaceId) return
     const sorts = input.orderedNodes.map((node, index) => ({
       mailboxPath: node.path,
       sort: index * 10,
     }))
     updateMailboxSortsMutation.mutate({
-      workspaceId,
       accountEmail: input.accountEmail,
       parentPath: input.parentPath,
       sorts,

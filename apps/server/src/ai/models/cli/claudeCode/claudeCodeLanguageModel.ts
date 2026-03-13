@@ -26,9 +26,9 @@ import {
   getProjectId,
   getSessionId,
   getUiWriter,
-  getWorkspaceId,
 } from "@/ai/shared/context/requestContext";
-import { getProjectRootPath, getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getProjectRootPath } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { execa } from "execa";
 import { z } from "zod";
 import {
@@ -108,12 +108,7 @@ function resolveWorkingDirectory(): string {
     const projectRootPath = getProjectRootPath(projectId);
     if (projectRootPath) return projectRootPath;
   }
-  const workspaceId = getWorkspaceId();
-  if (workspaceId) {
-    const workspaceRootPath = getWorkspaceRootPathById(workspaceId);
-    if (workspaceRootPath) return workspaceRootPath;
-  }
-  throw new Error("Claude Code 运行路径缺失：未找到 project 或 workspace 根目录");
+  return getOpenLoafRootDir();
 }
 
 /** Extract the latest user text from a prompt. */

@@ -3,8 +3,6 @@ name: email-development
 description: Use when developing, extending, or debugging the email module — covers account config, IMAP/SMTP sync, OAuth2 Graph/Gmail, transport adapters, idle/polling, email sending (SMTP/Gmail/Graph), file store, attachment caching, soft delete, message move/delete, draft auto-save, batch operations, search, compose/reply/forward UI, or related DB schema and tests
 ---
 
-# Email Development
-
 ## Overview
 
 邮箱模块覆盖完整收发链路：
@@ -14,24 +12,9 @@ description: Use when developing, extending, or debugging the email module — c
 
 ### 存储架构（双层：文件系统 + DB 索引）
 
-邮件内容存储在文件系统（`<workspaceRoot>/.openloaf/email-store/`），DB（SQLite）仅作轻量索引。同步时双写（DB + 文件），读取优先从文件。
+邮件内容存储在文件系统（默认工作目录下的 `.openloaf/email-store/`，由 `getDefaultWorkspaceRootDir()` 解析），DB（SQLite）仅作轻量索引。同步时双写（DB + 文件），读取优先从文件。
 
-```
-.openloaf/email-store/
-  <accountEmail>/                    # 小写 normalize
-    mailboxes.json                   # 邮箱文件夹元数据
-    drafts/<draftId>.json            # 草稿文件
-    <encodedMailboxPath>/            # base64url 编码
-      index.jsonl                    # 邮件索引（轻量，快速列表）
-      <externalId>/                  # 每封邮件一个目录
-        meta.json                    # 完整元数据
-        body.html                    # 已清洗 HTML（可直接浏览器打开）
-        body.md                      # Markdown 正文
-        message.eml                  # 原始 RFC822
-        attachments/                 # 按需下载缓存
-```
-
-配置落地在 workspace 根目录的 `email.json`，密码与 OAuth 令牌落入 `apps/server/.env`（可用 `OPENLOAF_SERVER_ENV_PATH` 覆盖）；DB 模型 `EmailMessage`（瘦身索引表）/ `EmailMailbox` / `EmailDraft`。Web 端包含 Desktop 收件箱 widget 和完整的撰写编辑器。
+配置落地在 OpenLoaf 全局目录的 `email.json`，密码与 OAuth 令牌落入 `apps/server/.env`（可用 `OPENLOAF_SERVER_ENV_PATH` 覆盖）；DB 模型包括 `EmailMessage`（瘦身索引表）、`EmailMailbox`、`EmailDraft`。Web 端包含 Desktop 收件箱 widget 和完整的撰写编辑器。
 
 ### 认证方式
 
@@ -58,8 +41,6 @@ description: Use when developing, extending, or debugging the email module — c
 - 开发草稿自动保存或草稿管理
 - 修改批量操作（批量标记已读/删除/移动）
 - 修改服务端搜索功能
-
-## Quick Reference
 
 ### 文件映射
 
@@ -106,68 +87,11 @@ description: Use when developing, extending, or debugging the email module — c
 
 ### Core Flow
 
-#### 密码账号添加
-```
-UI 选择服务商 → 填写 IMAP/SMTP + 密码 → addAccount(authType:"password") → emailAccountService.addEmailAccount → 写 email.json + .env → 触发 IMAP 同步
-```
-
-#### OAuth 账号添加
-```
-UI 选择 Exchange/Gmail → 点击"授权登录" → window.open(/auth/email/:provider/start) �� PKCE → 重定向到提供商 → 用户授权 → /callback → exchangeCode → fetchUserEmail → storeOAuthTokens → 成功页面 auto-close → UI 检测 oauthEmail → addAccount(authType:"oauth2-graph"|"oauth2-gmail") → emailAccountService.addOAuthEmailAccount → 写 email.json → 触发 API 同步
-```
-
-#### 实时通知
-```
-IMAP 账号: EmailIdleManager → IMAP IDLE 连接 → 收到 mail 事件 → triggerSync
-OAuth 账号: EmailIdleManager → 60s 轮询定时器 → triggerSync
-```
-
-#### 邮件发送
-```
-UI 点击发送 → sendMessage mutation → emailSendService.sendEmail(workspaceId, accountEmail, input)
-  → 读取 emailConfigStore 获取账号配置
-  → 根据 auth.type 路由:
-    password → smtpSender.sendViaSMTP(smtpConfig, input)
-    oauth2-gmail → gmailAdapter.sendMessage(input)  (构造 RFC 822 → base64url → POST users.messages.send)
-    oauth2-graph → graphAdapter.sendMessage(input)   (POST /me/sendMail JSON payload)
-```
-
-#### 撰写/回复/转发
-```
-写邮件: onStartCompose → 创建空 ComposeDraft(mode:"compose") → 显示编辑器
-回复:   onStartReply → 从当前消息提取 to/subject/inReplyTo → ComposeDraft(mode:"reply")
-全部回复: onStartReplyAll → 提取 to+cc/subject/inReplyTo → ComposeDraft(mode:"replyAll")
-转发:   已有 forwardDraft 机制 → ComposeDraft(mode:"forward")
-```
-
-#### 附件下载（缓存优先）
-```
-前端 <a href="/api/email/attachment?workspaceId=...&messageId=...&index=..."> → Hono 端点
-  → 先检查本地缓存 readCachedAttachment(attachments/<filename>)
-  → 命中 → 直接返回文件
-  → 未命中 → createTransport → adapter.downloadAttachment → 返回 Buffer + cacheAttachment 缓存到本地
-```
-
-#### 草稿自动保存
-```
-编辑器内容变更 → 3s debounce → saveDraft mutation → DB upsert EmailDraft（无 body 字段）+ saveDraftFile 写文件
-取消/发送成功 → deleteDraft mutation → 清除 DB 记录 + deleteDraftFile 清除文件
-```
-
-#### 批量操作
-```
-batchMarkRead: 遍历 messageIds → adapter.markAsRead + DB 更新 + 文件 flags 更新
-batchDelete:   遍历 messageIds → 软删除（添加 \\Deleted 标记到 DB + 文件），不再硬删除
-batchMove:     遍历 messageIds → adapter.moveMessage + DB 更新 mailboxPath + moveEmailMessageFile
-```
-
-#### 软删除
-```
-deleteMessage / batchDelete → 添加 \\Deleted 标记（DB flags + meta.json + index.jsonl）
-"已删除"虚拟文件夹 → 跨邮箱过滤 \\Deleted 标记的邮件
-restoreMessage → 移除 \\Deleted 标记
-正常邮箱视图 → 自动排除 \\Deleted 邮件（listUnifiedMessages 过滤）
-```
+- 账号配置统一从 `email.json` 读取；敏感信息只放 `.env`。
+- 发送链路由 `sendMessage` 进入 `emailSendService.sendEmail({ accountEmail, input })`，再按认证类型分发到 SMTP、Gmail API 或 Graph API。
+- 附件下载统一走 `GET /api/email/attachment?messageId=...&index=...`，命中本地缓存时直接返回，未命中再走远程下载并回写缓存。
+- 草稿采用 DB 元数据 + 文件系统正文的双层存储，发送成功或取消时需同时清理。
+- OAuth 账号通过 `/auth/email/:providerId/start` 与 `/callback` 完成授权与令牌持久化。
 
 ### DB Schema 关键字段（瘦身索引表）
 
@@ -177,48 +101,19 @@ restoreMessage → 移除 \\Deleted 标记
 | `mailboxPath` (String) | IMAP mailbox 路径 或 API folder ID |
 | `from` / `to` (Json) | 地址数组 `[{address, name}]`（已归一化，无冗余 html/text） |
 | `flags` (Json) | 标记数组，含 `\\Seen`/`\\Flagged`/`\\Deleted` 等 |
-| 唯一约束 | `@@unique([workspaceId, accountEmail, mailboxPath, externalId])` |
+| 唯一约束 | `@@unique([accountEmail, mailboxPath, externalId])` |
 | 已移除字段 | `bodyHtml`/`bodyHtmlRaw`/`bodyText`/`rawRfc822` → 迁移到文件系统 |
 - `EmailDraft`: 草稿模型，字段含 mode（compose/reply/replyAll/forward）、to/cc/bcc（JSON 数组）、subject、inReplyTo、references、accountEmail。`body` 字段已移除，正文存储在 `drafts/<id>.json` 文件中
-- `EmailDraft` 唯一约束: `@@unique([workspaceId, accountEmail, inReplyTo])`（同一封邮件只保留一份草稿）
-
-### Auth Schema (email.json)
-
-```typescript
-// discriminatedUnion on "type"
-| { type: "password"; envKey: string }
-| { type: "oauth2-graph"; refreshTokenEnvKey: string; accessTokenEnvKey: string; expiresAtEnvKey: string }
-| { type: "oauth2-gmail"; refreshTokenEnvKey: string; accessTokenEnvKey: string; expiresAtEnvKey: string }
-```
+- `EmailDraft` 唯一约束: `@@unique([accountEmail, inReplyTo])`（同一封邮件只保留一份草稿）
 
 ### Env Key 命名规则
 
 | 类型 | 格式 | 示例 |
 |------|------|------|
-| 密码 | `EMAIL_PASS__{workspaceId}__{slug}` | `EMAIL_PASS__ws1__user_example_com` |
-| OAuth Refresh | `EMAIL_OAUTH_REFRESH__{workspaceId}__{slug}` | `EMAIL_OAUTH_REFRESH__ws1__user_outlook_com` |
-| OAuth Access | `EMAIL_OAUTH_ACCESS__{workspaceId}__{slug}` | `EMAIL_OAUTH_ACCESS__ws1__user_outlook_com` |
-| OAuth Expires | `EMAIL_OAUTH_EXPIRES__{workspaceId}__{slug}` | `EMAIL_OAUTH_EXPIRES__ws1__user_outlook_com` |
-
-### Transport Adapter 接口
-
-```typescript
-interface EmailTransportAdapter {
-  type: "imap" | "graph" | "gmail";
-  // 收侧
-  listMailboxes(): Promise<TransportMailbox[]>;
-  fetchRecentMessages(mailboxPath: string, limit: number, sinceExternalId?: string): Promise<TransportMessage[]>;
-  markAsRead(mailboxPath: string, externalId: string): Promise<void>;
-  setFlagged(mailboxPath: string, externalId: string, flagged: boolean): Promise<void>;
-  dispose(): Promise<void>;
-  // 写侧（可选）
-  sendMessage?(input: SendMessageInput): Promise<SendMessageResult>;
-  downloadAttachment?(mailboxPath: string, externalId: string, attachmentIndex: number): Promise<DownloadAttachmentResult>;
-  moveMessage?(fromMailbox: string, toMailbox: string, externalId: string): Promise<void>;
-  deleteMessage?(mailboxPath: string, externalId: string): Promise<void>;
-  testConnection?(): Promise<{ success: boolean; error?: string }>;
-}
-```
+| 密码 | `EMAIL_PASSWORD__default__{slug}` | `EMAIL_PASSWORD__default__user_example_com` |
+| OAuth Refresh | `EMAIL_OAUTH_REFRESH__default__{slug}` | `EMAIL_OAUTH_REFRESH__default__user_outlook_com` |
+| OAuth Access | `EMAIL_OAUTH_ACCESS__default__{slug}` | `EMAIL_OAUTH_ACCESS__default__user_outlook_com` |
+| OAuth Expires | `EMAIL_OAUTH_EXPIRES__default__{slug}` | `EMAIL_OAUTH_EXPIRES__default__user_outlook_com` |
 
 ### OAuth 环境变量
 
@@ -230,9 +125,9 @@ interface EmailTransportAdapter {
 
 ### OAuth 回调路由
 
-- `GET /auth/email/microsoft/start?workspaceId=xxx` → 重定向到 Microsoft 授权页
+- `GET /auth/email/microsoft/start` → 重定向到 Microsoft 授权页
 - `GET /auth/email/microsoft/callback?code=xxx&state=xxx` → 交换令牌 → 成功页面
-- `GET /auth/email/google/start?workspaceId=xxx` → 重定向到 Google 授权页
+- `GET /auth/email/google/start` → 重定向到 Google 授权页
 - `GET /auth/email/google/callback?code=xxx&state=xxx` → 交换令牌 → 成功页面
 
 ## Common Mistakes
@@ -252,7 +147,7 @@ interface EmailTransportAdapter {
 - 草稿自动保存使用 3s debounce，发送成功或取消时需调用 `deleteDraft` 清理 DB 记录 + 文件
 - 批量操作需逐条调用 adapter 方法（无批量 API），大量操作时注意性能
 - `searchMessages` 当前为本地 DB 搜索（subject/snippet contains），非服务端 IMAP/API 搜索
-- 切换 `workspaceId` 时若不先清空邮件页本地状态（`activeMessageId`/activeView 等），可能会带着旧工作空间 messageId 触发 `getMessage`，导致"邮件不存在"误报；无账号工作空间需对消息/详情查询使用 `skipToken`
+- 切换账号或项目上下文时若不先清空邮件页本地状态（`activeMessageId`/`activeView` 等），可能会带着旧 messageId 触发 `getMessage`，导致“邮件不存在”误报；无账号场景需对消息/详情查询使用 `skipToken`
 - **DB 已移除正文字段**：`bodyHtml`/`bodyHtmlRaw`/`bodyText`/`rawRfc822` 已从 `EmailMessage` 移除，`body` 已从 `EmailDraft` 移除。读取正文必须从文件系统（`readEmailBodyHtml`/`readEmailBodyMd`/`readDraftFile`）
 - **地址格式**：`from`/`to`/`cc`/`bcc` 存储为 `[{address, name}]` 纯数组。IMAP adapter 返回的 mailparser `AddressObject`（含冗余 `html`/`text`）在 sync service 中通过 `extractAddressValues` 归一化
 - **双写一致性**：DB 写入和文件写入必须同步。文件写入使用 fire-and-forget（`void ... .catch()`），失败不阻塞主流程

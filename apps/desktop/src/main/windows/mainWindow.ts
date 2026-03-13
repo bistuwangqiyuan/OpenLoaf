@@ -118,7 +118,7 @@ async function showErrorOnLoadingPage(win: BrowserWindow, error: string): Promis
 }
 
 /**
- * 根据当前屏幕工作区估算一个合适的默认窗口大小，并限制最小/最大值与宽高比。
+ * 根据当前屏幕可用区域估算一个合适的默认窗口大小，并限制最小/最大值与宽高比。
  */
 function getDefaultWindowSize(): { width: number; height: number } {
   const MIN_WIDTH = 800;
@@ -303,14 +303,25 @@ export async function createMainWindow(args: {
       const result = await new Promise<'cancel' | 'minimize' | 'quit'>((resolve) => {
         let responded = false;
 
-        // 超时保护：如果 Web 端 3 秒内没有响应（可能未启动或崩溃），直接退出
+        // 超时保护：如果 Web 端 3 秒内没有 ack（可能未启动或崩溃），直接退出。
+        // Web 端 ack 后取消超时，等待用户操作。
         const timeout = setTimeout(() => {
           if (!responded) {
             args.log('[close] Web did not respond to close confirmation, forcing quit.');
             responded = true;
+            ipcMain.removeAllListeners(CLOSE_RESPONSE_CHANNEL);
+            ipcMain.removeAllListeners('openloaf:confirm-close:ack');
             resolve('quit');
           }
         }, 3000);
+
+        // Web 端收到消息后立即发送 ack，表示对话框已弹出，取消超时。
+        ipcMain.once('openloaf:confirm-close:ack', () => {
+          if (!responded) {
+            args.log('[close] Web acknowledged close confirmation, waiting for user action.');
+            clearTimeout(timeout);
+          }
+        });
 
         ipcMain.once(CLOSE_RESPONSE_CHANNEL, (_event, payload: {
           action?: 'cancel' | 'minimize' | 'quit';
@@ -319,6 +330,7 @@ export async function createMainWindow(args: {
           if (responded) return;
           responded = true;
           clearTimeout(timeout);
+          ipcMain.removeAllListeners('openloaf:confirm-close:ack');
 
           const action = payload?.action;
           if (action === 'minimize' || action === 'quit') {

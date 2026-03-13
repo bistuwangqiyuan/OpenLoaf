@@ -42,14 +42,13 @@ import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation'
 import { useTabs } from '@/hooks/use-tabs'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useNavigation } from '@/hooks/use-navigation'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
 import { buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import { BOARD_META_FILE_NAME } from '@/lib/file-name'
+import { buildBoardChatTabState } from '@/components/board/utils/board-chat-tab'
 import type { ProjectNode } from '@openloaf/api/services/projectTreeService'
 
 interface SidebarHoverPanelProps {
   type: 'all-chats' | 'project-chats'
-  workspaceId: string
   projectId?: string
   children: React.ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'
@@ -166,9 +165,20 @@ function buildProjectNameMap(projects?: ProjectNode[]): Map<string, string> {
   return map
 }
 
+function buildProjectRootUriMap(projects?: ProjectNode[]): Map<string, string> {
+  const map = new Map<string, string>()
+  const walk = (items?: ProjectNode[]) => {
+    items?.forEach((item) => {
+      if (item.projectId) map.set(item.projectId, item.rootUri)
+      if (item.children?.length) walk(item.children)
+    })
+  }
+  walk(projects)
+  return map
+}
+
 export function SidebarHoverPanel({
   type,
-  workspaceId,
   projectId,
   children,
   side = 'right',
@@ -177,11 +187,10 @@ export function SidebarHoverPanel({
   const { t } = useTranslation('nav')
   const { t: tAi } = useTranslation('ai')
   const { t: tCommon } = useTranslation('common')
-  const nav = useSidebarNavigation(workspaceId)
-  const { workspace } = useWorkspace()
-  const rootUri = workspace?.rootUri
+  const nav = useSidebarNavigation()
   const { data: projects } = useProjects()
   const projectNameMap = useMemo(() => buildProjectNameMap(projects), [projects])
+  const projectRootUriMap = useMemo(() => buildProjectRootUriMap(projects), [projects])
   const queryClient = useQueryClient()
 
   const addTab = useTabs((s) => s.addTab)
@@ -220,12 +229,12 @@ export function SidebarHoverPanel({
   // --- Data queries ---
   const chatQueryInput =
     type === 'all-chats'
-      ? { workspaceId, projectId: undefined as string | null | undefined, limit: 50 }
+      ? { limit: 50 }
       : type === 'project-chats' && projectId
-        ? { workspaceId, projectId, limit: 50 }
+        ? { projectId, limit: 50 }
         : null
 
-  const chatQueryOpts = trpc.chat.listByWorkspace.queryOptions(
+  const chatQueryOpts = trpc.chat.listSidebarSessions.queryOptions(
     chatQueryInput ?? (skipToken as any),
   )
   const { data: chats, isLoading: chatsLoading } = useQuery({
@@ -234,7 +243,7 @@ export function SidebarHoverPanel({
   })
 
   const boardQueryOpts = trpc.board.list.queryOptions(
-    type === 'all-chats' ? { workspaceId } : (skipToken as any),
+    type === 'all-chats' ? {} : (skipToken as any),
   )
   const { data: boards, isLoading: boardsLoading } = useQuery({
     ...boardQueryOpts,
@@ -247,14 +256,14 @@ export function SidebarHoverPanel({
   const chatUpdateMutation = useMutation(
     trpc.chat.updateSession.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.queryKey() })
       },
     }),
   )
   const chatDeleteMutation = useMutation(
     trpc.chat.deleteSession.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.chat.listByWorkspace.queryKey() })
+        queryClient.invalidateQueries({ queryKey: trpc.chat.listSidebarSessions.queryKey() })
       },
     }),
   )
@@ -315,16 +324,19 @@ export function SidebarHoverPanel({
 
   const handleBoardClick = useCallback(
     (item: HistoryItem) => {
-      if (!rootUri || !item.folderUri) return
-      const boardFolderUri = buildFileUriFromRoot(rootUri, item.folderUri)
+      const targetProjectId = item.projectId ?? projectId ?? null
+      const targetRootUri = targetProjectId
+        ? projectRootUriMap.get(targetProjectId)
+        : undefined
+      if (!targetProjectId || !targetRootUri || !item.folderUri) return
+      const boardFolderUri = buildFileUriFromRoot(targetRootUri, item.folderUri)
       const boardFileUri = buildFileUriFromRoot(
-        rootUri,
+        targetRootUri,
         `${item.folderUri}${BOARD_META_FILE_NAME}`,
       )
       const baseId = `board:${boardFolderUri}`
 
       const existingTab = tabs.find((tab) => {
-        if (tab.workspaceId !== workspaceId) return false
         const base = runtimeByTabId[tab.id]?.base
         return base?.id === baseId
       })
@@ -333,21 +345,27 @@ export function SidebarHoverPanel({
         setActiveTab(existingTab.id)
       } else {
         addTab({
-          workspaceId,
           createNew: true,
           title: item.title || t('canvasList.untitled'),
           icon: '🎨',
+          ...buildBoardChatTabState(item.id, targetProjectId),
           leftWidthPercent: 100,
           base: {
             id: baseId,
             component: 'board-viewer',
-            params: { boardFolderUri, boardFileUri, boardId: item.id, projectId, rootUri },
+            params: {
+              boardFolderUri,
+              boardFileUri,
+              boardId: item.id,
+              projectId: targetProjectId,
+              rootUri: targetRootUri,
+            },
           },
         })
       }
       setActiveView('canvas-list')
     },
-    [rootUri, workspaceId, projectId, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
+    [projectId, projectRootUriMap, tabs, runtimeByTabId, addTab, setActiveTab, setActiveView, t],
   )
 
   const handleItemClick = useCallback(
@@ -365,7 +383,7 @@ export function SidebarHoverPanel({
   const handleRename = useCallback(
     (item: HistoryItem) => {
       if (item.kind === 'chat') {
-        const newTitle = prompt(t('workspaceChatList.renamePrompt'), item.title)
+        const newTitle = prompt(t('chatHistoryList.renamePrompt'), item.title)
         if (newTitle && newTitle.trim() !== item.title) {
           chatUpdateMutation.mutate({
             sessionId: item.id,
@@ -410,7 +428,7 @@ export function SidebarHoverPanel({
   const handleDelete = useCallback(
     (item: HistoryItem) => {
       if (item.kind === 'chat') {
-        if (confirm(t('workspaceChatList.confirmDelete'))) {
+        if (confirm(t('chatHistoryList.confirmDelete'))) {
           chatDeleteMutation.mutate({ sessionId: item.id })
         }
       } else {
@@ -442,7 +460,6 @@ export function SidebarHoverPanel({
       const board = boards?.find((b) => b.id === renameTarget.id)
       if (!board) return
       const result = await inferBoardNameMutation.mutateAsync({
-        workspaceId,
         boardFolderUri: board.folderUri,
       })
       if (result.title) {
@@ -455,7 +472,7 @@ export function SidebarHoverPanel({
     } finally {
       setAiNaming(false)
     }
-  }, [renameTarget, workspaceId, boards, t])
+  }, [renameTarget, boards, t])
 
   const handleRenameDialogClose = useCallback(
     (open: boolean) => {
@@ -550,7 +567,7 @@ export function SidebarHoverPanel({
                               onClick={() => handleRename(item)}
                             >
                               <Edit2 className="mr-2 h-4 w-4" />
-                              {t('workspaceChatList.contextMenu.rename')}
+                              {t('chatHistoryList.contextMenu.rename')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handlePin(item)}
@@ -563,7 +580,7 @@ export function SidebarHoverPanel({
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              {t('workspaceChatList.contextMenu.delete')}
+                              {t('chatHistoryList.contextMenu.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

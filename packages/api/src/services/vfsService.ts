@@ -9,57 +9,35 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { Workspace } from "../types/workspace";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import { resolveFilePathFromUri, toFileUri, toFileUriWithoutEncoding } from "./fileUri";
 import {
-  getActiveWorkspaceConfig,
-  getWorkspaceByIdConfig,
-  resolveWorkspaceRootPath,
-} from "./workspaceConfig";
+  getGlobalRootPath,
+  getDefaultProjectStoragePath,
+  getDefaultProjectStorageRootUri,
+} from "./appConfigService";
 import {
-  getWorkspaceProjectEntries,
-  removeWorkspaceProjectEntry,
-  setWorkspaceProjectEntries,
-  upsertWorkspaceProjectEntry,
-} from "./workspaceProjectConfig";
+  getProjectRegistryEntries,
+  removeProjectRegistryEntry,
+  setProjectRegistryEntries,
+  upsertProjectRegistryEntry,
+} from "./projectRegistryConfig";
 
 const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";
 /** Scoped project path matcher like [projectId]/path/to/file (inner path after stripping @{...} wrapper). */
 const PROJECT_SCOPE_REGEX = /^@?\[([^\]]+)\]\/(.+)$/;
+/** Global metadata prefix used by cross-scope relative paths. */
+const GLOBAL_META_PREFIX = ".openloaf/";
 
-/** Get the active workspace config. */
-export function getActiveWorkspace(): Workspace {
-  return getActiveWorkspaceConfig();
+/** Get the default project storage root URI. */
+export function getProjectStorageRootUri(): string {
+  return getDefaultProjectStorageRootUri();
 }
 
-/** Get workspace config by id. */
-export function getWorkspaceById(workspaceId: string): Workspace | null {
-  return getWorkspaceByIdConfig(workspaceId);
-}
-
-/** Get workspace root URI from active workspace. */
-export function getWorkspaceRootUri(): string {
-  return getActiveWorkspace().rootUri;
-}
-
-/** Get workspace root path on disk and ensure it exists. */
-export function getWorkspaceRootPath(): string {
-  return resolveWorkspaceRootPath(getWorkspaceRootUri());
-}
-
-/** Get workspace root URI by workspace id. */
-export function getWorkspaceRootUriById(workspaceId: string): string | null {
-  if (!workspaceId) return null;
-  const workspace = getWorkspaceById(workspaceId);
-  return workspace?.rootUri ?? null;
-}
-
-/** Get workspace root path by workspace id and ensure it exists. */
-export function getWorkspaceRootPathById(workspaceId: string): string | null {
-  const rootUri = getWorkspaceRootUriById(workspaceId);
-  if (!rootUri) return null;
-  return resolveWorkspaceRootPath(rootUri);
+/** Get the default project storage root path on disk and ensure it exists. */
+export function getProjectStorageRootPath(): string {
+  return getDefaultProjectStoragePath();
 }
 
 /** Get project root URI by project id. */
@@ -81,10 +59,8 @@ function readProjectConfigProjects(rootUri: string): {
   }
 }
 
-export function getProjectRootUri(projectId: string, workspaceId?: string): string | null {
-  const workspace = workspaceId ? getWorkspaceById(workspaceId) : getActiveWorkspace();
-  if (!workspace) return null;
-  const entries = getWorkspaceProjectEntries(workspaceId);
+export function getProjectRootUri(projectId: string): string | null {
+  const entries = getProjectRegistryEntries();
   for (const [entryId, rootUri] of entries) {
     if (entryId === projectId) return rootUri;
   }
@@ -108,15 +84,15 @@ export function getProjectRootUri(projectId: string, workspaceId?: string): stri
 }
 
 /** Get project root path by project id. */
-export function getProjectRootPath(projectId: string, workspaceId?: string): string | null {
-  const rootUri = getProjectRootUri(projectId, workspaceId);
+export function getProjectRootPath(projectId: string): string | null {
+  const rootUri = getProjectRootUri(projectId);
   if (!rootUri) return null;
   return resolveFilePathFromUri(rootUri);
 }
 
-/** Get all project root paths for a workspace (including sub-projects). */
-export function getAllProjectRootPaths(workspaceId?: string): string[] {
-  const entries = getWorkspaceProjectEntries(workspaceId);
+/** Get all project root paths (including sub-projects). */
+export function getAllProjectRootPaths(): string[] {
+  const entries = getProjectRegistryEntries();
   const paths: string[] = [];
   const visited = new Set<string>();
 
@@ -143,49 +119,43 @@ export function getAllProjectRootPaths(workspaceId?: string): string[] {
   return paths;
 }
 
-/** Upsert project root URI into active workspace config. */
-export function upsertActiveWorkspaceProject(projectId: string, rootUri: string): void {
-  upsertWorkspaceProjectEntry(projectId, rootUri);
+/** Upsert a top-level project entry into the project registry. */
+export function upsertTopLevelProject(projectId: string, rootUri: string): void {
+  upsertProjectRegistryEntry(projectId, rootUri);
 }
 
-/** Remove a project from the active workspace config. */
-export function removeActiveWorkspaceProject(projectId: string): void {
-  removeWorkspaceProjectEntry(projectId);
+/** Remove a top-level project from the project registry. */
+export function removeTopLevelProject(projectId: string): void {
+  removeProjectRegistryEntry(projectId);
 }
 
-/** Replace active workspace project mapping with ordered entries. */
-export function setActiveWorkspaceProjectEntries(
+/** Replace top-level project registry entries with ordered entries. */
+export function setTopLevelProjectEntries(
   entries: Array<[string, string]>,
 ): void {
-  // 逻辑：按传入顺序重建项目映射，保持根项目排序。
-  setWorkspaceProjectEntries(entries);
+  setProjectRegistryEntries(entries);
 }
 
-export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri, getWorkspaceProjectEntries };
+export { toFileUri, toFileUriWithoutEncoding, resolveFilePathFromUri, getProjectRegistryEntries };
 
 /** Resolve a URI into an absolute local path. */
-export function resolveWorkspacePathFromUri(uri: string): string {
+export function resolveLocalPathFromUri(uri: string): string {
   return path.resolve(resolveFilePathFromUri(uri));
 }
 
 /** Resolve the root path for scoped filesystem operations. */
 export function resolveScopedRootPath(input: {
-  workspaceId: string;
   projectId?: string;
 }): string {
   const projectId = input.projectId?.trim();
   if (projectId) {
-    const projectRootPath = getProjectRootPath(projectId, input.workspaceId);
+    const projectRootPath = getProjectRootPath(projectId);
     if (!projectRootPath) {
       throw new Error("Project not found.");
     }
     return projectRootPath;
   }
-  const workspaceRootPath = getWorkspaceRootPathById(input.workspaceId);
-  if (!workspaceRootPath) {
-    throw new Error("Workspace not found.");
-  }
-  return workspaceRootPath;
+  return getGlobalRootPath();
 }
 
 /** Normalize a relative path to use POSIX separators. */
@@ -197,15 +167,24 @@ export function normalizeRelativePath(value: string): string {
   return normalized === "." ? "" : normalized;
 }
 
+/** Normalize a global-scoped relative path against the OpenLoaf root itself. */
+function normalizeGlobalScopedPath(value: string): string {
+  const normalized = value.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (normalized === ".openloaf") return "";
+  if (normalized.startsWith(GLOBAL_META_PREFIX)) {
+    return normalized.slice(GLOBAL_META_PREFIX.length);
+  }
+  return normalized;
+}
+
 /** Convert an absolute path to a normalized relative path. */
 export function toRelativePath(rootPath: string, targetPath: string): string {
   const relative = path.relative(rootPath, targetPath);
   return normalizeRelativePath(relative);
 }
 
-/** Resolve an input path from file uri, absolute path, or workspace/project scope. */
+/** Resolve an input path from file uri, absolute path, or project scope. */
 export function resolveScopedPath(input: {
-  workspaceId: string;
   projectId?: string;
   target: string;
 }): string {
@@ -213,30 +192,27 @@ export function resolveScopedPath(input: {
   if (!raw) {
     throw new Error("Path is required.");
   }
-  // 剥离 chat 引用格式 @{...} 外壳，取出内部路径后重新走解析逻辑。
   if (raw.startsWith("@{") && raw.endsWith("}")) {
     raw = raw.slice(2, -1);
   }
   if (raw.startsWith("file:")) {
-    return resolveWorkspacePathFromUri(raw);
+    return resolveLocalPathFromUri(raw);
   }
   if (path.isAbsolute(raw)) {
     return path.resolve(raw);
   }
-  // 中文注释：兼容 @<path> 作为当前项目根目录别名前缀。
   if (raw.startsWith("@")) {
     if (raw.startsWith("@/") || raw.startsWith("@\\")) {
       throw new Error("Path alias '@/' is not allowed.");
     }
     const projectId = input.projectId?.trim();
     const rootPath = projectId
-      ? getProjectRootPath(projectId, input.workspaceId)
-      : getWorkspaceRootPathById(input.workspaceId);
+      ? getProjectRootPath(projectId)
+      : getGlobalRootPath();
     if (!rootPath) {
-      throw new Error(projectId ? "Project not found." : "Workspace not found.");
+      throw new Error(projectId ? "Project not found." : "Root path not found.");
     }
     let normalizedRelative = normalizeRelativePath(raw.slice(1));
-    // 兼容 @[folderName] 格式：当 [name] 内不含 "/" 时，视为裸文件夹名而非项目引用。
     const bareMatch = normalizedRelative.match(/^\[([^\]/]+)\]$/);
     if (bareMatch?.[1]) {
       normalizedRelative = bareMatch[1];
@@ -250,7 +226,7 @@ export function resolveScopedPath(input: {
     if (!scopedProjectId) {
       throw new Error("Project not found.");
     }
-    const projectRootPath = getProjectRootPath(scopedProjectId, input.workspaceId);
+    const projectRootPath = getProjectRootPath(scopedProjectId);
     if (!projectRootPath) {
       throw new Error("Project not found.");
     }
@@ -262,17 +238,12 @@ export function resolveScopedPath(input: {
   }
   const projectId = input.projectId?.trim();
   if (projectId) {
-    const projectRootPath = getProjectRootPath(projectId, input.workspaceId);
+    const projectRootPath = getProjectRootPath(projectId);
     if (!projectRootPath) {
       throw new Error("Project not found.");
     }
-    // 相对路径优先拼接到项目根目录下。
     return path.resolve(projectRootPath, raw);
   }
-  const workspaceRootPath = getWorkspaceRootPathById(input.workspaceId);
-  if (!workspaceRootPath) {
-    throw new Error("Workspace not found.");
-  }
-  // 相对路径使用工作区根目录作为基准。
-  return path.resolve(workspaceRootPath, raw);
+  const globalRootPath = getGlobalRootPath();
+  return path.resolve(globalRootPath, normalizeGlobalScopedPath(raw));
 }

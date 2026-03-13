@@ -145,14 +145,12 @@ function MessageHumanTextPart(props: {
   text: string;
   /** Shared text class name. */
   className?: string;
-  /** Workspace id for file lookup. */
-  workspaceId?: string;
   /** Default project id for scoped path resolve. */
   projectId?: string;
   /** Project tree for resolving root uri. */
   projects: Array<{ projectId?: string; rootUri?: string; title?: string; children?: any[] }>;
 }) {
-  const { text, className, workspaceId, projectId, projects } = props;
+  const { text, className, projectId, projects } = props;
   const fileToken = React.useMemo(
     () => parseSingleFileToken(text, projectId),
     [text, projectId],
@@ -165,7 +163,6 @@ function MessageHumanTextPart(props: {
       setFileEntry(undefined);
       return;
     }
-    if (!workspaceId) return;
     const rootUri = resolveProjectRootUri(projects, fileToken.projectId);
     if (!rootUri) {
       setFileEntry(null);
@@ -181,7 +178,6 @@ function MessageHumanTextPart(props: {
     void queryClient
       .fetchQuery(
         trpc.fs.stat.queryOptions({
-          workspaceId,
           projectId: fileToken.projectId,
           uri,
         }),
@@ -197,7 +193,7 @@ function MessageHumanTextPart(props: {
     return () => {
       cancelled = true;
     };
-  }, [fileToken, projects, workspaceId]);
+  }, [fileToken, projects]);
 
   if (fileToken && fileEntry?.kind === "file") {
     const mediaType = resolveImageMediaType(fileToken.relativePath);
@@ -221,7 +217,7 @@ export default function MessageHuman({
 }: MessageHumanProps) {
   const { t } = useTranslation('ai')
   const { data: projects = [] } = useProjects();
-  const { projectId, workspaceId } = useChatSession();
+  const { projectId } = useChatSession();
   const activeTabId = useTabs((s) => s.activeTabId);
   const pushStackItem = useTabRuntime((s) => s.pushStackItem);
   const [imageState, setImageState] = React.useState<Record<string, ImagePreviewState>>({});
@@ -233,13 +229,12 @@ export default function MessageHuman({
     (event: React.PointerEvent<HTMLDivElement>) => {
       handleChatMentionPointerDown(event, {
         activeTabId,
-        workspaceId,
         projectId,
         projects,
         pushStackItem,
       });
     },
-    [activeTabId, projectId, projects, pushStackItem, workspaceId]
+    [activeTabId, projectId, projects, pushStackItem]
   );
 
   React.useEffect(() => {
@@ -465,7 +460,6 @@ export default function MessageHuman({
               key={`text-${index}`}
               text={text}
               className="text-primary-foreground text-[12px] leading-4 break-words"
-              workspaceId={workspaceId}
               projectId={projectId}
               projects={projects}
             />

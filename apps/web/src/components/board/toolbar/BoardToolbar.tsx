@@ -37,7 +37,6 @@ import {
 } from "@/components/project/filesystem/components/FileSystemEntryVisual";
 import { buildImageNodePayloadFromUri } from "../utils/image";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import {
   ProjectFilePickerDialog,
   type ProjectFilePickerSelection,
@@ -132,7 +131,8 @@ const prefixSvgIds = (svg: string, prefix: string) => {
   const safePrefix = prefix.replace(/:/g, "");
   return svg
     .replace(/id="([^"]+)"/g, `id="${safePrefix}-$1"`)
-    .replace(/url\\(#([^)]+)\\)/g, `url(#${safePrefix}-$1)`)
+    // 逻辑：同步重写 defs 引用，避免 SSR/多实例场景下 filter/gradient id 冲突后失效。
+    .replace(/url\(#([^)]+)\)/g, `url(#${safePrefix}-$1)`)
     .replace(/xlink:href="#([^"]+)"/g, `xlink:href="#${safePrefix}-$1"`)
     .replace(/href="#([^"]+)"/g, `href="#${safePrefix}-$1"`);
 };
@@ -320,8 +320,6 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const { fileContext } = useBoardContext();
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const [videoPickerOpen, setVideoPickerOpen] = useState(false);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
   const imageImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -463,16 +461,15 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   /** Persist a file into the board assets folder. */
   const saveBoardAssetFile = useCallback(
     async (file: File, fallbackName: string) => {
-      if (!workspaceId || !fileContext?.boardFolderUri) return "";
+      if (!fileContext?.boardFolderUri) return "";
       return saveBoardAssetFileUtil({
         file,
         fallbackName,
-        workspaceId,
         projectId: fileContext?.projectId,
         boardFolderUri: fileContext.boardFolderUri,
       });
     },
-    [fileContext?.boardFolderUri, fileContext?.projectId, workspaceId]
+    [fileContext?.boardFolderUri, fileContext?.projectId]
   );
 
   // buildVideoPosterFromFile is now imported from board-asset.ts
@@ -885,7 +882,6 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
       const payloads = [];
       for (const item of videoSelections) {
         const metadata = await fetchVideoMetadata({
-          workspaceId,
           projectId: item.projectId,
           uri: item.entry.uri,
         });
@@ -940,7 +936,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
         size: [maxWidth, maxHeight],
       });
     },
-    [engine, workspaceId]
+    [handleInsertRequest]
   );
 
   /** Open the project file picker for generic files. */
@@ -1051,6 +1047,8 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
   /** 中间插入工具图标 hover 旋转样式。 */
   const insertIconClassName =
     "origin-center transition-transform duration-150 ease-out group-hover:-rotate-15";
+  /** 底部持久工具按钮统一使用更紧凑的圆角，避免选中态出现过胖的椭圆。 */
+  const persistentToolButtonClassName = "group h-10 w-9 overflow-hidden rounded-[12px]";
 
   return (
     <div
@@ -1074,7 +1072,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               title={selectTitle}
               active={isSelectTool}
               onPointerDown={() => handleToolChange("select")}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
             >
               <SelectIcon
                 size={toolbarIconSize}
@@ -1091,7 +1089,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
               title={handTitle}
               active={isHandTool}
               onPointerDown={() => handleToolChange("hand")}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
             >
               <HandIcon
                 size={toolbarIconSize}
@@ -1124,7 +1122,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 setHoverGroup("pen");
                 handleToolChange("pen", { keepPanel: true });
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <BrushToolIcon
@@ -1224,7 +1222,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 setHoverGroup("highlighter");
                 handleToolChange("highlighter", { keepPanel: true });
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <HighlighterToolIcon
@@ -1312,7 +1310,7 @@ const BoardToolbar = memo(function BoardToolbar({ engine, snapshot }: BoardToolb
                 if (isLocked) return;
                 handleToolChange("eraser");
               }}
-              className="group h-10 w-9 overflow-hidden"
+              className={persistentToolButtonClassName}
               disabled={isLocked}
             >
               <EraserToolIcon

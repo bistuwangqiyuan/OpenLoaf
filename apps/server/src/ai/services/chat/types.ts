@@ -18,8 +18,6 @@ export type ChatStreamRequest = ChatRequestBody & {
   sessionId: string;
   /** Incoming UI messages. */
   messages: OpenLoafUIMessage[];
-  /** Workspace id for this request. */
-  workspaceId?: string;
   /** Project id for this request. */
   projectId?: string;
   /** Board id for this request. */
@@ -61,8 +59,6 @@ export type AiExecuteRequest = {
   timezone?: string;
   /** Board id for chat context. */
   boardId?: string;
-  /** Workspace id for context lookup. */
-  workspaceId?: string;
   /** Project id for context lookup. */
   projectId?: string;
   /** Image save directory for image requests. */

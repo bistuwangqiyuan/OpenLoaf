@@ -1,6 +1,4 @@
-# Viewer Development
 
-## 添加新 Viewer：3 步流程
 
 ### Step 1: 创建 Viewer 组件
 
@@ -43,7 +41,7 @@
 
 ## 统一 Props 模式
 
-所有 Viewer 的 Props 接口参见任意现有 Viewer 文件顶部的 `interface`。通用字段：`uri`, `name`, `ext`, `projectId`, `rootUri`, `readOnly`, `openUri`, `panelKey`, `tabId`。
+所有 Viewer 的 Props 接口参见任意现有 Viewer 文件顶部的 `interface`。通用字段：`uri`, `name`, `ext`, `projectId`, `rootUri`, `readOnly`, `openUri`, `panelKey`, `tabId`；新代码不再透传旧的工作空间兼容字段。
 
 ## 文件类型映射
 

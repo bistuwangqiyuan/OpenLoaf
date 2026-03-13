@@ -35,6 +35,7 @@ import i18next from "i18next";
 import { SUMMARY_HISTORY_COMMAND, SUMMARY_TITLE_COMMAND, TEMP_CHAT_TAB_INPUT } from "@openloaf/api/common";
 import { useNavigation } from "@/hooks/use-navigation";
 import { invalidateChatSessions } from "@/hooks/use-chat-sessions";
+import { useRecordEntityVisit } from "@/hooks/use-record-entity-visit";
 import { incrementChatPerf } from "@/lib/chat/chat-perf";
 import { handleSubAgentToolParts } from "@/lib/chat/sub-agent-tool-parts";
 import type { ChatAttachmentInput, MaskedAttachmentInput } from "./input/chat-attachments";
@@ -622,16 +623,12 @@ export default function ChatCoreProvider({
 
   const paramsRef = React.useRef<Record<string, unknown> | undefined>(params);
   const tabIdRef = React.useRef<string | null | undefined>(tabId);
-  const workspaceId = React.useMemo(() => {
-    if (typeof params?.workspaceId !== "string") return undefined;
-    const trimmed = params.workspaceId.trim();
-    return trimmed ? trimmed : undefined;
-  }, [params]);
   const projectId = React.useMemo(() => {
     if (typeof params?.projectId !== "string") return undefined;
     const trimmed = params.projectId.trim();
     return trimmed ? trimmed : undefined;
   }, [params]);
+  const { recordEntityVisit } = useRecordEntityVisit();
 
   React.useEffect(() => {
     paramsRef.current = params;
@@ -742,6 +739,9 @@ export default function ChatCoreProvider({
           if (title && tabId && (!sessionIdInData || sessionIdInData === sessionIdRef.current)) {
             const tab = useTabs.getState().getTabById(tabId);
             const hasBase = Boolean(useTabRuntime.getState().runtimeByTabId[tabId]?.base);
+            if (tab?.projectShell) {
+              return;
+            }
             if (tab && !hasBase && tab.title !== title) {
               useTabs.getState().setTabTitle(tabId, title);
             }
@@ -994,11 +994,17 @@ export default function ChatCoreProvider({
     // 关键：立即更新 sessionIdRef，确保 transport 在后续请求中使用新 sessionId，
     // 不依赖 React 重渲染时序（独立 React root + Zustand 可能存在延迟传播）。
     sessionIdRef.current = nextSessionId;
+    recordEntityVisit({
+      entityType: "chat",
+      entityId: nextSessionId,
+      projectId: projectId ?? null,
+      trigger: "chat-create",
+    });
     onSessionChange?.(nextSessionId, {
       loadHistory: false,
       replaceCurrent: true,
     });
-  }, [stopAndResetSession, onSessionChange]);
+  }, [onSessionChange, projectId, recordEntityVisit, stopAndResetSession]);
 
   const selectSession = React.useCallback(
     (nextSessionId: string) => {
@@ -1083,17 +1089,29 @@ export default function ChatCoreProvider({
         !isCompactCommandMessage(nextMessage) &&
         !isSessionCommandMessage(nextMessage)
       ) {
+        // 中文注释：AI 助手首条真实用户消息会隐式创建会话，这里需要立即补记历史，
+        // 不能等远端 session 列表刷新后再由 TabLayout 追记，否则用户会看到“已发消息但无历史”。
+        const currentProjectId = paramsRef.current?.projectId;
+        recordEntityVisit({
+          entityType: "chat",
+          entityId: sessionIdRef.current,
+          projectId:
+            typeof currentProjectId === "string" && currentProjectId.trim()
+              ? currentProjectId.trim()
+              : null,
+          trigger: "chat-create",
+        });
+
         // 中文注释：首条用户消息完成后刷新会话列表，展示标题。
         pendingInitialTitleRefreshRef.current = true;
 
         // sidebar 联动：根据是否有项目上下文更新导航状态
         const nav = useNavigation.getState();
-        const currentProjectId = paramsRef.current?.projectId;
 
         if (typeof currentProjectId === "string" && currentProjectId.trim()) {
           nav.setActiveProject(currentProjectId.trim());
         } else {
-          nav.setActiveWorkspaceChat(sessionIdRef.current);
+          nav.setActiveGlobalChat(sessionIdRef.current);
         }
 
         // 修改 tab 标题（打破"临时对话"单例匹配，使下次点击 AI 助手创建新 tab）
@@ -1101,7 +1119,7 @@ export default function ChatCoreProvider({
         if (currentTabId) {
           const tempTitle = i18next.t(TEMP_CHAT_TAB_INPUT.titleKey);
           const tab = useTabs.getState().getTabById(currentTabId);
-          if (tab && tab.title === tempTitle) {
+          if (tab && !tab.projectShell && tab.title === tempTitle) {
             const userText = getMessagePlainText(nextMessage);
             const truncated = userText.slice(0, 30).trim() || "新对话";
             useTabs.getState().setTabTitle(currentTabId, truncated);
@@ -1579,7 +1597,6 @@ export default function ChatCoreProvider({
     () => ({
       sessionId,
       tabId,
-      workspaceId,
       projectId,
       leafMessageId,
       branchMessageIds,
@@ -1588,7 +1605,6 @@ export default function ChatCoreProvider({
     [
       sessionId,
       tabId,
-      workspaceId,
       projectId,
       leafMessageId,
       branchMessageIds,

@@ -9,6 +9,7 @@
  */
 import path from 'node:path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { resolveScopedOpenLoafPath } from '@openloaf/config'
 
 /** Memory directory name under .openloaf/. */
 const MEMORY_DIR_NAME = 'memory'
@@ -17,14 +18,14 @@ const MEMORY_FILE_NAME = 'MEMORY.md'
 /** Default max lines per single memory file. */
 const DEFAULT_MAX_LINES = 200
 
-/** Resolve memory directory path: <rootPath>/.openloaf/memory/ */
+/** Resolve memory directory path for a scope root. */
 export function resolveMemoryDir(rootPath: string): string {
-  return path.join(rootPath, '.openloaf', MEMORY_DIR_NAME)
+  return resolveScopedOpenLoafPath(rootPath, MEMORY_DIR_NAME)
 }
 
 /** A structured memory block with scope metadata. */
 export type MemoryBlock = {
-  scope: 'workspace' | 'parent-project' | 'project'
+  scope: 'user' | 'parent-project' | 'project'
   label: string
   filePath: string
   content: string
@@ -64,24 +65,24 @@ export function truncateMemory(
 }
 
 /**
- * Resolve structured memory blocks from workspace + parent projects + current project.
+ * Resolve structured memory blocks from user home + parent projects + current project.
  * Each block carries its own scope, label, file path, and content.
  */
 export function resolveMemoryBlocks(input: {
-  workspaceRootPath?: string
+  userHomePath?: string
   projectRootPath?: string
   parentProjectRootPaths?: string[]
 }): MemoryBlock[] {
   const blocks: MemoryBlock[] = []
 
-  // 1. workspace 级 memory — 所有项目共享
-  if (input.workspaceRootPath) {
-    const content = readMemoryFile(input.workspaceRootPath)
+  // 1. user 级 memory — 全局共享（~/.openloaf/memory/）
+  if (input.userHomePath) {
+    const content = readMemoryFile(input.userHomePath)
     if (content) {
       blocks.push({
-        scope: 'workspace',
-        label: 'workspace memory',
-        filePath: path.join(resolveMemoryDir(input.workspaceRootPath), MEMORY_FILE_NAME),
+        scope: 'user',
+        label: 'user memory',
+        filePath: path.join(resolveMemoryDir(input.userHomePath), MEMORY_FILE_NAME),
         content: truncateMemory(content),
       })
     }
@@ -120,11 +121,11 @@ export function resolveMemoryBlocks(input: {
 }
 
 /**
- * Resolve merged memory content from workspace + parent projects + current project.
+ * Resolve merged memory content from user home + parent projects + current project.
  * @deprecated Use resolveMemoryBlocks() for structured output instead.
  */
 export function resolveMemoryContent(input: {
-  workspaceRootPath?: string
+  userHomePath?: string
   projectRootPath?: string
   parentProjectRootPaths?: string[]
 }): string {
@@ -133,8 +134,8 @@ export function resolveMemoryContent(input: {
   return blocks
     .map((block) => {
       const scopeLabel =
-        block.scope === 'workspace'
-          ? 'Workspace Memory'
+        block.scope === 'user'
+          ? 'User Memory'
           : block.scope === 'parent-project'
             ? `Parent Project Memory (${path.basename(path.dirname(path.dirname(block.filePath)))})`
             : 'Project Memory'

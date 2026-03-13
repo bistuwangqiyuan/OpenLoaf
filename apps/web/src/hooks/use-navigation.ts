@@ -26,20 +26,22 @@ export type NavigationViewType =
   | "email"
   | "scheduled-tasks"
   | "canvas-list"
+  | "project-list"
   | "project"
-  | "workspace-chat"
+  | "global-chat"
   | "ai-assistant"
   | null;
 
 /** 结构化的当前激活视图 */
 export type ActiveView =
-  | { type: "workspace-chat"; chatSessionId: string }
+  | { type: "global-chat"; chatSessionId: string }
   | { type: "project"; projectId: string }
   | { type: "workbench" }
   | { type: "calendar" }
   | { type: "email" }
   | { type: "scheduled-tasks" }
   | { type: "canvas-list" }
+  | { type: "project-list" }
   | { type: "ai-assistant" };
 
 /** 视图运行时状态（布局尺寸、折叠状态等） */
@@ -57,8 +59,8 @@ export interface ViewRuntime {
 /** 从 ActiveView 生成唯一的视图 key */
 export function getViewKey(view: ActiveView): string {
   switch (view.type) {
-    case "workspace-chat":
-      return `workspace-chat:${view.chatSessionId}`;
+    case "global-chat":
+      return `global-chat:${view.chatSessionId}`;
     case "project":
       return `project:${view.projectId}`;
     default:
@@ -73,11 +75,8 @@ export interface NavigationState {
   /** 当前激活的项目 ID（用于项目导航） */
   activeProjectId: string | null;
 
-  /** 当前激活的 Workspace Chat Session ID */
-  activeWorkspaceChatSessionId: string | null;
-
-  /** 当前激活的工作区 ID */
-  activeWorkspaceId: string | null;
+  /** 当前激活的全局聊天会话 ID */
+  activeGlobalChatSessionId: string | null;
 
   /** 结构化的当前激活视图（派生自 activeViewType + context） */
   activeView: ActiveView | null;
@@ -91,17 +90,14 @@ export interface NavigationState {
   /** 设置激活的项目 */
   setActiveProject: (projectId: string | null) => void;
 
-  /** 设置激活的 Workspace Chat */
-  setActiveWorkspaceChat: (sessionId: string | null) => void;
-
-  /** 设置当前工作区 ID */
-  setActiveWorkspaceId: (workspaceId: string | null) => void;
+  /** 设置激活的全局聊天会话 */
+  setActiveGlobalChat: (sessionId: string | null) => void;
 
   /** 获取当前激活的视图信息 */
   getActiveView: () => {
     viewType: NavigationViewType;
     projectId: string | null;
-    workspaceChatSessionId: string | null;
+    globalChatSessionId: string | null;
   };
 
   /** Sidebar 当前显示的 tab（project 或 chat） */
@@ -124,8 +120,8 @@ function buildActiveView(
   chatSessionId: string | null,
 ): ActiveView | null {
   switch (viewType) {
-    case "workspace-chat":
-      return chatSessionId ? { type: "workspace-chat", chatSessionId } : null;
+    case "global-chat":
+      return chatSessionId ? { type: "global-chat", chatSessionId } : null;
     case "project":
       return projectId ? { type: "project", projectId } : null;
     case "workbench":
@@ -138,6 +134,8 @@ function buildActiveView(
       return { type: "scheduled-tasks" };
     case "canvas-list":
       return { type: "canvas-list" };
+    case "project-list":
+      return { type: "project-list" };
     case "ai-assistant":
       return { type: "ai-assistant" };
     default:
@@ -148,8 +146,7 @@ function buildActiveView(
 export const useNavigation = create<NavigationState>((set, get) => ({
   activeViewType: null,
   activeProjectId: null,
-  activeWorkspaceChatSessionId: null,
-  activeWorkspaceId: null,
+  activeGlobalChatSessionId: null,
   activeView: null,
   viewRuntimes: {},
   sidebarTab: "project",
@@ -161,7 +158,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
       activeView: buildActiveView(
         viewType,
         state.activeProjectId,
-        state.activeWorkspaceChatSessionId,
+        state.activeGlobalChatSessionId,
       ),
     });
   },
@@ -174,18 +171,14 @@ export const useNavigation = create<NavigationState>((set, get) => ({
     });
   },
 
-  setActiveWorkspaceChat: (sessionId) => {
+  setActiveGlobalChat: (sessionId) => {
     set({
-      activeViewType: "workspace-chat",
-      activeWorkspaceChatSessionId: sessionId,
+      activeViewType: "global-chat",
+      activeGlobalChatSessionId: sessionId,
       activeView: sessionId
-        ? { type: "workspace-chat", chatSessionId: sessionId }
+        ? { type: "global-chat", chatSessionId: sessionId }
         : null,
     });
-  },
-
-  setActiveWorkspaceId: (workspaceId) => {
-    set({ activeWorkspaceId: workspaceId });
   },
 
   getActiveView: () => {
@@ -193,7 +186,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
     return {
       viewType: state.activeViewType,
       projectId: state.activeProjectId,
-      workspaceChatSessionId: state.activeWorkspaceChatSessionId,
+      globalChatSessionId: state.activeGlobalChatSessionId,
     };
   },
 

@@ -15,7 +15,6 @@ import { useTranslation } from "react-i18next";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { useTabs } from "@/hooks/use-tabs";
 import { useProjects } from "@/hooks/use-projects";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { Input } from "@openloaf/ui/input";
 import { Button } from "@openloaf/ui/button";
 import type { DesktopIconKey, DesktopScope, DesktopWidgetItem } from "./types";
@@ -156,7 +155,6 @@ export default function DesktopWidgetLibraryPanel({
   const [query, setQuery] = React.useState("");
   // 项目列表（用于解析项目目录引用）。
   const projectListQuery = useProjects();
-  const { workspace } = useWorkspace();
   const projectRoots = React.useMemo(
     () => flattenProjectTree(projectListQuery.data),
     [projectListQuery.data]
@@ -165,7 +163,7 @@ export default function DesktopWidgetLibraryPanel({
   const tabBaseParams = tabRuntime?.base?.params as Record<string, unknown> | undefined;
   // 中文注释：根据 tab base 是否包含 projectId 判断作用域。
   const scope: DesktopScope =
-    typeof tabBaseParams?.projectId === "string" ? "project" : "workspace";
+    typeof tabBaseParams?.projectId === "string" ? "project" : "global";
 
   // 过滤后的组件列表。
   const filtered = React.useMemo(() => {
@@ -183,11 +181,9 @@ export default function DesktopWidgetLibraryPanel({
     return scopedIcons.filter((item) => t('iconCatalog.' + item.iconKey).toLowerCase().includes(q));
   }, [query, scope, t]);
 
-  // Query workspace-level dynamic widgets (no projectId).
-  const workspaceId = workspace?.id
-  const workspaceWidgetQuery = useQuery({
-    ...trpc.dynamicWidget.list.queryOptions({ workspaceId: workspaceId ?? '' }),
-    enabled: Boolean(workspaceId),
+  // Query global dynamic widgets (no projectId).
+  const globalWidgetQuery = useQuery({
+    ...trpc.dynamicWidget.list.queryOptions({}),
     select: (data: { id: string; name: string; description?: string }[]) =>
       data.map((w) => ({ ...w, projectId: undefined as string | undefined })),
   })
@@ -195,22 +191,22 @@ export default function DesktopWidgetLibraryPanel({
   // Query dynamic widgets from all projects.
   const dynamicWidgetQueries = useQueries({
     queries: projectRoots.map((p) => ({
-      ...trpc.dynamicWidget.list.queryOptions({ workspaceId: workspaceId ?? '', projectId: p.projectId }),
+      ...trpc.dynamicWidget.list.queryOptions({ projectId: p.projectId }),
       select: (data: { id: string; name: string; description?: string }[]) =>
         data.map((w) => ({ ...w, projectId: p.projectId as string | undefined })),
     })),
   })
   const dynamicWidgets = React.useMemo(
     () => [
-      ...(workspaceWidgetQuery.data ?? []),
+      ...(globalWidgetQuery.data ?? []),
       ...dynamicWidgetQueries.flatMap((q) => q.data ?? []),
     ],
-    [workspaceWidgetQuery.data, dynamicWidgetQueries],
+    [globalWidgetQuery.data, dynamicWidgetQueries],
   )
   const refetchDynamicWidgets = React.useCallback(() => {
-    workspaceWidgetQuery.refetch()
+    globalWidgetQuery.refetch()
     dynamicWidgetQueries.forEach((q) => q.refetch())
-  }, [workspaceWidgetQuery, dynamicWidgetQueries])
+  }, [globalWidgetQuery, dynamicWidgetQueries])
   const filteredDynamic = React.useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return dynamicWidgets
@@ -319,10 +315,8 @@ export default function DesktopWidgetLibraryPanel({
                 size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => {
-                  if (!workspace?.id) return;
                   const addTab = useTabs.getState().addTab;
                   addTab({
-                    workspaceId: workspace.id,
                     createNew: true,
                     title: t('library.aiAssistant'),
                     icon: "sparkles",
@@ -371,7 +365,7 @@ export default function DesktopWidgetLibraryPanel({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!confirm(t('library.confirmDelete', { name: dw.name }))) return;
-                      trpcClient.dynamicWidget.delete.mutate({ workspaceId: workspaceId ?? '', projectId: dw.projectId, widgetId: dw.id }).then(() => {
+                      trpcClient.dynamicWidget.delete.mutate({ projectId: dw.projectId, widgetId: dw.id }).then(() => {
                         refetchDynamicWidgets();
                       });
                     }}
@@ -396,10 +390,8 @@ export default function DesktopWidgetLibraryPanel({
               type="button"
               className="w-full rounded-xl border border-dashed border-border/60 p-4 text-center text-sm text-muted-foreground hover:bg-accent"
               onClick={() => {
-                if (!workspace?.id) return;
                 const addTab = useTabs.getState().addTab;
                 addTab({
-                  workspaceId: workspace.id,
                   createNew: true,
                   title: t('library.aiAssistant'),
                   icon: "sparkles",

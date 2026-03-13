@@ -13,7 +13,6 @@ import path from "node:path";
 import type { GeneratedFile } from "ai";
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
   resolveFilePathFromUri,
 } from "@openloaf/api/services/vfsService";
 import { readBasicConf, readS3Providers } from "@/modules/settings/openloafConfStore";
@@ -95,8 +94,6 @@ export async function resolveImageInputBuffer(input: {
   fallbackName: string;
   /** Optional project id for local resolution. */
   projectId?: string;
-  /** Optional workspace id for local resolution. */
-  workspaceId?: string;
   /** Optional abort signal. */
   abortSignal?: AbortSignal;
 }): Promise<{ buffer: Buffer; mediaType: string; baseName: string }> {
@@ -110,7 +107,6 @@ export async function resolveImageInputBuffer(input: {
       const payload = await loadProjectImageBuffer({
         path: raw,
         projectId: input.projectId,
-        workspaceId: input.workspaceId,
         mediaType: resolvedType,
       });
       if (!payload) {
@@ -210,23 +206,18 @@ async function normalizeImageSaveDirectory(targetPath: string): Promise<string> 
 function resolveRelativeSaveDirectory(input: {
   /** Relative path input. */
   path: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string | null;
-  /** Optional project id fallback. */
+  /** Optional project id. */
   projectId?: string | null;
 }): string | null {
   const normalized = input.path.replace(/\\/g, "/").replace(/^(\.\/)+/, "").replace(/^\/+/, "");
   if (!normalized) return null;
   if (normalized.split("/").some((segment) => segment === "..")) return null;
-  const projectRootPath = input.projectId ? getProjectRootPath(input.projectId) : null;
-  const workspaceRootPath =
-    projectRootPath || !input.workspaceId ? null : getWorkspaceRootPathById(input.workspaceId);
-  const rootPath = projectRootPath ?? workspaceRootPath;
+  const rootPath = input.projectId ? getProjectRootPath(input.projectId) : null;
   if (!rootPath) return null;
 
   const targetPath = path.resolve(rootPath, normalized);
   const rootPathResolved = path.resolve(rootPath);
-  // 限制在 workspace/project 根目录内，避免路径穿越。
+  // 限制在 project 根目录内，避免路径穿越。
   if (targetPath !== rootPathResolved && !targetPath.startsWith(rootPathResolved + path.sep)) {
     return null;
   }
@@ -237,8 +228,6 @@ function resolveRelativeSaveDirectory(input: {
 export async function resolveImageSaveDirectory(input: {
   /** Raw image save directory uri. */
   imageSaveDir: string;
-  /** Optional workspace id fallback. */
-  workspaceId?: string | null;
   /** Optional project id fallback. */
   projectId?: string | null;
 }): Promise<string | null> {
@@ -261,7 +250,6 @@ export async function resolveImageSaveDirectory(input: {
     if (!scopedProjectId) return null;
     const dirPath = resolveRelativeSaveDirectory({
       path: scopedRelativePath,
-      workspaceId: input.workspaceId,
       projectId: scopedProjectId,
     });
     if (!dirPath) return null;
@@ -271,7 +259,6 @@ export async function resolveImageSaveDirectory(input: {
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) {
     const dirPath = resolveRelativeSaveDirectory({
       path: raw,
-      workspaceId: input.workspaceId,
       projectId: input.projectId,
     });
     if (!dirPath) return null;
@@ -353,8 +340,6 @@ export async function saveImageUrlsToDirectory(input: {
 export async function saveGeneratedImages(input: {
   /** Generated image files from provider. */
   images: GeneratedFile[];
-  /** Workspace id for storage scoping. */
-  workspaceId: string;
   /** Chat session id for storage scoping. */
   sessionId: string;
   /** Optional project id for storage scoping. */
@@ -369,7 +354,6 @@ export async function saveGeneratedImages(input: {
     const buffer = Buffer.from(image.uint8Array);
     const fileName = buildImageFileName(index, mediaType, baseTime);
     const saved = await saveChatImageAttachment({
-      workspaceId: input.workspaceId,
       projectId: input.projectId,
       sessionId: input.sessionId,
       fileName,

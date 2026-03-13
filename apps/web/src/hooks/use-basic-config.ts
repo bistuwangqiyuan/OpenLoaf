@@ -32,6 +32,7 @@ const DEFAULT_BASIC_CONFIG: BasicConfig = {
   uiAnimationLevel: "high",
   uiTheme: "system",
   uiThemeManual: "light",
+  projectOpenMode: "sidebar",
   boardDebugEnabled: false,
   // Toggle chat preface viewer button.
   chatPrefaceEnabled: false,

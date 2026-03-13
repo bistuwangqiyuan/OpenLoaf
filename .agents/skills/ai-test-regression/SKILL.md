@@ -3,8 +3,6 @@ name: ai-test-regression
 description: 从真实聊天故障历史生成回归测试用例。由 /ai-test-regression 命令消费。
 ---
 
-# AI Test Regression — 聊天历史 → 回归测试
-
 ## Overview
 
 本 Skill 将真实用户的故障聊天记录转化为 Promptfoo 回归测试用例，防止已知问题复发。
@@ -15,17 +13,9 @@ description: 从真实聊天故障历史生成回归测试用例。由 /ai-test-
 - 需要从真实 session 中提取可复现的测试用例
 - 需要建立回归测试基线
 
-## 工作流（9 步）
-
 ### 1. 验证输入
 
 检查用户提供的路径是否包含有效的聊天记录：
-
-```
-<path>/
-├── session.json        # 会话元数据（可选）
-└── messages.jsonl      # 消息日志（必须）
-```
 
 如果路径不包含 `messages.jsonl`，提示用户提供正确路径。
 
@@ -35,22 +25,11 @@ description: 从真实聊天故障历史生成回归测试用例。由 /ai-test-
 
 使用 Read 工具直接读取 `messages.jsonl`。每行是一个 JSON 对象：
 
-```jsonl
-{"id":"msg_1","role":"user","content":"...","parentMessageId":null,"createdAt":"..."}
-{"id":"msg_2","role":"assistant","content":"...","parentMessageId":"msg_1","toolCalls":[...],"createdAt":"..."}
-```
-
 按 `parentMessageId` 构建对话树，识别主对话线。
 
 ### 3. 提取时间线
 
 将消息分组为 **turns**（轮次）：
-
-```
-Turn 1: 用户消息 msg_1 → 助手回复 msg_2（含工具调用 X、Y）
-Turn 2: 用户消息 msg_3 → 助手回复 msg_4（含工具调用 Z）
-...
-```
 
 每个 turn 提取：
 - 用户输入文本
@@ -65,34 +44,9 @@ Turn 2: 用户消息 msg_3 → 助手回复 msg_4（含工具调用 Z）
 2. 期望的正确行为是什么
 3. 实际的错误行为是什么
 
-```
-## 对话时间线
-
-| Turn | 用户输入 | 工具调用 | 助手回复摘要 |
-|------|---------|---------|------------|
-| 1 | "帮我查一下邮件" | email-query | 列出了 5 封邮件 |
-| 2 | "把第三封转发给 A" | shell-command | 执行了 mail 命令（失败） |
-
-请指出哪个 Turn 有问题，以及期望的正确行为是什么。
-```
-
 ### 5. 分类故障
 
 按决策树分类：
-
-```
-工具是否被调用？
-├── 否 → 是否应该调用工具？
-│   ├── 是 → NO_TOOL
-│   └── 否 → OUTPUT_QUALITY
-├── 是 → 工具是否返回错误？(state: "output-error")
-│   ├── 是 → TOOL_ERROR
-│   └── 否 → 调用的工具是否正确？
-│       ├── 否 → WRONG_TOOL
-│       └── 是 → 输出是否可接受？
-│           ├── 否 → OUTPUT_QUALITY
-│           └── 是 → SYSTEM_ERROR（超时/崩溃）
-```
 
 ### 6. 生成测试
 
@@ -102,40 +56,9 @@ Turn 2: 用户消息 msg_3 → 助手回复 msg_4（含工具调用 Z）
 
 **单轮模板**：
 
-```yaml
-- description: "regression-001: <故障简述>"
-  vars:
-    prompt: "<用户原始输入>"
-  assert:
-    - type: javascript
-      value: |
-        const tools = context.providerResponse?.metadata?.toolNames || [];
-        return tools.includes('<期望工具>')
-          ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-          : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-    - type: llm-rubric
-      value: "<期望的输出行为描述>"
-```
-
 **多轮模板**：
 
-```yaml
-- description: "regression-002: <故障简述>"
-  vars:
-    prompt: "dummy"
-    turns: '[{"text": "<Turn 1 输入>"}, {"text": "<Turn 2 输入>"}]'
-  assert:
-    - type: javascript
-      value: |
-        const tools = context.providerResponse?.metadata?.toolNames || [];
-        return tools.includes('<期望工具>')
-          ? { pass: true, score: 1, reason: '正确调用了 <期望工具>' }
-          : { pass: false, score: 0, reason: `未调用 <期望工具>，实际: [${tools}]` };
-    - type: llm-rubric
-      value: "<期望的输出行为描述>"
-```
-
-详细断言模板见 [references/assertion-patterns.md](references/assertion-patterns.md)。
+详细断言规则见 [assertion-patterns.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/ai-test-regression/references/assertion-patterns.md)。
 
 ### 7. 放置测试
 

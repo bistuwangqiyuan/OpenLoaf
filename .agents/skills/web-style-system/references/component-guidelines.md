@@ -135,17 +135,6 @@
 
 Dialog 遵循四区结构，每区可选但顺序固定：
 
-```
-┌─ DialogHeader ──────────────────┐
-│  DialogTitle                    │
-│  DialogDescription（可选）       │
-├─ Body ──────────────────────────┤
-│  表单 / 内容区                   │
-├─ DialogFooter ──────────────────┤
-│  [取消]          [主操作按钮]    │
-└─────────────────────────────────┘
-```
-
 - **DialogTitle**：必须存在（无障碍要求）。简洁明确，如”项目重命名”、”删除确认”。
 - **DialogDescription**：仅在需要补充说明时使用。简单弹窗（如重命名）**省略 Description**，避免冗余。
 - **Body**：表单字段使用堆叠布局（label 在上、input 在下），**不使用 `grid-cols-4` 横向排列**。间距 `gap-2 py-2`。
@@ -194,10 +183,6 @@ Action 按钮的颜色由操作语义决定，**禁止所有按钮都用无色 g
 
 所有扁平色按钮遵循统一公式：
 
-```
-rounded-full bg-{color}-500/10 text-{color}-600 hover:bg-{color}-500/20 dark:text-{color}-400 shadow-none
-```
-
 同一组操作中，主操作与次要操作应有明确视觉层级差异。
 
 ### 表单布局
@@ -210,10 +195,6 @@ rounded-full bg-{color}-500/10 text-{color}-600 hover:bg-{color}-500/20 dark:tex
 ### Input 样式
 
 Dialog 内所有 Input 统一添加：
-
-```
-className=”shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70”
-```
 
 ### 状态重置时机
 
@@ -258,16 +239,6 @@ className=”shadow-none focus-visible:ring-0 focus-visible:shadow-none focus-vi
 
 每个设置项前可带语义图标徽章，使用统一的 `SettingIcon` 模式：
 
-```tsx
-function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg: string }) {
-  return (
-    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${bg}`}>
-      <Icon className={`h-3 w-3 ${fg}`} />
-    </div>
-  );
-}
-```
-
 - 外层容器：`h-5 w-5 rounded`（小圆角方块）
 - 内层图标：`h-3 w-3`
 - 背景色与前景色使用语义扁平色（与按钮色系一致）
@@ -286,19 +257,6 @@ function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg:
 ### Settings 行布局
 
 Settings 配置项使用扁平 flex 布局：
-
-```tsx
-<div className="flex flex-wrap items-center gap-2 px-3 py-3">
-  <SettingIcon icon={SomeIcon} bg="bg-sky-500/10" fg="text-sky-600 dark:text-sky-400" />
-  <div className="flex-1 min-w-0">
-    <div className="text-sm font-medium">标题</div>
-    <div className="text-xs text-muted-foreground">描述</div>
-  </div>
-  <OpenLoafSettingsField>
-    {/* 操作控件 */}
-  </OpenLoafSettingsField>
-</div>
-```
 
 - Icon + 标题 + 操作控件在同一行
 - 使用 `gap-2` 控制间距（不要过宽）

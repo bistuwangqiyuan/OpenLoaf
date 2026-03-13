@@ -10,6 +10,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 type OpenBrowserWindowResult = { id: number };
+type OpenProjectWindowResult = { id: number };
 type OkResult = { ok: true };
 type CountResult = { ok: true; count: number } | { ok: false };
 type ViewBounds = { x: number; y: number; width: number; height: number };
@@ -60,6 +61,18 @@ type CalendarEvent = {
   recurrence?: string;
 };
 type CalendarResult<T> = { ok: true; data: T } | { ok: false; reason: string; code?: string };
+type DocxToSfdtFailureCode =
+  | "unsupported"
+  | "helper_missing"
+  | "invalid_input"
+  | "file_not_found"
+  | "license_missing"
+  | "timeout"
+  | "parse_error"
+  | "convert_failed";
+type DocxToSfdtResult =
+  | { ok: true; data: { sfdt: string } }
+  | { ok: false; reason: string; code: DocxToSfdtFailureCode };
 
 /**
  * preload 运行在隔离上下文中，是我们向 web UI（apps/web）暴露安全 API 的唯一入口。
@@ -69,6 +82,14 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   // 请求主进程在独立窗口中打开外部 URL。
   openBrowserWindow: (url: string): Promise<OpenBrowserWindowResult> =>
     ipcRenderer.invoke('openloaf:open-browser-window', { url }),
+  // 请求主进程在独立应用窗口中打开一个项目上下文。
+  openProjectWindow: (payload: {
+    projectId: string;
+    rootUri: string;
+    title: string;
+    icon?: string | null;
+  }): Promise<OpenProjectWindowResult> =>
+    ipcRenderer.invoke('openloaf:open-project-window', payload),
   // 使用系统默认浏览器打开外部 URL。
   openExternal: (url: string): Promise<{ ok: true } | { ok: false; reason?: string }> =>
     ipcRenderer.invoke('openloaf:open-external', { url }),
@@ -180,7 +201,7 @@ contextBridge.exposeInMainWorld('openloafElectron', {
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<{ ok: true; path: string } | { ok: false; canceled?: boolean; reason?: string }> =>
     ipcRenderer.invoke('openloaf:fs:save-file', payload),
-  // Start a local file/folder transfer into the workspace.
+  // Start a local file/folder transfer into the target root.
   startTransfer: (payload: {
     id: string;
     sourcePath: string;
@@ -226,6 +247,11 @@ contextBridge.exposeInMainWorld('openloafElectron', {
   > => ipcRenderer.invoke('openloaf:app:get-latest-installer-url'),
   // Resolve local file path from a File object.
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+  // Local Office helpers.
+  office: {
+    convertDocxToSfdt: (payload: { uri: string }): Promise<DocxToSfdtResult> =>
+      ipcRenderer.invoke('openloaf:office:convert-docx-to-sfdt', payload),
+  },
   // System calendar access.
   calendar: {
     requestPermission: (): Promise<CalendarResult<CalendarPermissionState>> =>
@@ -234,9 +260,9 @@ contextBridge.exposeInMainWorld('openloafElectron', {
       ipcRenderer.invoke('openloaf:calendar:list-calendars'),
     getReminderLists: (): Promise<CalendarResult<CalendarItem[]>> =>
       ipcRenderer.invoke('openloaf:calendar:list-reminders'),
-    setSyncRange: (payload: { workspaceId: string; range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
+    setSyncRange: (payload: { range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
       ipcRenderer.invoke('openloaf:calendar:set-sync-range', payload),
-    syncNow: (payload: { workspaceId: string; range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
+    syncNow: (payload: { range?: CalendarRange }): Promise<{ ok: true } | { ok: false; reason?: string }> =>
       ipcRenderer.invoke('openloaf:calendar:sync', payload),
     getEvents: (range: CalendarRange): Promise<CalendarResult<CalendarEvent[]>> =>
       ipcRenderer.invoke('openloaf:calendar:get-events', range),
@@ -425,6 +451,9 @@ ipcRenderer.on('openloaf:tray:navigate', (_event, detail) => {
 // 主进程请求关闭确认：转发到 web 端弹出 UI 对话框。
 ipcRenderer.on('openloaf:confirm-close', (_event, detail) => {
   try {
+    // 立即发送 ack，告知主进程 Web 端已收到请求并将弹出对话框，
+    // 使主进程取消超时保护，等待用户操作。
+    ipcRenderer.send('openloaf:confirm-close:ack');
     window.dispatchEvent(
       new CustomEvent('openloaf:confirm-close', { detail })
     );

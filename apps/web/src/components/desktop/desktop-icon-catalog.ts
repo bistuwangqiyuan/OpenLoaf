@@ -26,32 +26,32 @@ export const desktopIconCatalog: DesktopIconCatalogItem[] = [
   {
     iconKey: "files",
     title: "文件",
-    support: { workspace: false, project: true },
+    support: { global: false, project: true },
   },
   {
     iconKey: "tasks",
     title: "任务",
-    support: { workspace: false, project: true },
+    support: { global: false, project: true },
   },
   {
     iconKey: "search",
     title: "搜索",
-    support: { workspace: true, project: true },
+    support: { global: true, project: true },
   },
   {
     iconKey: "settings",
     title: "设置",
-    support: { workspace: true, project: true },
+    support: { global: true, project: true },
   },
   {
     iconKey: "agent-settings",
     title: "Agent设置",
-    support: { workspace: true, project: true },
+    support: { global: true, project: true },
   },
   {
     iconKey: "skill-settings",
     title: "技能设置",
-    support: { workspace: true, project: true },
+    support: { global: true, project: true },
   },
 ];
 

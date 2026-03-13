@@ -10,7 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { Camera, Maximize2, Minimize2, MoreHorizontal, Wrench } from "lucide-react";
+import { Camera, FolderOpen, Maximize2, Minimize2, MoreHorizontal, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { DockItem } from "@openloaf/api/common";
@@ -28,9 +28,9 @@ import {
   getDisplayFileName,
   isBoardFolderName,
 } from "@/lib/file-name";
+import { resolveFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
 import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { trpcClient } from "@/utils/trpc";
 import { getBoardEngine } from "./engine/board-engine-registry";
 import type { BoardJsonSnapshot } from "@openloaf/api/types/boardCollab";
@@ -116,7 +116,6 @@ const REPAIR_GRID_COLS = 4;
 export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeaderActionsProps) {
   const { t } = useTranslation('board');
   const isBoardPanel = item.component === "board-viewer";
-  const { workspace } = useWorkspace();
   const sidebar = useOptionalSidebar();
   const isMobile = sidebar?.isMobile ?? false;
   const open = sidebar?.open ?? false;
@@ -143,6 +142,59 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
     typeof runtimeActiveStackId === "string"
       ? runtimeActiveStackId || stack.at(-1)?.id || ""
       : stack.at(-1)?.id || "";
+  const isElectron = typeof window !== "undefined" && Boolean(window.openloafElectron?.openPath);
+
+  /** Open the current board folder in system file manager or stack preview. */
+  const handleOpenBoardFolder = useCallback(async () => {
+    const boardFolderUri = typeof (item.params as any)?.boardFolderUri === "string"
+      ? ((item.params as any).boardFolderUri as string).trim()
+      : "";
+    const rootUri = typeof (item.params as any)?.rootUri === "string"
+      ? ((item.params as any).rootUri as string).trim()
+      : "";
+    const projectId = typeof (item.params as any)?.projectId === "string"
+      ? ((item.params as any).projectId as string).trim()
+      : "";
+
+    if (!boardFolderUri) {
+      toast.error(t("panelHeader.openBoardFolderMissing"));
+      return;
+    }
+
+    const resolvedBoardFolderUri = resolveFileUriFromRoot(rootUri || undefined, boardFolderUri).trim();
+    const hasResolvedUriScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolvedBoardFolderUri);
+    if (!resolvedBoardFolderUri || !hasResolvedUriScheme) {
+      toast.error(t("panelHeader.openBoardFolderFailed"));
+      return;
+    }
+
+    if (isElectron) {
+      const result = await window.openloafElectron?.openPath?.({ uri: resolvedBoardFolderUri });
+      if (!result?.ok) {
+        toast.error(result?.reason ?? t("panelHeader.openBoardFolderFailed"));
+      }
+      return;
+    }
+
+    if (!tabId) {
+      toast.error(t("panelHeader.openBoardFolderFailed"));
+      return;
+    }
+
+    // 逻辑：网页版不走系统文件管理器，改为把当前画布目录作为独立根目录推入 stack。
+    useTabRuntime.getState().pushStackItem(tabId, {
+      id: `board-folder:${resolvedBoardFolderUri}`,
+      sourceKey: `board-folder:${resolvedBoardFolderUri}`,
+      component: "folder-tree-preview",
+      title: title || t("panelHeader.openBoardFolder"),
+      params: {
+        rootUri: resolvedBoardFolderUri,
+        currentUri: "",
+        currentEntryKind: "folder",
+        projectId: projectId || undefined,
+      },
+    });
+  }, [isElectron, item.params, t, tabId, title]);
 
   /** Export the current board panel to an image. */
   const handleExportBoard = useCallback(async () => {
@@ -186,11 +238,9 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
       toast.error(t('panelHeader.repairNoEngine'));
       return;
     }
-    const workspaceId = workspace?.id ?? '';
     const jsonUri = boardFolderUri.replace(/\/$/, '') + '/index.tnboard.json';
     try {
       const result = await trpcClient.fs.readFile.query({
-        workspaceId,
         uri: jsonUri,
       });
       if (!result.content) {
@@ -247,7 +297,7 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
       console.error('[board repair] failed', error);
       toast.error(t('panelHeader.repairFailed'));
     }
-  }, [item.id, item.params, workspace?.id, t]);
+  }, [item.id, item.params, t]);
 
   /** Toggle the left sidebar and right AI panel together. */
   const handleTogglePanels = useCallback(() => {
@@ -335,6 +385,12 @@ export function BoardPanelHeaderActions({ item, title, tabId }: BoardPanelHeader
           {toggleShortcut ? (
             <span className="ml-auto pl-4 text-xs text-muted-foreground">{toggleShortcut}</span>
           ) : null}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void handleOpenBoardFolder()}>
+          <FolderOpen className="mr-2 h-4 w-4" />
+          {isElectron
+            ? t("panelHeader.openInFileSystem")
+            : t("panelHeader.openBoardFolder")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void handleExportBoard()}>
           <Camera className="mr-2 h-4 w-4" />

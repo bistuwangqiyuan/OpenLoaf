@@ -51,7 +51,7 @@ function MessageItem({
   const { t } = useTranslation('ai')
   const { resendUserMessage, clearError } = useChatActions();
   const { status } = useChatState();
-  const { branchMessageIds, siblingNav, projectId, workspaceId, tabId } = useChatSession();
+  const { branchMessageIds, siblingNav, projectId, tabId } = useChatSession();
   const { toolParts } = useChatTools();
   const [isEditing, setIsEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -331,7 +331,6 @@ function MessageItem({
                 onRemoveAttachment={removeEditAttachment}
                 attachmentEditEnabled={false}
                 defaultProjectId={projectId}
-                workspaceId={workspaceId}
                 onSubmit={handleResend}
               />
             </div>

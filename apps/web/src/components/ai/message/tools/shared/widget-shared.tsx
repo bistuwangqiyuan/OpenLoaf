@@ -11,6 +11,7 @@
 
 import * as React from 'react'
 import { trpcClient } from '@/utils/trpc'
+import { buildChildUri, buildFileUriFromRoot } from '@/components/project/filesystem/utils/file-system-utils'
 import {
   ensureExternalsRegistered,
   patchBareImports,
@@ -33,6 +34,43 @@ export function parseOutputJson(
   } catch {
     return null
   }
+}
+
+function toFileUri(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('file://')) return trimmed
+  const normalized = trimmed.replace(/\\/g, '/')
+  if (/^[A-Za-z]:\//.test(normalized)) return `file:///${encodeURI(normalized)}`
+  if (normalized.startsWith('/')) return `file://${encodeURI(normalized)}`
+  return `file:///${encodeURI(normalized)}`
+}
+
+/** 逻辑：优先使用 tool output 中的真实目录，缺失时才回退到项目根目录推导。 */
+export function resolveWidgetFolderUri(input: {
+  outputJson: Record<string, unknown> | null
+  widgetId: string
+  projectRootUri?: string
+}): string {
+  const rawLocation =
+    typeof input.outputJson?.widgetDir === 'string'
+      ? input.outputJson.widgetDir
+      : typeof input.outputJson?.location === 'string'
+        ? input.outputJson.location
+        : ''
+  if (rawLocation.trim()) {
+    return toFileUri(rawLocation)
+  }
+  if (!input.projectRootUri?.trim() || !input.widgetId.trim()) return ''
+  return buildFileUriFromRoot(
+    input.projectRootUri,
+    `.openloaf/dynamic-widgets/${input.widgetId}`,
+  )
+}
+
+/** Resolve the widget main file uri for preview. */
+export function resolveWidgetMainFileUri(widgetFolderUri: string): string {
+  return widgetFolderUri ? buildChildUri(widgetFolderUri, 'widget.tsx') : ''
 }
 
 /** Error boundary for widget rendering */
@@ -60,18 +98,16 @@ export class WidgetErrorBoundary extends React.Component<
 export const widgetModuleCache = new Map<string, React.ComponentType<any>>()
 
 export async function compileAndLoadWidget(
-  workspaceId: string,
   projectId: string | undefined,
   widgetId: string,
 ): Promise<React.ComponentType<any>> {
-  const cacheKey = `${workspaceId}:${projectId ?? ''}:${widgetId}`
+  const cacheKey = `${projectId ?? ''}:${widgetId}`
   const cached = widgetModuleCache.get(cacheKey)
   if (cached) return cached
 
   ensureExternalsRegistered()
 
   const result = await trpcClient.dynamicWidget.compile.query({
-    workspaceId,
     projectId,
     widgetId,
   })
@@ -99,11 +135,9 @@ export async function compileAndLoadWidget(
 /** 逻辑：widget 渲染完成后的实际渲染区域 */
 export function WidgetPreview({
   widgetId,
-  workspaceId,
   projectId,
 }: {
   widgetId: string
-  workspaceId: string
   projectId?: string
 }) {
   const [Component, setComponent] = React.useState<React.ComponentType<any> | null>(null)
@@ -115,7 +149,7 @@ export function WidgetPreview({
     let cancelled = false
     setLoading(true)
     setError(null)
-    compileAndLoadWidget(workspaceId, projectId, widgetId)
+    compileAndLoadWidget(projectId, widgetId)
       .then((mod) => {
         if (!cancelled) {
           setComponent(() => mod)
@@ -129,7 +163,7 @@ export function WidgetPreview({
         }
       })
     return () => { cancelled = true }
-  }, [workspaceId, projectId, widgetId])
+  }, [projectId, widgetId])
 
   // 逻辑：创建最小化 SDK（chat 上下文不需要完整 desktop SDK）
   // 注意：getTheme 必须返回稳定引用，否则 useSyncExternalStore 会无限循环

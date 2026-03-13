@@ -197,8 +197,8 @@ export function EmailMessageDetail({ detail }: EmailMessageDetailProps) {
               ) : (
                 detail.messageDetail?.attachments?.map((attachment, index) => {
                   const sizeLabel = formatAttachmentSize(attachment.size);
-                  const downloadUrl = detail.messageDetail && detail.workspaceId
-                    ? `${resolveServerUrl()}/api/email/attachment?workspaceId=${encodeURIComponent(detail.workspaceId)}&messageId=${encodeURIComponent(detail.messageDetail.id)}&index=${index}`
+                  const downloadUrl = detail.messageDetail
+                    ? `${resolveServerUrl()}/api/email/attachment?messageId=${encodeURIComponent(detail.messageDetail.id)}&index=${index}`
                     : "#";
                   return (
                     <a

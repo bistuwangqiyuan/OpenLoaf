@@ -26,7 +26,6 @@ type TaskRunLogPanelProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   taskId: string
-  workspaceId: string
   projectId?: string
   onOpenChat?: (sessionId: string) => void
 }
@@ -41,14 +40,13 @@ export const TaskRunLogPanel = memo(function TaskRunLogPanel({
   open,
   onOpenChange,
   taskId,
-  workspaceId,
   projectId,
   onOpenChat,
 }: TaskRunLogPanelProps) {
   const { t } = useTranslation('ai')
   const logsQuery = useQuery({
     ...trpc.scheduledTask.runLogs.queryOptions(
-      { taskId, workspaceId, projectId, limit: 50 },
+      { taskId, projectId, limit: 50 },
     ),
     enabled: open && Boolean(taskId),
   })

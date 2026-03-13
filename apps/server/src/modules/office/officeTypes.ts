@@ -60,7 +60,6 @@ export type OfficeCommandPayload = {
 };
 
 export type OfficeCommandContext = {
-  workspaceId?: string;
   projectId?: string;
   requestedAt: string;
 };
@@ -104,7 +103,6 @@ export type OfficeCommandAck = {
 export type OfficeClient = {
   clientId: string;
   appType: OfficeAppType;
-  workspaceId?: string;
   projectId?: string;
   capabilities: OfficeAction[];
   clientMeta?: Record<string, unknown>;

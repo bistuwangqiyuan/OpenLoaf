@@ -8,7 +8,7 @@
     "save": "保存",
     "renameCanvas": "重命名",
     "renameCanvasPlaceholder": "输入画布名称",
-    "saveToProject": "保存到工作区",
+    "saveToProject": "保存到项目",
     "deleteCanvas": "删除",
     "actions": "操作",
     "cancel": "取消",
@@ -148,8 +148,11 @@
     "detail": "详情"
   },
   "textNode": {
-    "placeholder": "输入文字内容",
+    "placeholder": "输入 Markdown",
     "toolbar": {
+      "heading": "标题",
+      "inline": "行内",
+      "blocks": "块级",
       "fontSize": "字号",
       "fontWeight": "字重",
       "style": "样式",
@@ -159,10 +162,20 @@
       "backgroundColor": "背景色"
     },
     "format": {
+      "paragraph": "正文",
       "bold": "加粗",
       "italic": "斜体",
+      "code": "行内代码",
+      "link": "链接",
+      "quote": "引用",
+      "codeBlock": "代码块",
       "underline": "下划线",
       "strikethrough": "删除线",
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "heading4": "标题 4",
+      "heading5": "标题 5",
       "unorderedList": "无序列表",
       "orderedList": "有序列表",
       "todoList": "待办列表",
@@ -429,7 +442,11 @@
     "enterFullscreen": "进入全屏",
     "showAIPanel": "显示 AI 面板",
     "hideAIPanel": "收起 AI 面板",
-    "screenshot": "截图画布"
+    "screenshot": "截图画布",
+    "openInFileSystem": "在文件系统中打开",
+    "openBoardFolder": "打开画布文件夹",
+    "openBoardFolderMissing": "未找到画布文件夹",
+    "openBoardFolderFailed": "无法打开画布文件夹"
   },
   "aiToolbar": {
     "aiAssistant": "AI小助手",

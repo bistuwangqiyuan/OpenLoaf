@@ -1,4 +1,3 @@
-# Style DNA: Layout + Tabs + Dock
 
 ## Source Files
 
@@ -7,8 +6,6 @@
 - `packages/ui/src/animated-tabs.tsx`
 - `apps/web/src/components/layout/LeftDock.tsx`
 - `apps/web/src/index.css`
-
-## 1. Visual Material Language
 
 ### Glass Capsule Surface (Shadow-Free)
 
@@ -95,8 +92,6 @@
 - active tab 用浅底高亮，不使用重阴影
 - 支持历史前进后退、固定与普通 tab 分区、拖拽重排
 - 运行态可叠加“思考边框”状态，不破坏主结构
-
-## 7. Do / Don't
 
 ### Do
 

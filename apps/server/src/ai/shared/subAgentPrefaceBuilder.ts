@@ -35,12 +35,9 @@ import { getSaasAccessToken } from '@/ai/shared/context/requestContext'
 import { readBasicConf } from '@/modules/settings/openloafConfStore'
 
 import {
-  getWorkspaceById,
-  getActiveWorkspace,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
   getProjectRootPath,
 } from '@openloaf/api/services/vfsService'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { logger } from '@/common/logger'
@@ -73,7 +70,6 @@ export function buildSubAgentListSection(agents: SubAgentEntry[]): string {
 
 /** 收集所有可用的自定义 agent（仅动态，从文件系统扫描）。 */
 export function collectAvailableAgents(input: {
-  workspaceRootPath?: string
   projectRootPath?: string
   parentProjectRootPaths?: string[]
 }): SubAgentEntry[] {
@@ -82,7 +78,6 @@ export function collectAvailableAgents(input: {
 
   try {
     const dynamicAgents = loadAgentSummaries({
-      workspaceRootPath: input.workspaceRootPath,
       projectRootPath: input.projectRootPath,
       parentProjectRootPaths: input.parentProjectRootPaths,
     })
@@ -104,25 +99,10 @@ export function collectAvailableAgents(input: {
 
 /** 解析子 agent 的 PromptContext（轻量版，不含 memory）。 */
 async function resolveSubAgentPromptContext(input: {
-  workspaceId?: string
   projectId?: string
   parentProjectRootPaths?: string[]
   timezone?: string
 }): Promise<PromptContext> {
-  // workspace
-  let workspace = { id: UNKNOWN_VALUE, name: UNKNOWN_VALUE, rootPath: UNKNOWN_VALUE }
-  try {
-    const ws = input.workspaceId ? getWorkspaceById(input.workspaceId) : null
-    const fallback = ws ?? getActiveWorkspace()
-    workspace = {
-      id: fallback?.id ?? input.workspaceId ?? UNKNOWN_VALUE,
-      name: fallback?.name ?? UNKNOWN_VALUE,
-      rootPath: (input.workspaceId
-        ? getWorkspaceRootPathById(input.workspaceId)
-        : null) ?? getWorkspaceRootPath(),
-    }
-  } catch { /* fallback */ }
-
   // project
   let project = { id: UNKNOWN_VALUE, name: UNKNOWN_VALUE, rootPath: UNKNOWN_VALUE, rules: '未找到' }
   if (input.projectId) {
@@ -196,13 +176,11 @@ async function resolveSubAgentPromptContext(input: {
 
   // skills
   const skillSummaries = loadSkillSummaries({
-    workspaceRootPath: workspace.rootPath !== UNKNOWN_VALUE ? workspace.rootPath : undefined,
     projectRootPath: project.rootPath !== UNKNOWN_VALUE ? project.rootPath : undefined,
     parentProjectRootPaths: input.parentProjectRootPaths ?? [],
   })
 
   return {
-    workspace,
     project,
     account,
     responseLanguage,
@@ -228,7 +206,6 @@ export async function buildSubAgentPrefaceText(input: {
   const capabilities = detectPrefaceCapabilities(input.toolIds)
 
   const context = await resolveSubAgentPromptContext({
-    workspaceId: input.requestContext.workspaceId,
     projectId: input.requestContext.projectId,
     parentProjectRootPaths: input.requestContext.parentProjectRootPaths,
     timezone: input.requestContext.timezone,
@@ -243,7 +220,6 @@ export async function buildSubAgentPrefaceText(input: {
     `- agentId: ${input.agentId}`,
     `- agentName: ${input.agentName}`,
     `- parentSessionId: ${input.parentSessionId}`,
-    `- workspaceId: ${context.workspace.id}`,
     `- projectId: ${context.project.id}`,
     `- projectRootPath: ${context.project.rootPath}`,
   ].join('\n'))
@@ -265,18 +241,6 @@ export async function buildSubAgentPrefaceText(input: {
   }
 
   // TODO: 可用子 Agent 列表 — 暂时禁用，待后续重新整理后恢复
-  // if (capabilities.needsSubAgentList) {
-  //   const agents = collectAvailableAgents({
-  //     workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE
-  //       ? context.workspace.rootPath
-  //       : undefined,
-  //     projectRootPath: context.project.rootPath !== UNKNOWN_VALUE
-  //       ? context.project.rootPath
-  //       : undefined,
-  //     parentProjectRootPaths: input.requestContext.parentProjectRootPaths,
-  //   })
-  //   sections.push(buildSubAgentListSection(agents))
-  // }
 
   // 执行规则
   sections.push(buildExecutionRulesSection())

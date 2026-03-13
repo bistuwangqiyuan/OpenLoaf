@@ -19,7 +19,7 @@ const AGENTS_META_DIR = ".agents";
 const SKILLS_DIR_NAME = "skills";
 const SKILL_FILE_NAME = "SKILL.md";
 
-export type SkillScope = "project" | "parent" | "workspace" | "global";
+export type SkillScope = "project" | "parent" | "global";
 
 export type SkillMatch = {
   /** Skill name. */
@@ -37,8 +37,8 @@ type SkillRoots = {
   projectRoot?: string;
   /** Parent project roots. */
   parentRoots?: string[];
-  /** Workspace root path. */
-  workspaceRoot?: string;
+  /** Global root path. */
+  globalRoot?: string;
 };
 
 type SkillSearchRoot = {
@@ -58,7 +58,7 @@ export class SkillSelector {
     if (!normalizedName) return null;
     const searchRoots = buildSearchRoots(roots);
 
-    // 逻辑：按 project -> parent -> workspace -> global 顺序搜索技能。
+    // 逻辑：按 project -> parent -> global 顺序搜索技能。
     for (const searchRoot of searchRoots) {
       // 全局技能目录直接就是 skills 根目录，无需拼接 .agents/skills。
       const skillsRootPath =
@@ -69,7 +69,7 @@ export class SkillSelector {
       for (const filePath of skillFiles) {
         const summary = readSkillSummaryFromPath(
           filePath,
-          searchRoot.scope === "workspace" || searchRoot.scope === "global"
+          searchRoot.scope === "global"
             ? searchRoot.scope
             : "project",
         );
@@ -109,7 +109,6 @@ export class SkillSelector {
 function buildSearchRoots(roots: SkillRoots): SkillSearchRoot[] {
   const projectRoot = normalizeRootPath(roots.projectRoot);
   const parentRoots = normalizeRootPathList(roots.parentRoots);
-  const workspaceRoot = normalizeRootPath(roots.workspaceRoot);
   const globalSkillsPath = path.join(homedir(), ".agents", "skills");
   const ordered: SkillSearchRoot[] = [];
 
@@ -118,9 +117,6 @@ function buildSearchRoots(roots: SkillRoots): SkillSearchRoot[] {
   }
   for (const parentRoot of parentRoots) {
     ordered.push({ scope: "parent", rootPath: parentRoot });
-  }
-  if (workspaceRoot) {
-    ordered.push({ scope: "workspace", rootPath: workspaceRoot });
   }
   // 全局技能优先级最低，放在最后搜索。
   ordered.push({ scope: "global", rootPath: globalSkillsPath });

@@ -20,7 +20,6 @@ import type { AddDialogState } from '../use-email-page-state'
 
 export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
   const {
-    workspaceId,
     queryClient,
     addDialogOpen,
     setAddDialogOpen,
@@ -42,11 +41,9 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
   const addAccountMutation = useMutation(
     trpc.email.addAccount.mutationOptions({
       onSuccess: (data) => {
-        if (workspaceId) {
-          queryClient.invalidateQueries({
-            queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
-          })
-        }
+        queryClient.invalidateQueries({
+          queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
+        })
         setActiveAccountEmail(normalizeEmail(data.emailAddress))
         setAddDialogOpen(false)
         resetFormState()
@@ -130,16 +127,11 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
       setFormError(error)
       return
     }
-    if (!workspaceId) {
-      setFormError('工作空间未加载，请稍后再试。')
-      return
-    }
     if (formState.authType === 'oauth2') {
       const oauthAuthType =
         formState.oauthProvider === 'google' ? 'oauth2-gmail' : 'oauth2-graph'
       addAccountMutation.mutate({
         authType: oauthAuthType,
-        workspaceId,
         emailAddress: (formState.oauthEmail ?? formState.emailAddress).trim(),
         label: formState.label.trim() || undefined,
       })
@@ -147,7 +139,6 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
     }
     addAccountMutation.mutate({
       authType: 'password',
-      workspaceId,
       emailAddress: formState.emailAddress.trim(),
       label: formState.label.trim() || undefined,
       imap: { host: formState.imapHost.trim(), port: Number(formState.imapPort || 0), tls: formState.imapTls },
@@ -185,9 +176,10 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
   }
 
   function handleOAuthLogin() {
-    if (!workspaceId || !formState.oauthProvider) return
+    if (!formState.oauthProvider) return
     const serverUrl = resolveServerUrl()
-    const oauthUrl = `${serverUrl}/auth/email/${formState.oauthProvider}/start?workspaceId=${encodeURIComponent(workspaceId)}`
+    // 逻辑：邮件 OAuth 已升级为全局能力，授权入口不再依赖旧作用域兼容参数。
+    const oauthUrl = `${serverUrl}/auth/email/${formState.oauthProvider}/start`
     const popup = window.open(oauthUrl, 'oauth', 'width=600,height=700')
     if (!popup) {
       setFormError('无法打开授权窗口，请检查浏览器弹窗设置。')
@@ -196,11 +188,9 @@ export function useEmailAddDialogState(core: EmailCoreState): AddDialogState {
     const timer = window.setInterval(() => {
       if (!popup.closed) return
       window.clearInterval(timer)
-      if (workspaceId) {
-        queryClient.invalidateQueries({
-          queryKey: trpc.email.listAccounts.queryOptions({ workspaceId }).queryKey,
-        })
-      }
+      queryClient.invalidateQueries({
+        queryKey: trpc.email.listAccounts.queryOptions({}).queryKey,
+      })
       setFormState((prev) => ({
         ...prev,
         oauthAuthorized: true,

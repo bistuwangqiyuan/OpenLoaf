@@ -15,12 +15,11 @@ import {
   getAssistantMessageId,
   getProjectId,
   getSessionId,
-  getWorkspaceId,
 } from '@/ai/shared/context/requestContext'
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
 } from '@openloaf/api/services/vfsService'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { resolveMessagesJsonlPath } from '@/ai/services/chat/repositories/chatFileStore'
 import { validateJsxCreateInput } from '@/ai/tools/jsxCreateValidator'
 
@@ -70,13 +69,11 @@ export const jsxCreateTool = tool({
     const messageId = getAssistantMessageId()
     if (!messageId) throw new Error('assistantMessageId is required.')
 
-    const workspaceId = getWorkspaceId()
-    if (!workspaceId) throw new Error('workspaceId is required.')
     const projectId = getProjectId()
     const rootPath = projectId
-      ? getProjectRootPath(projectId, workspaceId)
-      : getWorkspaceRootPathById(workspaceId)
-    if (!rootPath) throw new Error(projectId ? 'Project not found.' : 'Workspace not found.')
+      ? getProjectRootPath(projectId)
+      : getOpenLoafRootDir()
+    if (!rootPath) throw new Error('Project not found.')
 
     const jsx = input.content
 

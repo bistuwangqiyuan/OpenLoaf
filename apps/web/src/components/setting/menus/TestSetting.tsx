@@ -22,10 +22,10 @@ import { Bug, Globe, Layers, Monitor, RefreshCw } from "lucide-react";
 import { memo, useState, useCallback, useEffect } from "react";
 import { OpenLoafSettingsGroup } from "@openloaf/ui/openloaf/OpenLoafSettingsGroup";
 import { OpenLoafSettingsField } from "@openloaf/ui/openloaf/OpenLoafSettingsField";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { toast } from "sonner";
 import { useTerminalStatus } from "@/hooks/use-terminal-status";
 import { useBasicConfig } from "@/hooks/use-basic-config";
+import { useProjectStorageRootUri } from "@/hooks/use-project-storage-root-uri";
 import { Switch } from "@openloaf/ui/switch";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
@@ -42,9 +42,8 @@ function SettingIcon({ icon: Icon, bg, fg }: { icon: LucideIcon; bg: string; fg:
 const STEP_UP_ROUTE = "/step-up";
 
 const TestSetting = memo(function TestSetting() {
-  /** Active workspace info. */
-  const { workspace } = useWorkspace();
   const { basic, setBasic } = useBasicConfig();
+  const projectStorageRootUri = useProjectStorageRootUri();
   const activeTabId = useTabs((s) => s.activeTabId);
   const activeStackCount = useTabRuntime((s) => {
     const runtime = activeTabId ? s.runtimeByTabId[activeTabId] : undefined;
@@ -127,9 +126,9 @@ const TestSetting = memo(function TestSetting() {
   }
 
   /**
-   * Opens a Terminal stack at the workspace root directory.
+   * Opens a Terminal stack at the default project storage root directory.
    */
-  function handleOpenWorkspaceTerminal() {
+  function handleOpenGlobalTerminal() {
     if (!activeTabId) return;
     if (terminalStatus.isLoading) {
       toast.message("正在获取终端状态");
@@ -139,12 +138,12 @@ const TestSetting = memo(function TestSetting() {
       toast.error("终端功能未开启");
       return;
     }
-    const rootUri = workspace?.rootUri;
+    const rootUri = projectStorageRootUri;
     if (!rootUri) {
-      toast.error("未找到工作区目录");
+      toast.error("未找到项目目录");
       return;
     }
-    // 中文注释：终端使用 workspace root 作为 pwd。
+    // 中文注释：终端使用默认项目存储根目录作为 pwd。
     pushStackItem(activeTabId, {
       id: TERMINAL_WINDOW_PANEL_ID,
       sourceKey: TERMINAL_WINDOW_PANEL_ID,
@@ -227,8 +226,8 @@ const TestSetting = memo(function TestSetting() {
             </div>
             <OpenLoafSettingsField className="flex-wrap gap-2">
               {terminalStatus.enabled ? (
-                <Button size="sm" className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none" onClick={handleOpenWorkspaceTerminal}>
-                  Stack: Terminal (workspace)
+                <Button size="sm" className="rounded-full bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-400 shadow-none" onClick={handleOpenGlobalTerminal}>
+                  Stack: Terminal (global)
                 </Button>
               ) : null}
               <Button

@@ -1,0 +1,23 @@
+{
+  "emailAccounts": [
+    {
+      "emailAddress": "zz@hexems.com",
+      "label": "work",
+      "imap": {
+        "host": "imap.exmail.qq.com",
+        "port": 993,
+        "tls": true
+      },
+      "smtp": {
+        "host": "smtp.exmail.qq.com",
+        "port": 465,
+        "tls": true
+      },
+      "auth": {
+        "type": "password",
+        "envKey": "EMAIL_PASSWORD__default__zz_hexems_com"
+      }
+    }
+  ],
+  "privateSenders": []
+}

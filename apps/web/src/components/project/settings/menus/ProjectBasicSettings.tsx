@@ -180,19 +180,10 @@ const ProjectBasicSettings = memo(function ProjectBasicSettings({
     staleTime: 5000,
   });
 
-
-  const workspaceId = useMemo(() => {
-    const activeTab = tabs.find((tab) => tab.id === activeTabId);
-    const rawWorkspaceId = activeTab?.workspaceId ?? "";
-    if (!rawWorkspaceId || rawWorkspaceId === "unknown") return undefined;
-    return rawWorkspaceId;
-  }, [activeTabId, tabs]);
-
   const cacheScope = useMemo(() => {
     if (projectId) return { projectId };
-    if (workspaceId) return { workspaceId };
     return null;
-  }, [projectId, workspaceId]);
+  }, [projectId]);
 
   const cacheQueryKey = useMemo(() => {
     if (!cacheScope) return undefined;

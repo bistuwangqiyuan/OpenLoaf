@@ -10,7 +10,7 @@
 import path from "node:path";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 
-type SkillScope = "workspace" | "project" | "global";
+type SkillScope = "project" | "global";
 
 type SkillSummary = {
   /** Skill name from front matter or fallback. */
@@ -21,12 +21,12 @@ type SkillSummary = {
   path: string;
   /** Skill folder name (parent directory of SKILL.md). */
   folderName: string;
-  /** Skill scope (workspace/project). */
+  /** Skill scope (global/project). */
   scope: SkillScope;
 };
 
 type SkillSource = {
-  /** Skill scope (workspace/project). */
+  /** Skill scope (global/project). */
   scope: SkillScope;
   /** Root path for the scope. */
   rootPath: string;
@@ -44,9 +44,8 @@ const SKILLS_DIR_NAME = "skills";
 const SKILL_FILE_NAME = "SKILL.md";
 const FRONT_MATTER_DELIMITER = "---";
 
-/** Load skills summary list from workspace/project roots. */
+/** Load skills summary list from project roots. */
 export function loadSkillSummaries(input: {
-  workspaceRootPath?: string;
   projectRootPath?: string;
   parentProjectRootPaths?: string[];
   globalSkillsPath?: string;
@@ -69,7 +68,7 @@ export function loadSkillSummaries(input: {
       if (!summaryByName.has(summary.name)) {
         orderedNames.push(summary.name);
       }
-      // 逻辑：项目级 skills 覆盖工作空间级 skills，工作空间级覆盖全局级。
+      // 逻辑：项目级 skills 覆盖全局级。
       if (source.scope === "project" || !summaryByName.has(summary.name)) {
         summaryByName.set(summary.name, summary);
       }
@@ -81,23 +80,18 @@ export function loadSkillSummaries(input: {
 
 /** Resolve skill sources in priority order. */
 function resolveSkillSources(input: {
-  workspaceRootPath?: string;
   projectRootPath?: string;
   parentProjectRootPaths?: string[];
   globalSkillsPath?: string;
 }): SkillSource[] {
   const sources: SkillSource[] = [];
   const globalSkillsPath = normalizeRootPath(input.globalSkillsPath);
-  const workspaceRoot = normalizeRootPath(input.workspaceRootPath);
   const projectRoot = normalizeRootPath(input.projectRootPath);
   const parentRoots = normalizeRootPathList(input.parentProjectRootPaths);
 
-  // 优先级从低到高：global → workspace → parent → project。
+  // 优先级从低到高：global → parent → project。
   if (globalSkillsPath) {
     sources.push({ scope: "global", rootPath: globalSkillsPath });
-  }
-  if (workspaceRoot) {
-    sources.push({ scope: "workspace", rootPath: workspaceRoot });
   }
   for (const parentRoot of parentRoots) {
     sources.push({ scope: "project", rootPath: parentRoot });

@@ -11,12 +11,9 @@ import os from "node:os";
 import path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import {
-  getActiveWorkspace,
   getProjectRootPath,
-  getWorkspaceById,
-  getWorkspaceRootPath,
-  getWorkspaceRootPathById,
 } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import type { ClientPlatform } from "@openloaf/api/types/platform";
 import type { PromptContext } from "@/ai/shared/types";
 import { getPrimaryTemplate } from "@/ai/agent-templates";
@@ -44,15 +41,6 @@ const PROJECT_META_DIR = ".openloaf";
 const PROJECT_META_FILE = "project.json";
 /** Root rules file name. */
 const ROOT_RULES_FILE = "AGENTS.md";
-
-type WorkspaceSnapshot = {
-  /** Workspace id. */
-  id: string;
-  /** Workspace name. */
-  name: string;
-  /** Workspace root path. */
-  rootPath: string;
-};
 
 type ProjectSnapshot = {
   /** Project id. */
@@ -92,20 +80,6 @@ function normalizeIgnoreSkills(values?: unknown): string[] {
   return Array.from(new Set(trimmed));
 }
 
-/** Normalize workspace ignore keys to workspace: prefix. */
-function normalizeWorkspaceIgnoreKeys(values?: unknown): string[] {
-  const keys = normalizeIgnoreSkills(values);
-  return keys
-    .map((key) => (key.startsWith("workspace:") ? key : `workspace:${key}`))
-    .filter((key) => key.startsWith("workspace:"));
-}
-
-/** Build workspace ignore key from folder name. */
-function buildWorkspaceIgnoreKey(folderName: string): string {
-  const trimmed = folderName.trim();
-  return trimmed ? `workspace:${trimmed}` : "";
-}
-
 /** Build project ignore key from folder name. */
 function buildProjectIgnoreKey(input: {
   folderName: string;
@@ -118,17 +92,6 @@ function buildProjectIgnoreKey(input: {
     return `${input.ownerProjectId}:${trimmed}`;
   }
   return trimmed;
-}
-
-/** Resolve ignoreSkills from workspace config. */
-function resolveWorkspaceIgnoreSkills(workspaceId?: string): string[] {
-  try {
-    const workspace = workspaceId ? getWorkspaceById(workspaceId) : null;
-    const target = workspace ?? getActiveWorkspace();
-    return normalizeWorkspaceIgnoreKeys(target?.ignoreSkills);
-  } catch {
-    return [];
-  }
 }
 
 /** Resolve ignoreSkills from project.json. */
@@ -209,29 +172,6 @@ function resolveProjectName(projectRootPath: string, fallbackId: string): string
   } catch {
     return fallbackName;
   }
-}
-
-/** Resolve workspace metadata for prompt injection. */
-function resolveWorkspaceSnapshot(workspaceId?: string): WorkspaceSnapshot {
-  const workspace = workspaceId ? getWorkspaceById(workspaceId) : null;
-  let fallbackWorkspace = workspace;
-  try {
-    fallbackWorkspace = fallbackWorkspace ?? getActiveWorkspace();
-  } catch {
-    // 逻辑：读取工作空间失败时回退为 unknown。
-    fallbackWorkspace = fallbackWorkspace ?? null;
-  }
-  const resolvedId = fallbackWorkspace?.id ?? workspaceId ?? UNKNOWN_VALUE;
-  const resolvedName = fallbackWorkspace?.name ?? UNKNOWN_VALUE;
-  let resolvedRootPath = UNKNOWN_VALUE;
-  try {
-    resolvedRootPath =
-      (workspaceId ? getWorkspaceRootPathById(workspaceId) : null) ??
-      getWorkspaceRootPath();
-  } catch {
-    resolvedRootPath = UNKNOWN_VALUE;
-  }
-  return { id: resolvedId, name: resolvedName, rootPath: resolvedRootPath };
 }
 
 /** Resolve project metadata for prompt injection. */
@@ -335,19 +275,15 @@ async function resolvePythonRuntimeSnapshot(): Promise<PythonRuntimeSnapshot> {
 
 /** Resolve filtered skill summaries with ignore rules applied. */
 function resolveFilteredSkillSummaries(input: {
-  workspaceId?: string;
   projectId?: string;
-  workspaceRootPath?: string;
   projectRootPath?: string;
   parentProjectRootPaths: string[];
   selectedSkills: string[];
 }): { summaries: SkillSummary[]; selectedSkills: string[] } {
   const skillSummaries = loadSkillSummaries({
-    workspaceRootPath: input.workspaceRootPath || undefined,
     projectRootPath: input.projectRootPath || undefined,
     parentProjectRootPaths: input.parentProjectRootPaths,
   });
-  const workspaceIgnoreSkills = resolveWorkspaceIgnoreSkills(input.workspaceId);
   const projectIgnoreSkills = resolveProjectIgnoreSkills(input.projectRootPath);
   const projectCandidates: Array<{ rootPath: string; projectId: string }> = [];
   if (input.projectRootPath && input.projectRootPath !== UNKNOWN_VALUE && input.projectId) {
@@ -358,13 +294,8 @@ function resolveFilteredSkillSummaries(input: {
     if (!parentId) continue;
     projectCandidates.push({ rootPath: parentRootPath, projectId: parentId });
   }
-  // 逻辑：忽略项同时作用于 workspace/project skill 列表与选择结果。
+  // 逻辑：忽略项作用于 project skill 列表与选择结果。
   const filteredSummaries = skillSummaries.filter((summary) => {
-    if (summary.scope === "workspace") {
-      const key = buildWorkspaceIgnoreKey(summary.folderName);
-      if (workspaceIgnoreSkills.includes(key)) return false;
-      return !projectIgnoreSkills.includes(key);
-    }
     const key = buildProjectIgnoreKey({
       folderName: summary.folderName,
       ownerProjectId: resolveOwnerProjectId({
@@ -390,13 +321,11 @@ function resolveFilteredSkillSummaries(input: {
 
 /** Resolve prompt context for session preface. */
 async function resolvePromptContext(input: {
-  workspaceId?: string;
   projectId?: string;
   parentProjectRootPaths: string[];
   selectedSkills: string[];
   timezone?: string;
 }): Promise<PromptContext> {
-  const workspace = resolveWorkspaceSnapshot(input.workspaceId);
   const project = resolveProjectSnapshot(input.projectId);
   const account = resolveAccountSnapshot();
   const responseLanguage = resolveResponseLanguage();
@@ -405,15 +334,12 @@ async function resolvePromptContext(input: {
   const timezone = resolveTimezone(input.timezone);
   const python = await resolvePythonRuntimeSnapshot();
   const { summaries, selectedSkills } = resolveFilteredSkillSummaries({
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
-    workspaceRootPath: workspace.rootPath,
     projectRootPath: project.rootPath,
     parentProjectRootPaths: input.parentProjectRootPaths,
     selectedSkills: input.selectedSkills,
   });
   return {
-    workspace,
     project,
     account,
     responseLanguage,
@@ -463,7 +389,6 @@ function buildContextReminderBlocks(input: {
   // sections.push(
   //   buildSubAgentListSection(
   //     collectAvailableAgents({
-  //       workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE ? context.workspace.rootPath : undefined,
   //       projectRootPath: context.project.rootPath !== UNKNOWN_VALUE ? context.project.rootPath : undefined,
   //       parentProjectRootPaths,
   //     }),
@@ -489,7 +414,6 @@ function buildContextReminderBlocks(input: {
 /** Build session preface text for chat context. */
 export async function buildSessionPrefaceText(input: {
   sessionId: string;
-  workspaceId?: string;
   projectId?: string;
   selectedSkills: string[];
   parentProjectRootPaths: string[];
@@ -497,7 +421,6 @@ export async function buildSessionPrefaceText(input: {
   clientPlatform?: ClientPlatform;
 }): Promise<string> {
   const context = await resolvePromptContext({
-    workspaceId: input.workspaceId,
     projectId: input.projectId,
     parentProjectRootPaths: input.parentProjectRootPaths,
     selectedSkills: input.selectedSkills,
@@ -516,8 +439,14 @@ export async function buildSessionPrefaceText(input: {
   });
 
   // Memory 独立块（每个 scope 独立的 <system-reminder>）
+  let userHomePath: string | undefined;
+  try {
+    userHomePath = getOpenLoafRootDir();
+  } catch {
+    userHomePath = undefined;
+  }
   const memoryBlocks = assembleMemoryBlocks({
-    workspaceRootPath: context.workspace.rootPath !== UNKNOWN_VALUE ? context.workspace.rootPath : undefined,
+    userHomePath,
     projectRootPath: context.project.rootPath !== UNKNOWN_VALUE ? context.project.rootPath : undefined,
     parentProjectRootPaths: input.parentProjectRootPaths,
   });

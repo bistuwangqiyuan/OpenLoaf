@@ -17,7 +17,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { docConvertTool } from '@/ai/tools/docConvertTools'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 
@@ -48,12 +48,12 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'doc-convert-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'doc-convert-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }
 
-let workspaceRoot = ''
+let projectRoot = ''
 const testSubDir = `_doc_test_${Date.now()}`
 
 function rel(filename: string): string {
@@ -63,30 +63,30 @@ function rel(filename: string): string {
 const toolCtx = { toolCallId: 'test', messages: [], abortSignal: AbortSignal.abort() }
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 
   // TXT
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.txt'),
+    path.join(projectRoot, testSubDir, 'test.txt'),
     'Hello World\nLine 2\nLine 3',
   )
 
   // HTML
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.html'),
+    path.join(projectRoot, testSubDir, 'test.html'),
     '<!DOCTYPE html><html><body><h1>Title</h1><p>Paragraph</p></body></html>',
   )
 
   // Markdown
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.md'),
+    path.join(projectRoot, testSubDir, 'test.md'),
     '# Title\n\nParagraph text\n\n- Item 1\n- Item 2',
   )
 
   // CSV
   await fs.writeFile(
-    path.join(workspaceRoot, testSubDir, 'test.csv'),
+    path.join(projectRoot, testSubDir, 'test.csv'),
     'Name,Age,City\nAlice,30,Beijing\nBob,25,Shanghai',
   )
 
@@ -95,7 +95,7 @@ async function setupTestDir() {
   const wb = XLSX.utils.book_new()
   const ws = XLSX.utils.aoa_to_sheet([['Name', 'Age'], ['Alice', 30], ['Bob', 25]])
   XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
-  XLSX.writeFile(wb, path.join(workspaceRoot, testSubDir, 'test.xlsx'))
+  XLSX.writeFile(wb, path.join(projectRoot, testSubDir, 'test.xlsx'))
 
   // PDF (using pdf-lib)
   const { PDFDocument, StandardFonts } = await import('pdf-lib')
@@ -103,11 +103,11 @@ async function setupTestDir() {
   const page = doc.addPage()
   const font = await doc.embedFont(StandardFonts.Helvetica)
   page.drawText('Test PDF Content', { x: 50, y: 700, size: 12, font })
-  await fs.writeFile(path.join(workspaceRoot, testSubDir, 'test.pdf'), await doc.save())
+  await fs.writeFile(path.join(projectRoot, testSubDir, 'test.pdf'), await doc.save())
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s2.html')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s2.html')), 'utf-8')
     assert.ok(content.includes('<pre>'), 'should contain <pre>')
   })
 
@@ -167,7 +167,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s4.md')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s4.md')), 'utf-8')
     assert.ok(content.includes('Title'), 'should contain converted heading "Title"')
   })
 
@@ -179,7 +179,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s5.txt')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s5.txt')), 'utf-8')
     assert.ok(content.includes('Title'), 'should contain "Title"')
     assert.ok(!content.includes('<h1>'), 'should NOT contain <h1> tag')
   })
@@ -203,7 +203,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s7.html')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s7.html')), 'utf-8')
     assert.ok(content.includes('<h1>'), 'should contain <h1>')
   })
 
@@ -215,7 +215,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s8.txt')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s8.txt')), 'utf-8')
     assert.ok(content.includes('Title'), 'should contain "Title"')
   })
 
@@ -260,7 +260,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s12.json')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s12.json')), 'utf-8')
     const parsed = JSON.parse(content)
     assert.ok(Array.isArray(parsed), 'should be an array')
   })
@@ -273,7 +273,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s13.csv')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s13.csv')), 'utf-8')
     assert.ok(content.includes(','), 'should contain comma-separated content')
   })
 
@@ -285,7 +285,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('s14.json')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('s14.json')), 'utf-8')
     const parsed = JSON.parse(content)
     assert.ok(parsed, 'JSON.parse should succeed')
   })
@@ -313,7 +313,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('t2.html')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('t2.html')), 'utf-8')
     assert.ok(content.includes('<table'), 'should contain <table')
   })
 
@@ -356,7 +356,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('t6.txt')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('t6.txt')), 'utf-8')
     assert.ok(content.includes('Test PDF Content'), 'should contain "Test PDF Content"')
   })
 
@@ -368,7 +368,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('t7.html')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('t7.html')), 'utf-8')
     assert.ok(content.includes('pdf-page'), 'should contain "pdf-page"')
   })
 
@@ -380,7 +380,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('t8.md')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('t8.md')), 'utf-8')
     assert.ok(content.includes('## Page'), 'should contain "## Page"')
   })
 
@@ -514,8 +514,8 @@ async function main() {
   await test('U9: .htm extension handled as html', async () => {
     // Create test.htm (copy of test.html)
     await fs.copyFile(
-      path.join(workspaceRoot, testSubDir, 'test.html'),
-      path.join(workspaceRoot, testSubDir, 'test.htm'),
+      path.join(projectRoot, testSubDir, 'test.html'),
+      path.join(projectRoot, testSubDir, 'test.htm'),
     )
     const result: any = await withCtx(() =>
       docConvertTool.execute(
@@ -527,7 +527,7 @@ async function main() {
   })
 
   await test('U10: empty txt → pdf', async () => {
-    await fs.writeFile(path.join(workspaceRoot, testSubDir, 'empty.txt'), '')
+    await fs.writeFile(path.join(projectRoot, testSubDir, 'empty.txt'), '')
     const result: any = await withCtx(() =>
       docConvertTool.execute(
         { filePath: rel('empty.txt'), outputPath: rel('u10.pdf'), outputFormat: 'pdf' },
@@ -557,7 +557,7 @@ async function main() {
   })
 
   await test('V2: unsupported source format (.png)', async () => {
-    await fs.writeFile(path.join(workspaceRoot, testSubDir, 'v2.png'), 'dummy')
+    await fs.writeFile(path.join(projectRoot, testSubDir, 'v2.png'), 'dummy')
     await assert.rejects(
       () =>
         withCtx(() =>
@@ -624,7 +624,7 @@ async function main() {
   })
 
   await test('V7: unsupported source format (.mp4)', async () => {
-    await fs.writeFile(path.join(workspaceRoot, testSubDir, 'v7.mp4'), 'dummy')
+    await fs.writeFile(path.join(projectRoot, testSubDir, 'v7.mp4'), 'dummy')
     await assert.rejects(
       () =>
         withCtx(() =>
@@ -645,7 +645,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('v8.txt')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('v8.txt')), 'utf-8')
     assert.ok(content.includes('Test PDF Content'), 'should contain "Test PDF Content"')
   })
 
@@ -657,7 +657,7 @@ async function main() {
       ),
     )
     assert.equal(result.ok, true)
-    const content = await fs.readFile(path.join(workspaceRoot, rel('v9.json')), 'utf-8')
+    const content = await fs.readFile(path.join(projectRoot, rel('v9.json')), 'utf-8')
     JSON.parse(content) // should not throw
   })
 

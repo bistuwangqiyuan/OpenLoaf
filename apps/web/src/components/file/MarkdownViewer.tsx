@@ -28,7 +28,6 @@ import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { requestStackMinimize } from "@/lib/stack-dock-animation";
 import { trpc } from "@/utils/trpc";
 import CodeViewer, { type CodeViewerActions, type CodeViewerStatus } from "@/components/file/CodeViewer";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { ViewerGuard } from "@/components/file/lib/viewer-guard";
 import { stopFindShortcutPropagation } from "@/components/file/lib/viewer-shortcuts";
 import { buildFileUriFromRoot } from "@/components/project/filesystem/utils/file-system-utils";
@@ -49,8 +48,6 @@ interface MarkdownViewerProps {
   tabId?: string;
   rootUri?: string;
   projectId?: string;
-  /** Workspace id for file queries (overrides useWorkspace). */
-  workspaceId?: string;
   /** Whether the viewer is read-only. */
   readOnly?: boolean;
   /** Chat session id for resolving chat history folder. */
@@ -337,7 +334,7 @@ function toFileUri(value: string): string {
 /** Resolve chat history folder URI from jsonl path or fallback root/session pair. */
 function resolveChatHistoryFolderUri(input: {
   jsonlPath: string;
-  workspaceRootUri: string;
+  scopeRootUri: string;
   sessionId: string;
 }): string {
   const trimmedJsonlPath = input.jsonlPath.trim();
@@ -357,10 +354,10 @@ function resolveChatHistoryFolderUri(input: {
     const folderPath = normalizedPath.replace(/\/[^/]*$/, "");
     if (folderPath) return toFileUri(folderPath);
   }
-  if (!input.workspaceRootUri || !input.sessionId) return "";
-  // 逻辑：回退到旧路径拼接方式，兼容未返回 jsonlPath 的场景。
+  if (!input.scopeRootUri || !input.sessionId) return "";
+  // 逻辑：回退到当前作用域根目录的旧路径拼接方式，兼容未返回 jsonlPath 的场景。
   return buildFileUriFromRoot(
-    input.workspaceRootUri,
+    input.scopeRootUri,
     `.openloaf/chat-history/${input.sessionId}`
   );
 }
@@ -376,15 +373,11 @@ export default function MarkdownViewer({
   tabId,
   rootUri,
   projectId,
-  workspaceId: workspaceIdProp,
   readOnly,
   __chatHistorySessionId,
   __chatHistoryJsonlPath,
 }: MarkdownViewerProps) {
   const { t } = useTranslation('common');
-  const { workspace } = useWorkspace();
-  const workspaceId = workspaceIdProp || workspace?.id || "";
-  const workspaceRootUri = workspace?.rootUri ?? "";
   const hasInlineContent = typeof inlineContent === "string";
   const chatHistorySessionId =
     typeof __chatHistorySessionId === "string" ? __chatHistorySessionId.trim() : "";
@@ -392,7 +385,7 @@ export default function MarkdownViewer({
     typeof __chatHistoryJsonlPath === "string" ? __chatHistoryJsonlPath.trim() : "";
   const fileQuery = useQuery(
     trpc.fs.readFile.queryOptions(
-      !hasInlineContent && uri && workspaceId ? { workspaceId, projectId, uri } : skipToken
+      !hasInlineContent && uri ? { projectId, uri } : skipToken
     )
   );
   const resolvedDefaultMode: MarkdownViewerMode =
@@ -457,10 +450,10 @@ export default function MarkdownViewer({
   /** Open the chat history folder for the current session. */
   const handleOpenChatHistoryFolder = useCallback(async () => {
     if (!chatHistorySessionId) return;
-    // 逻辑：优先使用后端返回的 jsonlPath 反推目录，避免项目根与工作空间根不一致。
+    // 逻辑：优先使用后端返回的 jsonlPath 反推目录，避免项目根与全局根不一致。
     const targetUri = resolveChatHistoryFolderUri({
       jsonlPath: chatHistoryJsonlPath,
-      workspaceRootUri,
+      scopeRootUri: rootUri ?? "",
       sessionId: chatHistorySessionId,
     });
     if (!targetUri) {
@@ -489,7 +482,7 @@ export default function MarkdownViewer({
     if (!res?.ok) {
       toast.error(res?.reason ?? t('file.openFileMgrFailed'));
     }
-  }, [chatHistoryJsonlPath, chatHistorySessionId, workspaceRootUri, tabId, projectId, pushStackItem]);
+  }, [chatHistoryJsonlPath, chatHistorySessionId, rootUri, tabId, projectId, pushStackItem]);
 
   /** Copy chat history jsonl file path for the current branch. */
   const handleCopyChatHistoryJsonlPath = async () => {

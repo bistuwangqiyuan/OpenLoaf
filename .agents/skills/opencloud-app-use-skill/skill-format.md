@@ -1,149 +1,80 @@
-# SKILL.md 文件规范
+# Skill Format
 
 ## 目录结构
 
-每个技能是一个独立文件夹，包含一个必需的 `SKILL.md` 和可选的支持文档：
+- 一个 skill 对应一个独立目录。
+- 每个目录必须包含一个 `SKILL.md`。
+- 可选支持文档放在同目录或子目录中，由 `SKILL.md` 按需引用。
+- 支持文档只写规则和代码链接，不放示例代码。
 
-```
-<skills-root>/
-└── <skill-folder-name>/
-    ├── SKILL.md              ← 必需，技能入口文件
-    ├── detail-1.md           ← 可选，按领域拆分的详细参考
-    ├── detail-2.md
-    └── ...
-```
+## 存储位置与现行 Scope
 
-## 存储位置
+| 位置 | 角色 | 对外 scope | 说明 |
+|------|------|-----------|------|
+| `~/.agents/skills/<skill-name>/` | 全局技能目录 | `global` | 跨所有项目共享，作为全局根目录直接扫描 |
+| `<ancestor-project>/.agents/skills/<skill-name>/` | 父项目继承来源 | 不对外暴露 | 只参与继承与搜索，不是 settings 新 scope |
+| `<project>/.agents/skills/<skill-name>/` | 当前项目技能目录 | `project` | 当前项目自己的技能，优先级最高 |
 
-| 位置 | Scope | 扫描路径 | 说明 |
-|------|-------|----------|------|
-| `~/.agents/skills/` | `global` | 直接扫描该目录 | 用户全局技能，跨所有工作空间/项目共享 |
-| `<workspace>/.agents/skills/` | `workspace` | `<workspace>/.agents/skills/` | 工作空间级技能 |
-| `<project>/.agents/skills/` | `project` | `<project>/.agents/skills/` | 项目级技能，优先级最高 |
+补充说明：
 
-**关键区别**：全局技能目录 `~/.agents/skills/` 直接作为 skills 根目录扫描；工作空间和项目技能需要在 `.agents/skills/` 子目录下。
+- settings 接口当前只支持 `project | global`
+- `parent-project` 是运行时搜索与继承概念，不是前端 toggle/delete 时可传的 scope
+- 历史 `workspace:<folderName>` 只在服务端归一化阶段兼容，不应继续写入新文档或新逻辑
 
-## 前置元数据格式
+## Code Links
 
-SKILL.md 文件以 YAML front matter 开头，系统仅解析 `name` 和 `description` 两个字段：
+| 代码 | 作用 |
+|------|------|
+| [skillsLoader.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/services/skillsLoader.ts) | 摘要加载与来源覆盖 |
+| [SkillSelector.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/ai/tools/SkillSelector.ts) | 正文搜索优先级 |
+| [settings.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/server/src/routers/settings.ts) | `ignoreKey`、启用和删除边界 |
+| [absSetting.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/packages/api/src/routers/absSetting.ts) | settings 对外 scope schema |
 
-```markdown
----
-name: my-skill-name
-description: >
-  Use when developing or modifying feature X —
-  covers frontend UI, backend API, and database schema
----
+## Front Matter
 
-# Skill Title
+系统当前只解析 `SKILL.md` front matter 中的两个字段：
 
-正文内容...
-```
+### `name`
 
-### name 字段
+- 作为技能标识符，用于同名覆盖判断和 `/skill/<name>` 引用
+- 推荐使用英文小写加连字符
+- 未提供时，后端会回退到文件夹名称
+- 匹配时会先做名称规范化，大小写不敏感
 
-- **用途**：技能标识符，用于同名覆盖判断和 `/skill/<name>` 引用
-- **格式**：英文小写，连字符分隔（如 `chat-ai-development`）
-- **备选**：若未提供，使用文件夹名称作为 fallback
-- **匹配**：大小写不敏感（`normalizeSkillName` 统一转小写比较）
+### `description`
 
-### description 字段
+- 用于设置面板展示和技能列表搜索
+- 多行描述会被折叠为单行文本
+- 未提供时，不影响技能正文解析，只影响列表展示
 
-- **用途**：在设置面板中展示，帮助用户理解技能适用场景
-- **格式**：支持三种 YAML 写法
+## 正文写法
 
-```yaml
-# 单行
-description: Simple one-line description
+- front matter 之后的 Markdown 正文才是 Agent 实际读取的指令内容
+- 正文优先写适用场景、关键入口、流程、约束、检查点、常见错误
+- 需要拆分时，用相对路径引用同目录支持文档
+- 规则文档以现行实现为准，不保留历史示例代码，不用示例代码定义约束
 
-# 折叠多行（推荐，多行合并为单行，空格连接）
-description: >
-  Use when developing feature X —
-  covers frontend and backend
+## 技能引用与匹配
 
-# 字面量多行（保留换行）
-description: |
-  Line 1
-  Line 2
-```
-
-- **规范化**：多行描述自动折叠为单行（多个空白字符合并为一个空格）
-- **默认值**：若未提供，显示为"未提供"
-
-### 引号处理
-
-前置元数据值支持带引号和不带引号：
-
-```yaml
-name: my-skill          # 无引号
-name: "my-skill"        # 双引号（自动剥离）
-name: 'my-skill'        # 单引号（自动剥离）
-```
-
-## 正文结构最佳实践
-
-参照现有技能的标准结构：
-
-```markdown
----
-name: <skill-name>
-description: >
-  <何时使用此技能的简洁说明>
----
-
-# <主标题>
-
-## Overview
-<系统架构与数据流概览，一段话概括>
-
-## When to Use
-- 场景 1
-- 场景 2
-- ...
-
-## Architecture
-<ASCII 图表或文字描述，展示系统分层和数据流>
-
-## Detailed References
-| 文件 | 内容 | 查阅时机 |
-|------|------|----------|
-| [file1.md](file1.md) | 描述 | 何时查阅 |
-
-## Key Files Map
-<关键文件树状结构，标注每个文件的用途和行数>
-
-## Skill Sync Policy
-| 变更范围 | 需更新的文件 |
-|----------|-------------|
-| 代码文件变更 | 对应 skill 文件 |
-```
-
-## 技能内容注入
-
-AI Agent 消费技能时，`readSkillContentFromPath()` 会自动剥离 front matter，仅返回 `---` 之后的 Markdown 正文。因此：
-
-- front matter 中的 `name`/`description` 仅用于列表展示和搜索匹配
-- 正文内容是 Agent 实际读取的指令，应包含完整的开发指南
-- 正文中可使用相对路径引用同目录下的支持文档（如 `[detail.md](detail.md)`）
-
-## 技能引用语法
-
-用户在聊天中通过 `/skill/<name>` 语法引用技能：
-
-```
-/skill/chat-ai-development
-/skill/openloaf-skill
-```
-
-`SkillSelector.extractSkillNamesFromText()` 从文本中提取所有 `/skill/xxx` 引用，然后按优先级搜索匹配。
+- 用户通过 `/skill/<name>` 引用技能
+- `SkillSelector` 会先提取文本中的 skill 名称，再按搜索优先级读取正文
+- 同名 skill 的命中结果依赖当前项目上下文，不是简单的全局唯一匹配
 
 ## 优先级与覆盖规则
 
-同名技能按以下优先级覆盖（从低到高）：
+### 摘要加载
 
-1. **Global** (`~/.agents/skills/`) — 最低优先级
-2. **Workspace** (`<workspace>/.agents/skills/`)
-3. **Parent Project** (`<parent>/.agents/skills/`) — 从顶层到近层
-4. **Project** (`<project>/.agents/skills/`) — 最高优先级
+- settings 列表的摘要覆盖顺序是 `global -> parent-project -> project`
+- 摘要阶段的父项目技能仍会以项目来源的形式出现在结果中，由 `ownerProjectId` 与 `ignoreKey` 区分来源
 
-覆盖逻辑：`loadSkillSummaries` 按优先级从低到高遍历，`project` scope 的技能总是覆盖同名技能；其他 scope 仅在名称首次出现时写入。
+### 运行时正文解析
+
+- `SkillSelector` 的搜索优先级是 `project -> parent-project -> global`
+- 当前项目同名 skill 总是优先于父项目与全局 skill
+- 父项目技能位于当前项目与全局之间，用于继承覆盖
+
+## 维护检查点
+
+- 修改 front matter 解析逻辑时，更新 `opencloud-app-use-skill/SKILL.md` 与 `skill-backend.md`
+- 修改 scope、ignoreKey 或启用状态逻辑时，同时更新 `skill-backend.md` 与 `skill-frontend.md`
+- 新增新的扫描来源前，先确认它属于“持久化 scope”还是“只读继承来源”，不要混写

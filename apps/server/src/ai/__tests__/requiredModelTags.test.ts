@@ -150,7 +150,7 @@ async function main() {
       ].join('\n')
       writeFileSync(agentMdPath, content, 'utf8')
 
-      const config = readAgentConfigFromPath(agentMdPath, 'workspace')
+      const config = readAgentConfigFromPath(agentMdPath, 'global')
       assert.ok(config, 'config should not be null')
       assert.deepEqual(config!.requiredModelTags, [
         'image_analysis',
@@ -173,7 +173,7 @@ async function main() {
       ].join('\n')
       writeFileSync(agentMdPath, content, 'utf8')
 
-      const config = readAgentConfigFromPath(agentMdPath, 'workspace')
+      const config = readAgentConfigFromPath(agentMdPath, 'global')
       assert.ok(config, 'config should not be null')
       assert.deepEqual(config!.requiredModelTags, [])
     })
@@ -282,7 +282,7 @@ async function main() {
       ].join('\n')
       writeFileSync(agentMdPath, content, 'utf8')
 
-      const config = readAgentConfigFromPath(agentMdPath, 'workspace')
+      const config = readAgentConfigFromPath(agentMdPath, 'global')
       assert.ok(config)
       assert.deepEqual(config!.requiredModelTags, ['image_analysis'])
     })

@@ -9,6 +9,13 @@
  */
 import { resolveServerUrl } from "@/utils/server-url";
 
+export type PreviewEndpointOptions = {
+  /** Project scope for preview resolution. */
+  projectId?: string;
+  /** Max preview payload size. */
+  maxBytes?: number;
+};
+
 export type PreviewTooLargeError = Error & {
   /** Error code for preview size limit. */
   code: "PREVIEW_TOO_LARGE";
@@ -21,18 +28,15 @@ export type PreviewTooLargeError = Error & {
 /** Resolve preview endpoint for a project-relative path. */
 export function getPreviewEndpoint(
   path: string,
-  options?: { projectId?: string; workspaceId?: string; maxBytes?: number }
+  options?: PreviewEndpointOptions
 ) {
   const apiBase = resolveServerUrl();
   const encodedPath = encodeURIComponent(path);
   const projectParam = options?.projectId ? `&projectId=${encodeURIComponent(options.projectId)}` : "";
-  const workspaceParam = options?.workspaceId
-    ? `&workspaceId=${encodeURIComponent(options.workspaceId)}`
-    : "";
   const maxBytesParam = options?.maxBytes ? `&maxBytes=${options.maxBytes}` : "";
   return apiBase
-    ? `${apiBase}/chat/attachments/preview?path=${encodedPath}${projectParam}${workspaceParam}${maxBytesParam}`
-    : `/chat/attachments/preview?path=${encodedPath}${projectParam}${workspaceParam}${maxBytesParam}`;
+    ? `${apiBase}/chat/attachments/preview?path=${encodedPath}${projectParam}${maxBytesParam}`
+    : `/chat/attachments/preview?path=${encodedPath}${projectParam}${maxBytesParam}`;
 }
 
 /** Check whether a uri is a relative path. */
@@ -51,7 +55,7 @@ export function isPreviewTooLargeError(error: unknown): error is PreviewTooLarge
 /** Fetch a Blob from any supported uri. */
 export async function fetchBlobFromUri(
   uri: string,
-  options?: { projectId?: string; workspaceId?: string; maxBytes?: number }
+  options?: PreviewEndpointOptions
 ) {
   const endpoint = isRelativePath(uri) ? getPreviewEndpoint(uri, options) : uri;
   const res = await fetch(endpoint);

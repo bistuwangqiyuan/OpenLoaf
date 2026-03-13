@@ -1,4 +1,3 @@
-# 发布流程与版本管理
 
 ## 版本号约定
 
@@ -6,38 +5,7 @@
 - 语义化版本 + prerelease 标签：`1.0.0`（stable）、`1.0.1-beta.1`（beta）
 - 版本号含 `-beta` 自动归入 beta 渠道
 
-## 发布命令
-
-### Server 增量更新（via CI）
-
-```bash
-# stable 发布 → 打 tag 触发 CI
-git tag server-v{version}
-git push origin server-v{version}
-
-# beta 发布（version 须含 -beta 后缀）
-git tag server-v{x.y.z-beta.n}
-git push origin server-v{x.y.z-beta.n}
-```
-
-### Web 增量更新（via CI）
-
-```bash
-git tag web-v{version}
-git push origin web-v{version}
-```
-
 ### Electron 桌面端发布（Beta-only 构建）
-
-```bash
-# Step 1: Beta 发布（唯一的构建入口）
-git tag desktop@{x.y.z-beta.n}
-git push origin desktop@{x.y.z-beta.n}
-
-# Step 2: 测试通过后从 beta promote 到 stable（不重新构建）
-git tag desktop@{x.y.z}
-git push origin desktop@{x.y.z}
-```
 
 > ⚠️ 旧格式 `desktop-v*` 已废弃，必须用 `desktop@*`。
 > ⚠️ 禁止直接打 stable tag 触发构建。Stable 只能从已有 beta promote。
@@ -82,127 +50,21 @@ Desktop 的构建和发布完全由 GitHub Actions 完成（`.github/workflows/p
 4. 创建 GitHub Release（正式版）
 5. 版本号 +1 并提交推送
 
-## R2 目录结构
-
-```
-r2-openloaf-update.hexems.com/
-│
-├── stable/manifest.json         # 轻量渠道指针（desktop 只存 version 号）
-│   {
-│     "desktop": { "version": "0.1.1" },
-│     "server":  { "version": "1.5.2", "url": "...", "sha256": "...", ... },
-│     "web":     { "version": "1.5.2", "url": "...", "sha256": "...", ... },
-│     "electron": { "minVersion": "40.0.0" }
-│   }
-│
-├── beta/manifest.json           # beta 渠道指针
-│   {
-│     "desktop": { "version": "0.1.1-beta.1" },
-│     "server":  { ... },
-│     "web":     { ... }
-│   }
-│
-├── desktop/
-│   ├── stable/                  # stable 渠道目录（electron-updater feed URL 指向此处）
-│   │   ├── latest-mac.yml
-│   │   ├── latest.yml
-│   │   └── latest-linux.yml
-│   ├── beta/                    # beta 渠道目录（electron-updater feed URL 指向此处）
-│   │   ├── latest-mac.yml
-│   │   ├── latest.yml
-│   │   └── latest-linux.yml
-│   ├── latest-mac.yml           # 根目录（仅向后兼容 <= v0.2.4-beta.2 旧版客户端）
-│   ├── latest.yml
-│   ├── latest-linux.yml
-│   │
-│   ├── 0.1.1-beta.1/           # 版本目录（完整信息，永久不变）
-│   │   ├── manifest.json        ← 完整版本信息（见下方格式）
-│   │   ├── CHANGELOG.md         ← 本版本 changelog（英文）
-│   │   ├── latest-mac.yml       ← electron-updater 兼容文件
-│   │   ├── latest.yml
-│   │   ├── OpenLoaf-0.1.1-beta.1-MacOS-arm64.dmg
-│   │   ├── OpenLoaf-0.1.1-beta.1-MacOS-arm64.dmg.blockmap
-│   │   ├── OpenLoaf-0.1.1-beta.1-MacOS-x64.dmg
-│   │   ├── OpenLoaf-0.1.1-beta.1.exe
-│   │   └── OpenLoaf-0.1.1-beta.1.AppImage
-│   │
-│   └── 0.1.1/                  # stable promote 创建的 redirect 文件
-│       └── manifest.json        ← redirect 文件（含 redirectTo 字段，不含安装包）
-│
-├── server/                      # Server 构件共享池
-│   ├── 1.5.2/server.mjs.gz
-│   └── 1.5.3-beta.1/server.mjs.gz
-│
-└── web/                         # Web 构件共享池
-    ├── 1.5.2/web.tar.gz
-    └── 1.5.3-beta.1/web.tar.gz
-```
-
 ## desktop 版本目录 manifest 格式
 
 `desktop/{version}/manifest.json` — **完整版本信息**（beta 发布时写入，永久不变）：
 
-```json
-{
-  "version": "0.1.1-beta.1",
-  "publishedAt": "2026-03-03T10:00:00.000Z",
-  "channel": "beta",
-  "platforms": {
-    "mac-arm64": {
-      "url": "https://r2.../desktop/0.1.1-beta.1/OpenLoaf-0.1.1-beta.1-MacOS-arm64.dmg",
-      "sha256": "abc123...",
-      "size": 12345678
-    },
-    "mac-x64": {
-      "url": "https://r2.../desktop/0.1.1-beta.1/OpenLoaf-0.1.1-beta.1-MacOS-x64.dmg",
-      "sha256": "def456...",
-      "size": 11111111
-    },
-    "win-x64": {
-      "url": "https://r2.../desktop/0.1.1-beta.1/OpenLoaf-0.1.1-beta.1.exe",
-      "sha256": "ghi789...",
-      "size": 9876543
-    },
-    "linux-x64": {
-      "url": "https://r2.../desktop/0.1.1-beta.1/OpenLoaf-0.1.1-beta.1.AppImage",
-      "sha256": "jkl012...",
-      "size": 8765432
-    }
-  }
-}
-```
-
 `desktop/{stableVersion}/manifest.json` — **promote 创建的 redirect 文件**（stable promote 时写入）：
-
-```json
-{
-  "version": "0.1.1",
-  "redirectTo": "0.1.1-beta.1",
-  "publishedAt": "2026-03-04T12:00:00.000Z"
-}
-```
 
 ## 客户端两步读取协议（Desktop 版本检查）
 
 stable/beta manifest 的 `desktop.version` 只存版本号，不含安装包详情。客户端需两步读取：
-
-```
-Step 1: 读 stable/manifest.json → desktop.version = "0.1.1"
-Step 2: 读 desktop/0.1.1/manifest.json
-  → 如果有 redirectTo 字段 → 再读 desktop/0.1.1-beta.1/manifest.json（实际安装包信息）
-  → 如果无 redirectTo → 直接使用（历史遗留版本）
-```
 
 实现：`resolveDesktopVersionManifest(baseUrl, version)` in `incrementalUpdate.ts`。
 
 ## Promote 脚本（`scripts/promote-desktop.mjs`）
 
 将 beta 版本 promote 到 stable 渠道（由 CI `promote-to-stable` job 调用，也可手动运行）：
-
-```bash
-# 手动 promote（需要 .env.prod 或 R2 环境变量）
-STABLE_VERSION=0.1.1 BETA_VERSION=0.1.1-beta.1 node scripts/promote-desktop.mjs
-```
 
 ### 工作原理
 
@@ -220,29 +82,9 @@ Server/Web 的 beta → stable promote 使用 `pnpm promote`（或 `scripts/prom
 - Promote = 将 beta manifest 中的 server/web 条目复制到 stable manifest
 - 版本号保留原样（如 `1.5.3-beta.1`），构件 URL 不变（共享池复用）
 
-```bash
-pnpm promote --dry-run      # 预览
-pnpm promote                # 全部 promote
-pnpm promote --component=server  # 仅 promote server
-pnpm promote --component=web     # 仅 promote web
-```
-
 ## Changelog 文件格式
 
 放在各 app 的 `changelogs/` 目录下：
-
-```markdown
----
-version: 1.0.1
-date: 2026-02-08
----
-
-## 新功能
-- 添加了 XX 功能
-
-## 修复
-- 修复了 YY 问题
-```
 
 - 目录结构：`changelogs/{version}/{lang}.md`（如 `changelogs/0.1.0/zh.md`、`changelogs/0.1.0/en.md`）
 - 每个版本必须有 `zh.md`（默认语言），`en.md` 等其他语言可选
@@ -270,19 +112,6 @@ date: 2026-02-08
 | `uploadChangelogs(opts)` | 上传 changelogs 并更新 index.json，支持 `versionDirPrefix` 额外写 CHANGELOG.md |
 | `buildChangelogUrl(url, component, version)` | 生成 GitHub raw changelog URL |
 | `cleanupOldVersions(opts)` | 清理旧版本目录（保留最近 N 个） |
-
-### `uploadChangelogs` 参数
-
-```javascript
-await uploadChangelogs({
-  s3,              // S3Client
-  bucket,          // R2 bucket 名
-  component,       // 'desktop' | 'server' | 'web'
-  changelogsDir,   // 本地 changelogs/ 目录绝对路径
-  publicUrl,       // R2 公共 URL（用于生成 index.json 中的 URL）
-  versionDirPrefix // 可选：如 "desktop/0.1.1-beta.1"，提供时额外写 CHANGELOG.md 到版本目录
-})
-```
 
 ## 环境变量
 

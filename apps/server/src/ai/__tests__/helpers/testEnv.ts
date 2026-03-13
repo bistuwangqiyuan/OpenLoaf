@@ -9,13 +9,12 @@
  */
 import path from 'node:path'
 import { existsSync, mkdirSync, writeFileSync, cpSync, readdirSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
 import os from 'node:os'
 import { getProviderSettings } from '@/modules/settings/settingsService'
 import { resolveChatModel } from '@/ai/models/resolveChatModel'
 import { setRequestContext, setChatModel, setAbortSignal } from '@/ai/shared/context/requestContext'
 import { installHttpProxy } from '@/modules/proxy/httpProxy'
-import { getOpenLoafRootDir, setOpenLoafRootOverride, setDefaultWorkspaceRootOverride } from '@openloaf/config'
+import { getOpenLoafRootDir, setOpenLoafRootOverride, setDefaultProjectStorageRootOverride } from '@openloaf/config'
 
 // 测试环境初始化代理 — 确保 Node.js fetch 走系统代理（undici 不自动识别环境变量）
 installHttpProxy()
@@ -39,18 +38,13 @@ export async function resolveTestModel() {
   return resolveChatModel({ chatModelId, chatModelSource: 'local' })
 }
 
-/** E2E 测试工作区 ID（与 fixtures/workspaces.json 一致）。 */
-export const E2E_WORKSPACE_ID = '00000000-e2e0-4000-8000-000000000001'
-
 /**
- * 设置最小 RequestContext（sessionId + cookies + workspaceId）。
- * workspaceId 使用 E2E 测试工作区，确保 calendar/email/project 等工具能正确查询数据。
+ * 设置最小 RequestContext（sessionId + cookies）。
  */
 export function setMinimalRequestContext() {
   setRequestContext({
     sessionId: `test-${Date.now()}`,
     cookies: {},
-    workspaceId: E2E_WORKSPACE_ID,
   })
 }
 
@@ -58,13 +52,11 @@ export function setMinimalRequestContext() {
  * 初始化 E2E 测试环境。
  *
  * 两步复制策略：
- * 1. 复制共享基础 fixtures（workspace/.openloaf/tasks、README.md、配置文件）
- * 2. 扫描各域 tests/{domain}/workspace/ 并 overlay（master 项目结构、tools 文档文件、email 数据等）
+ * 1. 复制共享基础 fixtures（project-root/.openloaf/tasks、README.md、配置文件）
+ * 2. 扫描各域 tests/{domain}/project-root/ 并 overlay（master 项目结构、tools 文档文件等）
+ * 3. 叠加各域根级配置 fixture（如 email.json）
  *
- * 合并后的 workspace 结构完整，测试行为不受影响。
- *
- * 注意：Prisma 在 import 时已初始化，不受 root override 影响。
- * 仅影响 workspaces.json、workspace.json、settings.json 等文件读取。
+ * 合并后的测试项目根目录结构完整，测试行为不受影响。
  */
 let e2eTempRoot: string | null = null
 
@@ -83,40 +75,27 @@ export function setupE2eTestEnv(): string {
   const tempRoot = path.join(os.tmpdir(), `openloaf-e2e-${Date.now()}`)
   mkdirSync(tempRoot, { recursive: true })
 
-  const destWorkspace = path.join(tempRoot, 'workspace')
+  const destProjectRoot = path.join(tempRoot, 'project-root')
 
-  // 1. 复制共享基础 workspace（.openloaf/tasks、README.md 等）
-  const sharedWorkspace = path.join(fixturesDir, 'workspace')
-  if (existsSync(sharedWorkspace)) {
-    cpSync(sharedWorkspace, destWorkspace, { recursive: true })
+  // 1. 复制共享基础项目根目录（.openloaf/tasks、README.md 等）
+  const sharedProjectRoot = path.join(fixturesDir, 'project-root')
+  if (existsSync(sharedProjectRoot)) {
+    cpSync(sharedProjectRoot, destProjectRoot, { recursive: true })
   }
 
-  // 2. 扫描 tests/*/workspace/ 并 overlay 到目标 workspace
+  // 2. 扫描 tests/*/project-root/ 并 overlay 到目标根目录
   for (const domain of readdirSync(testsDir)) {
-    const domainWorkspace = path.join(testsDir, domain, 'workspace')
-    if (existsSync(domainWorkspace)) {
-      cpSync(domainWorkspace, destWorkspace, { recursive: true })
+    const domainProjectRoot = path.join(testsDir, domain, 'project-root')
+    if (existsSync(domainProjectRoot)) {
+      cpSync(domainProjectRoot, destProjectRoot, { recursive: true })
+    }
+
+    const domainEmailConfig = path.join(testsDir, domain, 'email.json')
+    if (existsSync(domainEmailConfig)) {
+      // 逻辑：邮件配置已迁移到全局根目录，测试时直接覆盖 tempRoot/email.json。
+      cpSync(domainEmailConfig, path.join(tempRoot, 'email.json'))
     }
   }
-
-  // 生成 workspaces.json，rootUri 指向本地路径
-  const workspacesPayload = {
-    workspaces: [
-      {
-        id: E2E_WORKSPACE_ID,
-        name: 'E2E Test Workspace',
-        type: 'local',
-        isActive: true,
-        rootUri: pathToFileURL(destWorkspace).href,
-        projects: {},
-        ignoreSkills: [],
-      },
-    ],
-  }
-  writeFileSync(
-    path.join(tempRoot, 'workspaces.json'),
-    JSON.stringify(workspacesPayload, null, 2),
-  )
 
   // 复制 settings.json（模型配置等）
   const settingsSrc = path.join(fixturesDir, 'settings.json')
@@ -138,8 +117,8 @@ export function setupE2eTestEnv(): string {
 
   // 设置 root override — 所有后续的 getOpenLoafRootDir() 都指向临时目录
   setOpenLoafRootOverride(tempRoot)
-  // 设置 workspace root override — 避免 normalizeLegacyWorkspaceUri 把 rootUri 替换为默认路径
-  setDefaultWorkspaceRootOverride(destWorkspace)
+  // 设置项目存储根 override，确保测试内的项目文件解析到临时项目目录。
+  setDefaultProjectStorageRootOverride(destProjectRoot)
   e2eTempRoot = tempRoot
 
   return tempRoot
@@ -150,15 +129,15 @@ export function getE2eTempRoot(): string | null {
 }
 
 /**
- * 动态写入 master agent 配置到 E2E workspace。
+ * 动态写入 master agent 配置到 E2E 测试根目录。
  * 用于多模型对比测试 —— 每次 provider 调用前更新 chatModelId。
  *
- * chatStreamService 从 workspace/.openloaf/agents/master/agent.json 读取
+ * chatStreamService 从 project-root/.openloaf/agents/master/agent.json 读取
  * modelLocalIds[0] 作为 chatModelId，跳过 requiredTags 过滤。
  */
 export function setE2eAgentModel(chatModelId: string): void {
   if (!e2eTempRoot) return
-  const agentDir = path.join(e2eTempRoot, 'workspace', '.openloaf', 'agents', 'master')
+  const agentDir = path.join(e2eTempRoot, 'project-root', '.openloaf', 'agents', 'master')
   mkdirSync(agentDir, { recursive: true })
   writeFileSync(
     path.join(agentDir, 'agent.json'),

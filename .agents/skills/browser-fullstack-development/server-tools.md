@@ -1,4 +1,3 @@
-# Server Tools & CDP Automation
 
 ## open-url Tool
 

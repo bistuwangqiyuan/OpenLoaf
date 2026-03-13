@@ -72,7 +72,6 @@ interface UseChatInputDropOptions {
   onChange: (value: string) => void;
   valueRef: RefObject<string>;
   defaultProjectId?: string;
-  workspaceId?: string;
   tabId?: string;
   canAttachAll: boolean;
   canAttachImage: boolean;
@@ -86,7 +85,6 @@ export function useChatInputDrop({
   onChange,
   valueRef,
   defaultProjectId,
-  workspaceId,
   tabId,
   canAttachAll,
   canAttachImage,
@@ -229,7 +227,6 @@ export function useChatInputDrop({
   /** Insert file references using the same logic as drag-and-drop. */
   const handleProjectFileRefsInsert = useCallback(
     async (fileRefs: string[]) => {
-      if (!workspaceId) return;
       const mentionRefs: string[] = [];
       const normalizedRefs = Array.from(
         new Set(
@@ -260,7 +257,6 @@ export function useChatInputDrop({
       defaultProjectId,
       insertTextAtSelection,
       normalizeFileRef,
-      workspaceId,
     ]
   );
 
@@ -338,23 +334,23 @@ export function useChatInputDrop({
         const file = new File([blob], fileName, {
           type: blob.type || "application/octet-stream",
         });
-        const absPath = await uploadFileToSession(file);
-        if (absPath) {
-          insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+        const storedPath = await uploadFileToSession(file);
+        if (storedPath) {
+          insertTextAtSelection(`@{${storedPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
         }
       } catch {
         return;
       }
       return;
     }
-    // 优先级 3：系统文件拖拽 — 上传到 session files 目录，插入 @{/abs/path} mention
+    // 优先级 3：系统文件拖拽 — 上传到 session files 目录，插入 @{relative/path} mention
     const files = Array.from(event.dataTransfer.files ?? []);
     if (files.length > 0) {
       if (uploadFileToSession) {
         for (const file of files) {
-          const absPath = await uploadFileToSession(file);
-          if (absPath) {
-            insertTextAtSelection(`@{${absPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
+          const storedPath = await uploadFileToSession(file);
+          if (storedPath) {
+            insertTextAtSelection(`@{${storedPath}}`, { ensureLeadingSpace: true, ensureTrailingSpace: true });
           }
         }
         return;

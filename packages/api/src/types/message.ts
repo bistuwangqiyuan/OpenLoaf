@@ -82,7 +82,7 @@ export interface OpenLoafUIDataTypes extends UIDataTypes {
   skill: {
     name: string;
     path: string;
-    scope: "project" | "parent" | "workspace";
+    scope: "project" | "parent" | "global";
     content: string;
   };
   "session-title": {
@@ -124,8 +124,6 @@ export type ChatRequestBody = {
   timezone?: string;
   /** Board id for associating chat sessions. */
   boardId?: string;
-  /** Workspace id for this request. */
-  workspaceId?: string;
   /** Project id for this request. */
   projectId?: string;
   /** Image save directory uri. */

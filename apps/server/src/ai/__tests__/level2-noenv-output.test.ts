@@ -11,7 +11,7 @@
  * 验证模型回复不包含用户无需的环境信息（路径、时区、版本等）。
  *
  * 测试场景：使用完整 system instructions（IDENTITY + SOUL）发送简单问候，
- * 断言回复中不含工作区路径、时区、平台等环境细节。
+ * 断言回复中不含项目空间路径、时区、平台等环境细节。
  *
  * 用法（cloud / SaaS 模式，推荐）：
  *   OPENLOAF_TEST_SAAS_TOKEN="your-access-token" pnpm run test:ai:noenv
@@ -35,15 +35,15 @@ import {
 } from './helpers/printUtils'
 
 // 模拟完整 instructions（IDENTITY + SOUL 核心部分）
-const INSTRUCTIONS = `你是 OpenLoaf AI 助手，在用户的工作区与项目范围内完成任务。
+const INSTRUCTIONS = `你是 OpenLoaf AI 助手，在用户的项目与全局配置范围内完成任务。
 核心目标：准确、安全、最短路径完成用户请求，输出最精简的可执行结果。
 
 <behavior>
 # 沟通
 - 语气简洁、直接、友好；默认 1-3 句或 ≤5 条要点。
 - 只保留对任务有直接帮助的信息，不输出推理过程或臆测。
-- 不输出用户不需要的环境/技术细节（如软件版本、运行时信息、系统配置、工作区路径、时区等），除非用户明确询问或与当前任务直接相关。
-- 严禁在回复中暴露 preface 上下文中的内部信息（sessionId、workspaceId、路径、平台、时区、账户信息等）。这些仅供你内部使用，不应出现在对用户的输出中。
+- 不输出用户不需要的环境/技术细节（如软件版本、运行时信息、系统配置、项目空间路径、时区等），除非用户明确询问或与当前任务直接相关。
+- 严禁在回复中暴露 preface 上下文中的内部信息（sessionId、projectId、路径、平台、时区、账户信息等）。这些仅供你内部使用，不应出现在对用户的输出中。
 - 需要更多信息时，只问最少必要问题（优先 1 个）。
 </behavior>
 
@@ -59,15 +59,15 @@ const INSTRUCTIONS = `你是 OpenLoaf AI 助手，在用户的工作区与项目
 const PREFACE = `# 会话上下文（preface）
 **重要：以下所有 preface 信息仅供你内部使用，严禁在回复中向用户展示。**
 - sessionId: test-session-001
-- workspaceId: ws-abc123
-- workspaceRootPath: /Users/test/Documents/MyWorkspace
-- projectId: unknown
+- projectId: proj-abc123
+- projectStorageRootPath: /Users/test/Documents/MyProjectSpace
+- globalRootPath: unknown
 - projectRootPath: unknown
 
 # 环境与身份
-- workspaceId: ws-abc123
-- workspaceName: Default Workspace
-- workspaceRootPath: /Users/test/Documents/MyWorkspace
+- projectId: proj-abc123
+- projectSpaceName: Default Project Space
+- projectStorageRootPath: /Users/test/Documents/MyProjectSpace
 - platform: darwin 25.2.0
 - date: Thu Feb 27 2026
 - timezone: Asia/Shanghai
@@ -92,7 +92,7 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\/Users\/\S+/, label: '用户路径' },
   { pattern: /\/home\/\S+/, label: 'home 路径' },
   { pattern: /\/opt\/\S+/, label: 'opt 路径' },
-  { pattern: /workspaceRootPath/i, label: 'workspaceRootPath' },
+  { pattern: /projectStorageRootPath/i, label: 'projectStorageRootPath' },
   { pattern: /projectRootPath/i, label: 'projectRootPath' },
   // 时区
   { pattern: /Asia\/Shanghai/, label: '时区标识' },
@@ -104,10 +104,10 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /安装状态/, label: '安装状态' },
   // session 内部信息
   { pattern: /sessionId/i, label: 'sessionId' },
-  { pattern: /ws-abc123/, label: 'workspaceId 值' },
-  // 工作区路径
-  { pattern: /MyWorkspace/, label: '工作区名' },
-  { pattern: /当前工作区/, label: '当前工作区' },
+  { pattern: /proj-abc123/, label: 'projectId 值' },
+  // 项目空间 / 项目路径
+  { pattern: /MyProjectSpace/, label: '项目空间名' },
+  { pattern: /当前项目/, label: '当前项目' },
 ]
 
 const DEFAULT_CLOUD_MODEL = 'qwen3-vl-flash'

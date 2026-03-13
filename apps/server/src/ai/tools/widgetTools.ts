@@ -19,12 +19,11 @@ import {
 } from '@openloaf/api/types/tools/widget'
 import {
   getProjectRootPath,
-  getWorkspaceRootPathById,
 } from '@openloaf/api/services/vfsService'
 import {
   getProjectId,
-  getWorkspaceId,
 } from '@/ai/shared/context/requestContext'
+import { getOpenLoafRootDir } from '@openloaf/config'
 import { logger } from '@/common/logger'
 import { compileWidget } from '@/modules/dynamic-widget/widgetCompiler'
 import {
@@ -48,17 +47,8 @@ function getDynamicWidgetsDir(): string {
     }
     return path.join(projectRoot, '.openloaf', 'dynamic-widgets')
   }
-  const workspaceId = getWorkspaceId()
-  if (workspaceId) {
-    const workspaceRoot = getWorkspaceRootPathById(workspaceId)
-    if (!workspaceRoot) {
-      throw new Error(`Workspace not found: ${workspaceId}`)
-    }
-    return path.join(workspaceRoot, '.openloaf', 'dynamic-widgets')
-  }
-  throw new Error(
-    'projectId or workspaceId is required to generate a widget.',
-  )
+  const globalRoot = getOpenLoafRootDir()
+  return path.join(globalRoot, 'dynamic-widgets')
 }
 
 /** 生成 snake_case widgetId */
@@ -176,7 +166,7 @@ export const widgetListTool = tool({
 
         // 逻辑：判断 scope
         const projectId = getProjectId()
-        const scope = projectId ? 'project' : 'workspace'
+        const scope = projectId ? 'project' : 'global'
 
         widgets.push({
           widgetId: entry.name,
@@ -248,6 +238,7 @@ export const widgetCheckTool = tool({
       return JSON.stringify({
         ok: false,
         widgetId: input.widgetId,
+        location: widgetDir,
         errors: [`缺少文件: ${missing.join(', ')}`],
       })
     }
@@ -272,6 +263,7 @@ export const widgetCheckTool = tool({
         ok: false,
         widgetId: input.widgetId,
         widgetName,
+        location: widgetDir,
         errors: [result.error || '编译失败'],
       })
     }
@@ -282,6 +274,7 @@ export const widgetCheckTool = tool({
       ok: true,
       widgetId: input.widgetId,
       widgetName,
+      location: widgetDir,
     })
   },
 })

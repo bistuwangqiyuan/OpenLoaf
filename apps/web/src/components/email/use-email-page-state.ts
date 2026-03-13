@@ -107,7 +107,6 @@ export type MessageListState = {
 }
 
 export type DetailState = {
-  workspaceId?: string
   activeMessage: EmailMessageSummary | null
   isForwarding: boolean
   forwardDraft: ForwardDraft | null
@@ -175,38 +174,34 @@ type EmailPageState = {
   addDialog: AddDialogState
 }
 
-type EmailPageStateParams = {
-  workspaceId?: string
-}
-
-export function useEmailPageState({ workspaceId }: EmailPageStateParams): EmailPageState {
-  const core = useEmailCoreState({ workspaceId })
+export function useEmailPageState(): EmailPageState {
+  const core = useEmailCoreState()
 
   // ── IDLE 推送订阅 ──
   React.useEffect(() => {
-    if (!workspaceId || !core.hasConfiguredAccounts) return
+    if (!core.hasConfiguredAccounts) return
     const subscription = trpcClient.email.onNewMail.subscribe(
-      { workspaceId },
+      {},
       {
         onData(_event) {
           if (core.unifiedMessagesQueryKey) {
             core.queryClient.invalidateQueries({ queryKey: core.unifiedMessagesQueryKey })
           }
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnreadCount.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnreadCount.queryOptions({}).queryKey,
           })
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listUnifiedUnreadStats.queryOptions({}).queryKey,
           })
           core.queryClient.invalidateQueries({
-            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({ workspaceId }).queryKey,
+            queryKey: trpc.email.listMailboxUnreadStats.queryOptions({}).queryKey,
           })
         },
         onError() {},
       },
     )
     return () => { subscription.unsubscribe() }
-  }, [workspaceId, core.hasConfiguredAccounts])
+  }, [core.hasConfiguredAccounts, core.queryClient, core.unifiedMessagesQueryKey])
 
   const sidebar = useEmailSidebarState(core)
   const messageList = useEmailMessageListState(core)

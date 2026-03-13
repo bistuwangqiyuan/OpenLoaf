@@ -134,7 +134,7 @@ const CAP_BG_MAP: Record<string, string> = {
 
 type AgentDetailPanelProps = {
   agentPath?: string
-  scope?: 'workspace' | 'project' | 'global'
+  scope?: 'project' | 'global'
   projectId?: string
   isNew?: boolean
   isSystem?: boolean
@@ -162,7 +162,7 @@ type SkillSummary = {
   path: string
   folderName: string
   ignoreKey: string
-  scope: 'workspace' | 'project' | 'global'
+  scope: 'project' | 'global'
   isEnabled: boolean
   isDeletable: boolean
 }
@@ -599,7 +599,7 @@ function ChatModelSelect({
 /** Agent detail / edit stack panel. */
 export const AgentDetailPanel = memo(function AgentDetailPanel({
   agentPath,
-  scope = 'workspace',
+  scope = 'global',
   projectId,
   isNew = false,
   isSystem = false,
@@ -654,7 +654,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
     ...trpc.settings.getAgentDetail.queryOptions(
       agentPath && scope
         ? { agentPath, scope }
-        : { agentPath: '', scope: 'workspace' },
+        : { agentPath: '', scope: 'global' },
     ),
     enabled: Boolean(agentPath) && !isNew,
   })

@@ -4,122 +4,83 @@
 
 **路径**: `apps/web/src/components/setting/skills/SkillsSettingsPanel.tsx`
 
-### 组件结构
+## 面板职责
 
-```
-SkillsSettingsPanel({ projectId? })
-├── OpenLoafSettingsGroup (标题 + 摘要 + 打开目录按钮)
-│   └── 技能列表 (divide-y 分隔)
-│       └── 每条技能
-│           ├── 名称 + ScopeTag (全局/工作空间/项目)
-│           ├── 描述 (line-clamp-2)
-│           ├── 删除按钮 (仅 isDeletable 时显示)
-│           ├── 查看按钮 (Eye → 打开文件树预览)
-│           └── 启用开关 (Switch)
-├── 加载中状态
-├── 空状态提示
-└── 错误状态
-```
+- 负责展示可用 skill 列表。
+- 负责搜索、按 scope 过滤、按启用状态过滤。
+- 负责启用/禁用、查看目录、插入 `/skill/<name>` 到聊天输入框。
+- 只在 `skill.isDeletable === true` 时提供删除入口。
 
-### Scope 标签配置
+## Scope 现实语义
 
-```typescript
-type SkillScope = "workspace" | "project" | "global";
+- 前端对外只认两种 scope：
+  - `project`
+  - `global`
+- `type SkillScope = "project" | "global"` 已经是当前实现。
+- 旧的 `workspace` 视图语义不再是现行规则；相关翻译 key 或历史命名不代表接口仍支持该 scope。
 
-const SCOPE_LABELS: Record<SkillScope, string> = {
-  workspace: "工作空间",
-  project: "项目",
-  global: "全局",
-};
+## 数据来源
 
-const SCOPE_TAG_CLASS: Record<SkillScope, string> = {
-  workspace: "border-border bg-muted text-muted-foreground",
-  project: "border-border bg-background text-foreground/80",
-  global: "border-border bg-muted/60 text-muted-foreground/80",
-};
-```
+- 面板通过 `trpc.settings.getSkills` 读取 skill 列表。
+- 传入 `projectId` 时，展示当前项目上下文中的 skills。
+- 不传 `projectId` 时，展示全局技能目录视图。
+- 列表项里的 `scope`、`ignoreKey`、`isEnabled`、`isDeletable` 都由服务端计算，前端只负责消费。
 
-添加新 scope 时需同步更新这三处。
+## 打开技能目录
 
-### tRPC 调用
+### handleOpenSkillsRoot
 
-```typescript
-// 查询技能列表
-const skillsQuery = useQuery(
-  trpc.settings.getSkills.queryOptions({ projectId })
-);
+- 先调用 `trpc.fs.mkdir` 确保 `.agents/skills` 目录存在。
+- 然后通过 `window.openloafElectron.openPath()` 打开目录。
+- Electron 之外的环境不支持此操作。
+- 项目面板打开的是 `<project>/.agents/skills`。
+- 全局面板打开的是全局 skills 根目录。
 
-// 启用/禁用
-updateSkillMutation.mutate({
-  scope,           // "workspace" | "project" | "global"
-  projectId,
-  ignoreKey,
-  enabled,
-});
+### handleOpenSkill
 
-// 删除
-deleteSkillMutation.mutateAsync({
-  scope,
-  projectId,
-  ignoreKey,
-  skillPath,
-});
-```
+- `global` skill 直接按绝对路径解析目录。
+- `project` skill 基于 `project.rootUri` 解析目录与当前文件 URI。
+- 打开方式是把 skill 目录压入当前 Tab 的 `folder-tree-preview` stack。
+- 标题前缀当前只区分：
+  - 全局技能
+  - 项目技能
 
-变更成功后通过 `queryClient.invalidateQueries()` 刷新列表。
+## 启用/禁用
 
-### 交互逻辑
+### handleToggleSkill
 
-#### 打开技能目录 (handleOpenSkillsRoot)
+- 项目面板固定传 `scope: "project"`。
+- 全局面板固定传 `scope: "global"`。
+- 前端只会传 `project` / `global` 两种 scope。
+- 实际写入哪一层配置由服务端根据 scope 决定。
 
-1. 调用 `trpc.fs.mkdir` 确保 `.agents/skills` 目录存在
-2. 通过 `window.openloafElectron.openPath()` 在系统文件管理器中打开
-3. 仅 Electron 环境可用，Web 版提示不支持
+## 删除
 
-#### 查看技能 (handleOpenSkill)
+### handleDeleteSkill
 
-1. 根据 scope 确定 baseRootUri：
-   - `global` → `undefined`（绝对路径，通过 `toFileUri` 转换）
-   - `project` → `projectData.project.rootUri`
-   - `workspace` → `workspace.rootUri`
-2. `resolveSkillFolderUri()` 解析技能文件夹 URI
-3. `pushStackItem()` 在 Tab Stack 中打开 `folder-tree-preview` 组件
-4. 标题前缀：全局技能 → "全局技能"，项目技能 → "项目技能"，工作空间技能 → "工作空间技能"
+- 只有当前项目拥有的 skill 才可能 `isDeletable === true`。
+- 全局 skill 不允许从设置面板删除。
+- 父项目继承的 skill 也不允许在当前项目面板删除。
+- 删除前会弹出确认框，删除后刷新 `getSkills` 查询结果。
 
-#### 切换启用 (handleToggleSkill)
+## 插入聊天命令
 
-- 工作空间视图：scope 固定为 `"workspace"`（ignoreKey 已包含 `global:` 或 `workspace:` 前缀）
-- 项目视图：scope 固定为 `"project"`
-- 服务端根据 scope 决定写入工作空间配置还是项目配置
+- 点击“使用 skill”按钮只负责向窗口派发：
+  - `openloaf:chat-insert-skill`
+  - `openloaf:chat-focus-input`
+- 实际命令文本仍由聊天输入工具链生成 `/skill/<name>`。
 
-#### 删除技能 (handleDeleteSkill)
+## 过滤与展示
 
-- 仅 `isDeletable === true` 时显示删除按钮
-- 全局技能永远不可删除（`isDeletable: false`）
-- 弹出 `window.confirm()` 确认后执行
+- 搜索仅匹配 `name` 与 `description`。
+- scope 过滤只显示：
+  - 项目面板中的 `project` / `global`
+  - 全局面板中的 `global`
+- 状态过滤只基于 `isEnabled`。
+- 卡片样式当前按 `project` / `global` 两类区分。
 
-### 摘要文本
+## 关联点
 
-`buildSkillSummaryText()` 根据技能列表生成摘要：
-
-| 场景 | 输出格式 |
-|------|----------|
-| 项目视图 | `共 N 条（全局 X / 工作空间 Y / 项目 Z）` |
-| 工作空间视图（有全局技能） | `共 N 条（全局 X / 工作空间 Y）` |
-| 工作空间视图（无全局技能） | `共 N 条` |
-
-### URI 工具函数
-
-面板内定义了多个 URI 处理函数，用于将技能文件路径转换为可用的 file:// URI：
-
-- `normalizePath(value)` — 统一路径分隔符为 `/`
-- `toFileUri(value)` — 本地路径 → `file://` URI
-- `resolveSkillFolderUri(skillPath, baseRootUri)` — 解析技能文件夹 URI（支持绝对路径和相对路径���
-- `resolveSkillUri(skillPath, rootUri)` — 解析技能文件 URI（用于预览）
-
-### 使用位置
-
-`SkillsSettingsPanel` 在两个场景中使用：
-
-1. **工作空间设置** — 不传 `projectId`，显示工作空间级 + 全局级技能
-2. **项目设置** — 传入 `projectId`，显示项目级 + 工作空间级 + 全局级技能（工作空间级别关闭的技能不显示）
+- 服务端规则见 `opencloud-app-use-skill/skill-backend.md`。
+- `/skill/<name>` 的聊天侧行为见 system agent / chat skill 文档。
+- 如果调整 scope、删除权限或 ignoreKey 规则，前后端文档必须同步更新。

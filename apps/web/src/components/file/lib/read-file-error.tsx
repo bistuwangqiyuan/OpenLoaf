@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 import { AlertTriangle, Copy, Download, ExternalLink } from "lucide-react";
 import { Button } from "@openloaf/ui/button";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { createFileEntryFromUri, openWithDefaultApp } from "./open-file";
 import { isElectronEnv } from "@/utils/is-electron-env";
 
@@ -79,8 +78,6 @@ export function ReadFileErrorFallback({
   forceAction,
   className,
 }: ReadFileErrorFallbackProps) {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? "";
   const queryClient = useQueryClient();
   const [isWorking, setIsWorking] = useState(false);
   const entry = useMemo(
@@ -109,7 +106,7 @@ export function ReadFileErrorFallback({
 
   /** Download file via readBinary for web fallback. */
   const handleDownload = async () => {
-    if (!uri || !workspaceId || !projectId) {
+    if (!uri) {
       toast.error("无法下载文件");
       return;
     }
@@ -117,7 +114,7 @@ export function ReadFileErrorFallback({
     setIsWorking(true);
     try {
       const result = await queryClient.fetchQuery(
-        trpc.fs.readBinary.queryOptions({ workspaceId, projectId, uri })
+        trpc.fs.readBinary.queryOptions({ projectId, uri })
       );
       if (!result?.contentBase64) {
         toast.error("下载失败");

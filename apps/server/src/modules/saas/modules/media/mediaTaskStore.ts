@@ -12,8 +12,6 @@ export type MediaTaskContext = {
   taskId: string;
   /** Result type hint. */
   resultType?: "image" | "video";
-  /** Workspace id for storage. */
-  workspaceId?: string;
   /** Project id for storage. */
   projectId?: string;
   /** Save directory path. */

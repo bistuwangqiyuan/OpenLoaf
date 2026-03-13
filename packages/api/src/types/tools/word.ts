@@ -28,7 +28,7 @@ export const wordQueryToolDef = {
     filePath: z
       .string()
       .min(1)
-      .describe('Word 文件路径（相对于项目/工作空间根目录或绝对路径，支持 .docx）'),
+      .describe('Word 文件路径（相对于项目根目录、全局根目录或绝对路径，支持 .docx）'),
     xmlPath: z
       .string()
       .optional()

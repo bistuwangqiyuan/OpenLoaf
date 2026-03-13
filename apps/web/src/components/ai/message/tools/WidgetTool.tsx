@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { FolderOpen, LayoutGrid } from 'lucide-react'
 import { useTabRuntime } from '@/hooks/use-tab-runtime'
 import { useTabs } from '@/hooks/use-tabs'
-import { useWorkspace } from '@/components/workspace/workspaceContext'
+import { useProject } from '@/hooks/use-project'
 import {
   DESKTOP_WIDGET_SELECTED_EVENT,
   type DesktopWidgetSelectedDetail,
@@ -33,6 +33,8 @@ import { TrafficLights } from '@openloaf/ui/traffic-lights'
 import {
   WidgetPreview,
   parseOutputJson,
+  resolveWidgetFolderUri,
+  resolveWidgetMainFileUri,
 } from './shared/widget-shared'
 import ToolApprovalActions from './shared/ToolApprovalActions'
 
@@ -43,8 +45,8 @@ export default function WidgetTool({
   part: AnyToolPart
   className?: string
 }) {
-  const { tabId, workspaceId, projectId } = useChatSession()
-  const { workspace } = useWorkspace()
+  const { tabId, projectId } = useChatSession()
+  const projectQuery = useProject(projectId)
   const pushStackItem = useTabRuntime((s) => s.pushStackItem)
   const input = normalizeToolInput(part.input)
   const inputObj = asPlainObject(input)
@@ -79,7 +81,7 @@ export default function WidgetTool({
   const isPending = isApprovalPending(part)
 
   const canRender =
-    part.state === 'output-available' && Boolean(workspaceId) && !hasError
+    part.state === 'output-available' && !hasError
 
   const windowState = hasError
     ? 'error' as const
@@ -90,13 +92,14 @@ export default function WidgetTool({
         : 'idle' as const
 
   const handleOpenWidget = () => {
-    if (!tabId || !workspaceId) return
-    const baseRootUri = projectId
-      ? workspace?.projects?.[projectId]
-      : workspace?.rootUri
-    if (!baseRootUri) return
-    const widgetFolderUri = `${baseRootUri.replace(/\/$/, '')}/.openloaf/dynamic-widgets/${widgetId}`
-    const mainFileUri = `${widgetFolderUri}/widget.tsx`
+    if (!tabId) return
+    const widgetFolderUri = resolveWidgetFolderUri({
+      outputJson,
+      widgetId,
+      projectRootUri: projectQuery.data?.project?.rootUri,
+    })
+    if (!widgetFolderUri) return
+    const mainFileUri = resolveWidgetMainFileUri(widgetFolderUri)
     pushStackItem(tabId, {
       id: `widget:${widgetId}`,
       sourceKey: `widget:${widgetId}`,
@@ -108,7 +111,7 @@ export default function WidgetTool({
         currentEntryKind: 'file',
         projectId,
         projectTitle: widgetId,
-        viewerRootUri: baseRootUri,
+        viewerRootUri: projectQuery.data?.project?.rootUri,
       },
     })
   }
@@ -117,7 +120,7 @@ export default function WidgetTool({
     const runtimeByTabId = useTabRuntime.getState().runtimeByTabId
     let desktopTabId: string | null = null
     for (const [tid, runtime] of Object.entries(runtimeByTabId)) {
-      if (runtime?.base?.component === 'workspace-desktop') {
+      if (runtime?.base?.component === 'global-desktop') {
         desktopTabId = tid
         break
       }
@@ -185,10 +188,9 @@ export default function WidgetTool({
         ) : null}
 
         {/* 逻辑：实际渲染 widget 组件 */}
-        {canRender && workspaceId ? (
+        {canRender ? (
           <WidgetPreview
             widgetId={widgetId}
-            workspaceId={workspaceId}
             projectId={projectId}
           />
         ) : null}

@@ -3,8 +3,6 @@ name: file-system-development
 description: Use when developing, extending, or debugging the file preview/viewer system, file system operations, file browser UI, or backend fs tRPC routes — adding viewers, file operations, drag-drop, context menus, or fixing preview/upload/download issues
 ---
 
-# File System Development
-
 ## Overview
 
 OpenLoaf 的文件系统由**预览查看器**（11 种 Viewer 组件）、**文件操作模型**（CRUD/拖拽/历史）、**预览分发系统**（Store + 类型路由 + 三种打开模式）、**后端 tRPC 路由**四层构成。
@@ -18,90 +16,15 @@ OpenLoaf 的文件系统由**预览查看器**（11 种 Viewer 组件）、**文
 - 修改后端 `fs` tRPC 路由（读写/缩略图/搜索）
 - 调试文件预览、大文件处理、Office 文件路由问题
 
-## Architecture
-
-```
-用户交互 (文件双击/右键/拖拽)
-        ↓
-openFilePreview() — 统一入口
-   ├─ resolveFileViewerTarget() — 扩展名→Viewer 类型映射
-   ├─ shouldOpenOfficeWithSystem() — Office 文件系统打开检查
-   └─ 模式分发
-       ├─ "stack" → pushStackItem() → Tab Stack 面板
-       ├─ "modal" → openFilePreviewDialog() → Zustand Store → FilePreviewDialog
-       └─ "embed" → renderFilePreviewContent() → 嵌入式 ReactNode
-
-文件系统管理 (project/filesystem/)
-   ├─ useProjectFileSystemModel — 核心 Model (CRUD/导航/排序/搜索)
-   ├─ useFileSystemHistory — 撤销/重做栈
-   ├─ useFileSelection / useFileRename — 选择/重命名状态
-   ├─ useFileSystemContextMenu — 右键菜单
-   └─ useFileSystemDrag / useFileSystemSelection — 拖拽/框选
-
-后端 (packages/api/src/routers/fs.ts)
-   └─ tRPC fs router — stat/list/search/read/write/mkdir/rename/copy/delete/thumbnails
-```
-
 ## Detailed References
 
 | 文件 | 内容 | 查阅时机 |
 |------|------|----------|
-| [viewer-development.md](viewer-development.md) | Viewer 开发指南、类型映射、Props 模式、错误处理 | 添加/修改文件查看器 |
-| [file-operations.md](file-operations.md) | Model API、CRUD、拖拽、历史、选择、重命名 | 文件操作功能开发 |
-| [preview-system.md](preview-system.md) | Store、打开模式、类型路由、最近打开 | 预览/打开逻辑修改 |
-| [backend-api.md](backend-api.md) | tRPC fs 路由 API 速查 | 后端文件操作开发 |
-| [path-conventions.md](path-conventions.md) | 文件路径规范、作用域隔离、安全原则、各模块路径处理 | 涉及文件路径传递/解析的所有开发 |
-
-## Key Files Map
-
-```
-apps/web/src/components/file/
-├── FilePreviewDialog.tsx        ← 全局预览弹窗 (306行)
-├── FileViewer.tsx               ← 通用文件查看器 (183行)
-├── ImageViewer.tsx              ← 图像查看器+编辑/蒙版 (1074行)
-├── CodeViewer.tsx               ← Monaco 代码编辑器 (673行)
-├── MarkdownViewer.tsx           ← Streamdown 渲染 (577行)
-├── DocViewer.tsx                ← Plate.js 文档编辑 (468行)
-├── SheetViewer.tsx              ← Univer 表格编辑 (681行)
-├── ExcelViewer.tsx              ← SheetJS 表格查看 (503行)
-├── PdfViewer.tsx                ← react-pdf 查看 (244行)
-├── VideoViewer.tsx              ← HLS 视频播放 (453行)
-├── TerminalViewer.tsx           ← xterm 终端模拟 (605行)
-├── ImagePreviewDialog.tsx       ← 图像预览弹窗 (103行)
-├── MaskedImage.tsx              ← 蒙版图层 (54行)
-└── lib/
-    ├── file-preview-store.ts    ← Zustand 全局预览状态
-    ├── file-preview-types.ts    ← 核心类型定义
-    ├── file-viewer-target.ts    ← 扩展名→Viewer 映射
-    ├── open-file.ts             ← 文件打开入口 (483行)
-    ├── open-file-preview.tsx    ← 嵌入式预览渲染
-    ├── viewer-guard.tsx         ← 标准化兜底组件（所有 Viewer 必须使用）
-    ├── read-file-error.tsx      ← 错误 fallback UI（由 viewer-guard 内部调用）
-    ├── recent-open.ts           ← 最近打开管理
-    ├── viewer-shortcuts.ts      ← 快捷键处理
-    └── video-metadata.ts        ← 视频元数据提取
-
-apps/web/src/hooks/
-├── use-file-rename.ts           ← 重命名状态管理
-├── use-file-selection.ts        ← 选择状态管理
-├── use-file-system-context-menu.ts ← 右键菜单状态
-└── use-upload-file.ts           ← 文件上传
-
-apps/web/src/components/project/filesystem/
-├── models/
-│   ├── file-system-model.ts     ← 核心 Model (CRUD/导航/排序/搜索)
-│   └── file-system-history.ts   ← 撤销/重做历史栈
-├── hooks/
-│   ├── use-file-system-drag.ts  ← 拖拽交互
-│   ├── use-file-system-selection.ts ← 框选管理
-│   └── use-file-system-preview.ts   ← 预览面板
-└── utils/
-    ├── file-system-utils.ts     ← URI/路径工具函数
-    ├── entry-sort.ts            ← 排序逻辑
-    └── entry-open.ts            ← 打开逻辑
-
-packages/api/src/routers/fs.ts  ← 后端 tRPC 路由 (~800行)
-```
+| [viewer-development.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/viewer-development.md) | Viewer 开发指南、类型映射、Props 模式、错误处理 | 添加/修改文件查看器 |
+| [file-operations.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/file-operations.md) | Model API、CRUD、拖拽、历史、选择、重命名 | 文件操作功能开发 |
+| [preview-system.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/preview-system.md) | Store、打开模式、类型路由、最近打开 | 预览/打开逻辑修改 |
+| [backend-api.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/backend-api.md) | tRPC fs 路由 API 速查 | 后端文件操作开发 |
+| [path-conventions.md](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/.agents/skills/file-system-development/path-conventions.md) | 文件路径规范、作用域隔离、安全原则、各模块路径处理 | 涉及文件路径传递/解析的所有开发 |
 
 ## Skill Sync Policy
 

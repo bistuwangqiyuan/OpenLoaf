@@ -117,7 +117,7 @@ function makeTask(overrides: Partial<TaskConfig> = {}): TaskConfig {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     createdBy: 'user',
-    scope: 'workspace',
+    scope: 'global',
     filePath: '/tmp/fake/task.json',
     ...overrides,
   }
@@ -221,23 +221,23 @@ async function main() {
     assert.ok(result.reason.length > 0)
   })
 
-  await test('B3: no conflict between workspace-scope tasks', () => {
-    const candidate = makeTask({ scope: 'workspace' })
-    const running = makeTask({ scope: 'workspace', status: 'running' })
+  await test('B3: no conflict between project-scope tasks', () => {
+    const candidate = makeTask({ scope: 'global' })
+    const running = makeTask({ scope: 'global', status: 'running' })
     const result = checkConflict(candidate, [running])
     assert.equal(result.conflict, false)
   })
 
   await test('B4: no conflict between different scopes', () => {
     const candidate = makeTask({ scope: 'project' })
-    const running = makeTask({ scope: 'workspace', status: 'running' })
+    const running = makeTask({ scope: 'global', status: 'running' })
     const result = checkConflict(candidate, [running])
     assert.equal(result.conflict, false)
   })
 
   await test('B5: conflict detected with any running project task', () => {
     const candidate = makeTask({ scope: 'project' })
-    const running1 = makeTask({ scope: 'workspace', status: 'running' })
+    const running1 = makeTask({ scope: 'global', status: 'running' })
     const running2 = makeTask({ scope: 'project', status: 'running' })
     const result = checkConflict(candidate, [running1, running2])
     assert.equal(result.conflict, true)

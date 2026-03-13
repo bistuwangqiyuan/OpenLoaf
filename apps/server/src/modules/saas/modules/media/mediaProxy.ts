@@ -14,7 +14,7 @@ import {
   resolveVideoSaveDirectory,
   saveGeneratedVideoFromUrl,
 } from "@/ai/services/video/videoStorage";
-import { getWorkspaceRootPathById } from "@openloaf/api/services/vfsService";
+import { getOpenLoafRootDir } from "@openloaf/config";
 import {
   cancelMediaTask,
   fetchImageModels,
@@ -28,23 +28,16 @@ import {
   rememberMediaTask,
 } from "./mediaTaskStore";
 
-/** Convert an absolute file path to a workspace-relative path. */
-function toWorkspaceRelativePath(
-  filePath: string,
-  workspaceId?: string,
-): string | null {
-  if (!workspaceId) return null;
-  const workspaceRoot = getWorkspaceRootPathById(workspaceId);
-  if (!workspaceRoot) return null;
-  const rootResolved = path.resolve(workspaceRoot);
+/** Convert an absolute file path to a global-root-relative path. */
+function toGlobalRelativePath(filePath: string): string | null {
+  const globalRoot = getOpenLoafRootDir();
+  const rootResolved = path.resolve(globalRoot);
   const resolved = path.resolve(filePath);
   if (!resolved.startsWith(rootResolved + path.sep)) return null;
   return path.relative(rootResolved, resolved).replace(/\\/g, "/");
 }
 
 export type MediaSubmitContext = {
-  /** Workspace id for storage scoping. */
-  workspaceId?: string;
   /** Project id for storage scoping. */
   projectId?: string;
   /** Save directory for generated assets. */
@@ -79,7 +72,6 @@ function splitMediaSubmitBody(body: unknown): {
 } {
   if (!isRecord(body)) return { payload: null, context: {} };
   const {
-    workspaceId,
     projectId,
     saveDir,
     sourceNodeId,
@@ -88,7 +80,6 @@ function splitMediaSubmitBody(body: unknown): {
   return {
     payload,
     context: {
-      workspaceId: typeof workspaceId === "string" ? workspaceId : undefined,
       projectId: typeof projectId === "string" ? projectId : undefined,
       saveDir: typeof saveDir === "string" ? saveDir : undefined,
       sourceNodeId: typeof sourceNodeId === "string" ? sourceNodeId : undefined,
@@ -111,7 +102,6 @@ export async function submitImageProxy(
     rememberMediaTask({
       taskId: result.data.taskId,
       resultType: "image",
-      workspaceId: context.workspaceId,
       projectId: context.projectId,
       saveDir: context.saveDir,
       sourceNodeId: context.sourceNodeId,
@@ -136,7 +126,6 @@ export async function submitVideoProxy(
     rememberMediaTask({
       taskId: result.data.taskId,
       resultType: "video",
-      workspaceId: context.workspaceId,
       projectId: context.projectId,
       saveDir: context.saveDir,
       sourceNodeId: context.sourceNodeId,
@@ -177,7 +166,6 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
       const resolvedDir = await resolveImageSaveDirectory({
         imageSaveDir: saveDir,
         projectId: ctx?.projectId ?? null,
-        workspaceId: ctx?.workspaceId ?? null,
       });
       if (!resolvedDir) {
         throw new Error("保存目录无效");
@@ -188,9 +176,9 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         directory: resolvedDir,
       });
       if (saveDir.startsWith("file://")) {
-        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        // 逻辑：file:// URI 转全局相对路径，确保前端可通过 preview endpoint 加载。
         resultUrls = savedPaths.map((filePath) => {
-          const relativePath = toWorkspaceRelativePath(filePath, ctx?.workspaceId);
+          const relativePath = toGlobalRelativePath(filePath);
           return relativePath ?? path.basename(filePath);
         });
       } else {
@@ -206,7 +194,6 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
       const resolvedDir = await resolveVideoSaveDirectory({
         saveDir,
         projectId: ctx?.projectId ?? null,
-        workspaceId: ctx?.workspaceId ?? null,
       });
       if (!resolvedDir) {
         throw new Error("保存目录无效");
@@ -218,9 +205,9 @@ export async function pollMediaProxy(taskId: string, accessToken: string): Promi
         fileNameBase: taskId,
       });
       if (saveDir.startsWith("file://")) {
-        // 逻辑：file:// URI 转工作区相对路径，确保前端可通过 preview endpoint 加载。
+        // 逻辑：file:// URI 转全局相对路径，确保前端可通过 preview endpoint 加载。
         const savedFilePath = path.join(resolvedDir, saved.fileName);
-        const relativePath = toWorkspaceRelativePath(savedFilePath, ctx?.workspaceId);
+        const relativePath = toGlobalRelativePath(savedFilePath);
         resultUrls = [relativePath ?? saved.fileName];
       } else {
         const normalizedSaveDir = saveDir.replace(/\\/g, "/").replace(/\/+$/, "");

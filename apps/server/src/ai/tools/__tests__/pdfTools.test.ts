@@ -18,7 +18,7 @@ import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { PDFDocument, PDFTextField, PDFCheckBox } from 'pdf-lib'
 import { runWithContext } from '@/ai/shared/context/requestContext'
-import { setupE2eTestEnv, E2E_WORKSPACE_ID } from '@/ai/__tests__/helpers/testEnv'
+import { setupE2eTestEnv } from '@/ai/__tests__/helpers/testEnv'
 import { pdfQueryTool, pdfMutateTool } from '@/ai/tools/pdfTools'
 import { resolveToolPath } from '@/ai/tools/toolScope'
 
@@ -49,25 +49,25 @@ async function test(name: string, fn: () => Promise<void> | void) {
 
 function withCtx<T>(fn: () => T | Promise<T>): Promise<T> {
   return runWithContext(
-    { sessionId: 'pdf-tools-test', cookies: {}, workspaceId: E2E_WORKSPACE_ID },
+    { sessionId: 'pdf-tools-test', cookies: {} },
     fn as () => Promise<T>,
   )
 }
 
 const REAL_PDF_SOURCE = '/Users/zhao/Downloads/QRR0.3G丨S-Q热气溶胶灭火装置规格书李.pdf'
 
-let workspaceRoot = ''
+let projectRoot = ''
 let testSubDir = ''
 let hasRealPdf = false
 
 async function setupTestDir() {
-  workspaceRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
+  projectRoot = await withCtx(() => resolveToolPath({ target: '.' }).absPath)
   testSubDir = `_pdf_test_${Date.now()}`
-  await fs.mkdir(path.join(workspaceRoot, testSubDir), { recursive: true })
+  await fs.mkdir(path.join(projectRoot, testSubDir), { recursive: true })
 
   // Copy real PDF to test directory if available
   try {
-    const realPdfDest = path.join(workspaceRoot, testSubDir, 'real-doc.pdf')
+    const realPdfDest = path.join(projectRoot, testSubDir, 'real-doc.pdf')
     await fs.copyFile(REAL_PDF_SOURCE, realPdfDest)
     hasRealPdf = true
   } catch {
@@ -76,7 +76,7 @@ async function setupTestDir() {
 }
 
 async function cleanupTestDir() {
-  await fs.rm(path.join(workspaceRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
+  await fs.rm(path.join(projectRoot, testSubDir), { recursive: true, force: true }).catch(() => {})
 }
 
 function rel(filename: string): string {
@@ -296,7 +296,7 @@ async function main() {
 
   await test('I6: read-form-fields + fill-form', async () => {
     const filePath = rel('i6.pdf')
-    const absPath = path.join(workspaceRoot, filePath)
+    const absPath = path.join(projectRoot, filePath)
     await createFormPdf(absPath)
 
     // read-form-fields
@@ -359,7 +359,7 @@ async function main() {
 
   await test('J2: query 非 PDF 文件抛出错误', async () => {
     const txtFile = rel('j2.txt')
-    const absPath = path.join(workspaceRoot, txtFile)
+    const absPath = path.join(projectRoot, txtFile)
     await fs.writeFile(absPath, 'dummy', 'utf-8')
     await assert.rejects(
       () =>
@@ -885,7 +885,7 @@ async function main() {
 
   await test('L7: fill-form text field and verify', async () => {
     const filePath = rel('l7.pdf')
-    const absPath = path.join(workspaceRoot, filePath)
+    const absPath = path.join(projectRoot, filePath)
     await createFormPdf(absPath)
 
     // Fill name field
@@ -915,7 +915,7 @@ async function main() {
 
   await test('L8: fill-form checkbox and verify state', async () => {
     const filePath = rel('l8.pdf')
-    const absPath = path.join(workspaceRoot, filePath)
+    const absPath = path.join(projectRoot, filePath)
     await createFormPdf(absPath)
 
     // Check the agree checkbox

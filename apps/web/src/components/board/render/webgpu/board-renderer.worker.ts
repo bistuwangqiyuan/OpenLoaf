@@ -600,7 +600,30 @@ function wrapText(text: string, maxWidth: number, ctx: OffscreenCanvasRenderingC
   return lines;
 }
 
-function normalizeTextValue(value: unknown): string {
+function normalizeTextValue(props: Record<string, unknown>): string {
+  const markdown = typeof props.markdown === "string"
+    ? props.markdown
+    : typeof props.markdownText === "string"
+      ? props.markdownText
+      : null;
+  if (markdown) {
+    return markdown
+      .replace(/\r/g, "")
+      .replace(/```[^\n]*\n?/g, "")
+      .replace(/\n?```/g, "")
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/^\s*>\s?/gm, "")
+      .replace(/^\s*[-*+]\s+\[( |x|X)\]\s+/gm, "")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/^\s*\d+[.)]\s+/gm, "")
+      .replace(/<\/?[^>]+>/g, "")
+      .replace(/\\([`*_[\]<>])/g, "$1");
+  }
+
+  const value = props.value;
   if (typeof value === "string") return value;
   if (!Array.isArray(value)) return "";
   const extractLegacyText = (node: unknown): string => {
@@ -791,9 +814,9 @@ function buildSceneGeometry(
       const padding = 10;
       const maxWidth = Math.max(1, w - padding * 2);
       if (element.type === "text") {
-        const rawText = normalizeTextValue((element.props as any).value);
+        const rawText = normalizeTextValue((element.props as any) ?? {});
         const isPlaceholder = rawText.trim().length === 0;
-        const textValue = isPlaceholder ? "输入文字内容" : rawText;
+        const textValue = isPlaceholder ? "输入 Markdown" : rawText;
         const fontSize = 13;
         const lineHeight = fontSize + 4;
         const ctx = atlas?.ctx;

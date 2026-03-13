@@ -16,7 +16,6 @@ import { cn } from "@udecode/cn";
 
 import { useBoardContext } from "../../core/BoardProvider";
 import { useMediaModels } from "@/hooks/use-media-models";
-import { getWorkspaceIdFromCookie } from "../../core/boardSession";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { SaasLoginDialog } from "@/components/auth/SaasLoginDialog";
 import type { ImageNodeProps } from "../ImageNode";
@@ -62,11 +61,89 @@ import { ImageGenerateNodeSchema, type ImageGenerateNodeProps } from "./types";
 import { normalizeOutputCount, normalizeTextValue } from "./utils";
 import { AdvancedSettingsPanel } from "./AdvancedSettingsPanel";
 import { ModelSelect } from "./ModelSelect";
+import { getBoardChatMessageMeta } from "../../utils/board-chat-message";
+import { createBoardChatMessageToolbarItems } from "../../utils/board-chat-toolbar";
 
 export { IMAGE_GENERATE_NODE_TYPE };
 
-/** Render the image generation node. */
-export function ImageGenerateNodeView({
+/** Render the read-only chat projection for image generation parts. */
+function ImageGenerateProjectionView({
+  element,
+  selected,
+  onSelect,
+}: CanvasNodeViewProps<ImageGenerateNodeProps>) {
+  const { t } = useTranslation("board");
+  const { fileContext } = useBoardContext();
+  const status = element.props.projectionStatus ?? (
+    element.props.errorText
+      ? "error"
+      : (element.props.resultImages?.length ?? 0) > 0
+        ? "done"
+        : "generating"
+  );
+
+  return (
+    <NodeFrame>
+      <div
+        className={cn(
+          "flex h-full w-full flex-col overflow-hidden rounded-xl border-2",
+          BOARD_GENERATE_NODE_BASE_IMAGE,
+          selected ? BOARD_GENERATE_SELECTED_IMAGE : BOARD_GENERATE_BORDER_IMAGE,
+          status === "error" && BOARD_GENERATE_ERROR,
+        )}
+        onClick={onSelect}
+      >
+        <div className="flex items-center gap-2 border-b border-border/30 px-3 py-2">
+          <Sparkles className="h-4 w-4 text-[#1a73e8] dark:text-sky-400" />
+          <span className="text-xs font-medium text-[#1a73e8] dark:text-sky-400">
+            {t("imageGenerate.title")}
+          </span>
+          <span className={cn("ml-auto rounded-full px-1.5 py-0.5 text-[10px]", BOARD_GENERATE_PILL_IMAGE)}>
+            {status === "generating"
+              ? t("chatMessage.streaming")
+              : status === "error"
+                ? t("imageGenerate.hints.generateFailed")
+                : t("videoGenerate.status.completed")}
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+          {element.props.promptText ? (
+            <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+              {element.props.promptText}
+            </div>
+          ) : null}
+          {status === "generating" ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className={cn("h-2 w-2 rounded-full animate-pulse", BOARD_GENERATE_DOT_IMAGE)} />
+              <span>{t("chatMessage.thinking")}</span>
+            </div>
+          ) : null}
+          {status === "error" && element.props.errorText ? (
+            <div className="text-xs text-destructive whitespace-pre-wrap break-words">
+              {element.props.errorText}
+            </div>
+          ) : null}
+          {(element.props.resultImages?.length ?? 0) > 0 ? (
+            <div className="grid grid-cols-1 gap-2">
+              {element.props.resultImages?.map((url, index) => (
+                <img
+                  key={`${url}:${index}`}
+                  src={getPreviewEndpoint(url, { projectId: fileContext?.projectId })}
+                  alt=""
+                  className="max-h-[180px] w-full rounded-lg border border-border/30 object-cover"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </NodeFrame>
+  );
+}
+
+/** Render the editable image generation node. */
+function EditableImageGenerateNodeView({
   element,
   selected,
   onSelect,
@@ -102,8 +179,6 @@ export function ImageGenerateNodeView({
   const focusThrottleRef = useRef(0);
   /** Loading node id for the current generation. */
   const loadingNodeIdRef = useRef<string | null>(null);
-  /** Workspace id used for requests. */
-  const resolvedWorkspaceId = useMemo(() => getWorkspaceIdFromCookie(), []);
   const [isAdvancedOpen, setAdvancedOpen] = useState(false);
   const isLocked = engine.isLocked() || element.locked === true;
   const [loginOpen, setLoginOpen] = useState(false);
@@ -274,7 +349,6 @@ export function ImageGenerateNodeView({
     }
     const previewUrl = getPreviewEndpoint(projectPath, {
       projectId: currentProjectId,
-      workspaceId: resolvedWorkspaceId || undefined,
     });
     if (!previewUrl) {
       invalidImageCount += 1;
@@ -416,7 +490,6 @@ export function ImageGenerateNodeView({
             taskType: "image_generate",
             sourceNodeId: nodeId,
             promptText,
-            workspaceId: resolvedWorkspaceId || undefined,
             projectId: currentProjectId || undefined,
             saveDir: imageSaveDir || undefined,
           },
@@ -473,7 +546,6 @@ export function ImageGenerateNodeView({
           aspectRatio: outputAspectRatio || undefined,
         },
         parameters: element.props.parameters ?? undefined,
-        workspaceId: resolvedWorkspaceId || undefined,
         projectId: currentProjectId || undefined,
         saveDir: imageSaveDir || undefined,
         sourceNodeId: nodeId,
@@ -517,7 +589,6 @@ export function ImageGenerateNodeView({
     outputAspectRatio,
     promptText,
     resolvedImages,
-    resolvedWorkspaceId,
     resolveOutputPlacement,
     styleText,
   ]);
@@ -868,6 +939,15 @@ export function ImageGenerateNodeView({
   );
 }
 
+/** Render an image generation node, switching to chat projection mode when needed. */
+export function ImageGenerateNodeView(props: CanvasNodeViewProps<ImageGenerateNodeProps>) {
+  if (props.element.props.readOnlyProjection) {
+    return <ImageGenerateProjectionView {...props} />;
+  }
+
+  return <EditableImageGenerateNodeView {...props} />;
+}
+
 /** Definition for the image generation node. */
 export const ImageGenerateNodeDefinition: CanvasNodeDefinition<ImageGenerateNodeProps> = {
   type: IMAGE_GENERATE_NODE_TYPE,
@@ -877,11 +957,17 @@ export const ImageGenerateNodeDefinition: CanvasNodeDefinition<ImageGenerateNode
     promptText: "",
     style: "",
     negativePrompt: "",
+    readOnlyProjection: false,
   },
   view: ImageGenerateNodeView,
   capabilities: {
     resizable: false,
     connectable: "auto",
     minSize: { w: 340, h: 280 },
+  },
+  toolbar: (ctx) => {
+    if (!ctx.element.props.readOnlyProjection) return [];
+    const messageMeta = getBoardChatMessageMeta(ctx.element);
+    return messageMeta ? createBoardChatMessageToolbarItems(ctx, messageMeta) : [];
   },
 };

@@ -23,6 +23,7 @@ import {
 import { cn } from "@udecode/cn";
 import type { CanvasEngine } from "../engine/CanvasEngine";
 import type {
+  CanvasConnectorEnd,
   CanvasConnectorTemplateDefinition,
   CanvasElement,
   CanvasNodeElement,
@@ -33,8 +34,15 @@ import { getClipboardInsertPayload } from "../engine/clipboard";
 import { isBoardUiTarget } from "../utils/dom";
 import { toScreenPoint } from "../utils/coordinates";
 import { readImageDragPayload } from "@/lib/image/drag";
-import { FILE_DRAG_URI_MIME, FILE_DRAG_URIS_MIME } from "@openloaf/ui/openloaf/drag-drop-types";
-import { fetchBlobFromUri, getPreviewEndpoint, resolveFileName } from "@/lib/image/uri";
+import {
+  FILE_DRAG_URI_MIME,
+  FILE_DRAG_URIS_MIME,
+} from "@openloaf/ui/openloaf/drag-drop-types";
+import {
+  fetchBlobFromUri,
+  getPreviewEndpoint,
+  resolveFileName,
+} from "@/lib/image/uri";
 import { getStackedImageRect } from "../utils/image-insert";
 import type { ImagePreviewPayload } from "./BoardProvider";
 import { useBoardContext } from "./BoardProvider";
@@ -50,19 +58,39 @@ import {
   resolveViewerType,
 } from "../utils/board-asset";
 import { NodePicker } from "./NodePicker";
-import { openLinkInStack as openLinkInStackAction, resolveLinkTitle } from "../nodes/lib/link-actions";
+import {
+  openLinkInStack as openLinkInStackAction,
+  resolveLinkTitle,
+} from "../nodes/lib/link-actions";
 import type { ImageNodeProps } from "../nodes/ImageNode";
 import type { LinkNodeProps } from "../nodes/LinkNode";
-import { resolveBoardFolderScope, resolveProjectPathFromBoardUri } from "./boardFilePath";
+import {
+  resolveDirectionalStackPlacement,
+  type StackPlacementDirection,
+} from "../utils/output-placement";
+import {
+  resolveBoardFolderScope,
+  resolveProjectPathFromBoardUri,
+} from "./boardFilePath";
 import { buildLinkNodePayloadFromUrl } from "../utils/link";
 import { useTabRuntime } from "@/hooks/use-tab-runtime";
 import { BoardContextMenu } from "./BoardContextMenu";
 import { useOptionalSidebar } from "@openloaf/ui/sidebar";
-import { emitSidebarOpenRequest, getLeftSidebarOpen } from "@/lib/sidebar-state";
-import { IMAGE_GENERATE_NODE_TYPE, VIDEO_GENERATE_NODE_TYPE } from "../nodes/node-config";
+import {
+  emitSidebarOpenRequest,
+  getLeftSidebarOpen,
+} from "@/lib/sidebar-state";
+import {
+  IMAGE_GENERATE_NODE_TYPE,
+  VIDEO_GENERATE_NODE_TYPE,
+} from "../nodes/node-config";
 import { TEXT_NODE_DEFAULT_HEIGHT } from "../nodes/TextNode";
 
-const EDITABLE_NODE_TYPES = new Set(["text", "image-generate", "image-prompt-generate"]);
+const EDITABLE_NODE_TYPES = new Set([
+  "text",
+  "image-generate",
+  "image-prompt-generate",
+]);
 const DEFAULT_VIDEO_WIDTH = 16;
 const DEFAULT_VIDEO_HEIGHT = 9;
 const DEFAULT_VIDEO_NODE_MAX = 420;
@@ -70,6 +98,8 @@ const DEFAULT_AUDIO_NODE_WIDTH = 280;
 const DEFAULT_AUDIO_NODE_HEIGHT = 100;
 const DEFAULT_FILE_NODE_WIDTH = 260;
 const DEFAULT_FILE_NODE_HEIGHT = 80;
+const CONNECTOR_TEMPLATE_SIDE_GAP = 60;
+const CONNECTOR_TEMPLATE_STACK_GAP = 16;
 /** Cursor assets for board drawing tools. */
 const PEN_CURSOR_DOWN_URL = "/board/brush-cursor.svg";
 const PEN_CURSOR_UP_URL = "/board/brush-cursor-up.svg";
@@ -93,6 +123,57 @@ type ClipboardPastePayload = {
   url?: string;
 };
 
+/** Resolve the preferred placement direction for a connector-created node. */
+function resolveConnectorDropDirection(
+  source: CanvasConnectorEnd,
+  sourceRect: [number, number, number, number],
+  point: CanvasPoint,
+): StackPlacementDirection {
+  if ("elementId" in source) {
+    const anchorId = source.anchorId;
+    if (
+      anchorId === "left" ||
+      anchorId === "right" ||
+      anchorId === "top" ||
+      anchorId === "bottom"
+    ) {
+      return anchorId;
+    }
+  }
+  const [x, y, w, h] = sourceRect;
+  const centerX = x + w / 2;
+  const centerY = y + h / 2;
+  const deltaX = point[0] - centerX;
+  const deltaY = point[1] - centerY;
+  // 逻辑：没有显式锚点时按拖拽主方向推断，保证新节点仍落在期望象限。
+  if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+    return deltaX < 0 ? "left" : "right";
+  }
+  return deltaY < 0 ? "top" : "bottom";
+}
+
+/** Collect outbound target node bounds for a source node. */
+function collectOutboundTargetRects(
+  engine: CanvasEngine,
+  sourceElementId: string,
+): Array<[number, number, number, number]> {
+  return engine.doc
+    .getElements()
+    .reduce<Array<[number, number, number, number]>>((nodes, item) => {
+      if (item.kind !== "connector") return nodes;
+      if (
+        !("elementId" in item.source) ||
+        item.source.elementId !== sourceElementId
+      ) {
+        return nodes;
+      }
+      if (!("elementId" in item.target)) return nodes;
+      const targetElement = engine.doc.getElementById(item.target.elementId);
+      if (!targetElement || targetElement.kind !== "node") return nodes;
+      return [...nodes, targetElement.xywh];
+    }, []);
+}
+
 // Logs clipboard data for paste diagnostics.
 const logPasteClipboardPayload = (event: ClipboardEvent) => {
   const clipboardData = event.clipboardData;
@@ -104,9 +185,13 @@ const logPasteClipboardPayload = (event: ClipboardEvent) => {
   const textUriList = clipboardData.getData("text/uri-list") ?? "";
   const previewLimit = 240;
   const textPlainPreview =
-    textPlain.length > previewLimit ? `${textPlain.slice(0, previewLimit)}...` : textPlain;
+    textPlain.length > previewLimit
+      ? `${textPlain.slice(0, previewLimit)}...`
+      : textPlain;
   const textHtmlPreview =
-    textHtml.length > previewLimit ? `${textHtml.slice(0, previewLimit)}...` : textHtml;
+    textHtml.length > previewLimit
+      ? `${textHtml.slice(0, previewLimit)}...`
+      : textHtml;
   const textUriListPreview =
     textUriList.length > previewLimit
       ? `${textUriList.slice(0, previewLimit)}...`
@@ -142,9 +227,13 @@ async function readClipboardPayload(): Promise<ClipboardPastePayload | null> {
           if (!type.startsWith("image/")) continue;
           const blob = await item.getType(type);
           const extension = type.split("/")[1]?.replace("+xml", "") || "png";
-          const file = new File([blob], `clipboard-${Date.now()}.${extension}`, {
-            type,
-          });
+          const file = new File(
+            [blob],
+            `clipboard-${Date.now()}.${extension}`,
+            {
+              type,
+            },
+          );
           images.push(file);
         }
       }
@@ -170,7 +259,11 @@ async function readClipboardPayload(): Promise<ClipboardPastePayload | null> {
 }
 
 /** Build a fallback cursor string for a static SVG url. */
-function buildCursorFallback(url: string, hotspot: [number, number], fallback: string): string {
+function buildCursorFallback(
+  url: string,
+  hotspot: [number, number],
+  fallback: string,
+): string {
   return `url("${url}") ${hotspot[0]} ${hotspot[1]}, ${fallback}`;
 }
 
@@ -206,7 +299,7 @@ function buildColoredCursor(
   svg: string,
   color: string,
   hotspot: [number, number],
-  fallback: string
+  fallback: string,
 ): string {
   const cacheKey = `${url}|${color}|${hotspot[0]}|${hotspot[1]}|${fallback}`;
   const cached = CURSOR_DATA_CACHE.get(cacheKey);
@@ -223,7 +316,7 @@ function resolveColoredCursor(
   url: string,
   color: string,
   hotspot: [number, number],
-  fallback: string
+  fallback: string,
 ): string {
   const svg = CURSOR_SVG_CACHE.get(url);
   if (!svg) return buildCursorFallback(url, hotspot, fallback);
@@ -289,7 +382,7 @@ export function BoardCanvasInteraction({
     ? isMobile
       ? openMobile
       : open
-    : leftOpenFallback ?? false;
+    : (leftOpenFallback ?? false);
   const setOpen = sidebar?.setOpen;
   const setOpenMobile = sidebar?.setOpenMobile;
   const penColor = engine.getPenSettings().color;
@@ -305,7 +398,10 @@ export function BoardCanvasInteraction({
   /** Latest cursor applier used by async loaders. */
   const applyCursorRef = useRef<() => void>(() => {});
   /** Track wheel gesture target to avoid mid-gesture handoff. */
-  const wheelGestureRef = useRef<{ mode: "canvas" | "scroll" | null; ts: number }>({
+  const wheelGestureRef = useRef<{
+    mode: "canvas" | "scroll" | null;
+    ts: number;
+  }>({
     mode: null,
     ts: 0,
   });
@@ -343,7 +439,9 @@ export function BoardCanvasInteraction({
     }
     useTabRuntime.getState().setTabRightChatCollapsed(tabId, shouldCollapse);
     if (panelKey) {
-      useTabRuntime.getState().setStackItemParams(tabId, panelKey, { __boardFull: shouldCollapse });
+      useTabRuntime
+        .getState()
+        .setStackItemParams(tabId, panelKey, { __boardFull: shouldCollapse });
     }
   }, [
     isMobile,
@@ -381,7 +479,7 @@ export function BoardCanvasInteraction({
         isPointerDown ? PEN_CURSOR_DOWN_URL : PEN_CURSOR_UP_URL,
         penColor,
         PEN_CURSOR_HOTSPOT,
-        "crosshair"
+        "crosshair",
       );
     }
     if (currentSnapshot.activeToolId === "highlighter") {
@@ -389,14 +487,14 @@ export function BoardCanvasInteraction({
         isPointerDown ? HIGHLIGHTER_CURSOR_DOWN_URL : HIGHLIGHTER_CURSOR_UP_URL,
         highlighterColor,
         HIGHLIGHTER_CURSOR_HOTSPOT,
-        "crosshair"
+        "crosshair",
       );
     }
     if (currentSnapshot.activeToolId === "eraser") {
       return buildCursorFallback(
         isPointerDown ? ERASER_CURSOR_DOWN_URL : ERASER_CURSOR_UP_URL,
         ERASER_CURSOR_HOTSPOT,
-        "auto"
+        "auto",
       );
     }
     return "default";
@@ -421,7 +519,13 @@ export function BoardCanvasInteraction({
 
   useEffect(() => {
     applyCursor();
-  }, [snapshot.activeToolId, snapshot.draggingId, snapshot.pendingInsert, penColor, highlighterColor]);
+  }, [
+    snapshot.activeToolId,
+    snapshot.draggingId,
+    snapshot.pendingInsert,
+    penColor,
+    highlighterColor,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -464,22 +568,25 @@ export function BoardCanvasInteraction({
       if (!payloads || payloads.length === 0) return;
       const imagePayloads = payloads.filter(
         (
-          payload
-        ): payload is Extract<typeof payloads[number], { kind: "image" }> =>
-          payload.kind === "image"
+          payload,
+        ): payload is Extract<(typeof payloads)[number], { kind: "image" }> =>
+          payload.kind === "image",
       );
       if (imagePayloads.length === 0) return;
       event.preventDefault();
       event.stopPropagation();
-      const center = lastPointerWorldRef.current ?? engine.getViewportCenterWorld();
+      const center =
+        lastPointerWorldRef.current ?? engine.getViewportCenterWorld();
       void insertImageFilesAtPoint(
         imagePayloads.map((payload) => payload.file),
-        center
+        center,
       );
     };
     document.addEventListener("paste", handleGlobalPaste, { capture: true });
     return () => {
-      document.removeEventListener("paste", handleGlobalPaste, { capture: true });
+      document.removeEventListener("paste", handleGlobalPaste, {
+        capture: true,
+      });
     };
   }, [engine, showUi]);
 
@@ -490,7 +597,9 @@ export function BoardCanvasInteraction({
     const handleWheelCapture = (event: WheelEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      const scrollTarget = target.closest("[data-board-scroll]") as HTMLElement | null;
+      const scrollTarget = target.closest(
+        "[data-board-scroll]",
+      ) as HTMLElement | null;
       const now = performance.now();
       if (!scrollTarget) {
         wheelGestureRef.current = { mode: "canvas", ts: now };
@@ -557,7 +666,7 @@ export function BoardCanvasInteraction({
   useEffect(() => {
     if (!snapshot.editingNodeId) return;
     const exists = snapshot.elements.some(
-      (element) => element.id === snapshot.editingNodeId
+      (element) => element.id === snapshot.editingNodeId,
     );
     if (!exists) {
       // 逻辑：编辑节点被删除时清理编辑态。
@@ -578,7 +687,9 @@ export function BoardCanvasInteraction({
       engine.setConnectorDraft(null);
       engine.setConnectorHover(null);
     };
-    document.addEventListener("pointerdown", handlePointerDown, { capture: true });
+    document.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown, {
         capture: true,
@@ -586,7 +697,10 @@ export function BoardCanvasInteraction({
     };
   }, [engine, snapshot.connectorDrop]);
 
-  const insertImageFilesAtPoint = async (files: File[], center: CanvasPoint) => {
+  const insertImageFilesAtPoint = async (
+    files: File[],
+    center: CanvasPoint,
+  ) => {
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
     if (imageFiles.length === 0) return;
     for (const [index, file] of imageFiles.entries()) {
@@ -636,7 +750,9 @@ export function BoardCanvasInteraction({
   const handlePanelRefresh = () => {
     if (tabId && panelKey) {
       // 逻辑：通过 __refreshKey 触发 panel remount，保持与右上角刷新一致。
-      useTabRuntime.getState().setStackItemParams(tabId, panelKey, { __refreshKey: Date.now() });
+      useTabRuntime
+        .getState()
+        .setStackItemParams(tabId, panelKey, { __refreshKey: Date.now() });
       return;
     }
     engine.refreshView();
@@ -699,16 +815,19 @@ export function BoardCanvasInteraction({
     const typeList = Array.from(types);
     const hasFiles = typeList.includes("Files");
     const hasUri = typeList.includes(FILE_DRAG_URI_MIME);
-    if (!hasFiles && !hasUri && !readImageDragPayload(event.dataTransfer)) return;
+    if (!hasFiles && !hasUri && !readImageDragPayload(event.dataTransfer))
+      return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
   };
 
   /** Insert video files at a canvas point: save to board assets, capture poster, add nodes. */
-  const insertVideoFilesAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
+  const insertVideoFilesAtPoint = async (
+    files: File[],
+    center: CanvasPoint,
+  ) => {
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     const videoFiles = files.filter(isVideoFile);
     if (videoFiles.length === 0) return;
     for (const [index, file] of videoFiles.entries()) {
@@ -716,7 +835,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: "video.mp4",
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });
@@ -754,10 +872,12 @@ export function BoardCanvasInteraction({
   };
 
   /** Insert audio files at a canvas point: save to board assets, get duration, add nodes. */
-  const insertAudioFilesAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
+  const insertAudioFilesAtPoint = async (
+    files: File[],
+    center: CanvasPoint,
+  ) => {
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     const audioFiles = files.filter(isAudioFile);
     if (audioFiles.length === 0) return;
     for (const [index, file] of audioFiles.entries()) {
@@ -765,7 +885,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: "audio.mp3",
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });
@@ -794,10 +913,12 @@ export function BoardCanvasInteraction({
   };
 
   /** Insert generic file attachments at a canvas point. */
-  const insertFileAttachmentsAtPoint = async (files: File[], center: CanvasPoint) => {
-    const wsId = fileContext?.workspaceId;
+  const insertFileAttachmentsAtPoint = async (
+    files: File[],
+    center: CanvasPoint,
+  ) => {
     const bfUri = fileContext?.boardFolderUri ?? boardFolderUri;
-    if (!wsId || !bfUri) return;
+    if (!bfUri) return;
     if (files.length === 0) return;
     for (const [index, file] of files.entries()) {
       try {
@@ -805,7 +926,6 @@ export function BoardCanvasInteraction({
         const relativePath = await saveBoardAssetFile({
           file,
           fallbackName: `file.${ext || "bin"}`,
-          workspaceId: wsId,
           projectId: fileContext?.projectId,
           boardFolderUri: bfUri,
         });
@@ -840,26 +960,22 @@ export function BoardCanvasInteraction({
     const typeList = Array.from(types);
     const hasFiles = typeList.includes("Files");
     const hasUri = typeList.includes(FILE_DRAG_URI_MIME);
-    if (!hasFiles && !hasUri && !readImageDragPayload(event.dataTransfer)) return;
+    if (!hasFiles && !hasUri && !readImageDragPayload(event.dataTransfer))
+      return;
     event.preventDefault();
     if (engine.isLocked()) return;
 
     const { clientX, clientY, dataTransfer } = event;
     const imagePayload = readImageDragPayload(dataTransfer);
     const droppedFiles = Array.from(dataTransfer.files);
-    const imageFiles = imagePayload
-      ? []
-      : droppedFiles.filter(isImageFile);
-    const videoFiles = imagePayload
-      ? []
-      : droppedFiles.filter(isVideoFile);
-    const audioFiles = imagePayload
-      ? []
-      : droppedFiles.filter(isAudioFile);
+    const imageFiles = imagePayload ? [] : droppedFiles.filter(isImageFile);
+    const videoFiles = imagePayload ? [] : droppedFiles.filter(isVideoFile);
+    const audioFiles = imagePayload ? [] : droppedFiles.filter(isAudioFile);
     const otherFiles = imagePayload
       ? []
       : droppedFiles.filter(
-          (file) => !isImageFile(file) && !isVideoFile(file) && !isAudioFile(file),
+          (file) =>
+            !isImageFile(file) && !isVideoFile(file) && !isAudioFile(file),
         );
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -879,7 +995,8 @@ export function BoardCanvasInteraction({
             const parsed = JSON.parse(payload);
             if (Array.isArray(parsed)) {
               return parsed.filter(
-                (item): item is string => typeof item === "string" && item.length > 0
+                (item): item is string =>
+                  typeof item === "string" && item.length > 0,
               );
             }
           } catch {
@@ -888,7 +1005,9 @@ export function BoardCanvasInteraction({
           return [];
         })();
         const uniqueUris =
-          dragUris.length > 0 ? Array.from(new Set(dragUris)) : [imagePayload.baseUri];
+          dragUris.length > 0
+            ? Array.from(new Set(dragUris))
+            : [imagePayload.baseUri];
         const fetchedFiles: File[] = [];
         for (const uri of uniqueUris) {
           const blob = await fetchBlobFromUri(uri, { projectId });
@@ -906,10 +1025,14 @@ export function BoardCanvasInteraction({
       }
     }
     // 逻辑：按文件类型分别处理，各自独立插入。
-    if (imageFiles.length > 0) await insertImageFilesAtPoint(imageFiles, dropPoint);
-    if (videoFiles.length > 0) await insertVideoFilesAtPoint(videoFiles, dropPoint);
-    if (audioFiles.length > 0) await insertAudioFilesAtPoint(audioFiles, dropPoint);
-    if (otherFiles.length > 0) await insertFileAttachmentsAtPoint(otherFiles, dropPoint);
+    if (imageFiles.length > 0)
+      await insertImageFilesAtPoint(imageFiles, dropPoint);
+    if (videoFiles.length > 0)
+      await insertVideoFilesAtPoint(videoFiles, dropPoint);
+    if (audioFiles.length > 0)
+      await insertAudioFilesAtPoint(audioFiles, dropPoint);
+    if (otherFiles.length > 0)
+      await insertFileAttachmentsAtPoint(otherFiles, dropPoint);
   };
 
   const resolveProjectRelativePath = (value: string) => {
@@ -949,8 +1072,8 @@ export function BoardCanvasInteraction({
     const finalOriginal = projectRelativeOriginal
       ? resolvedOriginal
       : canUseOriginal
-      ? resolvedOriginal
-      : "";
+        ? resolvedOriginal
+        : "";
     const finalPreview = resolvedPreview || previewSrc;
     if (!finalOriginal && !finalPreview) return;
     onOpenImagePreview({
@@ -992,7 +1115,9 @@ export function BoardCanvasInteraction({
       "elementId" in snapshot.connectorDrop.source
         ? snapshot.connectorDrop.source.elementId
         : "";
-    const source = sourceElementId ? engine.doc.getElementById(sourceElementId) : null;
+    const source = sourceElementId
+      ? engine.doc.getElementById(sourceElementId)
+      : null;
     if (!source || source.kind !== "node") return [];
     // 逻辑：可用节点由源节点定义提供，避免全局模板硬编码。
     const definition = engine.nodes.getDefinition(source.type);
@@ -1011,12 +1136,47 @@ export function BoardCanvasInteraction({
         : "";
     const { type, props } = template.createNode({ sourceElementId });
     const [width, height] = template.size;
-    const xywh: [number, number, number, number] = [
-      snapshot.connectorDrop.point[0] - width / 2,
-      snapshot.connectorDrop.point[1] - height / 2,
-      width,
-      height,
-    ];
+    const sourceElement = sourceElementId
+      ? engine.doc.getElementById(sourceElementId)
+      : null;
+    const xywh: [number, number, number, number] =
+      sourceElement && sourceElement.kind === "node"
+        ? (() => {
+            const direction = resolveConnectorDropDirection(
+              snapshot.connectorDrop.source,
+              sourceElement.xywh,
+              snapshot.connectorDrop.point,
+            );
+            const existingOutputs = collectOutboundTargetRects(
+              engine,
+              sourceElement.id,
+            );
+            const placement = resolveDirectionalStackPlacement(
+              sourceElement.xywh,
+              existingOutputs,
+              {
+                direction,
+                sideGap: CONNECTOR_TEMPLATE_SIDE_GAP,
+                stackGap: CONNECTOR_TEMPLATE_STACK_GAP,
+                outputSize: [width, height],
+              },
+            );
+            if (!placement) {
+              return [
+                snapshot.connectorDrop.point[0] - width / 2,
+                snapshot.connectorDrop.point[1] - height / 2,
+                width,
+                height,
+              ];
+            }
+            return [placement.x, placement.y, width, height];
+          })()
+        : [
+            snapshot.connectorDrop.point[0] - width / 2,
+            snapshot.connectorDrop.point[1] - height / 2,
+            width,
+            height,
+          ];
     const id = engine.addNodeElement(type, props, xywh);
     if (id) {
       engine.addConnectorElement({
@@ -1067,7 +1227,10 @@ export function BoardCanvasInteraction({
           data-board-canvas
           data-board-panel={panelKey}
           data-allow-context-menu
-          className={cn("relative h-full w-full overflow-hidden outline-none", className)}
+          className={cn(
+            "relative h-full w-full overflow-hidden outline-none",
+            className,
+          )}
           tabIndex={showUi ? 0 : -1}
           aria-hidden={showUi ? undefined : true}
           onPointerMove={handlePointerMove}
@@ -1075,58 +1238,64 @@ export function BoardCanvasInteraction({
           onDrop={handleCanvasDrop}
           onPointerDown={(event) => {
             if (!showUi) return;
-          if (event.isPrimary && event.button === 0) {
-            isPointerDownRef.current = true;
-            applyCursorRef.current();
-          }
-          const rawTarget = event.target as EventTarget | null;
-          const target =
-            rawTarget instanceof Element
-              ? rawTarget
-              : rawTarget instanceof Node
-                ? rawTarget.parentElement
-                : null;
-          if (!target?.closest("[data-board-editor]")) {
-            // 逻辑：非文本编辑区域点击时才抢占画布焦点，避免打断输入。
-            containerRef.current?.focus();
-          }
-          const rect = containerRef.current?.getBoundingClientRect();
-          const worldPoint =
-            rect && containerRef.current
-              ? engine.screenToWorld([event.clientX - rect.left, event.clientY - rect.top])
-              : null;
-          if (worldPoint) {
-            lastPointerWorldRef.current = worldPoint;
-          }
-          const hitElement = worldPoint ? engine.pickElementAt(worldPoint) : null;
-          const isUiTarget = target
-            ? isBoardUiTarget(target, [
-                "[data-connector-drop-panel]",
-                "[data-resize-handle]",
-                "[data-multi-resize-handle]",
-              ])
-            : false;
-          if (snapshot.editingNodeId && !isUiTarget) {
-            const isEditingTarget =
-              hitElement?.kind === "node" && hitElement.id === snapshot.editingNodeId;
-            if (!isEditingTarget) {
-              // 逻辑：点击编辑节点外部时退出编辑态。
-              engine.setEditingNodeId(null);
+            if (event.isPrimary && event.button === 0) {
+              isPointerDownRef.current = true;
+              applyCursorRef.current();
             }
-          }
-          const shouldClear =
-            snapshot.activeToolId === "select" &&
-            !snapshot.pendingInsert &&
-            !snapshot.toolbarDragging &&
-            !event.shiftKey &&
-            target &&
-            hitElement?.kind !== "connector" &&
-            hitElement?.kind !== "node" &&
-            !isUiTarget;
-          if (shouldClear) {
-            // 逻辑：空白点击时清空选区，避免残留高亮。
-            engine.selection.clear();
-          }
+            const rawTarget = event.target as EventTarget | null;
+            const target =
+              rawTarget instanceof Element
+                ? rawTarget
+                : rawTarget instanceof Node
+                  ? rawTarget.parentElement
+                  : null;
+            if (!target?.closest("[data-board-editor]")) {
+              // 逻辑：非文本编辑区域点击时才抢占画布焦点，避免打断输入。
+              containerRef.current?.focus();
+            }
+            const rect = containerRef.current?.getBoundingClientRect();
+            const worldPoint =
+              rect && containerRef.current
+                ? engine.screenToWorld([
+                    event.clientX - rect.left,
+                    event.clientY - rect.top,
+                  ])
+                : null;
+            if (worldPoint) {
+              lastPointerWorldRef.current = worldPoint;
+            }
+            const hitElement = worldPoint
+              ? engine.pickElementAt(worldPoint)
+              : null;
+            const isUiTarget = target
+              ? isBoardUiTarget(target, [
+                  "[data-connector-drop-panel]",
+                  "[data-resize-handle]",
+                  "[data-multi-resize-handle]",
+                ])
+              : false;
+            if (snapshot.editingNodeId && !isUiTarget) {
+              const isEditingTarget =
+                hitElement?.kind === "node" &&
+                hitElement.id === snapshot.editingNodeId;
+              if (!isEditingTarget) {
+                // 逻辑：点击编辑节点外部时退出编辑态。
+                engine.setEditingNodeId(null);
+              }
+            }
+            const shouldClear =
+              snapshot.activeToolId === "select" &&
+              !snapshot.pendingInsert &&
+              !snapshot.toolbarDragging &&
+              !event.shiftKey &&
+              target &&
+              hitElement?.kind !== "connector" &&
+              hitElement?.kind !== "node" &&
+              !isUiTarget;
+            if (shouldClear) {
+              // 逻辑：空白点击时清空选区，避免残留高亮。
+              engine.selection.clear();
+            }
           }}
           onDoubleClick={(event) => {
             if (!showUi) return;
@@ -1212,6 +1381,11 @@ function ConnectorDropPanel({
   // 逻辑：根据当前视口把世界坐标转换为屏幕位置。
   const screen = toScreenPoint(connectorDrop.point, viewState);
   return (
-    <NodePicker ref={panelRef} position={screen} templates={templates} onSelect={onSelect} />
+    <NodePicker
+      ref={panelRef}
+      position={screen}
+      templates={templates}
+      onSelect={onSelect}
+    />
   );
 }

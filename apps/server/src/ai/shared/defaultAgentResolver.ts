@@ -9,12 +9,11 @@
  */
 import path from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
+import { resolveScopedOpenLoafPath } from '@openloaf/config'
 import {
   BUILTIN_AGENT_PROMPT,
 } from '@/ai/shared/builtinPrompts'
 
-/** OpenLoaf meta directory name. */
-const OPENLOAF_META_DIR = '.openloaf'
 /** Agents directory name under .openloaf/. */
 const AGENTS_DIR_NAME = 'agents'
 /** Default agent folder name (master agent). */
@@ -46,17 +45,17 @@ export type AgentJsonDescriptor = {
   maxDepth?: number
 }
 
-/** Resolve the agents root directory: <root>/.openloaf/agents/ */
+/** Resolve the agents root directory for a scope root. */
 export function resolveAgentsRootDir(rootPath: string): string {
-  return path.join(rootPath, OPENLOAF_META_DIR, AGENTS_DIR_NAME)
+  return resolveScopedOpenLoafPath(rootPath, AGENTS_DIR_NAME)
 }
 
-/** Resolve a specific agent directory: <root>/.openloaf/agents/<folderName>/ */
+/** Resolve a specific agent directory for a scope root. */
 export function resolveAgentDir(
   rootPath: string,
   folderName: string,
 ): string {
-  return path.join(rootPath, OPENLOAF_META_DIR, AGENTS_DIR_NAME, folderName)
+  return resolveScopedOpenLoafPath(rootPath, AGENTS_DIR_NAME, folderName)
 }
 
 /** Read a text file if it exists, return empty string otherwise. */
@@ -85,14 +84,13 @@ export function readAgentJson(
 
 /**
  * Resolve user's custom prompt.md by priority:
- * project/.openloaf/agents/master/ → workspace/.openloaf/agents/master/ → null.
+ * project/.openloaf/agents/master/ → null.
  * Returns null if no user override exists or if the content matches the builtin default.
  */
 export function resolveUserAgentOverride(
-  workspaceRootPath?: string,
   projectRootPath?: string,
 ): string | null {
-  const candidates = [projectRootPath, workspaceRootPath].filter(Boolean) as string[]
+  const candidates = [projectRootPath].filter(Boolean) as string[]
   for (const root of candidates) {
     const filePath = path.join(
       resolveAgentDir(root, DEFAULT_AGENT_FOLDER),
@@ -105,4 +103,3 @@ export function resolveUserAgentOverride(
   }
   return null
 }
-

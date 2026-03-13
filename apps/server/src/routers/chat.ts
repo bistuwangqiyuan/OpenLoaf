@@ -33,6 +33,7 @@ import {
   registerAgentDir,
   readSessionJson,
 } from '@/ai/services/chat/repositories/chatFileStore'
+import { copySessionToBoard } from '@/ai/services/chat/copySessionToBoard'
 import { promises as fsPromises } from 'node:fs'
 import nodePath from 'node:path'
 import { getErrorMessage } from '@/shared/errorMessages'
@@ -357,6 +358,19 @@ export class ChatRouterImpl extends BaseChatRouter {
           }
         }),
 
+      copySessionToBoard: shieldedProcedure
+        .input(z.object({
+          sourceSessionId: z.string().min(1),
+          targetBoardId: z.string().min(1).optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          return copySessionToBoard({
+            sourceSessionId: input.sourceSessionId,
+            targetBoardId: input.targetBoardId,
+            prisma: ctx.prisma as any,
+          })
+        }),
+
       getSessionPreface: shieldedProcedure
         .input(chatSchemas.getSessionPreface.input)
         .output(chatSchemas.getSessionPreface.output)
@@ -436,11 +450,10 @@ export class ChatRouterImpl extends BaseChatRouter {
           return { ok: true, title }
         }),
 
-      // 新增：Workspace Chat 管理方法
-      listByWorkspace: shieldedProcedure
+      // Chat session listing for sidebar overview
+      listSidebarSessions: shieldedProcedure
         .input(
           z.object({
-            workspaceId: z.string().trim().min(1),
             projectId: z.string().nullable().optional(),
             limit: z.number().optional(),
           }),
@@ -449,7 +462,6 @@ export class ChatRouterImpl extends BaseChatRouter {
           const sessions = await ctx.prisma.chatSession.findMany({
             where: {
               deletedAt: null,
-              workspaceId: input.workspaceId,
               ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
             },
             orderBy: [{ isPin: 'desc' }, { updatedAt: 'desc' }],
@@ -485,7 +497,6 @@ export class ChatRouterImpl extends BaseChatRouter {
               errorMessage: true,
               projectId: true,
               messageCount: true,
-              workspaceId: true,
             },
           })
 

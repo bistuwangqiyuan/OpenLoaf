@@ -42,7 +42,6 @@ import { useCalendarPageState } from "./use-calendar-page-state";
 import { useCalendarTasks } from "./use-calendar-tasks";
 import { useProjects } from "@/hooks/use-projects";
 import { buildProjectHierarchyIndex } from "@/lib/project-tree";
-import { useWorkspace } from "@/components/workspace/workspaceContext";
 import { toast } from "sonner";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import {
@@ -61,7 +60,6 @@ type CalendarKind = "event" | "reminder";
 type CalendarSourceFilter = "all" | "local" | "system";
 type CalendarSource = {
   id: string;
-  workspaceId: string;
   provider: string;
   kind: "calendar" | "reminder";
   externalId?: string | null;
@@ -72,7 +70,6 @@ type CalendarSource = {
 };
 type CalendarItemRecord = {
   id: string;
-  workspaceId: string;
   sourceId: string;
   kind: CalendarKind;
   title: string;
@@ -383,8 +380,6 @@ export default function CalendarPage({
 }) {
   const { t } = useTranslation('calendar');
   const { basic } = useBasicConfig();
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
   const uiLanguageRaw = basic.uiLanguage;
   // 逻辑：未知语言回退到 zh-CN。
   const uiLanguage: LanguageId =
@@ -454,10 +449,9 @@ export default function CalendarPage({
     setSelectedCalendarIds,
     setSelectedReminderListIds,
     toggleReminderCompleted,
-  } = useCalendarPageState({ workspaceId, toSystemEvent, getEventKind, sourceFilter });
+  } = useCalendarPageState({ toSystemEvent, getEventKind, sourceFilter });
 
   const { taskEvents, taskCount } = useCalendarTasks({
-    workspaceId,
     selectedProjectIds,
     showTasks,
   });

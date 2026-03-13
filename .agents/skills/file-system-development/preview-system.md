@@ -1,221 +1,70 @@
 # Preview System
 
-## 核心类型
+## 核心入口
 
-### FilePreviewViewer
+| 代码 | 职责 |
+|------|------|
+| [open-file.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/file/lib/open-file.ts) | 统一入口，决定是 stack、modal 还是 embed，并处理 board / doc 特判 |
+| [open-file-preview.tsx](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/file/lib/open-file-preview.tsx) | embed 渲染入口，返回具体 Viewer 的 ReactNode |
+| [file-preview-store.ts](/Users/zhao/Documents/01.Code/Hex/Tenas-All/OpenLoaf/apps/web/src/components/file/lib/file-preview-store.ts) | modal 预览的 Zustand store，统一 open / close 行为 |
 
-```typescript
-type FilePreviewViewer = "image" | "markdown" | "code" | "pdf" | "doc" | "sheet" | "video" | "file"
-```
+## 打开链路
 
-### FilePreviewItem
+`openFilePreview()` 是当前统一入口，默认模式是 `stack`。主要分支如下：
 
-```typescript
-type FilePreviewItem = {
-  uri: string               // 文件 URI
-  openUri?: string          // 原始打开路径
-  name?: string             // 显示名称
-  title?: string            // 标题（用于头部）
-  ext?: string              // 扩展名
-  projectId?: string        // 项目 ID
-  rootUri?: string          // 根路径
-  width?: number            // 媒体宽度（视频弹窗尺寸计算用）
-  height?: number           // 媒体高度
-  thumbnailSrc?: string     // 缩略图
-  mediaType?: string        // MIME 类型
-  maskUri?: string          // 图像蒙版 URI
-  saveName?: string         // 保存文件名
-}
-```
+1. 先处理 board / doc 的索引文件与目录特判
+2. 目录在 `embed` 模式下走嵌入式内容渲染；普通目录可回退到导航回调
+3. 文件通过 `resolveFileViewerTarget()` 决定 viewer 类型
+4. 不支持内置预览的 Office 扩展会先确认，再走系统默认程序
+5. 成功打开后会调用 `recordRecentOpen()`，更新最近打开列表
 
-### FilePreviewPayload
+## 三种模式
 
-```typescript
-type FilePreviewPayload = {
-  viewer: FilePreviewViewer       // 查看器类型
-  items: FilePreviewItem[]        // 预览项列表（图像支持多个）
-  activeIndex: number             // 当前显示索引
-  readOnly?: boolean              // 只读模式
-  sourceId?: string               // 来源 ID（用于协调）
-  showSave?: boolean              // 显示保存按钮
-  enableEdit?: boolean            // 启用编辑模式
-  saveDefaultDir?: string         // 保存默认目录
-  onClose?: () => void            // 关闭回调
-  onApplyMask?: (input) => void   // 蒙版编辑回调
-  onActiveIndexChange?: (index: number) => void  // 图像导航回调
-}
-```
+### Stack
 
-## FilePreviewStore (Zustand)
+- 默认模式，向当前 Tab 的 stack 压入 viewer item
+- 依赖 `tabId`；缺失时会直接报错并中止
+- board 文件夹、文稿文件夹以及普通 viewer 都在这一层统一调度
+- 常见 viewer 包括图片、Markdown、代码、PDF、文档、表格、视频和通用文件查看器
 
-```typescript
-// file-preview-store.ts
-const useFilePreviewStore = create<FilePreviewState>((set, get) => ({
-  payload: null,
-  openPreview: (payload) => set({ payload }),
-  closePreview: () => {
-    get().payload?.onClose?.()     // 关闭时触发回调清理
-    set({ payload: null })
-  },
-}))
+### Modal
 
-// 便利函数（可在组件外调用）
-openFilePreview(payload)     // 打开预览弹窗
-closeFilePreview()           // 关闭预览弹窗
-```
+- 通过 `file-preview-store` 打开全屏预览弹窗
+- 关闭时 `closePreview()` 会先触发 `payload.onClose?.()`，再清空 store
+- 图像和视频会按媒体尺寸计算更合适的弹窗大小，其余类型使用统一的大尺寸弹窗
+- 多图预览场景可以通过 `activeIndex` 与切换回调维护当前项
 
-## 三种打开模式
+### Embed
 
-### FileOpenMode
+- 直接返回 ReactNode，适合文件面板内嵌预览
+- `renderFilePreviewContent()` 会 lazy load 重型 viewer，避免初始 bundle 过大
+- board 文件夹会渲染 `BoardFileViewer`；普通文件按 viewer 类型切换到对应组件
+- PDF 在 embed 模式下也必须先把绝对路径转换成相对路径，才能匹配后端读取逻辑
 
-```typescript
-type FileOpenMode = "stack" | "modal" | "embed"
-```
+## 特殊规则
 
-### 流程
+- `index.tnboard` 对应的 board 文件会自动映射回 board 文件夹并在 stack 中打开
+- 文稿索引文件会自动映射到文稿目录，并交给 `plate-doc-viewer`
+- `isBoardFolderName()` 与 `isDocFolderName()` 都是当前预览入口里的一级分支，不要在各个调用点重复手写判断
+- `shouldOpenOfficeWithSystem()` 只对内置未覆盖的 Office 扩展生效；被内置 viewer 覆盖的扩展应继续走应用内预览
 
-```
-openFilePreview(input: FileOpenInput)
-  ├─ Board 文件夹 → pushStackItem("board-viewer")
-  ├─ 普通文件夹 → onNavigate(uri) 或 embed 渲染
-  └─ 文件
-      ├─ "embed" → renderFilePreviewContent() → ReactNode
-      ├─ Office 不支持 → shouldOpenOfficeWithSystem() → 系统打开
-      ├─ "modal" → buildPreviewPayload() → openFilePreviewDialog()
-      └─ "stack" → buildStackItemForEntry() → pushStackItem()
-```
+## 最近打开通知
 
-### Stack 模式（默认）
+- `recordRecentOpen()` 会统一派发 `openloaf:recent-open` 事件
+- 依赖最近打开列表的界面应该监听这个事件，而不是自己复制一份文件打开逻辑
 
-在 Tab 的 Stack 面板中打开文件：
+## Working Rules
 
-```typescript
-const stackItem = buildStackItemForEntry({
-  entry, projectId, rootUri, thumbnailSrc, readOnly
-})
-// → { id, component, title, params }
-useTabRuntime.getState().pushStackItem(tabId, stackItem)
-```
-
-每种 Viewer 对应一个 `component` 标识：`"image-viewer"`, `"markdown-viewer"`, `"code-viewer"`, `"pdf-viewer"`, `"doc-viewer"`, `"sheet-viewer"`, `"video-viewer"`, `"file-viewer"`。
-
-### Modal 模式
-
-全屏弹窗预览，通过 Zustand Store 驱动：
-
-```typescript
-const payload = buildPreviewPayload({ viewer, entry, projectId, rootUri, ... })
-openFilePreviewDialog(payload)
-
-// FilePreviewDialog 组件消费 Store
-const payload = useFilePreviewStore((state) => state.payload)
-```
-
-**弹窗尺寸**：
-- 图像：`getImageDialogSize(meta)` — 根据图片实际尺寸和视窗计算
-- 视频：`getVideoDialogSize({ width, height })` — 等比缩放适配视窗
-- 其他：`90vw × 90vh` 固定尺寸
-
-**图像导航**：多图预览时显示上/下一张按钮，通过 `onActiveIndexChange` 回调切换。
-
-### Embed 模式
-
-嵌入式渲染，返回 ReactNode：
-
-```typescript
-const content = renderFilePreviewContent({
-  entry, rootUri, projectId, readOnly
-})
-// content 是 ReactNode，可直接渲染到任何容器
-```
-
-## 类型路由
-
-```typescript
-// resolveFileViewerTarget(entry) → { viewer, ext } | null
-// 仅处理 kind === "file" 的条目
-
-IMAGE_EXTS      → "image"
-MARKDOWN_EXTS   → "markdown"
-CODE_EXTS / isTextFallbackExt → "code"
-PDF_EXTS        → "pdf"
-DOC_EXTS(仅docx) → "doc"    // doc 走 "file" fallback
-SPREADSHEET_EXTS → "sheet"
-VIDEO_EXTS      → "video"
-其他             → "file"
-```
-
-### Office 文件系统打开
-
-```typescript
-shouldOpenOfficeWithSystem(ext: string): boolean
-// doc → true（系统打开）
-// docx → false（内置 DocViewer）
-// xls/xlsx/csv → false（内置 SheetViewer）
-// ppt/pptx → true（系统打开）
-```
-
-## FileOpenInput
-
-```typescript
-type FileOpenInput = {
-  entry: FileSystemEntry       // 目标条目
-  tabId?: string | null        // Stack 模式需要
-  projectId?: string           // 项目 ID
-  rootUri?: string             // 工作区根路径
-  thumbnailSrc?: string        // 缩略图
-  mode?: FileOpenMode          // 打开模式（默认 "stack"）
-  confirmOpen?: (msg) => boolean  // 不支持类型确认回调
-  onNavigate?: (uri) => void   // 文件夹导航回调
-  readOnly?: boolean           // 只读标记
-  board?: { pendingRename?: boolean }  // Board 选项
-  modal?: { showSave?, enableEdit?, saveDefaultDir? }  // Modal 选项
-}
-```
-
-## 最近打开 (recent-open.ts)
-
-### 存储结构
-
-```typescript
-type RecentOpenStore = {
-  workspace: RecentOpenItem[]                    // 工作区级
-  projects: Record<string, RecentOpenItem[]>    // 项目级
-}
-// localStorage key: `openloaf:recent-open:${workspaceId}`
-```
-
-### API
-
-```typescript
-recordRecentOpen({
-  tabId?, workspaceId?, projectId?, entry,
-  maxItems?: 5     // 每个作用域保留条数
-})
-
-getRecentOpens({
-  workspaceId?, projectId?,
-  limit?: 5
-}) → { workspace: RecentOpenItem[], project: RecentOpenItem[] }
-```
-
-### 通知
-
-```typescript
-// 记录后广播 CustomEvent
-window.dispatchEvent(new CustomEvent("openloaf:recent-open", { detail: { workspaceId } }))
-```
-
-监听方可通过 `addEventListener("openloaf:recent-open", ...)` 实时更新最近打开列表。
+- 只写规则和代码链接，不放示例代码
+- 新增预览类型时，先补统一入口和 viewer 判定，再考虑 UI 表现
+- 任何 board / doc 特判都应收敛在统一入口，不要分散到各个调用点
 
 ## Common Mistakes
 
 | 错误 | 正确做法 |
 |------|----------|
-| Modal 关闭不触发 `onClose` | `closePreview()` 已自动调用 `payload.onClose?.()` |
-| Stack 模式不传 `tabId` | 没有 `tabId` 会 toast 错误 |
-| PDF 使用绝对 URI | PDF 需要 `getRelativePathFromUri()` 转相对路径 |
-| Office 文件直接预览 | 先检查 `shouldOpenOfficeWithSystem()` |
-| 视频弹窗没有尺寸 | 必须传 `width`/`height` 给 FilePreviewItem |
-| 最近打开不通知 | `recordRecentOpen` 已自动发 CustomEvent |
-| Board 文件夹不特殊处理 | `openFilePreview` 已检测 `isBoardFolderName()` |
+| stack 打开时不传 `tabId` | 任何需要压入 stack 的预览都必须提供当前标签页 id |
+| PDF 直接使用绝对 `uri` | 先转换为相对路径，再传给 PDF viewer |
+| modal 关闭后忘记清理调用方状态 | 通过 `payload.onClose` 接入清理，store 会在关闭时自动调用 |
+| Office 文件一律强行内置预览 | 先走 `shouldOpenOfficeWithSystem()` 判断是否需要交给系统默认程序 |
+| 在各处重复实现 board / doc 特判 | 统一调用 `openFilePreview()`，不要分散复制打开逻辑 |

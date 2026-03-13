@@ -8,6 +8,11 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { TabView } from "./tab-types";
+import {
+  CANVAS_LIST_TAB_INPUT,
+  PROJECT_LIST_TAB_INPUT,
+  WORKBENCH_TAB_INPUT,
+} from "@openloaf/api/common";
 import { getLeftSidebarOpen } from "@/lib/sidebar-state";
 
 /** Minimum pixel width for the left dock. */
@@ -17,12 +22,28 @@ export const LEFT_DOCK_MIN_PX = 680;
 export const LEFT_DOCK_DEFAULT_PERCENT = 30;
 
 export const BOARD_VIEWER_COMPONENT = "board-viewer";
+const FILE_FOREGROUND_COMPONENTS = new Set([
+  "file-viewer",
+  "image-viewer",
+  "code-viewer",
+  "markdown-viewer",
+  "pdf-viewer",
+  "doc-viewer",
+  "sheet-viewer",
+  "video-viewer",
+  "plate-doc-viewer",
+  "streaming-plate-viewer",
+  "streaming-code-viewer",
+]);
+const RIGHT_CHAT_DISABLED_PROJECT_TABS = new Set(["index", "canvas", "files", "tasks"]);
 
 /** Minimal snapshot needed to resolve active stack items. */
 export type TabsStateSnapshot = {
   tabs: TabView[];
   activeStackItemIdByTabId?: Record<string, string>;
 };
+
+type ForegroundTabSnapshot = Pick<TabView, "base" | "stack" | "activeStackItemId" | "projectShell">;
 
 /** Resolve the active stack item for a tab snapshot. */
 export function getActiveStackItem(state: TabsStateSnapshot, tabId: string) {
@@ -34,6 +55,52 @@ export function getActiveStackItem(state: TabsStateSnapshot, tabId: string) {
     stack.at(-1)?.id ||
     "";
   return stack.find((item) => item.id === activeId) ?? stack.at(-1);
+}
+
+/** Resolve the foreground component currently visible in a tab. */
+export function getTabForegroundComponent(tab?: ForegroundTabSnapshot) {
+  const stack = Array.isArray(tab?.stack) ? tab.stack : [];
+  const activeId = tab?.activeStackItemId || stack.at(-1)?.id || "";
+  const activeItem = stack.find((item) => item.id === activeId) ?? stack.at(-1);
+  return activeItem?.component ?? tab?.base?.component;
+}
+
+/** Return true when the current foreground page is the global settings page. */
+export function isSettingsForegroundPage(tab?: ForegroundTabSnapshot) {
+  return getTabForegroundComponent(tab) === "settings-page";
+}
+
+/** Return true when the current foreground page should suppress the right chat panel. */
+export function shouldDisableRightChat(tab?: ForegroundTabSnapshot) {
+  const foreground = getTabForegroundComponent(tab);
+  if (
+    foreground === "settings-page" ||
+    foreground === "project-settings-page" ||
+    foreground === PROJECT_LIST_TAB_INPUT.component ||
+    foreground === WORKBENCH_TAB_INPUT.component ||
+    foreground === CANVAS_LIST_TAB_INPUT.component
+  ) {
+    return true;
+  }
+
+  if (foreground && FILE_FOREGROUND_COMPONENTS.has(foreground)) {
+    return true;
+  }
+
+  if (
+    foreground === BOARD_VIEWER_COMPONENT &&
+    tab?.projectShell?.section === "canvas"
+  ) {
+    return true;
+  }
+
+  if (foreground !== "plant-page") {
+    return false;
+  }
+
+  const projectTab =
+    typeof tab?.base?.params?.projectTab === "string" ? tab.base.params.projectTab.trim() : "";
+  return RIGHT_CHAT_DISABLED_PROJECT_TABS.has(projectTab);
 }
 
 /** Return true when the active board stack is in full mode. */
