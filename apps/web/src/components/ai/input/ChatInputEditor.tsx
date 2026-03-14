@@ -22,18 +22,30 @@ import { getFileLabel } from "./chat-input-utils";
 
 // ─── Constants ──────────────────────────────────────────────────────
 const CHIP_CLASS = "ol-mention-chip";
+const SKILL_CHIP_CLASS = "ol-skill-chip";
 const FILE_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" ' +
   'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
   'style="flex-shrink:0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>' +
   '<path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+const SKILL_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" ' +
+  'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+  'style="flex-shrink:0"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>';
+
+const CHIP_BASE_STYLES = "display:inline-flex;align-items:center;gap:3px;padding:1px 6px;margin:0 1px;border-radius:4px;font-size:12px;font-weight:500;line-height:18px;vertical-align:baseline;cursor:pointer;user-select:none;white-space:nowrap;max-width:200px;transition:background-color .15s";
 
 const CHIP_STYLES = `
-.${CHIP_CLASS}{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;margin:0 1px;border-radius:4px;background:rgb(219 234 254/.8);color:rgb(29 78 216);font-size:12px;font-weight:500;line-height:18px;vertical-align:baseline;cursor:pointer;user-select:none;white-space:nowrap;max-width:200px;transition:background-color .15s}
+.${CHIP_CLASS}{${CHIP_BASE_STYLES};background:rgb(219 234 254/.8);color:rgb(29 78 216)}
 .${CHIP_CLASS}:hover{background:rgb(191 219 254)}
 .${CHIP_CLASS}>span{overflow:hidden;text-overflow:ellipsis}
 .dark .${CHIP_CLASS}{background:rgb(30 58 138/.4);color:rgb(147 197 253)}
 .dark .${CHIP_CLASS}:hover{background:rgb(30 58 138/.6)}
+.${SKILL_CHIP_CLASS}{${CHIP_BASE_STYLES};background:rgb(243 232 255/.8);color:rgb(126 34 206)}
+.${SKILL_CHIP_CLASS}:hover{background:rgb(233 213 255)}
+.${SKILL_CHIP_CLASS}>span{overflow:hidden;text-overflow:ellipsis}
+.dark .${SKILL_CHIP_CLASS}{background:rgb(88 28 135/.4);color:rgb(216 180 254)}
+.dark .${SKILL_CHIP_CLASS}:hover{background:rgb(88 28 135/.6)}
 `;
 
 let stylesInjected = false;
@@ -62,23 +74,33 @@ function escapeAttr(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
-/** Convert a value string to innerHTML with inline mention chip elements. */
+/** Convert a value string to innerHTML with inline mention/skill chip elements. */
 function valueToHtml(value: string): string {
   if (!value) return "";
   let html = "";
   let lastIndex = 0;
-  const re = /@\{([^}]+)\}/g;
+  // Match both @{...} file mentions and /skill/xxx skill commands.
+  const re = /@\{([^}]+)\}|\/skill\/(\S+)/g;
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: intentional loop pattern
   while ((match = re.exec(value)) !== null) {
     html += escapeHtml(value.slice(lastIndex, match.index));
     const token = match[0];
-    const ref = match[1];
-    const label = getFileLabel(ref);
-    html +=
-      `<span class="${CHIP_CLASS}" data-token="${escapeAttr(token)}" contenteditable="false">` +
-      `${FILE_ICON_SVG}<span>${escapeHtml(label)}</span>` +
-      "</span>";
+    if (match[1] !== undefined) {
+      // File mention: @{...}
+      const label = getFileLabel(match[1]);
+      html +=
+        `<span class="${CHIP_CLASS}" data-token="${escapeAttr(token)}" contenteditable="false">` +
+        `${FILE_ICON_SVG}<span>${escapeHtml(label)}</span>` +
+        "</span>";
+    } else {
+      // Skill command: /skill/xxx
+      const skillName = match[2];
+      html +=
+        `<span class="${SKILL_CHIP_CLASS}" data-token="${escapeAttr(token)}" contenteditable="false">` +
+        `${SKILL_ICON_SVG}<span>${escapeHtml(skillName)}</span>` +
+        "</span>";
+    }
     lastIndex = match.index + token.length;
   }
   html += escapeHtml(value.slice(lastIndex));
@@ -93,7 +115,7 @@ function domToValue(node: Node): string {
       result += child.textContent ?? "";
     } else if (child.nodeType === Node.ELEMENT_NODE) {
       const el = child as HTMLElement;
-      if (el.classList.contains(CHIP_CLASS)) {
+      if (el.classList.contains(CHIP_CLASS) || el.classList.contains(SKILL_CHIP_CLASS)) {
         result += el.dataset.token ?? "";
       } else if (el.tagName === "BR") {
         result += "\n";
@@ -295,7 +317,7 @@ export function ChatInputEditor({
     isEmpty() {
       const el = editorRef.current;
       if (!el) return !value;
-      return !el.textContent?.trim() && !el.querySelector(`.${CHIP_CLASS}`);
+      return !el.textContent?.trim() && !el.querySelector(`.${CHIP_CLASS},.${SKILL_CHIP_CLASS}`);
     },
   }));
 
@@ -311,6 +333,15 @@ export function ChatInputEditor({
     if (currentDom !== value) {
       el.innerHTML = valueToHtml(value);
       valueRef.current = value;
+      // Place caret at end after external value change (e.g. skill selection).
+      const sel = window.getSelection();
+      if (sel && el.ownerDocument.activeElement === el) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
     }
   }, [value]);
 
@@ -320,7 +351,7 @@ export function ChatInputEditor({
     const el = editorRef.current;
     if (!el) return;
     const hasText = !!(el.textContent?.length);
-    const hasChip = !!el.querySelector(`.${CHIP_CLASS}`);
+    const hasChip = !!el.querySelector(`.${CHIP_CLASS},.${SKILL_CHIP_CLASS}`);
     setDomEmpty(!hasText && !hasChip);
   }, []);
 

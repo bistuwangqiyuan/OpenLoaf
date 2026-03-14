@@ -24,6 +24,15 @@ export type TaskSummaryUpdateEvent = {
   summary: ExecutionSummary
 }
 
+export type TaskReportEvent = {
+  taskId: string
+  sourceSessionId: string
+  status: 'completed' | 'failed'
+  title: string
+  summary: string
+  messageId: string
+}
+
 class TaskEventBus extends EventEmitter {
   emitStatusChange(event: TaskStatusChangeEvent) {
     this.emit('statusChange', event)
@@ -44,6 +53,17 @@ class TaskEventBus extends EventEmitter {
     this.on('summaryUpdate', listener)
     return () => {
       this.off('summaryUpdate', listener)
+    }
+  }
+
+  emitTaskReport(event: TaskReportEvent) {
+    this.emit('taskReport', event)
+  }
+
+  onTaskReport(listener: (event: TaskReportEvent) => void) {
+    this.on('taskReport', listener)
+    return () => {
+      this.off('taskReport', listener)
     }
   }
 }

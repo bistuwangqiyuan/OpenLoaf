@@ -25,6 +25,7 @@ import {
 import {
   clearMediaTask,
   getMediaTaskContext,
+  loadBoardTasks,
   rememberMediaTask,
 } from "./mediaTaskStore";
 
@@ -135,12 +136,28 @@ export async function submitVideoProxy(
   return result;
 }
 
+export type PollRecoveryHint = {
+  /** Project id for lazy loading board tasks. */
+  projectId?: string;
+  /** Save directory for lazy loading board tasks. */
+  saveDir?: string;
+};
+
 /** Poll SaaS task and persist assets if needed. */
-export async function pollMediaProxy(taskId: string, accessToken: string): Promise<unknown> {
+export async function pollMediaProxy(
+  taskId: string,
+  accessToken: string,
+  recoveryHint?: PollRecoveryHint,
+): Promise<unknown> {
   if (!taskId) {
     throw new MediaProxyHttpError(400, "invalid_payload", "任务编号无效");
   }
-  const ctx = getMediaTaskContext(taskId);
+  let ctx = getMediaTaskContext(taskId);
+  // 逻辑：内存未命中时尝试从画布目录的 tasks.json 恢复（服务重启场景）。
+  if (!ctx && recoveryHint?.projectId && recoveryHint?.saveDir) {
+    loadBoardTasks(recoveryHint.projectId, recoveryHint.saveDir);
+    ctx = getMediaTaskContext(taskId);
+  }
   const result = await pollMediaTask(taskId, accessToken);
   const resultType = result.resultType ?? ctx?.resultType;
   let resultUrls = result.resultUrls;

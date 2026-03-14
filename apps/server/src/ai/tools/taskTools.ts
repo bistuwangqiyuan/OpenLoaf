@@ -24,6 +24,7 @@ import {
 import { taskOrchestrator } from '@/services/taskOrchestrator'
 import { taskScheduler } from '@/services/taskScheduler'
 import { resolveToolRoots } from '@/ai/tools/toolScope'
+import { getSessionId } from '@/ai/shared/context/requestContext'
 
 // ─── Status Protection Constants ──────────────────────────────────────
 
@@ -101,6 +102,7 @@ export const taskManageTool = tool({
             skipPlanConfirm: isScheduled ? true : (input.skipPlanConfirm ?? false),
             agentName: input.agentName,
             createdBy: 'agent',
+            sourceSessionId: getSessionId(),
           },
           rootPath,
           scope,

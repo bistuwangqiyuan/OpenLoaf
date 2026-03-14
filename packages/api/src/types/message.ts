@@ -14,7 +14,7 @@ type UIDataTypes = Record<string, unknown>;
 type UITools = Record<string, unknown>;
 type UIMessage<D = unknown, DT = UIDataTypes, T = UITools> = {
   id: string;
-  role: "system" | "user" | "assistant" | "subagent";
+  role: "system" | "user" | "assistant" | "subagent" | "task-report";
   parts: any[];
   metadata?: any;
 };
@@ -140,6 +140,23 @@ export type ChatRequestBody = {
   clientPlatform?: ClientPlatform;
   /** Board chat: explicit message ID chain from canvas connector graph. */
   messageIdChain?: string[];
+};
+
+/** Part type for task references embedded in chat messages. */
+export type TaskRefPart = {
+  type: "task-ref";
+  taskId: string;
+  title: string;
+  agentType: string;
+  status: "running" | "completed" | "failed";
+};
+
+/** Metadata for task-report messages. */
+export type TaskReportMetadata = {
+  taskId: string;
+  agentType: string;
+  displayName: string;
+  projectId?: string;
 };
 
 export type TokenUsage = {

@@ -430,7 +430,10 @@
     "statusFailed": "失败",
     "statusGenerating": "生成中…",
     "statusWaiting": "等待任务",
-    "transcoding": "转码中"
+    "transcoding": "转码中",
+    "cancel": "取消",
+    "retry": "重试",
+    "delete": "删除"
   },
   "collab": {
     "imageTranscodeFailed": "图片转码失败，已使用原始文件插入"
@@ -449,7 +452,7 @@
     "openBoardFolderFailed": "无法打开画布文件夹"
   },
   "aiToolbar": {
-    "aiAssistant": "AI小助手",
+    "aiAssistant": "AI智能体",
     "imagePromptGenerate": "图片理解",
     "imageGenerate": "图片生成",
     "videoGenerate": "生成视频"

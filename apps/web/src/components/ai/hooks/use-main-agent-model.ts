@@ -126,11 +126,34 @@ export function useMainAgentModel(projectId?: string) {
     }).queryKey;
   }
 
-  /** Save master agent config with partial updates. */
+  /** Save master agent config with partial updates. Auto-creates master agent if missing. */
   const updateMasterAgent = useCallback(
     (patch: Partial<AgentDetail>) => {
       const detail = detailQuery.data as AgentDetail | undefined;
-      if (!detail) return;
+      if (!detail) {
+        // Master agent 不存在 — 自动创建一个。
+        const scope = projectId ? "project" : "global";
+        saveMutation.mutate({
+          scope,
+          projectId: scope === "project" ? projectId : undefined,
+          name: "master",
+          description: "",
+          icon: "sparkles",
+          modelLocalIds: normalizeIds(patch.modelLocalIds),
+          modelCloudIds: normalizeIds(patch.modelCloudIds),
+          auxiliaryModelSource: patch.auxiliaryModelSource ?? "",
+          auxiliaryModelLocalIds: normalizeIds(patch.auxiliaryModelLocalIds),
+          auxiliaryModelCloudIds: normalizeIds(patch.auxiliaryModelCloudIds),
+          imageModelIds: normalizeIds(patch.imageModelIds),
+          videoModelIds: normalizeIds(patch.videoModelIds),
+          codeModelIds: normalizeIds(patch.codeModelIds),
+          toolIds: [],
+          skills: [],
+          allowSubAgents: true,
+          maxDepth: 3,
+        });
+        return;
+      }
       const nextModelLocalIds = Array.isArray(patch.modelLocalIds)
         ? patch.modelLocalIds
         : detail.modelLocalIds;

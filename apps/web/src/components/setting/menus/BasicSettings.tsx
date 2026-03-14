@@ -44,6 +44,7 @@ import { detectSystemLanguage } from "@/i18n/detectLanguage";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import LocalAccess from "./LocalAccess";
 import { AboutOpenLoaf } from "./AboutOpenLoaf";
+import { WebSearchSettings } from "./WebSearchSettings";
 
 type FontSizeKey = "small" | "medium" | "large" | "xlarge";
 type AnimationLevel = "low" | "medium" | "high";
@@ -396,6 +397,8 @@ export function BasicSettings() {
 
               </div>
             </OpenLoafSettingsGroup>
+
+            <WebSearchSettings />
 
             <AboutOpenLoaf />
 

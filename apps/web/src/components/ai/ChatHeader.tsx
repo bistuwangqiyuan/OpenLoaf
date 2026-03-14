@@ -84,14 +84,22 @@ export default function ChatHeader({
   /** Chat feedback submitting state. */
   const [chatFeedbackSubmitting, setChatFeedbackSubmitting] = React.useState(false);
   const menuLockRef = React.useRef(false);
-  // 历史会话列表：查询全部非 board 会话（不按项目过滤），确保切换项目后仍可看到全量历史。
-  const globalSessionsQuery = useQuery({
-    ...trpc.chat.listSessions.queryOptions({ boardId: null }),
+  // 项目模式下按项目过滤会话，全局模式下查全量。
+  const projectShell = useAppView((s) => s.projectShell);
+  const shellProjectId = projectShell?.projectId?.trim() || "";
+  const sessionsListInput = React.useMemo(
+    () => shellProjectId
+      ? { projectId: shellProjectId, boardId: null as string | null }
+      : { boardId: null as string | null },
+    [shellProjectId],
+  );
+  const sessionsQuery = useQuery({
+    ...trpc.chat.listSessions.queryOptions(sessionsListInput),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
-  const sessions = (globalSessionsQuery.data ?? []) as Array<{ id: string; title: string; projectId?: string | null; isUserRename?: boolean; updatedAt: string | Date }>;
-  const refetchSessions = globalSessionsQuery.refetch;
+  const sessions = (sessionsQuery.data ?? []) as Array<{ id: string; title: string; projectId?: string | null; isUserRename?: boolean; updatedAt: string | Date }>;
+  const refetchSessions = sessionsQuery.refetch;
   const setTitle = useAppView((s) => s.setTitle);
   const setChatParams = useAppView((s) => s.setChatParams);
   const pushStackItem = useLayoutState((s) => s.pushStackItem);
@@ -440,7 +448,7 @@ export default function ChatHeader({
                   tabId={tabId}
                   activeSessionId={activeSessionId}
                   externalSessions={sessions as any}
-                  externalLoading={globalSessionsQuery.isLoading}
+                  externalLoading={sessionsQuery.isLoading}
                   onMenuOpenChange={handleMenuOpenChange}
                   onSelect={(session) => {
                     setHistoryOpen(false);

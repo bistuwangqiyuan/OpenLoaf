@@ -10,7 +10,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText } from "lucide-react";
+import { FileText, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Snippet, SnippetAddon, SnippetText } from "@/components/ai-elements/snippet";
 import {
@@ -25,10 +25,20 @@ import {
   MentionImageThumbnail,
   MentionVideoThumbnail,
 } from "./MentionMediaThumbnail";
+import { useLayoutState } from "@/hooks/use-layout-state";
 
 interface ChatMessageTextProps {
   value: string;
   className?: string;
+}
+
+function openSkillInStack() {
+  useLayoutState.getState().pushStackItem({
+    id: "skill-settings",
+    sourceKey: "skill-settings",
+    component: "skill-settings",
+    title: "技能",
+  });
 }
 
 export default function ChatMessageText({ value, className }: ChatMessageTextProps) {
@@ -61,6 +71,19 @@ export default function ChatMessageText({ value, className }: ChatMessageTextPro
             </SnippetText>
           </SnippetAddon>
         </Snippet>
+      );
+    }
+
+    if (segment.type === "skill") {
+      return (
+        <span
+          key={`skill-${index}`}
+          className="inline-flex items-center gap-[3px] align-middle py-px px-1.5 mx-0.5 rounded-md bg-purple-200/80 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 text-xs font-medium leading-[18px] cursor-pointer select-none whitespace-nowrap max-w-[200px] hover:bg-purple-300 dark:hover:bg-purple-900/60 transition-colors"
+          onClick={openSkillInStack}
+        >
+          <Sparkles className="size-3 shrink-0" />
+          <span className="overflow-hidden text-ellipsis">{segment.value}</span>
+        </span>
       );
     }
 

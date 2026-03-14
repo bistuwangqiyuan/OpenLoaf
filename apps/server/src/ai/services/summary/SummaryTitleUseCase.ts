@@ -205,7 +205,7 @@ function buildSummaryTitleSystemPrompt(): string {
   return [
     "你是一个对话标题生成器。",
     "- 只输出一个标题，不要解释。",
-    "- 标题不超过 16 个字。",
+    "- 标题不超过 30 个字。",
     "- 不要输出引号、编号、Markdown。",
   ].join("\n");
 }

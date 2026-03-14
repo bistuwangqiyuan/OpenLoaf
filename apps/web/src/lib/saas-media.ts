@@ -36,6 +36,14 @@ function buildModelRequestUrl(path: string, options?: FetchMediaModelsOptions): 
   return url.toString();
 }
 
+/** Validate HTTP response and parse JSON. */
+async function parseJsonResponse(response: Response): Promise<any> {
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 /** Submit an image generation task to SaaS proxy. */
 export async function submitImageTask(payload: SaasImageSubmitPayload) {
   const base = resolveServerUrl();
@@ -46,7 +54,7 @@ export async function submitImageTask(payload: SaasImageSubmitPayload) {
     headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify(payload),
   });
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 /** Submit a video generation task to SaaS proxy. */
@@ -59,18 +67,28 @@ export async function submitVideoTask(payload: SaasVideoSubmitPayload) {
     headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify(payload),
   });
-  return response.json();
+  return parseJsonResponse(response);
 }
 
+type PollTaskOptions = {
+  /** Project id for server-side context recovery. */
+  projectId?: string;
+  /** Save directory for server-side context recovery. */
+  saveDir?: string;
+};
+
 /** Poll task status from SaaS proxy. */
-export async function pollTask(taskId: string) {
+export async function pollTask(taskId: string, options?: PollTaskOptions) {
   const base = resolveServerUrl();
   const authHeaders = await buildAuthHeaders();
-  const response = await fetch(`${base}/ai/task/${taskId}`, {
+  const url = new URL(`${base}/ai/task/${taskId}`);
+  if (options?.projectId) url.searchParams.set("projectId", options.projectId);
+  if (options?.saveDir) url.searchParams.set("saveDir", options.saveDir);
+  const response = await fetch(url.toString(), {
     credentials: "include",
     headers: authHeaders,
   });
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 /** Cancel a task via SaaS proxy. */
@@ -82,7 +100,7 @@ export async function cancelTask(taskId: string) {
     credentials: "include",
     headers: authHeaders,
   });
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 /** Fetch image model list from SaaS proxy. */
@@ -92,7 +110,7 @@ export async function fetchImageModels(options?: FetchMediaModelsOptions) {
     credentials: "include",
     headers: authHeaders,
   });
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 /** Fetch video model list from SaaS proxy. */
@@ -102,5 +120,5 @@ export async function fetchVideoModels(options?: FetchMediaModelsOptions) {
     credentials: "include",
     headers: authHeaders,
   });
-  return response.json();
+  return parseJsonResponse(response);
 }

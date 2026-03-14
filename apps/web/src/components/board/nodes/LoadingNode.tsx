@@ -8,10 +8,10 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 import type { CanvasNodeDefinition, CanvasNodeViewProps } from "../engine/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, X, RotateCw, Trash2 } from "lucide-react";
 import { trpcClient } from "@/utils/trpc";
 import { fetchVideoMetadata } from "@/components/file/lib/video-metadata";
 import { cancelTask, pollTask } from "@/lib/saas-media";
@@ -77,38 +77,41 @@ function clearLoadingNode(engine: any, loadingNodeId: string) {
   engine.doc.deleteElement(loadingNodeId);
 }
 
+/** Compute poll delay with exponential backoff. */
+function getPollDelay(attempt: number): number {
+  // 前 30 次 2s，之后逐步增加到 5s、10s
+  if (attempt < 30) return 2000;
+  if (attempt < 60) return 5000;
+  return 10000;
+}
+
 /** Render the loading node. */
 export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProps>) {
   const { t } = useTranslation('board');
   const { engine } = useBoardContext();
   const [isRunning, setIsRunning] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 逻辑：用 ref 持有可变值，避免它们出现在 useEffect 依赖中导致轮询被意外重启。
+  const tRef = useRef(t);
+  tRef.current = t;
+  const xywhRef = useRef(element.xywh);
+  xywhRef.current = element.xywh;
 
   const taskId = element.props.taskId ?? "";
   const taskType = element.props.taskType ?? "video_generate";
   const promptText = (element.props.promptText ?? "").trim();
   const sourceNodeId = element.props.sourceNodeId ?? "";
   const projectId = element.props.projectId ?? "";
+  const saveDir = element.props.saveDir ?? "";
 
   const promptLabel = promptText || t('loading.processing');
 
   const canRun = Boolean(
     taskId && (taskType === "video_generate" || taskType === "image_generate")
   );
-
-  // 逻辑：在 hook 层捕获翻译字符串，供 async 函数闭包使用。
-  const errCancelled = t('loading.cancelled');
-  const errQueryFailed = t('loading.queryFailed');
-  const errImageFailed = t('loading.imageGenerateFailed');
-  const errVideoFailed = t('loading.videoGenerateFailed');
-  const errVideoSave = t('loading.videoSaveFailed');
-  const errTaskCancelled = t('loading.taskCancelled');
-  const errGenFailed = t('loading.failed');
-  const errImageTimeout = t('loading.imageTimeout');
-  const errVideoTimeout = t('loading.videoTimeout');
-  const errImageGenError = t('loading.imageGenerateError');
-  const errVideoGenError = t('loading.videoGenerateError');
 
   useEffect(() => {
     if (!canRun) return;
@@ -124,11 +127,21 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
         const maxAttempts = 300;
         for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
           if (controller.signal.aborted) {
-            throw new Error(errCancelled);
+            throw new Error(tRef.current('loading.cancelled'));
           }
-          const status = await pollTask(taskId);
+          const status = await pollTask(taskId, {
+            projectId: projectId || undefined,
+            saveDir: saveDir || undefined,
+          });
+
+          // 逻辑：HTTP 错误或无效响应时直接失败，不盲等。
           if (!status || status.success !== true || !status.data) {
-            throw new Error(errQueryFailed);
+            throw new Error(tRef.current('loading.queryFailed'));
+          }
+
+          // 逻辑：任务不存在（404 语义），可能是服务端重启后丢失上下文。
+          if (status.data.status === "not_found") {
+            throw new Error(tRef.current('loading.queryFailed'));
           }
 
           if (status.data.status === "succeeded") {
@@ -139,12 +152,15 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
                 )
               : [];
             if (resultUrls.length === 0) {
-              throw new Error(taskType === "image_generate" ? errImageFailed : errVideoFailed);
+              throw new Error(
+                taskType === "image_generate"
+                  ? tRef.current('loading.imageGenerateFailed')
+                  : tRef.current('loading.videoGenerateFailed'),
+              );
             }
 
             if (taskType === "image_generate") {
               if (sourceNodeId) {
-                // 逻辑：输出成功后同步更新源节点状态。
                 engine.doc.updateNodeProps(sourceNodeId, {
                   resultImages: resultUrls,
                   errorText: "",
@@ -152,10 +168,9 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
               }
 
               const selectionSnapshot = engine.selection.getSelectedIds();
-              const [x, y] = element.xywh;
+              const [x, y] = xywhRef.current;
               const imageNodeIds: string[] = [];
 
-              // 逻辑：先构建所有图片 payload 以获取真实尺寸，再统一居中放置。
               const payloads = await Promise.all(
                 resultUrls.map((resultUrl: string) =>
                   buildImageNodePayloadFromUri(resultUrl, {
@@ -169,7 +184,6 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
                 payloads.reduce((sum, p) => sum + p.size[1], 0) +
                 gap * Math.max(payloads.length - 1, 0);
 
-              // 逻辑：以源节点中心为基准居中对齐，源节点不可用时回退到加载节点位置。
               const sourceEl = sourceNodeId
                 ? engine.doc.getElementById(sourceNodeId)
                 : null;
@@ -233,11 +247,10 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
               });
             })();
             if (!scopedPath) {
-              throw new Error(errVideoSave);
+              throw new Error(tRef.current('loading.videoSaveFailed'));
             }
 
             if (sourceNodeId) {
-              // 逻辑：输出成功后同步更新源节点状态。
               engine.doc.updateNodeProps(sourceNodeId, {
                 resultVideo: scopedPath,
                 errorText: "",
@@ -266,7 +279,7 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
             const fileName = savedPath.split("/").pop() || "";
 
             const selectionSnapshot = engine.selection.getSelectedIds();
-            const [x, y, w, h] = element.xywh;
+            const [x, y, w, h] = xywhRef.current;
             const videoNodeId = engine.addNodeElement(
               "video",
               {
@@ -296,28 +309,33 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
 
           if (status.data.status === "failed" || status.data.status === "canceled") {
             const fallbackMessage =
-              status.data.status === "canceled" ? errTaskCancelled : errGenFailed;
+              status.data.status === "canceled"
+                ? tRef.current('loading.taskCancelled')
+                : tRef.current('loading.failed');
             throw new Error(status.data.error?.message || fallbackMessage);
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, getPollDelay(attempt)));
         }
 
-        throw new Error(taskType === "image_generate" ? errImageTimeout : errVideoTimeout);
+        throw new Error(
+          taskType === "image_generate"
+            ? tRef.current('loading.imageTimeout')
+            : tRef.current('loading.videoTimeout'),
+        );
       } catch (error) {
         if (!controller.signal.aborted) {
           const message =
             error instanceof Error
               ? error.message
               : taskType === "image_generate"
-                ? errImageGenError
-                : errVideoGenError;
+                ? tRef.current('loading.imageGenerateError')
+                : tRef.current('loading.videoGenerateError');
           setErrorText(message);
           if (sourceNodeId) {
             engine.doc.updateNodeProps(sourceNodeId, { errorText: message });
           }
-          finished = true;
-          clearLoadingNode(engine, element.id);
+          // 逻辑：错误时保留节点，不自动清理，让用户选择重试或删除。
         }
       } finally {
         if (abortControllerRef.current === controller) {
@@ -335,33 +353,34 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
         void cancelTask(taskId).catch(() => undefined);
       }
     };
-  }, [
-    canRun,
-    engine,
-    element.id,
-    element.xywh,
-    projectId,
-    sourceNodeId,
-    taskId,
-    taskType,
-    errCancelled,
-    errQueryFailed,
-    errImageFailed,
-    errVideoFailed,
-    errVideoSave,
-    errTaskCancelled,
-    errGenFailed,
-    errImageTimeout,
-    errVideoTimeout,
-    errImageGenError,
-    errVideoGenError,
-  ]);
+    // 逻辑：仅依赖关键业务字段 + retryCount，不包含 xywh/翻译字符串，避免拖动或切语言触发重新轮询。
+  }, [canRun, engine, element.id, projectId, saveDir, sourceNodeId, taskId, taskType, retryCount]);
 
-  const statusText = useMemo(() => {
+  const handleCancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    void cancelTask(taskId).catch(() => undefined);
+    clearLoadingNode(engine, element.id);
+  }, [engine, element.id, taskId]);
+
+  const handleRetry = useCallback(() => {
+    // 逻辑：递增 retryCount 触发 useEffect 重新执行轮询。
+    setErrorText("");
+    abortControllerRef.current = null;
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  const handleDelete = useCallback(() => {
+    clearLoadingNode(engine, element.id);
+  }, [engine, element.id]);
+
+  const statusText = (() => {
     if (errorText) return t('loading.statusFailed');
     if (isRunning) return t('loading.statusGenerating');
     return t('loading.statusWaiting');
-  }, [errorText, isRunning, t]);
+  })();
 
   return (
     <NodeFrame>
@@ -380,6 +399,42 @@ export function LoadingNodeView({ element }: CanvasNodeViewProps<LoadingNodeProp
         </div>
         <div className="text-[11px] text-ol-text-auxiliary line-clamp-3">
           {promptLabel}
+        </div>
+        {errorText && (
+          <div className="text-[10px] text-ol-red line-clamp-2 mt-0.5">
+            {errorText}
+          </div>
+        )}
+        <div className="flex items-center gap-1 mt-1">
+          {errorText ? (
+            <>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] bg-ol-blue-bg text-ol-blue hover:bg-ol-blue/20 transition-colors duration-150"
+              >
+                <RotateCw className="h-3 w-3" />
+                {t('loading.retry')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] bg-ol-red-bg text-ol-red hover:bg-ol-red/20 transition-colors duration-150"
+              >
+                <Trash2 className="h-3 w-3" />
+                {t('loading.delete')}
+              </button>
+            </>
+          ) : isRunning ? (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] bg-ol-red-bg text-ol-red hover:bg-ol-red/20 transition-colors duration-150"
+            >
+              <X className="h-3 w-3" />
+              {t('loading.cancel')}
+            </button>
+          ) : null}
         </div>
       </div>
     </NodeFrame>

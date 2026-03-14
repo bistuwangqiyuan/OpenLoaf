@@ -135,9 +135,11 @@ export function registerSaasMediaRoutes(
   });
 
   app.get("/ai/task/:taskId", async (c) => {
-    return handleSaasMediaRoute(c, async (accessToken) =>
-      pollMediaProxy(c.req.param("taskId"), accessToken),
-    );
+    return handleSaasMediaRoute(c, async (accessToken) => {
+      const projectId = c.req.query("projectId") || undefined;
+      const saveDir = c.req.query("saveDir") || undefined;
+      return pollMediaProxy(c.req.param("taskId"), accessToken, { projectId, saveDir });
+    });
   });
 
   app.post("/ai/task/:taskId/cancel", async (c) => {

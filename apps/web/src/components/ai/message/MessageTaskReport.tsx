@@ -1,0 +1,90 @@
+/**
+ * Copyright (c) OpenLoaf. All rights reserved.
+ *
+ * This source code is licensed under the AGPLv3 license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Project: OpenLoaf
+ * Repository: https://github.com/OpenLoaf/OpenLoaf
+ */
+"use client"
+
+import * as React from "react"
+import type { UIMessage } from "@ai-sdk/react"
+import { CheckCircle2, XCircle, ClipboardList } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback } from "@openloaf/ui/avatar"
+import { Message, MessageContent } from "@/components/ai-elements/message"
+import MessageParts from "./MessageParts"
+
+interface MessageTaskReportProps {
+  message: UIMessage
+}
+
+function resolveTaskReportInfo(message: UIMessage) {
+  const metadata = (message as any)?.metadata as
+    | { taskId?: string; agentType?: string; displayName?: string; projectId?: string }
+    | undefined
+  const parts = Array.isArray(message.parts) ? message.parts : []
+  const taskRefPart = parts.find((p: any) => p?.type === 'task-ref') as
+    | { taskId?: string; title?: string; agentType?: string; status?: string }
+    | undefined
+
+  return {
+    displayName: metadata?.displayName || taskRefPart?.agentType || '任务助手',
+    taskTitle: taskRefPart?.title || '',
+    status: (taskRefPart?.status || 'completed') as 'completed' | 'failed' | 'running',
+    taskId: metadata?.taskId || taskRefPart?.taskId || '',
+  }
+}
+
+export default React.memo(function MessageTaskReport({ message }: MessageTaskReportProps) {
+  const { displayName, status, taskTitle } = resolveTaskReportInfo(message)
+
+  const textParts = React.useMemo(() => {
+    const parts = Array.isArray(message.parts) ? (message.parts as any[]) : []
+    return parts.filter((p) => p?.type === 'text')
+  }, [message.parts])
+
+  const isCompleted = status === 'completed'
+  const isFailed = status === 'failed'
+
+  return (
+    <Message from="assistant" className="min-w-0 w-full">
+      <div className="flex items-center gap-2 px-1">
+        <Avatar className={cn(
+          "size-6 ring-1",
+          isCompleted && "ring-ol-green/40",
+          isFailed && "ring-ol-red/40",
+          !isCompleted && !isFailed && "ring-ol-blue/40",
+        )}>
+          <AvatarFallback className={cn(
+            isCompleted && "bg-ol-green/10 text-ol-green",
+            isFailed && "bg-ol-red/10 text-ol-red",
+            !isCompleted && !isFailed && "bg-ol-blue/10 text-ol-blue",
+          )}>
+            {isCompleted ? <CheckCircle2 className="size-3.5" /> : null}
+            {isFailed ? <XCircle className="size-3.5" /> : null}
+            {!isCompleted && !isFailed ? <ClipboardList className="size-3.5" /> : null}
+          </AvatarFallback>
+        </Avatar>
+        <span className="truncate text-[11px] font-medium text-muted-foreground">
+          {displayName}
+        </span>
+        {taskTitle && (
+          <span className={cn(
+            "ml-1 truncate rounded-full px-2 py-0.5 text-[10px] font-medium",
+            isCompleted && "bg-ol-green/10 text-ol-green",
+            isFailed && "bg-ol-red/10 text-ol-red",
+            !isCompleted && !isFailed && "bg-ol-blue/10 text-ol-blue",
+          )}>
+            {taskTitle}
+          </span>
+        )}
+      </div>
+      <MessageContent className="min-w-0 w-full space-y-2">
+        <MessageParts parts={textParts} options={{ isAnimating: false, messageId: message.id }} />
+      </MessageContent>
+    </Message>
+  )
+})

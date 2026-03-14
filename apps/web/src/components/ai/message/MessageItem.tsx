@@ -19,6 +19,7 @@ import MessageAiAction from "./MessageAiAction";
 import MessageAi from "./MessageAi";
 import MessageHuman from "./MessageHuman";
 import MessageHumanAction from "./MessageHumanAction";
+import MessageTaskReport from "./MessageTaskReport";
 import { useChatActions, useChatSession, useChatState, useChatTools } from "../context";
 import { messageHasVisibleContent } from "@/lib/chat/message-visible";
 import type { ChatAttachment } from "../input/chat-attachments";
@@ -349,6 +350,8 @@ function MessageItem({
             />
           )}
         </>
+      ) : (message as any).role === "task-report" ? (
+        <MessageTaskReport message={message} />
       ) : (
         <>
           <MessageAi message={message} isAnimating={isAnimating} isLastAiMessage={isLastAiMessage} showHeader={isGroupStart} />

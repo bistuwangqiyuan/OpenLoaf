@@ -1,140 +1,102 @@
 ## Context
 
-OpenLoaf 当前的 AI 系统采用 Master + Sub-Agent 架构（`agentFactory.ts`, `agentManager.ts`）。Sub-Agent 是 Master 的工具调用，消息存储在 `chat-history/{sessionId}/agents/{agentId}/`，用户不可见。
+OpenLoaf 已有完整的 Task 系统（`taskConfigService.ts`, `taskExecutor.ts`, `taskOrchestrator.ts`, `taskScheduler.ts`），支持任务创建、调度、执行、审批、归档等完整生命周期。Task 存储在 `~/.openloaf/tasks/{taskId}/task.json`。
 
-目标：升级为多 Agent 协作对话，支持异步任务委派和 Agent 主动汇报。
+现有 Task 系统缺少的是：**任务完成后往来源对话汇报** 和 **项目绑定规则**。
 
 ### 约束
 
+- 复用现有 TaskConfig、TaskExecutor、TaskOrchestrator 基础设施
+- 不引入新的数据库表（TaskConfig 已用文件存储）
 - 必须向后兼容现有 ChatSession 和消息存储
-- 复用现有 agentManager 的 Agent 执行逻辑
-- 不引入消息队列等外部依赖（保持 SQLite + 文件存储）
 - 桌面端和 Web 端行为一致
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Task 作为独立工作单元，有完整生命周期
-- Agent 完成后主动往来源对话追加汇报消息
-- 用户可 @mention Agent 继续交互
-- Task Agent 内部可继续 spawn 子 Agent（复用现有逻辑）
+- Task 完成后主动往来源对话追加汇报消息
+- 产出文件的任务必须绑定项目
+- Secretary prompt 升级，能判断何时直接回答、何时创建任务
+- 用户可 @mention Agent 继续交互（后续阶段）
 
 **Non-Goals:**
 - 不做外部 Channel 接入（Telegram/Discord 等）
 - 不做跨 session 的 Agent 协作
 - 不做 Agent 市场或自定义 Agent 编辑器（第一期）
-- 不做实时协作编辑式的多 Agent 共同工作
 
 ## Decisions
 
-### 1. 数据模型：Task 表 + 文件存储
+### 1. 复用现有 Task 系统，扩展 sourceSessionId
 
-**决定**：Task 元数据存 SQLite，Agent 工作消息存文件系统。
-
-**理由**：
-- 与现有 ChatSession（SQLite 元数据）+ messages.jsonl（文件）的模式一致
-- Task 状态查询需要索引（status, projectId），适合 SQLite
-- Agent 工作过程是 append-only 流式消息，适合 JSONL
-
-**替代方案**：
-- 全存 SQLite：消息量大时 blob 查询慢，且丧失现有 JSONL 工具链
-- 全存文件：状态查询需扫描目录，性能差
-
-### 2. 存储路径：`~/.openloaf/tasks/{taskId}/`
-
-**决定**：Task 的 Agent 工作独立于 chat-history，有自己的顶层目录。
+**决定**：不新建数据模型，在现有 `TaskConfig` 上新增 `sourceSessionId` 字段。
 
 **理由**：
-- Task 的生命周期独立于对话（对话删除不应删除任务执行记录）
-- 多个对话可以引用同一个 Task 的结果
-- 目录结构清晰，不会和现有 chat-history 互相干扰
+- TaskConfig 已有 `projectId`、`sessionId`、`agentName`、`scope` 等字段
+- TaskExecutor 已通过 `runChatStream` 执行 Agent
+- TaskOrchestrator 已处理生命周期、冲突检测、超时
+- 只需补充"完成后汇报"能力
 
-```
-~/.openloaf/tasks/{taskId}/
-├── task.json                    # 任务配置和 Agent 信息
-├── messages.jsonl               # 负责 Agent 的工作消息
-└── agents/                      # 该 Agent spawn 的子 Agent
-    └── {subAgentId}/
-        ├── session.json
-        └── messages.jsonl
-```
+**改动**：
+- `taskConfigService.ts`: TaskConfig + CreateTaskInput 新增 `sourceSessionId`
+- `taskTools.ts`: 创建任务时从 RequestContext 获取当前 sessionId 作为 sourceSessionId
+- `taskExecutor.ts`: 任务完成/失败后调用 `reportToSourceSession()`
 
-**替代方案**：
-- 放在 `chat-history/{sessionId}/tasks/`：耦合对话，删除对话会丢失任务
-- 放在 `projects/{projectId}/tasks/`：有些任务可能不属于特定项目
+### 2. 汇报机制：appendMessage + TaskEventBus
 
-### 3. 汇报机制：追加消息 + tRPC subscription
-
-**决定**：Task 完成后直接往来源 ChatSession 的 messages.jsonl 追加汇报消息，通过 tRPC subscription 推送到前端。
-
-**理由**：
-- 复用现有的消息渲染和 SSE 推送机制
-- 前端不需要轮询，subscription 是现有基础设施
+**决定**：任务完成后直接往来源 ChatSession 的 messages.jsonl 追加 `task-report` 消息，通过 TaskEventBus 通知前端。
 
 **消息格式**：
 ```jsonl
 {
   "id": "msg_xxx",
   "role": "task-report",
-  "parentMessageId": "msg_latest_leaf",
+  "parentMessageId": "<rightmost-leaf>",
+  "messageKind": "normal",
   "parts": [
-    {"type": "text", "text": "审查完成，发现 3 个问题..."},
-    {"type": "task-ref", "taskId": "task_001", "status": "completed"}
+    {"type": "text", "text": "任务「审查代码质量」已完成。"},
+    {"type": "task-ref", "taskId": "xxx", "title": "审查代码质量", "agentType": "code-reviewer", "status": "completed"}
   ],
   "metadata": {
-    "taskId": "task_001",
+    "taskId": "xxx",
     "agentType": "code-reviewer",
-    "displayName": "代码审查员"
+    "displayName": "代码审查员",
+    "projectId": "proj_xxx"
   }
 }
 ```
 
-### 4. @mention 路由
+### 3. TaskExecutor 传递 projectId
 
-**决定**：前端解析用户输入中的 @mention → metadata.mentions 数组 → 服务端路由。
+**决定**：修改 `runAgentPhase()` 从 TaskConfig 读取 `projectId` 并传递给 `runChatStream`。
 
-**路由规则**：
-- 无 @mention → 发给 Secretary（现有逻辑）
-- @某个活跃 Task 的 Agent → 往该 Task 的 Agent 追加用户消息，触发继续执行
-- @Secretary → 显式发给秘书（等同无 @）
+**理由**：之前 `projectId: undefined`，导致 Agent 缺少项目上下文。修正后 Agent 能感知项目根目录和配置。
 
-### 5. Secretary prompt 升级
+### 4. Secretary Prompt 升级
 
-**决定**：不修改 agentFactory 代码逻辑，仅在 Master prompt 中增加任务委派指引。
+**决定**：在 Master prompt 追加第六章「任务委派」，描述：
+- 何时直接回答（子 Agent 辅助）vs 创建任务
+- 产出文件的任务必须绑定项目
+- 如何使用 `task-manage` 创建任务
 
-**理由**：
-- Secretary 就是现有 Master Agent，只是 prompt 升级
-- `task-create` 作为新工具加入 Master 的 deferredToolIds
-- 由 LLM 自然语言理解判断何时创建 Task vs 使用子 Agent
+**理由**：LLM 自然语言理解判断轻重缓急，不需要硬编码规则。
 
 ## Risks / Trade-offs
 
 ### Risk 1：汇报消息的 parentMessageId 指向
 
-- **问题**：Agent 异步完成时，用户可能已经发了新消息，消息树的"最新叶子"已变化
-- **缓解**：汇报消息的 parentMessageId 指向当前消息树的最右叶子（`resolveRightmostLeaf`），确保在时间线末尾出现
-- **前端**：汇报消息带特殊样式标记，即使出现在对话中间也能识别
+- **问题**：Agent 异步完成时，用户可能已经发了新消息
+- **缓解**：汇报消息的 parentMessageId 指向 `resolveRightmostLeaf()`，确保在时间线末尾
 
-### Risk 2：Task Agent 的模型和上下文
+### Risk 2：并发 Task 数量
 
-- **问题**：Task Agent 启动时脱离了对话上下文，可能缺少必要信息
-- **缓解**：task.json 记录完整的任务描述 + 项目上下文 + 用户偏好设置；Task Agent 的 system prompt 包含这些信息
-
-### Risk 3：并发 Task 数量
-
-- **缓解**：复用现有 `MAX_CONCURRENT = 4` 限制，Task 和 Sub-Agent 共享并发池
+- **缓解**：TaskOrchestrator 已有冲突检测逻辑，同项目 scope 的任务不会并发
 
 ## Migration Plan
 
-1. **P0 — 数据模型**：新增 Task 表，新增 tasks/ 存储目录，不影响现有功能
-2. **P1 — 后端**：taskManager 服务 + task-create 工具 + 汇报机制
-3. **P2 — 前端**：task-report 消息渲染 + @mention + 任务面板
-4. **P3 — Secretary prompt**：升级 Master prompt 加入任务委派能力
-
-每个阶段可独立合并，不破坏现有功能。
+所有改动向后兼容，旧的 TaskConfig 缺少 `sourceSessionId` 字段时不会汇报（静默跳过）。
 
 ## Open Questions
 
-- Task 的保留策略？是否需要自动清理过期任务文件？
-- Task 失败时的重试策略？用户手动触发 vs 自动重试？
-- 是否需要 Task 优先级？多个 Task 排队时的调度顺序？
+- Task 的 @mention 交互如何实现？（需要将用户消息路由到 Task Agent 的 session）
+- 前端 task-report 消息的渲染样式？（需要新增 MessageTaskReport 组件）
+- 是否需要在 task-report 消息中内嵌"查看工作详情"链接？

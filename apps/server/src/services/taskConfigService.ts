@@ -112,6 +112,10 @@ export type TaskConfig = {
   // Activity log (status change history)
   activityLog: ActivityLogEntry[]
 
+  // Chat integration
+  /** The chat session that triggered this task (for completion reporting). */
+  sourceSessionId?: string
+
   // Metadata
   createdAt: string
   updatedAt: string
@@ -264,6 +268,8 @@ export type CreateTaskInput = {
   dependsOn?: string[]
   enabled?: boolean
   createdBy?: 'user' | 'agent'
+  /** The chat session that triggered this task (for completion reporting). */
+  sourceSessionId?: string
 }
 
 /** Create a new task. */
@@ -318,6 +324,7 @@ export function createTask(
     createdAt: now,
     updatedAt: now,
     createdBy: data.createdBy ?? 'user',
+    sourceSessionId: data.sourceSessionId,
   }
 
   const filePath = path.join(taskDir, 'task.json')

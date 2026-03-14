@@ -20,6 +20,11 @@ import {
 } from './taskConfigService'
 import { taskEventBus } from './taskEventBus'
 import { appendRunLog } from './taskRunLogService'
+import {
+  appendMessage,
+  loadMessageTree,
+  resolveRightmostLeaf,
+} from '@/ai/services/chat/repositories/chatFileStore'
 
 type RunningTask = {
   taskId: string
@@ -145,6 +150,16 @@ class TaskExecutor {
             durationMs: Date.now() - new Date(startedAt).getTime(),
           }, projectRoot ?? globalRoot)
 
+          // Report completion to source chat session
+          const latestTask = getTask(taskId, globalRoot, projectRoot ?? undefined)
+          if (latestTask) {
+            await this.reportToSourceSession(
+              latestTask,
+              'completed',
+              latestTask.executionSummary?.lastAgentMessage,
+            )
+          }
+
         } else {
           // ─── Two-phase: Plan → Confirm → Execute ────────────────
 
@@ -217,6 +232,18 @@ class TaskExecutor {
             finishedAt: now,
             durationMs: Date.now() - new Date(startedAt).getTime(),
           }, projectRoot ?? globalRoot)
+
+          // Report completion to source chat session (only if done, not review)
+          if (nextStatus === 'done') {
+            const latestTask = getTask(taskId, globalRoot, projectRoot ?? undefined)
+            if (latestTask) {
+              await this.reportToSourceSession(
+                latestTask,
+                'completed',
+                latestTask.executionSummary?.lastAgentMessage,
+              )
+            }
+          }
         }
 
       } finally {
@@ -267,6 +294,11 @@ class TaskExecutor {
         finishedAt: new Date().toISOString(),
         durationMs: Date.now() - new Date(startedAt).getTime(),
       }, projectRoot ?? globalRoot)
+
+      // Report failure to source chat session
+      if (task) {
+        await this.reportToSourceSession(task, 'failed')
+      }
     } finally {
       this.running.delete(taskId)
       this.confirmationResolvers.delete(taskId)
@@ -284,6 +316,10 @@ class TaskExecutor {
     globalRoot: string,
     projectRoot?: string | null,
   ): Promise<void> {
+    // Resolve projectId from task config for project-scoped agent context
+    const taskConfig = getTask(taskId, globalRoot, projectRoot ?? undefined)
+    const taskProjectId = taskConfig?.projectId
+
     const messageId = randomUUID()
     const response = await runChatStream({
       request: {
@@ -296,7 +332,10 @@ class TaskExecutor {
           parentMessageId: null,
         } as any],
         trigger: 'submit-message',
-        projectId: undefined,
+        projectId: taskProjectId,
+        params: taskProjectId
+          ? { agentType: 'project', taskId }
+          : undefined,
       },
       cookies: {},
       requestSignal: signal,
@@ -389,6 +428,79 @@ class TaskExecutor {
     parts.push(`4. 如需使用其他 Agent（如 shell、document），可通过 spawn-agent 调度`)
 
     return parts.join('\n')
+  }
+
+  /**
+   * Report task completion/failure back to the originating chat session.
+   * Appends a task-report message to the source session's messages.jsonl.
+   */
+  private async reportToSourceSession(
+    task: TaskConfig,
+    status: 'completed' | 'failed',
+    summary?: string,
+  ): Promise<void> {
+    const sourceSessionId = task.sourceSessionId
+    if (!sourceSessionId) return
+
+    try {
+      const tree = await loadMessageTree(sourceSessionId)
+      const parentId = resolveRightmostLeaf(tree)
+
+      const summaryText = summary || (status === 'completed'
+        ? `任务「${task.name}」已完成。`
+        : `任务「${task.name}」执行失败：${task.lastError || '未知错误'}`)
+
+      const reportMessage = {
+        id: randomUUID(),
+        parentMessageId: parentId,
+        role: 'task-report' as const,
+        messageKind: 'normal' as const,
+        parts: [
+          {
+            type: 'text' as const,
+            text: summaryText,
+          },
+          {
+            type: 'task-ref' as const,
+            taskId: task.id,
+            title: task.name,
+            agentType: task.agentName || 'general',
+            status,
+          },
+        ],
+        metadata: {
+          taskId: task.id,
+          agentType: task.agentName || 'general',
+          displayName: task.agentName || '任务助手',
+          projectId: task.projectId,
+        },
+        createdAt: new Date().toISOString(),
+      }
+
+      await appendMessage({
+        sessionId: sourceSessionId,
+        message: reportMessage,
+      })
+
+      taskEventBus.emitTaskReport({
+        taskId: task.id,
+        sourceSessionId,
+        status,
+        title: task.name,
+        summary: summaryText,
+        messageId: reportMessage.id,
+      })
+
+      logger.info(
+        { taskId: task.id, sourceSessionId: task.sourceSessionId },
+        '[task-executor] Reported task completion to source session',
+      )
+    } catch (err) {
+      logger.error(
+        { taskId: task.id, err },
+        '[task-executor] Failed to report to source session',
+      )
+    }
   }
 
   /** Wait for plan confirmation from user or timeout. */

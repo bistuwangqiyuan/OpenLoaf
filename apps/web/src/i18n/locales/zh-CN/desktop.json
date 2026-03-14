@@ -17,7 +17,7 @@
     "tasks": "任务",
     "search": "搜索",
     "settings": "设置",
-    "agent-settings": "Agent 设置",
+    "agent-settings": "智能体设置",
     "skill-settings": "技能设置"
   },
   "variants": {
@@ -51,7 +51,7 @@
     "shortcuts": "快捷方式",
     "aiGenerated": "AI 生成",
     "newItem": "+ 新建",
-    "aiAssistant": "AI 助手",
+    "aiAssistant": "AI秘书",
     "confirmDelete": "确定删除 Widget \"{{name}}\"？",
     "deleteAriaLabel": "删除 {{name}}",
     "generateWithAi": "通过 AI 对话生成自定义 Widget"

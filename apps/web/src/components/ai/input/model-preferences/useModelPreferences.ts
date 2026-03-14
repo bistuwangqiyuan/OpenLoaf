@@ -9,7 +9,7 @@
  */
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsValues } from '@/hooks/use-settings'
 import { useBasicConfig } from '@/hooks/use-basic-config'
@@ -90,25 +90,50 @@ export function useModelPreferences() {
     [installedCliProviderIds],
   )
 
-  // 直接从 React Query 缓存（masterDetail / masterModelIds）派生偏好 ID，
-  // 而非使用 useState + useEffect 同步。
-  // 这样即使 ChatInput 因 fullPage 切换而卸载/重挂载，数据也不会丢失。
-  const preferredChatIds = useMemo(
+  // 混合模式：优先使用 React Query 缓存（跨挂载持久化），
+  // 当缓存不可用时（如 master agent 尚未创建）使用本地 override 提供即时视觉反馈。
+  const cachedChatIds = useMemo(
     () => normalizeIds(masterModelIds),
     [masterModelIds],
   )
-  const preferredImageIds = useMemo(
+  const cachedImageIds = useMemo(
     () => normalizeIds(masterDetail?.imageModelIds),
     [masterDetail?.imageModelIds],
   )
-  const preferredVideoIds = useMemo(
+  const cachedVideoIds = useMemo(
     () => normalizeIds(masterDetail?.videoModelIds),
     [masterDetail?.videoModelIds],
   )
-  const preferredCodeIds = useMemo(
+  const cachedCodeIds = useMemo(
     () => normalizeIds(masterDetail?.codeModelIds),
     [masterDetail?.codeModelIds],
   )
+
+  // 本地 override：仅在 master agent 不存在时提供即时反馈。
+  // 当缓存数据到达后自动清除。
+  const [overrideChatIds, setOverrideChatIds] = useState<string[] | null>(null)
+  const [overrideImageIds, setOverrideImageIds] = useState<string[] | null>(null)
+  const [overrideVideoIds, setOverrideVideoIds] = useState<string[] | null>(null)
+  const [overrideCodeIds, setOverrideCodeIds] = useState<string[] | null>(null)
+
+  // 当缓存数据到达时清除 override
+  useEffect(() => {
+    if (masterDetail && overrideChatIds !== null) setOverrideChatIds(null)
+  }, [masterDetail, overrideChatIds])
+  useEffect(() => {
+    if (masterDetail && overrideImageIds !== null) setOverrideImageIds(null)
+  }, [masterDetail, overrideImageIds])
+  useEffect(() => {
+    if (masterDetail && overrideVideoIds !== null) setOverrideVideoIds(null)
+  }, [masterDetail, overrideVideoIds])
+  useEffect(() => {
+    if (masterDetail && overrideCodeIds !== null) setOverrideCodeIds(null)
+  }, [masterDetail, overrideCodeIds])
+
+  const preferredChatIds = overrideChatIds ?? cachedChatIds
+  const preferredImageIds = overrideImageIds ?? cachedImageIds
+  const preferredVideoIds = overrideVideoIds ?? cachedVideoIds
+  const preferredCodeIds = overrideCodeIds ?? cachedCodeIds
 
   const isAuto = preferredChatIds.length === 0
   const isImageAuto = preferredImageIds.length === 0
@@ -132,9 +157,10 @@ export function useModelPreferences() {
       const nextIds = preferredChatIds.includes(normalized)
         ? preferredChatIds.filter((id) => id !== normalized)
         : [...preferredChatIds, normalized]
+      if (!masterDetail) setOverrideChatIds(nextIds)
       setModelIds(nextIds)
     },
-    [preferredChatIds, setModelIds],
+    [masterDetail, preferredChatIds, setModelIds],
   )
 
   const toggleImageModel = useCallback(
@@ -144,9 +170,10 @@ export function useModelPreferences() {
       const nextIds = preferredImageIds.includes(normalized)
         ? preferredImageIds.filter((id) => id !== normalized)
         : [...preferredImageIds, normalized]
+      if (!masterDetail) setOverrideImageIds(nextIds)
       setImageModelIds(nextIds)
     },
-    [preferredImageIds, setImageModelIds],
+    [masterDetail, preferredImageIds, setImageModelIds],
   )
 
   const toggleVideoModel = useCallback(
@@ -156,9 +183,10 @@ export function useModelPreferences() {
       const nextIds = preferredVideoIds.includes(normalized)
         ? preferredVideoIds.filter((id) => id !== normalized)
         : [...preferredVideoIds, normalized]
+      if (!masterDetail) setOverrideVideoIds(nextIds)
       setVideoModelIds(nextIds)
     },
-    [preferredVideoIds, setVideoModelIds],
+    [masterDetail, preferredVideoIds, setVideoModelIds],
   )
 
   const toggleCodeModel = useCallback(
@@ -168,82 +196,92 @@ export function useModelPreferences() {
       const nextIds = preferredCodeIds.includes(normalized)
         ? preferredCodeIds.filter((id) => id !== normalized)
         : [...preferredCodeIds, normalized]
+      if (!masterDetail) setOverrideCodeIds(nextIds)
       setCodeModelIds(nextIds)
     },
-    [preferredCodeIds, setCodeModelIds],
+    [masterDetail, preferredCodeIds, setCodeModelIds],
   )
 
   const selectCodeModel = useCallback(
     (modelId: string) => {
       const normalized = modelId.trim()
       if (!normalized) return
+      if (!masterDetail) setOverrideCodeIds([normalized])
       setCodeModelIds([normalized])
     },
-    [setCodeModelIds],
+    [masterDetail, setCodeModelIds],
   )
 
   const setIsAuto = useCallback(
     (auto: boolean) => {
       if (auto) {
         if (preferredChatIds.length === 0) return
+        if (!masterDetail) setOverrideChatIds([])
         setModelIds([])
         return
       }
       if (preferredChatIds.length > 0) return
       const fallback = chatModels[0]?.id
       if (fallback) {
+        if (!masterDetail) setOverrideChatIds([fallback])
         setModelIds([fallback])
       }
     },
-    [chatModels, preferredChatIds, setModelIds],
+    [chatModels, masterDetail, preferredChatIds, setModelIds],
   )
 
   const setImageAuto = useCallback(
     (auto: boolean) => {
       if (auto) {
         if (preferredImageIds.length === 0) return
+        if (!masterDetail) setOverrideImageIds([])
         setImageModelIds([])
         return
       }
       if (preferredImageIds.length > 0) return
       const fallback = imageModels[0]?.id
       if (fallback) {
+        if (!masterDetail) setOverrideImageIds([fallback])
         setImageModelIds([fallback])
       }
     },
-    [imageModels, preferredImageIds, setImageModelIds],
+    [imageModels, masterDetail, preferredImageIds, setImageModelIds],
   )
 
   const setVideoAuto = useCallback(
     (auto: boolean) => {
       if (auto) {
         if (preferredVideoIds.length === 0) return
+        if (!masterDetail) setOverrideVideoIds([])
         setVideoModelIds([])
         return
       }
       if (preferredVideoIds.length > 0) return
       const fallback = videoModels[0]?.id
       if (fallback) {
+        if (!masterDetail) setOverrideVideoIds([fallback])
         setVideoModelIds([fallback])
       }
     },
-    [preferredVideoIds, setVideoModelIds, videoModels],
+    [masterDetail, preferredVideoIds, setVideoModelIds, videoModels],
   )
 
   const setCodeAuto = useCallback(
     (auto: boolean) => {
       if (auto) {
         if (preferredCodeIds.length === 0) return
+        if (!masterDetail) setOverrideCodeIds([])
         setCodeModelIds([])
         return
       }
       if (preferredCodeIds.length > 0) return
       const fallback = codeModels[0]?.id
       if (fallback) {
+        if (!masterDetail) setOverrideCodeIds([fallback])
         setCodeModelIds([fallback])
       }
     },
-    [codeModels, preferredCodeIds, setCodeModelIds],
+    [codeModels, masterDetail, preferredCodeIds, setCodeModelIds],
   )
 
   const setCloudSource = useCallback(

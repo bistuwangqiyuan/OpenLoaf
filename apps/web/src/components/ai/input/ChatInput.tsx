@@ -446,30 +446,30 @@ export function ChatInputBox({
       )}
       onFocusCapture={handleContainerFocus}
       onBlurCapture={handleContainerBlur}
-      onDragOver={(event) => {
-        if (isBlocked) return;
-        const hasImageDrag =
-          event.dataTransfer.types.includes(FILE_DRAG_URI_MIME) ||
-          Boolean(readImageDragPayload(event.dataTransfer));
-        const hasFileRef = event.dataTransfer.types.includes(FILE_DRAG_REF_MIME);
-        // 修复：dragover 阶段 files 始终为空，改用 items 检测。
-        const hasFiles = (event.dataTransfer.items?.length ?? 0) > 0;
-        if (!hasImageDrag && !hasFileRef && !hasFiles) return;
-        if (!canAttachAll && !canAttachImage && !uploadFileToSession) return;
-        event.preventDefault();
-      }}
-      onDropCapture={(event) => {
-        if (isBlocked) return;
-        const fileRef = normalizeFileRef(event.dataTransfer.getData(FILE_DRAG_REF_MIME));
-        const imagePayload = readImageDragPayload(event.dataTransfer);
-        const hasFiles = event.dataTransfer.files?.length > 0;
-        if (!fileRef && !imagePayload && !hasFiles) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onDropHandled?.();
-        void handleDrop(event);
-      }}
-    >
+        onDragOver={(event) => {
+          if (isBlocked) return;
+          const hasImageDrag =
+            event.dataTransfer.types.includes(FILE_DRAG_URI_MIME) ||
+            Boolean(readImageDragPayload(event.dataTransfer));
+          const hasFileRef = event.dataTransfer.types.includes(FILE_DRAG_REF_MIME);
+          // 修复：dragover 阶段 files 始终为空，改用 items 检测。
+          const hasFiles = (event.dataTransfer.items?.length ?? 0) > 0;
+          if (!hasImageDrag && !hasFileRef && !hasFiles) return;
+          if (!canAttachAll && !canAttachImage && !uploadFileToSession) return;
+          event.preventDefault();
+        }}
+        onDropCapture={(event) => {
+          if (isBlocked) return;
+          const fileRef = normalizeFileRef(event.dataTransfer.getData(FILE_DRAG_REF_MIME));
+          const imagePayload = readImageDragPayload(event.dataTransfer);
+          const hasFiles = event.dataTransfer.files?.length > 0;
+          if (!fileRef && !imagePayload && !hasFiles) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onDropHandled?.();
+          void handleDrop(event);
+        }}
+      >
       {commandMenuEnabled && !isBlocked ? (
         <ChatCommandMenu
           ref={commandMenuRef}

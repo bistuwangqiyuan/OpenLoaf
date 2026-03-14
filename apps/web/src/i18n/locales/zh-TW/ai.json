@@ -62,7 +62,7 @@
     "selectMode": "選擇對話模式",
     "customizeSettings": "自訂設定",
     "selector": "聊天模式",
-    "agent": "Agent 模式",
+    "agent": "智能體模式",
     "cli": "CLI 模式",
     "preferences": "偏好設定",
     "manage": "管理",
@@ -111,10 +111,10 @@
     "tool": "工具"
   },
   "toolNames": {
-    "spawn-agent": "啟動子代理",
+    "spawn-agent": "啟動子智能體",
     "send-input": "發送輸入",
-    "wait-agent": "等待子代理",
-    "abort-agent": "中止子代理",
+    "wait-agent": "等待子智能體",
+    "abort-agent": "中止子智能體",
     "test-approval": "審批測試",
     "open-url": "開啟網頁",
     "browser-snapshot": "瀏覽器快照",
@@ -156,7 +156,7 @@
     "update-plan": "更新計劃",
     "js-repl": "JavaScript REPL",
     "js-repl-reset": "重置 JS REPL",
-    "sub-agent": "子代理",
+    "sub-agent": "子智能體",
     "time-now": "目前時間",
     "task-manage": "任務管理",
     "task-status": "查詢任務狀態",
@@ -311,7 +311,7 @@
     }
   },
   "dock": {
-    "aiAssistant": "AI 助手",
+    "aiAssistant": "AI秘書",
     "inputPlaceholder": "輸入內容",
     "suggestion1": "幫我總結今天的工作進展",
     "suggestion2": "分析目前專案的程式碼品質",

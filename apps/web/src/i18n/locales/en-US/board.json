@@ -430,7 +430,10 @@
     "statusFailed": "Failed",
     "statusGenerating": "Generating…",
     "statusWaiting": "Waiting",
-    "transcoding": "Transcoding"
+    "transcoding": "Transcoding",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "delete": "Delete"
   },
   "collab": {
     "imageTranscodeFailed": "Image transcoding failed, original file was inserted"

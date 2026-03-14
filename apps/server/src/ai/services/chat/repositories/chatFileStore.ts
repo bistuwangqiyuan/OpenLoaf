@@ -24,7 +24,7 @@ import { logger } from '@/common/logger'
 export type StoredMessage = {
   id: string
   parentMessageId: string | null
-  role: 'user' | 'assistant' | 'system' | 'subagent'
+  role: 'user' | 'assistant' | 'system' | 'subagent' | 'task-report'
   messageKind: 'normal' | 'error' | 'compact_prompt' | 'compact_summary'
   parts: unknown[]
   metadata?: Record<string, unknown>

@@ -12,11 +12,13 @@
 import { FILE_TOKEN_REGEX } from "../input/chat-input-utils";
 
 const COMMAND_REGEX = /(^|\s)(\/[\w-]+)(?![/\w-])/g;
+const SKILL_REGEX = /\/skill\/([\w-]+)/g;
 
 export type ChatTextToken =
   | { type: "text"; value: string }
   | { type: "command"; value: string }
-  | { type: "mention"; value: string };
+  | { type: "mention"; value: string }
+  | { type: "skill"; value: string };
 
 /** Normalize URL boundary in CJK text to avoid malformed auto-links. */
 export function preprocessChatText(value: string): string {
@@ -27,30 +29,61 @@ export function preprocessChatText(value: string): string {
   );
 }
 
-/** Split plain text into normal and command segments. */
+/** Split plain text into skill / command / text segments. */
 function splitCommandSegments(value: string): ChatTextToken[] {
   if (!value) return [];
-  const result: ChatTextToken[] = [];
-  COMMAND_REGEX.lastIndex = 0;
-  let lastIndex = 0;
-  let match = COMMAND_REGEX.exec(value);
-  while (match) {
-    if (match.index > lastIndex) {
-      result.push({ type: "text", value: value.slice(lastIndex, match.index) });
+  // First pass: extract /skill/xxx tokens.
+  const afterSkill: ChatTextToken[] = [];
+  SKILL_REGEX.lastIndex = 0;
+  let skillLastIndex = 0;
+  let skillMatch = SKILL_REGEX.exec(value);
+  while (skillMatch) {
+    if (skillMatch.index > skillLastIndex) {
+      afterSkill.push({ type: "text", value: value.slice(skillLastIndex, skillMatch.index) });
     }
-    const lead = match[1] ?? "";
-    const command = match[2] ?? "";
-    if (lead) {
-      result.push({ type: "text", value: lead });
-    }
-    if (command) {
-      result.push({ type: "command", value: command });
-    }
-    lastIndex = match.index + match[0].length;
-    match = COMMAND_REGEX.exec(value);
+    afterSkill.push({ type: "skill", value: skillMatch[1] ?? "" });
+    skillLastIndex = skillMatch.index + skillMatch[0].length;
+    skillMatch = SKILL_REGEX.exec(value);
   }
-  if (lastIndex < value.length) {
-    result.push({ type: "text", value: value.slice(lastIndex) });
+  if (skillLastIndex < value.length) {
+    afterSkill.push({ type: "text", value: value.slice(skillLastIndex) });
+  }
+  if (afterSkill.length === 0) {
+    afterSkill.push({ type: "text", value });
+  }
+
+  // Second pass: split remaining text segments for /command tokens.
+  const result: ChatTextToken[] = [];
+  for (const seg of afterSkill) {
+    if (seg.type !== "text") {
+      result.push(seg);
+      continue;
+    }
+    COMMAND_REGEX.lastIndex = 0;
+    let lastIndex = 0;
+    let match = COMMAND_REGEX.exec(seg.value);
+    if (!match) {
+      result.push(seg);
+      continue;
+    }
+    while (match) {
+      if (match.index > lastIndex) {
+        result.push({ type: "text", value: seg.value.slice(lastIndex, match.index) });
+      }
+      const lead = match[1] ?? "";
+      const command = match[2] ?? "";
+      if (lead) {
+        result.push({ type: "text", value: lead });
+      }
+      if (command) {
+        result.push({ type: "command", value: command });
+      }
+      lastIndex = match.index + match[0].length;
+      match = COMMAND_REGEX.exec(seg.value);
+    }
+    if (lastIndex < seg.value.length) {
+      result.push({ type: "text", value: seg.value.slice(lastIndex) });
+    }
   }
   return result;
 }

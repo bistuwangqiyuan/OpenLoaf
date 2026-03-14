@@ -30,7 +30,7 @@ export const GLOBAL_SHORTCUTS: GlobalShortcutDefinition[] = [
   { id: "search.toggle", label: "搜索", keys: "Mod+F" },
   { id: "open.calendar", label: "打开日历", keys: "Mod+L" },
   { id: "open.workbench", label: "打开工作台", keys: "Mod+T" },
-  { id: "open.ai-assistant", label: "打开 AI 助手", keys: "Mod+I" },
+  { id: "open.ai-assistant", label: "打开 AI秘书", keys: "Mod+I" },
   { id: "open.canvas-list", label: "打开画布列表", keys: "Mod+K" },
   {
     id: "settings.open",

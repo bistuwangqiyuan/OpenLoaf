@@ -108,7 +108,7 @@
   },
   "schedule": {
     "automaticTasks": "自動任務",
-    "automaticTasksDesc": "按計畫或條件觸發，向 Agent 發送指令。",
+    "automaticTasksDesc": "按計畫或條件觸發，向智能體發送指令。",
     "conditionTrigger": "條件觸發",
     "emailReceived": "收到信件",
     "chatKeyword": "聊天關鍵字",
@@ -188,9 +188,9 @@
     "triggerTab": "觸發方式",
     "actionTab": "執行內容",
     "advancedTab": "進階設定",
-    "agentLabel": "Agent",
+    "agentLabel": "智能體",
     "instructionLabel": "指令",
-    "instructionPlaceholder": "觸發時發送給 Agent 的指令...",
+    "instructionPlaceholder": "觸發時發送給智能體的指令...",
     "timeoutLabel": "超時（分鐘）",
     "cooldownLabel": "冷卻（分鐘）",
     "cancelButton": "取消",
@@ -215,14 +215,14 @@
     "conditionWatchPathsPlaceholder": "如 src/, docs/",
     "conditionExtensions": "副檔名",
     "conditionExtensionsPlaceholder": "如 .ts, .tsx",
-    "conditionRulePlaceholder": "自然語言規則（可選）— Agent 據此判斷是否執行",
+    "conditionRulePlaceholder": "自然語言規則（可選）— 智能體據此判斷是否執行",
     "projectScope": "專案",
     "projectSpaceScope": "專案空間"
   },
   "actorLabels": {
     "system": "系統",
     "user": "使用者",
-    "agent": "Agent",
+    "agent": "智能體",
     "timeout": "逾時"
   },
   "tabs": {
@@ -257,7 +257,7 @@
   },
   "detail": {
     "created": "建立",
-    "agent": "Agent",
+    "agent": "智能體",
     "confirmPlan": "確認計畫",
     "reject": "拒絕",
     "pass": "通過",

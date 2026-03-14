@@ -9,21 +9,22 @@
  */
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import type { ChatCommand } from "@openloaf/api/common";
-import { CHAT_COMMANDS } from "@openloaf/api/common";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import { buildSkillCommandText } from "./chat-input-utils";
-import {
-  PromptInputCommand,
-  PromptInputCommandEmpty,
-  PromptInputCommandGroup,
-  PromptInputCommandItem,
-  PromptInputCommandList,
-} from "@/components/ai-elements/prompt-input";
 
 type SkillSummary = {
   name: string;
@@ -32,31 +33,12 @@ type SkillSummary = {
   isEnabled: boolean;
 };
 
-type SlashMode = "command" | "skill";
-
-type MenuLevel = "root" | "skills";
-
-type MenuItem =
-  | {
-      kind: "command";
-      id: string;
-      label: string;
-      description?: string;
-      command: string;
-    }
-  | {
-      kind: "skill";
-      id: string;
-      label: string;
-      description?: string;
-      skillName: string;
-    }
-  | {
-      kind: "group";
-      id: string;
-      label: string;
-      description?: string;
-    };
+type SkillItem = {
+  id: string;
+  label: string;
+  description?: string;
+  skillName: string;
+};
 
 export type ChatCommandMenuHandle = {
   handleKeyDown: (event: React.KeyboardEvent) => boolean;
@@ -71,57 +53,24 @@ type ChatCommandMenuProps = {
   className?: string;
 };
 
-/** Root group item for the skill submenu. */
-const SKILL_GROUP_ITEM: MenuItem = {
-  kind: "group",
-  id: "skills-group",
-  label: "技能",
-  description: "进入技能列表",
-};
-
 /** Slash trigger for the last token. */
 const SLASH_TRIGGER_REGEX = /(^|\s)(\/\S*)$/u;
 
-/** Resolve slash trigger state from current input value. */
-function resolveSlashState(value: string): { mode: SlashMode; query: string } | null {
+/** Resolve slash query from current input value. */
+function resolveSlashQuery(value: string): string | null {
   const match = SLASH_TRIGGER_REGEX.exec(value);
   if (!match) return null;
   const token = match[2] ?? "";
   if (!token.startsWith("/")) return null;
-  const firstNonSpaceIndex = value.search(/\S/u);
-  if (firstNonSpaceIndex < 0) return null;
-  const tokenStartIndex = (match.index ?? 0) + (match[1]?.length ?? 0);
-  const mode: SlashMode = tokenStartIndex === firstNonSpaceIndex ? "command" : "skill";
-  return { mode, query: token.slice(1) };
+  return token.slice(1);
 }
 
-/** Filter commands by query and map to menu items. */
-function filterCommands(commands: ChatCommand[], query: string): MenuItem[] {
-  const keyword = query.trim().toLowerCase();
-  return commands
-    .filter((command) => {
-      if (!keyword) return true;
-      return (
-        command.command.toLowerCase().includes(keyword) ||
-        command.title.toLowerCase().includes(keyword) ||
-        (command.description ?? "").toLowerCase().includes(keyword)
-      );
-    })
-    .map((command) => ({
-      kind: "command" as const,
-      id: command.id,
-      label: command.command,
-      description: command.description,
-      command: command.command,
-    }));
-}
-
-/** Filter skills by query and map to menu items. */
+/** Filter skills by query. */
 function filterSkills(
   skills: SkillSummary[],
   query: string,
   scopeLabels: Record<SkillSummary["scope"], string>,
-): MenuItem[] {
+): SkillItem[] {
   const keyword = query.trim().toLowerCase();
   return skills
     .filter((skill) => skill.isEnabled)
@@ -133,7 +82,6 @@ function filterSkills(
       );
     })
     .map((skill) => ({
-      kind: "skill" as const,
       id: `skill-${skill.name}`,
       label: skill.name,
       description: `${scopeLabels[skill.scope]} · ${skill.description || "未提供说明"}`,
@@ -153,15 +101,17 @@ function replaceSlashToken(input: string, replacement: string): string {
   return next.endsWith(" ") ? next : `${next} `;
 }
 
+const MENU_WIDTH = 280;
+const MENU_GAP = 8;
+
 const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
   ({ value, onChange, onRequestFocus, isFocused, projectId, className }, ref) => {
     const { t } = useTranslation("ai");
     const { t: tNav } = useTranslation("nav");
-    const slashState = resolveSlashState(value);
-    const menuMode = slashState?.mode ?? "command";
-    const query = slashState?.query ?? "";
-    const [menuLevel, setMenuLevel] = useState<MenuLevel>("root");
+    const query = resolveSlashQuery(value);
     const [activeIndex, setActiveIndex] = useState(0);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+    const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
     const skillsQuery = useQuery({
       ...(projectId
         ? trpc.settings.getSkills.queryOptions({ projectId })
@@ -177,92 +127,62 @@ const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
       [t, tNav],
     );
 
-    const commandItems = useMemo(
-      () => filterCommands(CHAT_COMMANDS, query),
-      [query]
+    const items = useMemo(
+      () => filterSkills(skills, query ?? "", scopeLabels),
+      [skills, query, scopeLabels],
     );
-    const skillItems = useMemo(() => {
-      if (menuMode === "command") return filterSkills(skills, "", scopeLabels);
-      return filterSkills(skills, query, scopeLabels);
-    }, [menuMode, skills, query, scopeLabels]);
-    const rootItems = useMemo(() => {
-      if (menuMode === "skill") return skillItems;
-      if (skillItems.length === 0) return commandItems;
-      return [...commandItems, SKILL_GROUP_ITEM];
-    }, [commandItems, menuMode, skillItems]);
-    const currentItems =
-      menuMode === "command" && menuLevel === "skills" ? skillItems : rootItems;
-    const isOpen = Boolean(isFocused && slashState);
+    const isOpen = Boolean(isFocused && query !== null);
+
+    // Compute fixed position relative to the parent input container.
+    const updatePosition = useCallback(() => {
+      const anchor = menuRef.current?.closest(".openloaf-thinking-border") ??
+        menuRef.current?.parentElement;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      setPos({
+        left: rect.left,
+        bottom: window.innerHeight - rect.top + MENU_GAP,
+      });
+    }, []);
+
+    useLayoutEffect(() => {
+      if (!isOpen) return;
+      updatePosition();
+    }, [isOpen, updatePosition]);
 
     useEffect(() => {
       if (!isOpen) {
         setActiveIndex(0);
-        setMenuLevel("root");
         return;
       }
       setActiveIndex(0);
-    }, [isOpen, menuLevel, menuMode, query]);
+    }, [isOpen, query]);
 
-    useEffect(() => {
-      if (menuMode === "skill") {
-        setMenuLevel("root");
-      }
-      if (menuMode === "command" && menuLevel === "skills" && skillItems.length === 0) {
-        setMenuLevel("root");
-      }
-    }, [menuMode, menuLevel, skillItems.length]);
-
-    /** Apply the selected menu item. */
-    const selectItem = (item: MenuItem) => {
-      if (item.kind === "group") {
-        setMenuLevel("skills");
-        setActiveIndex(0);
-        return;
-      }
-      const replacement =
-        item.kind === "command"
-          ? item.command
-          : buildSkillCommandText(item.skillName);
-      onChange(replaceSlashToken(value, replacement));
+    /** Apply the selected skill item. */
+    const selectItem = (item: SkillItem) => {
+      onChange(replaceSlashToken(value, buildSkillCommandText(item.skillName)));
       onRequestFocus?.();
-      setMenuLevel("root");
       setActiveIndex(0);
     };
 
     /** Handle keyboard navigation for the menu. */
     const handleKeyDown = (event: React.KeyboardEvent) => {
       if (!isOpen) return false;
-      if (currentItems.length === 0) return false;
+      if (items.length === 0) return false;
       switch (event.key) {
         case "ArrowDown": {
           event.preventDefault();
-          setActiveIndex((prev) => (prev + 1) % currentItems.length);
+          setActiveIndex((prev) => (prev + 1) % items.length);
           return true;
         }
         case "ArrowUp": {
           event.preventDefault();
-          setActiveIndex((prev) => (prev - 1 + currentItems.length) % currentItems.length);
-          return true;
-        }
-        case "ArrowRight": {
-          if (menuMode !== "command" || menuLevel !== "root") return false;
-          const active = currentItems[activeIndex];
-          if (active?.kind !== "group") return false;
-          event.preventDefault();
-          setMenuLevel("skills");
-          setActiveIndex(0);
-          return true;
-        }
-        case "ArrowLeft": {
-          if (menuMode !== "command" || menuLevel !== "skills") return false;
-          event.preventDefault();
-          setMenuLevel("root");
-          setActiveIndex(0);
+          setActiveIndex((prev) => (prev - 1 + items.length) % items.length);
           return true;
         }
         case "Enter": {
           event.preventDefault();
-          const item = currentItems[activeIndex];
+          const item = items[activeIndex];
           if (!item) return true;
           selectItem(item);
           return true;
@@ -280,63 +200,68 @@ const ChatCommandMenu = forwardRef<ChatCommandMenuHandle, ChatCommandMenuProps>(
       [handleKeyDown]
     );
 
-    const headerText =
-      menuMode === "command"
-        ? menuLevel === "skills"
-          ? "技能"
-          : "指令"
-        : "技能";
+    // Hidden anchor for position calculation.
+    const anchor = <span ref={menuRef} className="hidden" />;
 
-    if (!isOpen) {
-      return null;
+    if (!isOpen || !pos) {
+      return anchor;
     }
 
-    return (
+    const menu = (
       <div
         className={cn(
-          "absolute left-2 bottom-full mb-4 z-20 w-64 rounded-lg border border-border bg-popover shadow-lg",
+          "fixed z-50 flex flex-col rounded-lg border border-border bg-popover shadow-lg",
           className,
         )}
+        style={{ left: pos.left, bottom: pos.bottom, width: MENU_WIDTH, maxHeight: 320 }}
         role="listbox"
         aria-label="Slash menu"
+        onMouseDown={(e) => e.preventDefault()}
       >
-        <PromptInputCommand>
-          <PromptInputCommandList className="max-h-56 overflow-y-auto">
-            {currentItems.length === 0 ? (
-              <PromptInputCommandEmpty>暂无匹配项</PromptInputCommandEmpty>
-            ) : (
-              <PromptInputCommandGroup heading={headerText}>
-                {currentItems.map((item, index) => {
-                  const isActive = index === activeIndex;
-                  return (
-                    <PromptInputCommandItem
-                      key={item.id}
-                      value={item.label}
-                      onSelect={() => selectItem(item)}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onPointerMove={() => setActiveIndex(index)}
-                      className={cn(
-                        "flex flex-col gap-0.5 px-2.5 py-2 text-left text-xs",
-                        isActive ? "bg-muted/70" : "hover:bg-muted/60",
-                      )}
-                      aria-selected={isActive}
-                    >
-                      <span className="text-[12px] font-medium text-foreground">
-                        {item.label}
-                      </span>
-                      {item.description ? (
-                        <span className="text-[11px] text-muted-foreground">
-                          {item.description}
-                        </span>
-                      ) : null}
-                    </PromptInputCommandItem>
-                  );
-                })}
-              </PromptInputCommandGroup>
-            )}
-          </PromptInputCommandList>
-        </PromptInputCommand>
+        <div className="shrink-0 px-2.5 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+          技能
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto py-1">
+          {items.length === 0 ? (
+            <div className="px-2.5 py-4 text-center text-xs text-muted-foreground">
+              暂无可用技能
+            </div>
+          ) : (
+            items.map((item, index) => {
+              const isActive = index === activeIndex;
+              return (
+                <div
+                  key={item.id}
+                  role="option"
+                  aria-selected={isActive}
+                  className={cn(
+                    "flex flex-col gap-0.5 px-2.5 py-2 text-left text-xs cursor-default rounded-sm mx-1",
+                    isActive ? "bg-muted/70" : "hover:bg-muted/60",
+                  )}
+                  onClick={() => selectItem(item)}
+                  onPointerMove={() => setActiveIndex(index)}
+                >
+                  <span className="text-[12px] font-medium text-foreground">
+                    {item.label}
+                  </span>
+                  {item.description ? (
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {item.description}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+    );
+
+    return (
+      <>
+        {anchor}
+        {createPortal(menu, document.body)}
+      </>
     );
   }
 );

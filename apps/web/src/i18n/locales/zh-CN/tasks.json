@@ -108,7 +108,7 @@
   },
   "schedule": {
     "automaticTasks": "自动任务",
-    "automaticTasksDesc": "按计划或条件触发，向 Agent 发送指令。",
+    "automaticTasksDesc": "按计划或条件触发，向智能体发送指令。",
     "conditionTrigger": "条件触发",
     "emailReceived": "收到邮件",
     "chatKeyword": "聊天关键词",
@@ -188,9 +188,9 @@
     "triggerTab": "触发方式",
     "actionTab": "执行内容",
     "advancedTab": "高级设置",
-    "agentLabel": "Agent",
+    "agentLabel": "智能体",
     "instructionLabel": "指令",
-    "instructionPlaceholder": "触发时发送给 Agent 的指令...",
+    "instructionPlaceholder": "触发时发送给智能体的指令...",
     "timeoutLabel": "超时（分钟）",
     "cooldownLabel": "冷却（分钟）",
     "cancelButton": "取消",
@@ -215,14 +215,14 @@
     "conditionWatchPathsPlaceholder": "如 src/, docs/",
     "conditionExtensions": "扩展名",
     "conditionExtensionsPlaceholder": "如 .ts, .tsx",
-    "conditionRulePlaceholder": "自然语言规则（可选）— Agent 据此判断是否执行",
+    "conditionRulePlaceholder": "自然语言规则（可选）— 智能体据此判断是否执行",
     "projectScope": "项目",
     "projectSpaceScope": "项目空间"
   },
   "actorLabels": {
     "system": "系统",
     "user": "用户",
-    "agent": "Agent",
+    "agent": "智能体",
     "timeout": "超时"
   },
   "tabs": {
@@ -257,7 +257,7 @@
   },
   "detail": {
     "created": "创建",
-    "agent": "Agent",
+    "agent": "智能体",
     "confirmPlan": "确认计划",
     "reject": "拒绝",
     "pass": "通过",

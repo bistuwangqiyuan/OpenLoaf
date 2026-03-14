@@ -43,7 +43,6 @@ export function WebSearchSettings() {
   // 中文注释：Radix Select 使用空串表示“清空选择”，这里用内部占位值承载“未启用”选项，避免运行时报错。
   const providerSelectValue = provider || DISABLED_PROVIDER_VALUE;
   const apiKey = basic.webSearchApiKey || "";
-  const isConfigured = !!(provider && apiKey);
 
   const handleProviderChange = (value: string) => {
     setTestResult(null);
@@ -180,26 +179,6 @@ export function WebSearchSettings() {
         </div>
       </OpenLoafSettingsGroup>
 
-      <OpenLoafSettingsGroup title="说明">
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <p>
-            启用网页搜索后，AI 助手可以搜索互联网获取最新信息。
-            需要选择搜索提供商并配置有效的 API Key。
-          </p>
-          {provider === "jina" && (
-            <p>
-              Jina Search 需要 API Key，可在{" "}
-              <span className="font-mono text-foreground/70">jina.ai</span>{" "}
-              注册获取。
-            </p>
-          )}
-          {isConfigured && (
-            <p className="text-ol-green">
-              搜索功能已启用，AI 助手在需要查找网络信息时会自动使用。
-            </p>
-          )}
-        </div>
-      </OpenLoafSettingsGroup>
     </div>
   );
 }

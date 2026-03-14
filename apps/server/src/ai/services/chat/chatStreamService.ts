@@ -16,7 +16,7 @@ import { type ChatModelSource, type ModelDefinition } from "@openloaf/api/common
 import type { ImageGenerateOptions, OpenLoafImageMetadataV1 } from "@openloaf/api/types/image";
 import type { AiImageRequest } from "@openloaf-saas/sdk";
 import type { OpenLoafUIMessage, TokenUsage } from "@openloaf/api/types/message";
-import { createMasterAgentRunner } from "@/ai";
+import { createMasterAgentRunner, createProjectAgentRunner } from "@/ai";
 import { getTemplate, isTemplateId } from "@/ai/agent-templates";
 import { resolveChatModel } from "@/ai/models/resolveChatModel";
 import { resolveCliChatModelId } from "@/ai/models/cli/cliProviderEntry";
@@ -593,23 +593,36 @@ export async function runChatStream(input: {
         instructions,
       });
     } else {
-      // 逻辑：组装默认 agent instructions（template.systemPrompt）。
-      instructions = assembleDefaultAgentInstructions();
+      // agentType: 'project' — 使用 Project Agent（专注项目任务执行，无任务管理/日历/邮件工具）
+      const agentType = input.request.params?.agentType;
+      if (agentType === 'project') {
+        const taskId = typeof input.request.params?.taskId === 'string'
+          ? input.request.params.taskId
+          : undefined;
+        masterAgent = createProjectAgentRunner({
+          model: resolved.model,
+          modelInfo: resolved.modelInfo,
+          taskId,
+        });
+      } else {
+        // 逻辑：组装默认 agent instructions（template.systemPrompt）。
+        instructions = assembleDefaultAgentInstructions();
 
-      // agentHint：当请求 params 中包含 agentHint 时，使用对应模版的 systemPrompt 替换 instructions
-      const agentHint = input.request.params?.agentHint;
-      if (typeof agentHint === 'string' && agentHint.trim() && isTemplateId(agentHint.trim())) {
-        const hintTemplate = getTemplate(agentHint.trim());
-        if (hintTemplate && !hintTemplate.isPrimary) {
-          instructions = hintTemplate.systemPrompt;
+        // agentHint：当请求 params 中包含 agentHint 时，使用对应模版的 systemPrompt 替换 instructions
+        const agentHint = input.request.params?.agentHint;
+        if (typeof agentHint === 'string' && agentHint.trim() && isTemplateId(agentHint.trim())) {
+          const hintTemplate = getTemplate(agentHint.trim());
+          if (hintTemplate && !hintTemplate.isPrimary) {
+            instructions = hintTemplate.systemPrompt;
+          }
         }
-      }
 
-      masterAgent = createMasterAgentRunner({
-        model: resolved.model,
-        modelInfo: resolved.modelInfo,
-        instructions,
-      });
+        masterAgent = createMasterAgentRunner({
+          model: resolved.model,
+          modelInfo: resolved.modelInfo,
+          instructions,
+        });
+      }
     }
     setChatModel(resolved.model);
     resolvedModelDef = resolved.modelDefinition ?? undefined;

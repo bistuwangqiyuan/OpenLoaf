@@ -25,7 +25,7 @@ import {
 } from './chatFileStore'
 
 /** Max session title length. */
-const MAX_SESSION_TITLE_CHARS = 16
+const MAX_SESSION_TITLE_CHARS = 30
 /** Initial title word limit for spaced text. */
 const INITIAL_TITLE_WORD_LIMIT = 10
 /** Initial title character limit for no-space text. */
@@ -291,8 +291,8 @@ export async function appendMessagePart(input: {
 }
 
 /** Normalize message role. */
-function normalizeRole(role: unknown): 'user' | 'assistant' | 'system' | 'subagent' {
-  if (role === 'assistant' || role === 'system' || role === 'user' || role === 'subagent') {
+function normalizeRole(role: unknown): 'user' | 'assistant' | 'system' | 'subagent' | 'task-report' {
+  if (role === 'assistant' || role === 'system' || role === 'user' || role === 'subagent' || role === 'task-report') {
     return role
   }
   return 'user'
