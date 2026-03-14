@@ -105,6 +105,8 @@ const GlobalDesktop = React.memo(function GlobalDesktop({
 
     return () => {
       alive = false;
+      // 逻辑：重置加载标记，确保 React Strict Mode 双重调用或依赖变化时能重新加载。
+      loadedUriRef.current = null;
     };
   }, [desktopFileUri]);
 

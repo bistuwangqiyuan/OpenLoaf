@@ -291,7 +291,7 @@ export function AuxiliaryModelSettings() {
             <div className="flex flex-col gap-2.5 py-3">
               {showSaasLogin ? (
                 /* Not logged in — show login prompt */
-                <div className="flex items-center gap-3 rounded-xl border border-ol-purple/20 bg-ol-purple/5 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg border border-ol-purple/20 bg-ol-purple/5 px-4 py-3">
                   <Sparkles className="h-4 w-4 shrink-0 text-ol-purple" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{t('auxiliaryModel.needLogin')}</p>
@@ -309,7 +309,7 @@ export function AuxiliaryModelSettings() {
               ) : (
                 /* Logged in — show SaaS info + quota */
                 <div className="flex flex-col gap-2.5">
-                  <div className="flex items-center gap-3 rounded-xl border border-ol-purple/20 bg-ol-purple/5 px-4 py-3">
+                  <div className="flex items-center gap-3 rounded-lg border border-ol-purple/20 bg-ol-purple/5 px-4 py-3">
                     <Sparkles className="h-4 w-4 shrink-0 text-ol-purple" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">{t('auxiliaryModel.saasProvided')}</p>
@@ -601,12 +601,12 @@ function TestCapabilityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg sm:rounded-2xl">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg sm:rounded-lg">
         {/* Header — 半透明玻璃层 */}
         <div className="flex items-center gap-3 border-b border-border/40 ol-glass-float px-5 py-4">
           <div className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
-            'bg-background/80 shadow-sm ring-1 ring-border/30',
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+            'bg-card shadow-sm ring-1 ring-border/30',
           )}>
             <Icon className={cn('h-4 w-4', iconColor)} />
           </div>
@@ -645,7 +645,7 @@ function TestCapabilityDialog({
               onChange={(e) => setContext(e.target.value)}
               rows={5}
               className={cn(
-                'resize-none rounded-xl border-border/50 bg-muted/20 font-mono text-xs leading-relaxed shadow-none',
+                'resize-none rounded-lg border-border/50 bg-muted/20 font-mono text-xs leading-relaxed shadow-none',
                 'placeholder:text-muted-foreground/40',
                 'focus-visible:ring-0 focus-visible:shadow-none focus-visible:border-border/70',
                 'transition-colors duration-200',
@@ -662,16 +662,16 @@ function TestCapabilityDialog({
               {/* Result content */}
               {result.ok ? (
                 isText ? (
-                  <div className="rounded-xl border border-border/30 bg-muted/15 p-3.5 text-xs leading-relaxed whitespace-pre-wrap">
+                  <div className="rounded-lg border border-border/30 bg-muted/15 p-3.5 text-xs leading-relaxed whitespace-pre-wrap">
                     {String(result.result)}
                   </div>
                 ) : (
-                  <pre className="max-h-52 overflow-auto rounded-xl border border-border/30 bg-muted/15 p-3.5 font-mono text-xs leading-relaxed">
+                  <pre className="max-h-52 overflow-auto rounded-lg border border-border/30 bg-muted/15 p-3.5 font-mono text-xs leading-relaxed">
                     {JSON.stringify(result.result, null, 2)}
                   </pre>
                 )
               ) : (
-                <div className="rounded-xl border border-ol-red/15 bg-ol-red/5 p-3.5 text-xs leading-relaxed text-ol-red">
+                <div className="rounded-lg border border-ol-red/15 bg-ol-red/5 p-3.5 text-xs leading-relaxed text-ol-red">
                   {result.error ?? t('auxiliaryModel.testFailed')}
                 </div>
               )}

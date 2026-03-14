@@ -329,7 +329,7 @@ function MediaModelSelect({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 rounded-xl border-border bg-background/90 p-2 shadow-xl backdrop-blur"
+        className="w-80 rounded-lg border-border bg-card p-2 shadow-sm"
       >
         {!authLoggedIn ? (
           <div className="flex flex-col items-center justify-center gap-2 py-6">
@@ -531,7 +531,7 @@ function ChatModelSelect({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 rounded-xl border-border bg-background/90 p-2 shadow-xl backdrop-blur"
+        className="w-80 rounded-lg border-border bg-card p-2 shadow-sm"
       >
         {showCloudLogin ? (
           <div className="flex flex-col items-center justify-center gap-2 py-6">
@@ -1252,7 +1252,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
       return (
         <div
           key={group.id}
-          className={`relative flex cursor-pointer flex-col rounded-2xl p-3 transition-colors ${bgClass}`}
+          className={`relative flex cursor-pointer flex-col rounded-lg p-3 transition-colors ${bgClass}`}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('[role="switch"]')) return
             if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return
@@ -1422,7 +1422,7 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({
         <div className="space-y-4 p-4">
           {/* Apple 风格基本信息区 */}
           <div className="flex flex-col items-center gap-2 pt-2 pb-1">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <Bot className="h-7 w-7 text-ol-blue" />
             </div>
             <Input

@@ -8,28 +8,37 @@
  * Repository: https://github.com/OpenLoaf/OpenLoaf
  */
 
-import { LayoutDashboard, CalendarDays, Mail, Clock, Folder, Palette, Settings } from "lucide-react"
+import { LayoutDashboard, CalendarDays, Clock, Folder, FolderKanban, Palette, Settings } from "lucide-react"
 
+/**
+ * Global quick launch items — order and colors aligned with Sidebar.
+ * Sidebar order: 项目空间(blue) → 智能画布(purple) → 工作台(green) → 日历(sky) → 邮件(teal) → 任务(rose)
+ */
 export const QUICK_LAUNCH_ITEMS = [
   {
-    baseId: "base:workbench", component: "global-desktop", labelKey: "quickLaunch.workbench", icon: LayoutDashboard, titleKey: "quickLaunch.workbench", tabIcon: "bot",
-    iconColor: "text-ol-amber/70 group-hover:text-ol-amber",
-    bgColor: "bg-ol-amber/10 group-hover:bg-ol-amber/20",
-  },
-  {
-    baseId: "base:calendar", component: "calendar-page", labelKey: "quickLaunch.calendar", icon: CalendarDays, titleKey: "quickLaunch.calendar", tabIcon: "🗓️",
+    baseId: "base:project-list", component: "project-list-page", labelKey: "quickLaunch.projectSpace", icon: FolderKanban, titleKey: "nav:projectList", tabIcon: "📁", viewType: "project-list",
     iconColor: "text-ol-blue/70 group-hover:text-ol-blue",
     bgColor: "bg-ol-blue/10 group-hover:bg-ol-blue/20",
   },
   {
-    baseId: "base:mailbox", component: "email-page", labelKey: "quickLaunch.mailbox", icon: Mail, titleKey: "quickLaunch.mailbox", tabIcon: "📧",
+    baseId: "base:canvas-list", component: "canvas-list-page", labelKey: "quickLaunch.smartCanvas", icon: Palette, titleKey: "nav:canvas", tabIcon: "🎨", viewType: "canvas-list",
+    iconColor: "text-ol-purple/70 group-hover:text-ol-purple",
+    bgColor: "bg-ol-purple/10 group-hover:bg-ol-purple/20",
+  },
+  {
+    baseId: "base:workbench", component: "global-desktop", labelKey: "quickLaunch.workbench", icon: LayoutDashboard, titleKey: "nav:workbench", tabIcon: "bot", viewType: "workbench",
     iconColor: "text-ol-green/70 group-hover:text-ol-green",
     bgColor: "bg-ol-green/10 group-hover:bg-ol-green/20",
   },
   {
-    baseId: "base:scheduled-tasks", component: "scheduled-tasks-page", labelKey: "quickLaunch.tasks", icon: Clock, titleKey: "quickLaunch.tasks", tabIcon: "⏰",
-    iconColor: "text-ol-red/70 group-hover:text-ol-red",
-    bgColor: "bg-ol-red/10 group-hover:bg-ol-red/20",
+    baseId: "base:calendar", component: "calendar-page", labelKey: "quickLaunch.calendar", icon: CalendarDays, titleKey: "nav:calendar", tabIcon: "🗓️", viewType: "calendar",
+    iconColor: "text-sky-500/70 group-hover:text-sky-500",
+    bgColor: "bg-sky-500/10 group-hover:bg-sky-500/20",
+  },
+  {
+    baseId: "base:scheduled-tasks", component: "scheduled-tasks-page", labelKey: "quickLaunch.tasks", icon: Clock, titleKey: "nav:tasks", tabIcon: "⏰", viewType: "scheduled-tasks",
+    iconColor: "text-rose-500/70 group-hover:text-rose-500",
+    bgColor: "bg-rose-500/10 group-hover:bg-rose-500/20",
   },
 ] as const
 

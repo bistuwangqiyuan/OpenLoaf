@@ -9,10 +9,12 @@
  */
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, trpc } from "@/utils/trpc";
 import { useBasicConfig } from "@/hooks/use-basic-config";
+
+const EMPTY_IDS: string[] = [];
 
 type AgentDetail = {
   name: string;
@@ -108,12 +110,21 @@ export function useMainAgentModel(projectId?: string) {
 
   const chatSource = basic.chatSource === "cloud" ? "cloud" : "local";
 
-  const normalizeIds = useCallback((value: string[]) => {
+  const normalizeIds = useCallback((value?: string[] | null) => {
+    if (!Array.isArray(value)) return [];
     const next = value
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
     return Array.from(new Set(next));
   }, []);
+
+  const detailQueryKeyRef = useRef<unknown[] | undefined>(undefined);
+  if (masterAgent?.path) {
+    detailQueryKeyRef.current = trpc.settings.getAgentDetail.queryOptions({
+      agentPath: masterAgent.path,
+      scope: masterAgent.scope,
+    }).queryKey;
+  }
 
   /** Save master agent config with partial updates. */
   const updateMasterAgent = useCallback(
@@ -156,6 +167,38 @@ export function useMainAgentModel(projectId?: string) {
         typeof patch.systemPrompt === "string"
           ? patch.systemPrompt
           : detail.systemPrompt;
+
+      const normalizedLocalIds = normalizeIds(nextModelLocalIds);
+      const normalizedCloudIds = normalizeIds(nextModelCloudIds);
+      const normalizedAuxLocalIds = normalizeIds(nextAuxiliaryModelLocalIds);
+      const normalizedAuxCloudIds = normalizeIds(nextAuxiliaryModelCloudIds);
+      const normalizedImageIds = normalizeIds(nextImageModelIds);
+      const normalizedVideoIds = normalizeIds(nextVideoModelIds);
+      const normalizedCodeIds = normalizeIds(nextCodeModelIds);
+      const normalizedToolIds = normalizeIds(nextToolIds);
+
+      // 乐观更新 detailQuery 缓存，防止 useEffect 用旧数据覆盖本地状态。
+      const detailQKey = detailQueryKeyRef.current;
+      if (detailQKey) {
+        queryClient.setQueryData(detailQKey, {
+          ...detail,
+          ...patch,
+          modelLocalIds: normalizedLocalIds,
+          modelCloudIds: normalizedCloudIds,
+          auxiliaryModelSource: nextAuxiliaryModelSource,
+          auxiliaryModelLocalIds: normalizedAuxLocalIds,
+          auxiliaryModelCloudIds: normalizedAuxCloudIds,
+          imageModelIds: normalizedImageIds,
+          videoModelIds: normalizedVideoIds,
+          codeModelIds: normalizedCodeIds,
+          toolIds: normalizedToolIds,
+          skills: patch.skills ?? detail.skills,
+          allowSubAgents: patch.allowSubAgents ?? detail.allowSubAgents,
+          maxDepth: patch.maxDepth ?? detail.maxDepth,
+          systemPrompt: nextSystemPrompt || detail.systemPrompt,
+        });
+      }
+
       saveMutation.mutate({
         scope: detail.scope,
         projectId: detail.scope === "project" ? projectId : undefined,
@@ -163,15 +206,15 @@ export function useMainAgentModel(projectId?: string) {
         name: patch.name ?? detail.name,
         description: patch.description ?? detail.description,
         icon: patch.icon ?? detail.icon,
-        modelLocalIds: normalizeIds(nextModelLocalIds),
-        modelCloudIds: normalizeIds(nextModelCloudIds),
+        modelLocalIds: normalizedLocalIds,
+        modelCloudIds: normalizedCloudIds,
         auxiliaryModelSource: nextAuxiliaryModelSource,
-        auxiliaryModelLocalIds: normalizeIds(nextAuxiliaryModelLocalIds),
-        auxiliaryModelCloudIds: normalizeIds(nextAuxiliaryModelCloudIds),
-        imageModelIds: normalizeIds(nextImageModelIds),
-        videoModelIds: normalizeIds(nextVideoModelIds),
-        codeModelIds: normalizeIds(nextCodeModelIds),
-        toolIds: normalizeIds(nextToolIds),
+        auxiliaryModelLocalIds: normalizedAuxLocalIds,
+        auxiliaryModelCloudIds: normalizedAuxCloudIds,
+        imageModelIds: normalizedImageIds,
+        videoModelIds: normalizedVideoIds,
+        codeModelIds: normalizedCodeIds,
+        toolIds: normalizedToolIds,
         skills: patch.skills ?? detail.skills,
         allowSubAgents: patch.allowSubAgents ?? detail.allowSubAgents,
         maxDepth: patch.maxDepth ?? detail.maxDepth,
@@ -234,28 +277,32 @@ export function useMainAgentModel(projectId?: string) {
     [normalizeIds, updateMasterAgent],
   );
 
+  const detail = detailQuery.data as AgentDetail | undefined;
+
+  const modelIds = useMemo(() => {
+    if (!detail) return EMPTY_IDS;
+    return chatSource === "cloud" ? detail.modelCloudIds : detail.modelLocalIds;
+  }, [chatSource, detail]);
+
+  const auxiliaryModelIds = useMemo(() => {
+    if (!detail) return EMPTY_IDS;
+    const source =
+      detail.auxiliaryModelSource === "cloud" ? "cloud" : "local";
+    return source === "cloud"
+      ? detail.auxiliaryModelCloudIds
+      : detail.auxiliaryModelLocalIds;
+  }, [detail]);
+
   return {
     masterAgent,
-    modelIds:
-      chatSource === "cloud"
-        ? (detailQuery.data as AgentDetail | undefined)?.modelCloudIds ?? []
-        : (detailQuery.data as AgentDetail | undefined)?.modelLocalIds ?? [],
+    modelIds,
     setModelIds,
-    auxiliaryModelIds:
-      (() => {
-        const detail = detailQuery.data as AgentDetail | undefined;
-        if (!detail) return [];
-        const source =
-          detail.auxiliaryModelSource === "cloud" ? "cloud" : "local";
-        return source === "cloud"
-          ? detail.auxiliaryModelCloudIds
-          : detail.auxiliaryModelLocalIds;
-      })(),
+    auxiliaryModelIds,
     setAuxiliaryModelIds,
     setImageModelIds,
     setVideoModelIds,
     setCodeModelIds,
-    detail: detailQuery.data as AgentDetail | undefined,
+    detail,
     isLoading:
       agentsQuery.isLoading ||
       detailQuery.isLoading ||

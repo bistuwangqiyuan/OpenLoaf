@@ -11,18 +11,22 @@
 
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Bug, Lightbulb, MessageSquarePlus, Palette, X } from "lucide-react";
+import { Bug, History, Lightbulb, MessageSquarePlus, Palette, X } from "lucide-react";
+import SessionList from "@/components/ai/session/SessionList";
 import * as React from "react";
 import { useChatActions, useChatSession, useChatState } from "./context";
-import { trpcClient } from "@/utils/trpc";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient, trpc, trpcClient } from "@/utils/trpc";
+import { useAppView } from "@/hooks/use-app-view";
+import { invalidateChatSessions, useChatSessions } from "@/hooks/use-chat-sessions";
 import { useLayoutState } from "@/hooks/use-layout-state";
 import { useAppState } from "@/hooks/use-app-state";
 import { useBasicConfig } from "@/hooks/use-basic-config";
-import { useHeaderSlot } from "@/hooks/use-header-slot";
 import { useSaasAuth } from "@/hooks/use-saas-auth";
 import { toast } from "sonner";
 import { SaaSClient, SaaSHttpError } from "@openloaf-saas/sdk";
 import { MessageAction, MessageActions } from "@/components/ai-elements/message";
+import { Popover, PopoverContent, PopoverTrigger } from "@openloaf/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +41,6 @@ import { getAccessToken, resolveSaasBaseUrl } from "@/lib/saas-auth";
 import { resolveServerUrl } from "@/utils/server-url";
 import { isElectronEnv } from "@/utils/is-electron-env";
 import { CopyChatToCanvasDialog } from "./CopyChatToCanvasDialog";
-import { createPortal } from "react-dom";
 
 interface ChatHeaderProps {
   onNewSession?: () => void;
@@ -55,6 +58,7 @@ const CHAT_HEADER_EMAIL_ICON_CLASS = {
     "text-ol-purple/70 hover:text-ol-purple",
   closeDock: "text-ol-amber",
   clear: "text-ol-green",
+  history: "text-ol-blue",
   close: "text-ol-text-auxiliary",
 } as const;
 
@@ -66,8 +70,9 @@ export default function ChatHeader({
 }: ChatHeaderProps) {
   const { t: tAi } = useTranslation('ai');
   const { sessionId: activeSessionId, tabId, leafMessageId: activeLeafMessageId } = useChatSession();
-  const { newSession } = useChatActions();
+  const { newSession, selectSession } = useChatActions();
   const { messages } = useChatState();
+  const [historyOpen, setHistoryOpen] = React.useState(false);
   /** Preface button loading state. */
   const [prefaceLoading, setPrefaceLoading] = React.useState(false);
   /** Chat feedback dialog open state. */
@@ -78,11 +83,28 @@ export default function ChatHeader({
   const [chatFeedbackContent, setChatFeedbackContent] = React.useState("");
   /** Chat feedback submitting state. */
   const [chatFeedbackSubmitting, setChatFeedbackSubmitting] = React.useState(false);
+  const menuLockRef = React.useRef(false);
+  // 历史会话列表：查询全部非 board 会话（不按项目过滤），确保切换项目后仍可看到全量历史。
+  const globalSessionsQuery = useQuery({
+    ...trpc.chat.listSessions.queryOptions({ boardId: null }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const sessions = (globalSessionsQuery.data ?? []) as Array<{ id: string; title: string; projectId?: string | null; isUserRename?: boolean; updatedAt: string | Date }>;
+  const refetchSessions = globalSessionsQuery.refetch;
+  const setTitle = useAppView((s) => s.setTitle);
+  const setChatParams = useAppView((s) => s.setChatParams);
   const pushStackItem = useLayoutState((s) => s.pushStackItem);
   const { basic } = useBasicConfig();
-  const headerActionsTarget = useHeaderSlot((s) => s.headerActionsTarget);
   const { loggedIn: saasLoggedIn } = useSaasAuth();
   const appState = useAppState();
+
+  // 当前会话标题：从 sessions 列表中匹配当前 activeSessionId
+  const sessionTitle = React.useMemo(() => {
+    if (!activeSessionId) return "";
+    const current = sessions.find((s) => s.id === activeSessionId);
+    return current?.title?.trim() || "";
+  }, [activeSessionId, sessions]);
 
   // Quick launch: derive project context from tab chatParams.
   const quickLaunchProjectId = React.useMemo(() => {
@@ -118,7 +140,21 @@ export default function ChatHeader({
   // 新建会话按钮显示条件：有历史消息 + 启用多会话模式
   const shouldShowNewSessionButton = messages.length > 0 && (enableMultiSession ?? Boolean(quickLaunchProjectId));
 
+  const shouldShowHistoryButton = enableMultiSession ?? true;
+
   const effectiveChatFeedbackOpen = chatFeedbackOpen && saasLoggedIn;
+
+  const syncHistoryTitleToTabTitle = useMutation({
+    ...(trpc.chatsession.updateManyChatSession.mutationOptions() as any),
+    onSuccess: () => {
+      invalidateChatSessions(queryClient);
+    },
+  });
+
+  const handleMenuOpenChange = (open: boolean) => {
+    menuLockRef.current = open;
+    if (open) setHistoryOpen(true);
+  };
 
   /**
    * Open the current session preface in a markdown stack panel.
@@ -314,87 +350,142 @@ export default function ChatHeader({
     tAi,
   ]);
 
-  const headerActions = (
-    <MessageActions className="min-w-0 shrink-0 justify-end gap-0">
-      {showPrefaceButton ? (
-        <MessageAction
-          aria-label="View Debug Context"
-          onClick={handleViewPreface}
-          disabled={prefaceLoading}
-          className={cn("ml-0.5 shrink-0", resolveActionIconClass("debug"))}
-          tooltip="查看上下文调试信息"
-          label="查看上下文调试信息"
-        >
-          <Bug size={16} />
-        </MessageAction>
-      ) : null}
-      {saasLoggedIn && messages.length > 0 ? (
-        <MessageAction
-          aria-label={tAi("chatFeedback.button")}
-          onClick={() => setChatFeedbackOpen(true)}
-          className={cn("shrink-0", resolveActionIconClass("feedback"))}
-          disabled={chatFeedbackSubmitting || !activeSessionId}
-          tooltip={tAi("chatFeedback.button")}
-          label={tAi("chatFeedback.button")}
-        >
-          <Lightbulb size={16} />
-        </MessageAction>
-      ) : null}
-      {messages.length > 0 && activeSessionId ? (
-        <MessageAction
-          aria-label={tAi("copyToCanvas.button")}
-          onClick={() => setCopyToCanvasOpen(true)}
-          className={cn("shrink-0", resolveActionIconClass("copyToCanvas"))}
-          tooltip={tAi("copyToCanvas.button")}
-          label={tAi("copyToCanvas.button")}
-        >
-          <Palette size={16} />
-        </MessageAction>
-      ) : null}
-      {shouldShowNewSessionButton ? (
-        <MessageAction
-          aria-label="重新开始会话"
-          className={resolveActionIconClass("clear")}
-          onClick={() => {
-            if (onNewSession) {
-              onNewSession();
-              return;
-            }
-            newSession();
-          }}
-          tooltip="重新开始会话"
-          label="重新开始会话"
-        >
-          <MessageSquarePlus size={20} />
-        </MessageAction>
-      ) : null}
-      {onCloseSession ? (
-        <MessageAction
-          aria-label="关闭会话"
-          className={resolveActionIconClass("close")}
-          onClick={onCloseSession}
-          tooltip="关闭会话"
-          label="关闭会话"
-        >
-          <X size={20} />
-        </MessageAction>
-      ) : null}
-    </MessageActions>
-  );
-
   return (
     <>
-      {headerActionsTarget
-        ? createPortal(
-            <div
-              className="flex min-w-0 items-center justify-end"
-              data-no-drag="true"
+      <div className="flex items-center px-2 pt-1.5 gap-1">
+        {sessionTitle && messages.length > 0 ? (
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground pl-1">
+            {sessionTitle}
+          </span>
+        ) : <div className="flex-1" />}
+        <MessageActions className="min-w-0 shrink-0 justify-end gap-0">
+          {showPrefaceButton ? (
+            <MessageAction
+              aria-label="View Debug Context"
+              onClick={handleViewPreface}
+              disabled={prefaceLoading}
+              className={cn("ml-0.5 shrink-0", resolveActionIconClass("debug"))}
+              tooltip="查看上下文调试信息"
+              label="查看上下文调试信息"
             >
-              {headerActions}
-            </div>,
-            headerActionsTarget,
-          )
-        : null}
+              <Bug size={16} />
+            </MessageAction>
+          ) : null}
+          {saasLoggedIn && messages.length > 0 ? (
+            <MessageAction
+              aria-label={tAi("chatFeedback.button")}
+              onClick={() => setChatFeedbackOpen(true)}
+              className={cn("shrink-0", resolveActionIconClass("feedback"))}
+              disabled={chatFeedbackSubmitting || !activeSessionId}
+              tooltip={tAi("chatFeedback.button")}
+              label={tAi("chatFeedback.button")}
+            >
+              <Lightbulb size={16} />
+            </MessageAction>
+          ) : null}
+          {messages.length > 0 && activeSessionId ? (
+            <MessageAction
+              aria-label={tAi("copyToCanvas.button")}
+              onClick={() => setCopyToCanvasOpen(true)}
+              className={cn("shrink-0", resolveActionIconClass("copyToCanvas"))}
+              tooltip={tAi("copyToCanvas.button")}
+              label={tAi("copyToCanvas.button")}
+            >
+              <Palette size={16} />
+            </MessageAction>
+          ) : null}
+          {shouldShowNewSessionButton ? (
+            <MessageAction
+              aria-label="重新开始会话"
+              className={resolveActionIconClass("clear")}
+              onClick={() => {
+                setHistoryOpen(false);
+                menuLockRef.current = false;
+                if (onNewSession) {
+                  onNewSession();
+                  return;
+                }
+                newSession();
+              }}
+              tooltip="重新开始会话"
+              label="重新开始会话"
+            >
+              <MessageSquarePlus size={20} />
+            </MessageAction>
+          ) : null}
+          {shouldShowHistoryButton ? (
+            <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+              <PopoverTrigger asChild>
+                <MessageAction
+                  aria-label="History"
+                  className={resolveActionIconClass("history")}
+                  onClick={() => {
+                    void refetchSessions();
+                  }}
+                  tooltip="历史会话"
+                  label="历史会话"
+                >
+                  <History size={20} />
+                </MessageAction>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="end"
+                className="flex w-80 max-h-[min(80svh,var(--radix-popover-content-available-height))] flex-col overflow-hidden p-2"
+                onInteractOutside={(e) => {
+                  if (menuLockRef.current) e.preventDefault();
+                }}
+              >
+                <SessionList
+                  tabId={tabId}
+                  activeSessionId={activeSessionId}
+                  externalSessions={sessions as any}
+                  externalLoading={globalSessionsQuery.isLoading}
+                  onMenuOpenChange={handleMenuOpenChange}
+                  onSelect={(session) => {
+                    setHistoryOpen(false);
+                    menuLockRef.current = false;
+                    const hasTabBase = Boolean(appState?.base);
+                    const tabTitle = String(appState?.title ?? "").trim();
+                    const selectedSessionMeta = sessions.find((item) => item.id === session.id);
+                    const isSelectedUserRename = Boolean(selectedSessionMeta?.isUserRename);
+                    if (
+                      !hasTabBase &&
+                      tabTitle.length > 0 &&
+                      !isSelectedUserRename &&
+                      (session.name.trim().length === 0 || session.name.trim() === "新对话")
+                    ) {
+                      syncHistoryTitleToTabTitle.mutate({
+                        where: { id: session.id, isUserRename: false },
+                        data: { title: tabTitle },
+                      } as any);
+                    }
+                    {
+                      const nextTitle = session.name.trim() || tAi("dock.aiAssistant");
+                      setTitle(nextTitle);
+                    }
+                    if (selectedSessionMeta?.projectId) {
+                      setChatParams({ projectId: selectedSessionMeta.projectId });
+                    }
+                    selectSession(session.id);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          ) : null}
+          {onCloseSession ? (
+            <MessageAction
+              aria-label="关闭会话"
+              className={resolveActionIconClass("close")}
+              onClick={onCloseSession}
+              tooltip="关闭会话"
+              label="关闭会话"
+            >
+              <X size={20} />
+            </MessageAction>
+          ) : null}
+        </MessageActions>
+      </div>
       <Dialog
         open={effectiveChatFeedbackOpen}
         onOpenChange={(open) => {

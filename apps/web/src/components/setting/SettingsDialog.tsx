@@ -22,7 +22,7 @@ export function SettingsDialog() {
     <Dialog open={open} onOpenChange={(v) => setSettingsOpen(v)}>
       <DialogContent
         className="w-[92vw] max-w-[92vw]! h-[90vh] p-0 gap-0 overflow-hidden"
-        overlayClassName="backdrop-blur-sm bg-black/30"
+        overlayClassName="bg-foreground/20"
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">Settings</DialogTitle>

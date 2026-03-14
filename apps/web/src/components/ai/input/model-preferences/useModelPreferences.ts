@@ -9,7 +9,7 @@
  */
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsValues } from '@/hooks/use-settings'
 import { useBasicConfig } from '@/hooks/use-basic-config'
@@ -29,6 +29,14 @@ import {
 } from '@/lib/provider-models'
 import { useMainAgentModel } from '../../hooks/use-main-agent-model'
 import { useOptionalChatSession } from '../../context'
+
+function normalizeIds(value?: string[] | null): string[] {
+  if (!Array.isArray(value)) return []
+  const normalized = value
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+  return Array.from(new Set(normalized))
+}
 
 export function useModelPreferences() {
   const { t } = useTranslation('ai')
@@ -81,42 +89,26 @@ export function useModelPreferences() {
     () => buildCliModelOptions(installedCliProviderIds),
     [installedCliProviderIds],
   )
-  const normalizeIds = useCallback((value?: string[] | null) => {
-    if (!Array.isArray(value)) return []
-    const normalized = value
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0)
-    return Array.from(new Set(normalized))
-  }, [])
 
-  const [preferredChatIds, setPreferredChatIds] = useState<string[]>(() =>
-    normalizeIds(masterModelIds),
+  // 直接从 React Query 缓存（masterDetail / masterModelIds）派生偏好 ID，
+  // 而非使用 useState + useEffect 同步。
+  // 这样即使 ChatInput 因 fullPage 切换而卸载/重挂载，数据也不会丢失。
+  const preferredChatIds = useMemo(
+    () => normalizeIds(masterModelIds),
+    [masterModelIds],
   )
-  const [preferredImageIds, setPreferredImageIds] = useState<string[]>(() =>
-    normalizeIds(masterDetail?.imageModelIds),
+  const preferredImageIds = useMemo(
+    () => normalizeIds(masterDetail?.imageModelIds),
+    [masterDetail?.imageModelIds],
   )
-  const [preferredVideoIds, setPreferredVideoIds] = useState<string[]>(() =>
-    normalizeIds(masterDetail?.videoModelIds),
+  const preferredVideoIds = useMemo(
+    () => normalizeIds(masterDetail?.videoModelIds),
+    [masterDetail?.videoModelIds],
   )
-  const [preferredCodeIds, setPreferredCodeIds] = useState<string[]>(() =>
-    normalizeIds(masterDetail?.codeModelIds),
+  const preferredCodeIds = useMemo(
+    () => normalizeIds(masterDetail?.codeModelIds),
+    [masterDetail?.codeModelIds],
   )
-
-  useEffect(() => {
-    setPreferredChatIds(normalizeIds(masterModelIds))
-  }, [masterModelIds, normalizeIds])
-
-  useEffect(() => {
-    setPreferredImageIds(normalizeIds(masterDetail?.imageModelIds))
-  }, [masterDetail?.imageModelIds, normalizeIds])
-
-  useEffect(() => {
-    setPreferredVideoIds(normalizeIds(masterDetail?.videoModelIds))
-  }, [masterDetail?.videoModelIds, normalizeIds])
-
-  useEffect(() => {
-    setPreferredCodeIds(normalizeIds(masterDetail?.codeModelIds))
-  }, [masterDetail?.codeModelIds, normalizeIds])
 
   const isAuto = preferredChatIds.length === 0
   const isImageAuto = preferredImageIds.length === 0
@@ -140,7 +132,6 @@ export function useModelPreferences() {
       const nextIds = preferredChatIds.includes(normalized)
         ? preferredChatIds.filter((id) => id !== normalized)
         : [...preferredChatIds, normalized]
-      setPreferredChatIds(nextIds)
       setModelIds(nextIds)
     },
     [preferredChatIds, setModelIds],
@@ -153,7 +144,6 @@ export function useModelPreferences() {
       const nextIds = preferredImageIds.includes(normalized)
         ? preferredImageIds.filter((id) => id !== normalized)
         : [...preferredImageIds, normalized]
-      setPreferredImageIds(nextIds)
       setImageModelIds(nextIds)
     },
     [preferredImageIds, setImageModelIds],
@@ -166,7 +156,6 @@ export function useModelPreferences() {
       const nextIds = preferredVideoIds.includes(normalized)
         ? preferredVideoIds.filter((id) => id !== normalized)
         : [...preferredVideoIds, normalized]
-      setPreferredVideoIds(nextIds)
       setVideoModelIds(nextIds)
     },
     [preferredVideoIds, setVideoModelIds],
@@ -179,7 +168,6 @@ export function useModelPreferences() {
       const nextIds = preferredCodeIds.includes(normalized)
         ? preferredCodeIds.filter((id) => id !== normalized)
         : [...preferredCodeIds, normalized]
-      setPreferredCodeIds(nextIds)
       setCodeModelIds(nextIds)
     },
     [preferredCodeIds, setCodeModelIds],
@@ -189,7 +177,6 @@ export function useModelPreferences() {
     (modelId: string) => {
       const normalized = modelId.trim()
       if (!normalized) return
-      setPreferredCodeIds([normalized])
       setCodeModelIds([normalized])
     },
     [setCodeModelIds],
@@ -199,14 +186,12 @@ export function useModelPreferences() {
     (auto: boolean) => {
       if (auto) {
         if (preferredChatIds.length === 0) return
-        setPreferredChatIds([])
         setModelIds([])
         return
       }
       if (preferredChatIds.length > 0) return
       const fallback = chatModels[0]?.id
       if (fallback) {
-        setPreferredChatIds([fallback])
         setModelIds([fallback])
       }
     },
@@ -217,14 +202,12 @@ export function useModelPreferences() {
     (auto: boolean) => {
       if (auto) {
         if (preferredImageIds.length === 0) return
-        setPreferredImageIds([])
         setImageModelIds([])
         return
       }
       if (preferredImageIds.length > 0) return
       const fallback = imageModels[0]?.id
       if (fallback) {
-        setPreferredImageIds([fallback])
         setImageModelIds([fallback])
       }
     },
@@ -235,14 +218,12 @@ export function useModelPreferences() {
     (auto: boolean) => {
       if (auto) {
         if (preferredVideoIds.length === 0) return
-        setPreferredVideoIds([])
         setVideoModelIds([])
         return
       }
       if (preferredVideoIds.length > 0) return
       const fallback = videoModels[0]?.id
       if (fallback) {
-        setPreferredVideoIds([fallback])
         setVideoModelIds([fallback])
       }
     },
@@ -253,14 +234,12 @@ export function useModelPreferences() {
     (auto: boolean) => {
       if (auto) {
         if (preferredCodeIds.length === 0) return
-        setPreferredCodeIds([])
         setCodeModelIds([])
         return
       }
       if (preferredCodeIds.length > 0) return
       const fallback = codeModels[0]?.id
       if (fallback) {
-        setPreferredCodeIds([fallback])
         setCodeModelIds([fallback])
       }
     },

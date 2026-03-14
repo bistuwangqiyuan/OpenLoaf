@@ -523,7 +523,7 @@ function GlobalAgentView() {
               placeholder={t("settings:agent.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 rounded-xl border-border/70 bg-background/90 pl-9 pr-9 text-sm"
+              className="h-9 rounded-lg border-border/70 bg-background/90 pl-9 pr-9 text-sm"
             />
             {searchQuery ? (
               <Button
@@ -568,7 +568,7 @@ function GlobalAgentView() {
                 >
                   <ContextMenuTrigger asChild>
                     <div
-                      className="group flex flex-col gap-2 rounded-xl bg-ol-surface-muted px-3 py-2.5 transition-[background-color] duration-200 hover:bg-ol-divider"
+                      className="group flex flex-col gap-2 rounded-lg bg-ol-surface-muted px-3 py-2.5 transition-[background-color] duration-200 hover:bg-ol-divider"
                       onDoubleClick={() => {
                         handleEditAgent(agent);
                       }}

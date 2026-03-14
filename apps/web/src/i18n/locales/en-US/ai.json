@@ -252,6 +252,8 @@
     "xaiKey": "xAI API Key"
   },
   "quickLaunch": {
+    "projectSpace": "Projects",
+    "smartCanvas": "Canvas",
     "workbench": "Workbench",
     "calendar": "Calendar",
     "mailbox": "Mailbox",

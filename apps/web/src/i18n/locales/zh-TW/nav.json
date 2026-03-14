@@ -66,7 +66,8 @@
       "success": "反饋已提交",
       "failedWithMessage": "反饋提交失敗：{{message}}",
       "failed": "反饋提交失敗，請稍後重試",
-      "includeLogs": "附帶應用日誌（幫助定位問題）",
+      "includeLogs": "附帶應用日誌（僅含執行狀態，不含個人資料）",
+      "includeChatHistory": "附帶最近的 AI 聊天記錄（可能包含對話內容，僅用於改進產品）",
       "types": {
         "ui": "介面體驗",
         "performance": "效能問題",

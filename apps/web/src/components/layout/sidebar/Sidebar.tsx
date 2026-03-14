@@ -190,8 +190,8 @@ export const AppSidebar = ({
             tooltip={t("aiAssistant")}
             color="amber"
             isActive={!isInProject && (() => {
-              const tempTitle = i18next.t(TEMP_CHAT_TAB_INPUT.titleKey);
-              if (!appState.base && appState.title === tempTitle) return true;
+              // 无 base 且无项目 = 全局聊天模式（包括临时对话和历史会话）
+              if (!appState.base && !appState.projectShell) return true;
               return isMenuActive(AI_ASSISTANT_TAB_INPUT);
             })()}
             onClick={nav.openTempChat}

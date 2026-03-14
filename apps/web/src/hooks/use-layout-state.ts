@@ -85,7 +85,7 @@ export type LayoutStateActions = LayoutState & {
 const DEFAULT_STATE: LayoutState = {
   stack: [],
   leftWidthPercent: 0,
-  rightChatCollapsed: false,
+  rightChatCollapsed: true,
   rightChatCollapsedSnapshot: undefined,
   stackHidden: false,
   activeStackItemId: "",
@@ -127,7 +127,7 @@ function normalize(input?: Partial<LayoutState>): LayoutState {
     stack,
     leftWidthPercent,
     minLeftWidth,
-    rightChatCollapsed: base ? Boolean(input?.rightChatCollapsed) : false,
+    rightChatCollapsed: base ? (input?.rightChatCollapsed ?? true) : true,
     rightChatCollapsedSnapshot,
     stackHidden: Boolean(input?.stackHidden),
     activeStackItemId:
@@ -205,7 +205,7 @@ export const useLayoutState = create<LayoutStateActions>()(
         set((state) =>
           normalize({
             ...state,
-            rightChatCollapsed: state.base ? collapsed : false,
+            rightChatCollapsed: collapsed,
           }),
         )
       },

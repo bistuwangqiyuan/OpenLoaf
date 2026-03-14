@@ -78,7 +78,7 @@ export default function ChatMessageText({ value, className }: ChatMessageTextPro
           data-openloaf-mention="true"
           data-mention-value={segment.value}
           data-slate-value={segment.value}
-          className="inline-flex items-center gap-[3px] align-middle py-px px-1.5 mx-0.5 rounded-md bg-ol-blue text-white text-xs font-medium leading-[18px] cursor-pointer select-none whitespace-nowrap max-w-[200px] hover:bg-ol-blue/90 transition-colors"
+          className="inline-flex items-center gap-[3px] align-middle py-px px-1.5 mx-0.5 rounded-md bg-blue-200/80 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-xs font-medium leading-[18px] cursor-pointer select-none whitespace-nowrap max-w-[200px] hover:bg-blue-300 dark:hover:bg-blue-900/60 transition-colors"
         >
           <FileText className="size-3 shrink-0" />
           <span className="overflow-hidden text-ellipsis">{label}</span>

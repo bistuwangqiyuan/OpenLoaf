@@ -252,6 +252,8 @@
     "xaiKey": "xAI API Key"
   },
   "quickLaunch": {
+    "projectSpace": "项目",
+    "smartCanvas": "画布",
     "workbench": "看板",
     "calendar": "日历",
     "mailbox": "邮箱",

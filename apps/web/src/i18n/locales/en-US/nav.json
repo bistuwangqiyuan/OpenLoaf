@@ -66,7 +66,8 @@
       "success": "Feedback submitted",
       "failedWithMessage": "Submission failed: {{message}}",
       "failed": "Submission failed, please try again later",
-      "includeLogs": "Include app logs (helps diagnose issues)",
+      "includeLogs": "Include app logs (runtime info only, no personal data)",
+      "includeChatHistory": "Include recent AI chat history (may contain conversation content, used only to improve the product)",
       "types": {
         "ui": "UI Experience",
         "performance": "Performance",

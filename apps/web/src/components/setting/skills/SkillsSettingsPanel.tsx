@@ -437,7 +437,7 @@ export function SkillsSettingsPanel({ projectId }: SkillsSettingsPanelProps) {
               placeholder={t('skills.searchPlaceholder')}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-9 rounded-xl border-border/70 bg-background/90 pl-9 pr-9 text-sm"
+              className="h-9 rounded-lg border-border/70 bg-background/90 pl-9 pr-9 text-sm"
             />
             {searchQuery ? (
               <Button

@@ -19,6 +19,8 @@ import { useChatActions, useChatSession, useChatState } from "./context";
 import { useChatSessions } from "@/hooks/use-chat-sessions";
 import { useAppView } from "@/hooks/use-app-view";
 import { useLayoutState } from "@/hooks/use-layout-state";
+import { useNavigation } from "@/hooks/use-navigation";
+import i18next from "i18next";
 import { generateId } from "ai";
 import * as React from "react";
 import { motion } from "motion/react";
@@ -225,14 +227,18 @@ function QuickLaunchBar({ projectId }: { projectId?: string }) {
 
   const handleGlobalQuickLaunch = React.useCallback(
     (item: (typeof QUICK_LAUNCH_ITEMS)[number]) => {
-      // 在当前视图左侧面板打开，保持右侧 AI 聊天。
       const layout = useLayoutState.getState()
+      const appView = useAppView.getState()
+      // 与 Sidebar 导航行为一致：设置视图类型、清除 stack、退出项目模式。
+      useNavigation.getState().setActiveView(item.viewType as any)
       layout.setBase({ id: item.baseId, component: item.component })
-      layout.setLeftWidthPercent(100)
-      useAppView.getState().setTitle(t(item.titleKey))
-      useAppView.getState().setIcon(item.tabIcon)
+      layout.clearStack()
+      appView.setTitle(i18next.t(item.titleKey))
+      appView.setIcon(item.tabIcon)
+      appView.setProjectShell(null)
+      layout.setRightChatCollapsed(true)
     },
-    [t],
+    [],
   )
 
   const handleProjectQuickLaunch = React.useCallback(

@@ -277,6 +277,9 @@ function RightChatPanel() {
             tabId="main"
             {...(appView.chatParams ?? {})}
             active={true}
+            onSessionChange={(sessionId, options) => {
+              appView.setChatSession(sessionId, options?.loadHistory)
+            }}
           />
         </div>
       </div>

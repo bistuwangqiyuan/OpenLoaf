@@ -66,7 +66,8 @@
       "success": "反馈已提交",
       "failedWithMessage": "反馈提交失败：{{message}}",
       "failed": "反馈提交失败，请稍后重试",
-      "includeLogs": "附带应用日志（帮助定位问题）",
+      "includeLogs": "附带应用日志（仅含运行状态，不含个人数据）",
+      "includeChatHistory": "附带最近的 AI 聊天记录（可能包含对话内容，仅用于改进产品）",
       "types": {
         "ui": "界面体验",
         "performance": "性能问题",

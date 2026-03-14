@@ -19,6 +19,7 @@ import { Header } from "@/components/layout/header/Header";
 import { AppSidebar } from "@/components/layout/sidebar/Sidebar";
 import { MainContent } from "@/components/layout/MainContext";
 import { cn } from "@/lib/utils";
+import { FeedbackDialog } from "@/components/layout/sidebar/FeedbackDialog";
 
 function PageContent() {
   return (
@@ -33,6 +34,7 @@ function PageContent() {
           <MainContent />
         </SidebarInset>
       </div>
+      <FeedbackDialog />
     </>
   );
 }
