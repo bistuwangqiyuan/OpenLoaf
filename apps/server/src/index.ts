@@ -23,9 +23,10 @@ import { syncSystemProxySettings } from "@/modules/proxy/systemProxySync";
 import { getAppConfig } from "@openloaf/api/services/appConfigService";
 import { migrateLegacyServerData } from "@openloaf/config";
 import { ensureDefaultAgentCleanup } from "@/ai/shared/agentCleanup";
-import { initDatabase } from "@openloaf/db";
+import { initDatabase, prisma } from "@openloaf/db";
 import { runPendingMigrations } from "@openloaf/db/migrationRunner";
 import { embeddedMigrations } from "@openloaf/db/migrations.generated";
+import { ensureMicroAiCompany } from "@/bootstrap/ensureMicroAiCompany";
 
 // 修复 PATH：当 server 作为 Electron 子进程运行时，继承的 PATH 可能不完整。
 // 从用户 shell（macOS/Linux）或注册表（Windows）读取完整 PATH。
@@ -58,6 +59,7 @@ if (applied.length > 0) {
 // 初始化 SQLite WAL 模式和 busy_timeout，必须在 startServer 之前完成，
 // 避免并发请求时触发 SQLITE_BUSY。
 await initDatabase();
+await ensureMicroAiCompany(prisma);
 
 const { app } = startServer();
 // 暂停启动时自动总结调度，避免无项目上下文时触发总结流程。

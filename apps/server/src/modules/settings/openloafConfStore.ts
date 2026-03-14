@@ -53,7 +53,7 @@ const DEFAULT_BASIC_CONF: BasicConf = {
   modelSoundEnabled: true,
   autoSummaryEnabled: true,
   autoSummaryHours: [0, 8, 12, 17],
-  uiLanguage: null,
+  uiLanguage: "zh-CN",
   uiFontSize: "medium",
   // UI animation intensity.
   uiAnimationLevel: "high",

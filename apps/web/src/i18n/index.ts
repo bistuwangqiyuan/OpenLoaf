@@ -9,7 +9,6 @@
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { detectSystemLanguage } from './detectLanguage';
 import { SUPPORTED_UI_LANGUAGES } from './types';
 
 // Import all translation files (static import for static export + Electron compatibility)
@@ -63,7 +62,7 @@ function getInitialLanguage(): string {
       // localStorage may be unavailable (SSR, privacy mode, etc.)
     }
   }
-  return detectSystemLanguage();
+  return 'zh-CN';
 }
 
 // Initialize react-i18next
