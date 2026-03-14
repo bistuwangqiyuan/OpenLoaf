@@ -1,0 +1,72 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "desktop", "desktop", "{BEEBFA7C-7F97-CB0F-CEE6-EE38567484E9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "helpers", "helpers", "{34DE7693-7CB1-A8B4-0C4C-3294290AF9A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenLoafDocxSfdt", "apps\desktop\helpers\docx-sfdt\OpenLoafDocxSfdt.csproj", "{3F85C691-2902-9CA0-FB33-9A8810B5DEF8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{7094E3CD-7A7A-4E36-CB7E-0766EBBF63F0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "calendar", "calendar", "{44B3760C-A0F1-BC00-A635-018CA37FBE99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenLoafCalendar", "apps\desktop\resources\calendar\windows\OpenLoafCalendar.csproj", "{CCF53373-9734-CD80-7DBC-9B026D33A9F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TenasCalendar", "apps\desktop\resources\calendar\windows\TenasCalendar.csproj", "{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "speech", "speech", "{9D6B4C0F-2E33-DD49-3675-176F6C5157B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenLoafSpeech", "apps\desktop\resources\speech\windows\OpenLoafSpeech.csproj", "{780281B0-E24C-C742-33AE-6E994091B774}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TenasSpeech", "apps\desktop\resources\speech\windows\TenasSpeech.csproj", "{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F85C691-2902-9CA0-FB33-9A8810B5DEF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F85C691-2902-9CA0-FB33-9A8810B5DEF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F85C691-2902-9CA0-FB33-9A8810B5DEF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F85C691-2902-9CA0-FB33-9A8810B5DEF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCF53373-9734-CD80-7DBC-9B026D33A9F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCF53373-9734-CD80-7DBC-9B026D33A9F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCF53373-9734-CD80-7DBC-9B026D33A9F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCF53373-9734-CD80-7DBC-9B026D33A9F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{780281B0-E24C-C742-33AE-6E994091B774}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{780281B0-E24C-C742-33AE-6E994091B774}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{780281B0-E24C-C742-33AE-6E994091B774}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{780281B0-E24C-C742-33AE-6E994091B774}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BEEBFA7C-7F97-CB0F-CEE6-EE38567484E9} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{34DE7693-7CB1-A8B4-0C4C-3294290AF9A0} = {BEEBFA7C-7F97-CB0F-CEE6-EE38567484E9}
+		{3F85C691-2902-9CA0-FB33-9A8810B5DEF8} = {34DE7693-7CB1-A8B4-0C4C-3294290AF9A0}
+		{7094E3CD-7A7A-4E36-CB7E-0766EBBF63F0} = {BEEBFA7C-7F97-CB0F-CEE6-EE38567484E9}
+		{44B3760C-A0F1-BC00-A635-018CA37FBE99} = {7094E3CD-7A7A-4E36-CB7E-0766EBBF63F0}
+		{CCF53373-9734-CD80-7DBC-9B026D33A9F8} = {44B3760C-A0F1-BC00-A635-018CA37FBE99}
+		{CC85E3A8-8C81-CDC9-B155-14C70AEC4F6E} = {44B3760C-A0F1-BC00-A635-018CA37FBE99}
+		{9D6B4C0F-2E33-DD49-3675-176F6C5157B5} = {7094E3CD-7A7A-4E36-CB7E-0766EBBF63F0}
+		{780281B0-E24C-C742-33AE-6E994091B774} = {9D6B4C0F-2E33-DD49-3675-176F6C5157B5}
+		{F173A4F9-4B3C-6339-87A3-9AE0FF3CCDCE} = {9D6B4C0F-2E33-DD49-3675-176F6C5157B5}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {821235BB-E811-4957-A5E2-5D4C3B79D8F1}
+	EndGlobalSection
+EndGlobal
